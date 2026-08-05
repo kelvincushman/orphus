@@ -4,17 +4,19 @@ import type { Theme } from "../theme/theme.ts";
 import { theme } from "../theme/theme.ts";
 
 const ORPHUS_FORALL_BANNER_LINES: readonly string[] = [
-	"  ██████▙                  ▟██████  ",
-	"   ██████▙                ▟██████   ",
-	"    ██████▙              ▟██████    ",
-	"     ██████▙            ▟██████     ",
-	"      ████████████████████████      ",
-	"       ██████▛        ▜██████       ",
-	"        ██████▛      ▜██████        ",
-	"         ██████▛    ▜██████         ",
-	"          ██████▛  ▜██████          ",
-	"            ████████████            ",
+	" ██████╗ ██████╗ ██████╗ ██╗  ██╗██╗   ██╗███████╗",
+	"██╔═══██╗██╔══██╗██╔══██╗██║  ██║██║   ██║██╔════╝",
+	"██║   ██║██████╔╝██████╔╝███████║██║   ██║███████╗",
+	"██║   ██║██╔══██╗██╔═══╝ ██╔══██║██║   ██║╚════██║",
+	"╚██████╔╝██║  ██║██║     ██║  ██║╚██████╔╝███████║",
+	" ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚══════╝",
 ];
+
+/** Column where the two banner halves meet during the assembly animation. */
+const BANNER_SPLIT_COLUMN = 25;
+
+/** Box-drawing outline glyphs get the dim 'digital rain' treatment; solid blocks stay bright. */
+const OUTLINE_CHARS = new Set(["╔", "╗", "╚", "╝", "═", "║"]);
 
 export const STARTUP_ASSEMBLY_GAPS = [10, 8, 6, 4, 3, 2, 1, 1, 0] as const;
 export const STARTUP_FRAME_MS = 80;
@@ -47,14 +49,15 @@ function noColorRequested(): boolean {
 export function renderAtomicAssemblyBanner(gap: number, activeTheme: Theme, thinkingLevel: ThinkingLevel): string[] {
 	const colorize = activeTheme.getThinkingBorderColor(thinkingLevel);
 	const solid = (text: string) => activeTheme.bold(noColorRequested() ? text : colorize(text));
+	const paint = (char: string) => {
+		if (char === " ") return char;
+		if (char === SHADOW_CHAR || OUTLINE_CHARS.has(char)) {
+			return noColorRequested() ? char : activeTheme.fg("dim", char);
+		}
+		return solid(char);
+	};
 	if (gap <= 0) {
-		return shadowGrid().map((line) =>
-			[...line]
-				.map((char) =>
-					char === SHADOW_CHAR ? (noColorRequested() ? char : activeTheme.fg("dim", char)) : solid(char),
-				)
-				.join(""),
-		);
+		return shadowGrid().map((line) => [...line].map(paint).join(""));
 	}
 	const width = ORPHUS_FORALL_BANNER_LINES[0]!.length;
 	return [
@@ -62,8 +65,8 @@ export function renderAtomicAssemblyBanner(gap: number, activeTheme: Theme, thin
 			const cells = Array<string>(width).fill(" ");
 			for (const [column, char] of [...line].entries()) {
 				if (char === " ") continue;
-				const shifted = column < 18 ? column - gap : column + gap;
-				if (shifted >= 0 && shifted < width) cells[shifted] = solid(char);
+				const shifted = column < BANNER_SPLIT_COLUMN ? column - gap : column + gap;
+				if (shifted >= 0 && shifted < width) cells[shifted] = paint(char);
 			}
 			return cells.join("");
 		}),
