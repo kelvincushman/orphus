@@ -53,7 +53,7 @@ messages intact verbatim and only early exploration collapsed.
 ## Quickstart
 
 ```bash
-git clone <this-repo> orphus && cd orphus
+git clone https://github.com/kelvincushman/orphus.git orphus && cd orphus
 bun install
 bun run demo        # scripted 3-agent discussion + late-joining reviewer, no model needed
 bun run test        # 19 tests: digest bound, room store, real-socket integration
