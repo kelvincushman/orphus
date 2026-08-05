@@ -20,11 +20,13 @@ function expandTildePath(path: string): string {
 }
 
 function getAgentDir(): string {
+  const orphusAgentDir = process.env.ORPHUS_CODING_AGENT_DIR;
+  if (orphusAgentDir) return expandTildePath(orphusAgentDir);
   const atomicAgentDir = process.env.ATOMIC_CODING_AGENT_DIR;
   if (atomicAgentDir) return expandTildePath(atomicAgentDir);
   const piAgentDir = process.env.PI_CODING_AGENT_DIR;
   if (piAgentDir) return expandTildePath(piAgentDir);
-  return join(getHomeDir(), ".atomic", "agent");
+  return join(getHomeDir(), ".orphus", "agent");
 }
 
 function sanitizePipeSegment(value: string): string {

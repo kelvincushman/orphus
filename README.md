@@ -109,12 +109,16 @@ post conclusions not transcripts, digest before deciding, one room per concern.
 
 ```bash
 cd your-atomic-fork
-git am path/to/orphus/patches/atomic/0001-*.patch
+git am path/to/orphus/patches/atomic/*.patch
 bun install && bun run typecheck
 ```
 
-The patch adds the full `packages/roundtable` package, 20 repo-root tests, and
-tsconfig wiring. Verified against atomic `d84fc43`.
+Two patches, applied in order: `0001` adds the full `packages/roundtable`
+package with 20 repo-root tests and tsconfig wiring; `0002` is the complete
+Orphus rebrand (terminal branding, `orphus` binary, `/orphus` guide command,
+`ORPHUS_*` env vars, `.orphus` config dir — with Atomic and Pi manifests,
+config dirs, and env names still accepted as legacy fallbacks). Verified
+against atomic `d84fc43`: strict typecheck clean, ~5,000 unit tests passing.
 
 ## Orchestrating a fleet with Orca
 
@@ -128,6 +132,15 @@ name, point them all at the default agent dir, and prompt each to join the task 
 Open any agent's transcript in Orca: a handful of one-line pings and small digests,
 while the full deliberation lives in the room. That asymmetry is the point — and the
 demo. Full guide: [docs/orca-integration.md](docs/orca-integration.md).
+
+## Multi-model roles
+
+Deliberation improves when roles run on different models — distinct models
+disagree more usefully. Rooms key everything by role name (`planner`, `critic`),
+so any LLM can sit behind any role, and you can mix providers freely: Claude as
+planner, a fast cheap model as researcher, a different family as critic. Launch
+recipes, role briefs, and the phase-2 declarative role manifest:
+[docs/roles.md](docs/roles.md).
 
 ## Roadmap: the self-improving harness
 

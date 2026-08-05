@@ -11,7 +11,7 @@ install them is the patch series:
 
 ```bash
 cd your-atomic-fork
-git am path/to/orphus/patches/atomic/0001-*.patch
+git am path/to/orphus/patches/atomic/*.patch
 bun install && bun run typecheck
 ./node_modules/.bin/vitest --run --project unit test/unit/roundtable
 ```

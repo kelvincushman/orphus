@@ -22,7 +22,7 @@ exactly roundtable's trust boundary. To have a fleet of Orca-spawned sessions
 share a discussion room:
 
 - Set a shared agent dir so all worktrees hit the same broker:
-  `ATOMIC_CODING_AGENT_DIR=~/.atomic/agent` (the default already is shared).
+  `ORPHUS_CODING_AGENT_DIR=~/.atomic/agent` (the default already is shared).
 - Give each worktree a role name (`--session-name planner`, etc.) so cursors
   and attribution are stable.
 - Prompt each agent to `join` the task room, e.g. `#orca-task-123`, post

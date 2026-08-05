@@ -1,8 +1,8 @@
 From 4794bcc0b05cfd0a71df29c2de4b7b1c49261437 Mon Sep 17 00:00:00 2001
 From: Kelvin Lee <kelvin.cushman@gmail.com>
 Date: Wed, 5 Aug 2026 21:18:41 +0100
-Subject: [PATCH] feat(roundtable): group chat rooms for agent sessions with
- budgeted digests
+Subject: [PATCH 1/2] feat(roundtable): group chat rooms for agent sessions
+ with budgeted digests
 
 Adds @bastani/roundtable: a broker-based group discussion layer where the
 room transcript lives outside every session's context window. Members get
