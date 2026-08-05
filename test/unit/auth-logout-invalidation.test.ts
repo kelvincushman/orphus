@@ -124,7 +124,7 @@ describe("logout credential invalidation (#1919)", () => {
 			provider: "anthropic",
 			model: "claude-sonnet-4-5",
 			env: {
-				ATOMIC_CODING_AGENT_DIR: directory,
+				ORPHUS_CODING_AGENT_DIR: directory,
 				ANTHROPIC_API_KEY: "",
 				ANTHROPIC_OAUTH_TOKEN: "",
 			},
@@ -178,7 +178,7 @@ describe("logout credential invalidation (#1919)", () => {
 				runtimeExecutable: bunExecutable(),
 				provider: "github-copilot",
 				model: "claude-haiku-4.5",
-				env: { ATOMIC_CODING_AGENT_DIR: directory, COPILOT_GITHUB_TOKEN: "" },
+				env: { ORPHUS_CODING_AGENT_DIR: directory, COPILOT_GITHUB_TOKEN: "" },
 				args: [
 					"--no-session",
 					"--no-extensions",
@@ -236,7 +236,7 @@ describe("logout credential invalidation (#1919)", () => {
 			cliPath: join(moduleDir(import.meta.url), "../../packages/coding-agent/src/cli.ts"),
 			cwd: join(moduleDir(import.meta.url), "../.."),
 			runtimeExecutable: bunExecutable(),
-			env: { ATOMIC_CODING_AGENT_DIR: directory, ANTHROPIC_API_KEY: "environment-key", ANTHROPIC_OAUTH_TOKEN: "" },
+			env: { ORPHUS_CODING_AGENT_DIR: directory, ANTHROPIC_API_KEY: "environment-key", ANTHROPIC_OAUTH_TOKEN: "" },
 			args: ["--no-session", "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-themes", "--offline"],
 			interactiveEngine: { onDiagnostic: () => {} },
 		});

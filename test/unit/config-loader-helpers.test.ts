@@ -184,7 +184,7 @@ describe("withWorkflowDefaults — WORKFLOW_CONFIG_DEFAULTS constants", () => {
 
 const PROJ_ROOT = "/home/user/myproject";
 const HOME_DIR = "/home/user";
-const GLOBAL_BASE = join(HOME_DIR, ".atomic", "agent");
+const GLOBAL_BASE = join(HOME_DIR, ".orphus", "agent");
 const OPTS = { projectRoot: PROJ_ROOT, homeDir: HOME_DIR };
 
 describe("toScopedDiscoveryConfig — null inputs", () => {
@@ -234,13 +234,13 @@ describe("toScopedDiscoveryConfig — global-only", () => {
 		assert.equal("projectWorkflows" in r, false);
 	});
 
-	test("globalConfig with relative path → resolved under <homeDir>/.atomic/agent", () => {
+	test("globalConfig with relative path → resolved under <homeDir>/.orphus/agent", () => {
 		const global: WorkflowExtensionConfig = { workflows: { shared: { path: "workflows/shared.ts" } } };
 		const r = toScopedDiscoveryConfig(global, null, OPTS);
 		assert.deepEqual(r.globalWorkflows, { shared: join(GLOBAL_BASE, "workflows/shared.ts") });
 	});
 
-	test("globalConfig with dot-relative path → resolved under <homeDir>/.atomic/agent", () => {
+	test("globalConfig with dot-relative path → resolved under <homeDir>/.orphus/agent", () => {
 		const global: WorkflowExtensionConfig = {
 			workflows: { g: { path: "../../packages/workflows/src/extension/g.ts" } },
 		};

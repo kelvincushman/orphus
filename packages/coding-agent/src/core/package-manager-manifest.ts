@@ -8,6 +8,11 @@ export function getManifestFromPackageJson(pkg: Record<string, unknown>): PiMani
 	if (appManifest && typeof appManifest === "object" && !Array.isArray(appManifest)) {
 		return appManifest as PiManifest;
 	}
+	// Fork lineage: accept Atomic extension manifests so the existing ecosystem keeps working under Orphus.
+	const atomicManifest = pkg.atomic;
+	if (atomicManifest && typeof atomicManifest === "object" && !Array.isArray(atomicManifest)) {
+		return atomicManifest as PiManifest;
+	}
 	const legacyManifest = pkg.pi;
 	if (legacyManifest && typeof legacyManifest === "object" && !Array.isArray(legacyManifest)) {
 		return legacyManifest as PiManifest;

@@ -35,7 +35,7 @@ describe("model refresh timeout boundaries", () => {
 	});
 
 	it("treats a false offline flag as online", async () => {
-		vi.stubEnv("ATOMIC_OFFLINE", "0");
+		vi.stubEnv("ORPHUS_OFFLINE", "0");
 		vi.stubEnv("PI_OFFLINE", "");
 		let createSignal: AbortSignal | undefined;
 		vi.spyOn(ModelRuntime.prototype, "refresh").mockImplementation(async (options = {}) => {

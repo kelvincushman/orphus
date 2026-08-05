@@ -43,7 +43,7 @@ describe("coding-agent builtin resources", () => {
 
 	test("discovers shipped binary adjacent builtin packages", () => {
 		const packageDir = tempDir("atomic-binary-package-dir-");
-		const previousPackageDir = process.env.ATOMIC_PACKAGE_DIR;
+		const previousPackageDir = process.env.ORPHUS_PACKAGE_DIR;
 		try {
 			for (const fixture of builtinPackageFixtures) {
 				const builtinDir = join(packageDir, "builtin", fixture.dirname);
@@ -52,15 +52,15 @@ describe("coding-agent builtin resources", () => {
 				writeFileSync(join(builtinDir, "package.json"), JSON.stringify({ name: fixture.packageName }), "utf-8");
 				writeFileSync(entryPath, "export default function register() {}\n", "utf-8");
 			}
-			process.env.ATOMIC_PACKAGE_DIR = packageDir;
+			process.env.ORPHUS_PACKAGE_DIR = packageDir;
 
 			assert.deepEqual(
 				getBuiltinPackagePaths(),
 				builtinPackageFixtures.map((fixture) => join(packageDir, "builtin", fixture.dirname)),
 			);
 		} finally {
-			if (previousPackageDir === undefined) delete process.env.ATOMIC_PACKAGE_DIR;
-			else process.env.ATOMIC_PACKAGE_DIR = previousPackageDir;
+			if (previousPackageDir === undefined) delete process.env.ORPHUS_PACKAGE_DIR;
+			else process.env.ORPHUS_PACKAGE_DIR = previousPackageDir;
 		}
 	});
 

@@ -33,7 +33,7 @@ function text(result: Awaited<ReturnType<ReturnType<typeof createBashTool>["exec
 }
 
 const printSessionEnvironment =
-	'printf \'%s\\n\' "$ATOMIC_SESSION_ID" "$PI_SESSION_ID" "$ATOMIC_SESSION_FILE" "$PI_SESSION_FILE" "$ATOMIC_PROVIDER" "$PI_PROVIDER" "$ATOMIC_MODEL" "$PI_MODEL" "$ATOMIC_REASONING_LEVEL" "$PI_REASONING_LEVEL"';
+	'printf \'%s\\n\' "$ORPHUS_SESSION_ID" "$PI_SESSION_ID" "$ORPHUS_SESSION_FILE" "$PI_SESSION_FILE" "$ORPHUS_PROVIDER" "$PI_PROVIDER" "$ORPHUS_MODEL" "$PI_MODEL" "$ORPHUS_REASONING_LEVEL" "$PI_REASONING_LEVEL"';
 
 async function createSession(options: { persisted?: boolean; stage?: string } = {}) {
 	const { cwd, agentDir } = makeRoot();
@@ -103,14 +103,14 @@ describe("session-aware bash environment", () => {
 	});
 
 	it("clears inherited session metadata for unsaved sessions instead of leaking stale values", async () => {
-		const stale = ["ATOMIC_SESSION_FILE", "PI_SESSION_FILE", "ATOMIC_PROVIDER", "PI_PROVIDER"] as const;
+		const stale = ["ORPHUS_SESSION_FILE", "PI_SESSION_FILE", "ORPHUS_PROVIDER", "PI_PROVIDER"] as const;
 		const previous = Object.fromEntries(stale.map((key) => [key, process.env[key]]));
 		for (const key of stale) process.env[key] = "stale-other-session";
 		try {
 			const { session } = await createSession({ persisted: false });
 			const bash = session.agent.state.tools.find((tool) => tool.name === "bash")!;
 			const shellExpansionStart = "${";
-			const command = `printf '%s\\n' "${shellExpansionStart}ATOMIC_SESSION_FILE-unset}" "${shellExpansionStart}PI_SESSION_FILE-unset}" "$ATOMIC_PROVIDER" "$PI_PROVIDER"`;
+			const command = `printf '%s\\n' "${shellExpansionStart}ORPHUS_SESSION_FILE-unset}" "${shellExpansionStart}PI_SESSION_FILE-unset}" "$ORPHUS_PROVIDER" "$PI_PROVIDER"`;
 			const lines = text(await bash.execute("unsaved", { command }))
 				.trim()
 				.split("\n");
@@ -197,22 +197,22 @@ describe("session-aware bash environment", () => {
 		await bash.execute("factory-2", { command: "ignored" });
 		expect(captures[0]).toMatchObject({
 			KEEP_VERBATIM: "  raw value  ",
-			ATOMIC_SESSION_ID: session.sessionId,
+			ORPHUS_SESSION_ID: session.sessionId,
 			PI_SESSION_ID: session.sessionId,
-			ATOMIC_MODEL: model.id,
+			ORPHUS_MODEL: model.id,
 			PI_MODEL: model.id,
-			ATOMIC_REASONING_LEVEL: "high",
+			ORPHUS_REASONING_LEVEL: "high",
 			PI_REASONING_LEVEL: "high",
 		});
 		expect(captures[1]).toMatchObject({
-			ATOMIC_PROVIDER: switchedModel.provider,
+			ORPHUS_PROVIDER: switchedModel.provider,
 			PI_PROVIDER: switchedModel.provider,
-			ATOMIC_MODEL: switchedModel.id,
+			ORPHUS_MODEL: switchedModel.id,
 			PI_MODEL: switchedModel.id,
-			ATOMIC_REASONING_LEVEL: "minimal",
+			ORPHUS_REASONING_LEVEL: "minimal",
 			PI_REASONING_LEVEL: "minimal",
 		});
-		expect(hookCaptures[0]).toMatchObject({ ATOMIC_SESSION_ID: session.sessionId, PI_SESSION_ID: session.sessionId });
+		expect(hookCaptures[0]).toMatchObject({ ORPHUS_SESSION_ID: session.sessionId, PI_SESSION_ID: session.sessionId });
 		session.dispose();
 	});
 
@@ -225,7 +225,7 @@ describe("session-aware bash environment", () => {
 		const releasePath = join(cwd, releaseName);
 		try {
 			const started = await bash.execute("async-metadata", {
-				command: `{ while [ ! -f '${releaseName}' ]; do sleep 0.01; done; printf '%s:%s' "$ATOMIC_SESSION_ID" "$PI_SESSION_ID"; } > '${outputName}'`,
+				command: `{ while [ ! -f '${releaseName}' ]; do sleep 0.01; done; printf '%s:%s' "$ORPHUS_SESSION_ID" "$PI_SESSION_ID"; } > '${outputName}'`,
 				async: true,
 			});
 			const jobId = started.details?.async?.jobId;
@@ -281,7 +281,7 @@ describe("session-aware bash environment", () => {
 		const stage = await createSession({ persisted: false, stage: "stage-one" });
 		const mainBash = main.session.agent.state.tools.find((tool) => tool.name === "bash")!;
 		const stageBash = stage.session.agent.state.tools.find((tool) => tool.name === "bash")!;
-		const command = 'printf \'%s:%s\\n\' "$ATOMIC_SESSION_ID" "$PI_SESSION_ID"';
+		const command = 'printf \'%s:%s\\n\' "$ORPHUS_SESSION_ID" "$PI_SESSION_ID"';
 		const [mainResult, stageResult] = await Promise.all([
 			mainBash.execute("main", { command }),
 			stageBash.execute("stage", { command }),

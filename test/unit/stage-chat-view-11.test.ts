@@ -132,8 +132,8 @@ describe("StageChatView", () => {
 	});
 
 	test("agent lifecycle starts and stops the Pi-style animation tick", () => {
-		const previousReducedMotion = process.env.ATOMIC_REDUCED_MOTION;
-		delete process.env.ATOMIC_REDUCED_MOTION;
+		const previousReducedMotion = process.env.ORPHUS_REDUCED_MOTION;
+		delete process.env.ORPHUS_REDUCED_MOTION;
 		const store = createStore();
 		setupRun(store, "run-1", "stage-a");
 		const { handle, emit } = makeHandle();
@@ -155,8 +155,8 @@ describe("StageChatView", () => {
 			assert.equal(view._hasAnimationTick, false);
 		} finally {
 			view.dispose();
-			if (previousReducedMotion === undefined) delete process.env.ATOMIC_REDUCED_MOTION;
-			else process.env.ATOMIC_REDUCED_MOTION = previousReducedMotion;
+			if (previousReducedMotion === undefined) delete process.env.ORPHUS_REDUCED_MOTION;
+			else process.env.ORPHUS_REDUCED_MOTION = previousReducedMotion;
 		}
 	});
 
@@ -217,8 +217,8 @@ describe("StageChatView", () => {
 	});
 
 	test("Escape pause stops and fences the workflow-stage working timer without store cleanup", async () => {
-		const previousReducedMotion = process.env.ATOMIC_REDUCED_MOTION;
-		delete process.env.ATOMIC_REDUCED_MOTION;
+		const previousReducedMotion = process.env.ORPHUS_REDUCED_MOTION;
+		delete process.env.ORPHUS_REDUCED_MOTION;
 		const timers = installLifecycleFakeClock();
 		const store = createStore();
 		setupRun(store, "run-1", "stage-a");
@@ -268,8 +268,8 @@ describe("StageChatView", () => {
 		} finally {
 			view.dispose();
 			timers.restore();
-			if (previousReducedMotion === undefined) delete process.env.ATOMIC_REDUCED_MOTION;
-			else process.env.ATOMIC_REDUCED_MOTION = previousReducedMotion;
+			if (previousReducedMotion === undefined) delete process.env.ORPHUS_REDUCED_MOTION;
+			else process.env.ORPHUS_REDUCED_MOTION = previousReducedMotion;
 		}
 	});
 

@@ -1,5 +1,5 @@
 // @generated vendored verbatim from oh-my-pi packages/hashline @ 15b5c1397fc -- DO NOT EDIT.
-// Parity source for the Atomic hashline edit engine (issue #1483); adapted only for Atomic's Node runtime (relative imports, Bun->Node host calls, erasable constructor syntax).
+// Parity source for the Orphus hashline edit engine (issue #1483); adapted only for Orphus's Node runtime (relative imports, Bun->Node host calls, erasable constructor syntax).
 /**
  * High-level patch orchestrator. Reads each section's target file via the
  * configured {@link Filesystem}, strips BOM and normalizes line endings,

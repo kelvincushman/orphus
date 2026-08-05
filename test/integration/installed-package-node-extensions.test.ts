@@ -63,7 +63,7 @@ const nodeExe = findRealNode();
 // after the package build). Other contexts without a prepared dist skip
 // gracefully; the same commit's npm-under-Node coverage is enforced by the
 // test.yml gate on branch pushes and pull requests.
-const requireSmoke = process.env.ATOMIC_REQUIRE_INSTALLED_NODE_SMOKE === "1";
+const requireSmoke = process.env.ORPHUS_REQUIRE_INSTALLED_NODE_SMOKE === "1";
 if (requireSmoke) {
 	assert.ok(distBuilt, "packages/coding-agent/dist/cli.js missing — run the build step before the integration tests");
 	assert.ok(

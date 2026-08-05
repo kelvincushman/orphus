@@ -38,12 +38,12 @@ function fixture(options: { child?: boolean; childSessionName?: string; authoriz
 			},
 		},
 	};
-	const priorOrchestratorTarget = process.env.ATOMIC_SUBAGENT_ORCHESTRATOR_TARGET;
-	const priorSessionName = process.env.ATOMIC_SUBAGENT_INTERCOM_SESSION_NAME;
-	if (options.child) process.env.ATOMIC_SUBAGENT_ORCHESTRATOR_TARGET = "parent";
-	else delete process.env.ATOMIC_SUBAGENT_ORCHESTRATOR_TARGET;
-	if (options.childSessionName) process.env.ATOMIC_SUBAGENT_INTERCOM_SESSION_NAME = options.childSessionName;
-	else delete process.env.ATOMIC_SUBAGENT_INTERCOM_SESSION_NAME;
+	const priorOrchestratorTarget = process.env.ORPHUS_SUBAGENT_ORCHESTRATOR_TARGET;
+	const priorSessionName = process.env.ORPHUS_SUBAGENT_INTERCOM_SESSION_NAME;
+	if (options.child) process.env.ORPHUS_SUBAGENT_ORCHESTRATOR_TARGET = "parent";
+	else delete process.env.ORPHUS_SUBAGENT_ORCHESTRATOR_TARGET;
+	if (options.childSessionName) process.env.ORPHUS_SUBAGENT_INTERCOM_SESSION_NAME = options.childSessionName;
+	else delete process.env.ORPHUS_SUBAGENT_INTERCOM_SESSION_NAME;
 	intercom(pi as never, {
 		async importHeavy() {
 			imports += 1;
@@ -79,10 +79,10 @@ function fixture(options: { child?: boolean; childSessionName?: string; authoriz
 			};
 		},
 	});
-	if (priorOrchestratorTarget === undefined) delete process.env.ATOMIC_SUBAGENT_ORCHESTRATOR_TARGET;
-	else process.env.ATOMIC_SUBAGENT_ORCHESTRATOR_TARGET = priorOrchestratorTarget;
-	if (priorSessionName === undefined) delete process.env.ATOMIC_SUBAGENT_INTERCOM_SESSION_NAME;
-	else process.env.ATOMIC_SUBAGENT_INTERCOM_SESSION_NAME = priorSessionName;
+	if (priorOrchestratorTarget === undefined) delete process.env.ORPHUS_SUBAGENT_ORCHESTRATOR_TARGET;
+	else process.env.ORPHUS_SUBAGENT_ORCHESTRATOR_TARGET = priorOrchestratorTarget;
+	if (priorSessionName === undefined) delete process.env.ORPHUS_SUBAGENT_INTERCOM_SESSION_NAME;
+	else process.env.ORPHUS_SUBAGENT_INTERCOM_SESSION_NAME = priorSessionName;
 	const ctx = { hasUI: true };
 	async function emit(name: string, event: Record<string, unknown>, context = ctx): Promise<void> {
 		for (const handler of handlers.get(name) ?? []) await handler(event, context);

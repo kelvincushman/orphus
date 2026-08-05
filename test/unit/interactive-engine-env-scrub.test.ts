@@ -13,35 +13,35 @@ import { DefaultMainDriver } from "./fixtures/default-main-driver.ts";
 const serialTest = process.platform === "win32" ? test.sequential.skip : test.sequential;
 
 const ENGINE_ENV: Record<string, string> = {
-	ATOMIC_INTERACTIVE_ENGINE_CHILD: "1",
-	ATOMIC_INTERACTIVE_ENGINE_HOST_PID: "4242",
-	ATOMIC_INTERACTIVE_ENGINE_GUARD_FILE: "/tmp/atomic-engine-guardian-4242",
-	ATOMIC_INTERACTIVE_ENGINE_API_KEY: "sk-should-never-reach-a-child",
+	ORPHUS_INTERACTIVE_ENGINE_CHILD: "1",
+	ORPHUS_INTERACTIVE_ENGINE_HOST_PID: "4242",
+	ORPHUS_INTERACTIVE_ENGINE_GUARD_FILE: "/tmp/atomic-engine-guardian-4242",
+	ORPHUS_INTERACTIVE_ENGINE_API_KEY: "sk-should-never-reach-a-child",
 };
 
 test("the engine env list covers exactly the four control variables", () => {
 	assert.deepEqual(
 		[...INTERACTIVE_ENGINE_ENV_VARS],
 		[
-			"ATOMIC_INTERACTIVE_ENGINE_CHILD",
-			"ATOMIC_INTERACTIVE_ENGINE_HOST_PID",
-			"ATOMIC_INTERACTIVE_ENGINE_GUARD_FILE",
-			"ATOMIC_INTERACTIVE_ENGINE_API_KEY",
+			"ORPHUS_INTERACTIVE_ENGINE_CHILD",
+			"ORPHUS_INTERACTIVE_ENGINE_HOST_PID",
+			"ORPHUS_INTERACTIVE_ENGINE_GUARD_FILE",
+			"ORPHUS_INTERACTIVE_ENGINE_API_KEY",
 		],
 	);
 });
 
 test("scrubInteractiveEngineEnv removes every engine key, preserves the rest, and does not mutate its input", () => {
-	const input: NodeJS.ProcessEnv = { ...ENGINE_ENV, PATH: "/usr/bin", ATOMIC_SESSION_ID: "abc", EMPTY: "" };
+	const input: NodeJS.ProcessEnv = { ...ENGINE_ENV, PATH: "/usr/bin", ORPHUS_SESSION_ID: "abc", EMPTY: "" };
 	const scrubbed = scrubInteractiveEngineEnv(input);
 	for (const name of INTERACTIVE_ENGINE_ENV_VARS) {
 		assert.equal(scrubbed[name], undefined, `${name} survived the scrub`);
 		assert.ok(!(name in scrubbed), `${name} remained as an own key`);
 	}
 	assert.equal(scrubbed.PATH, "/usr/bin");
-	assert.equal(scrubbed.ATOMIC_SESSION_ID, "abc");
+	assert.equal(scrubbed.ORPHUS_SESSION_ID, "abc");
 	assert.equal(scrubbed.EMPTY, "", "an unrelated empty value must be preserved verbatim");
-	assert.equal(input.ATOMIC_INTERACTIVE_ENGINE_CHILD, "1", "the caller's object was mutated");
+	assert.equal(input.ORPHUS_INTERACTIVE_ENGINE_CHILD, "1", "the caller's object was mutated");
 });
 
 /**
@@ -83,9 +83,9 @@ serialTest(
 				apiKey,
 			],
 			{
-				ATOMIC_CODING_AGENT_DIR: join(temp, "agent"),
-				ATOMIC_ENGINE_ENV_PROBE_FILE: probeFile,
-				ATOMIC_NONBLOCKING_TOOL: "1",
+				ORPHUS_CODING_AGENT_DIR: join(temp, "agent"),
+				ORPHUS_ENGINE_ENV_PROBE_FILE: probeFile,
+				ORPHUS_NONBLOCKING_TOOL: "1",
 			},
 		);
 		try {

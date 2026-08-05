@@ -46,7 +46,7 @@ test.sequential("the real agent path isolates a blocking extension tool and repo
 		runtimeExecutable: bunExecutable(),
 		provider: "isolation-fixture",
 		model: "blocking-model",
-		env: { ATOMIC_BLOCKING_TOOL_PID_FILE: pidFile },
+		env: { ORPHUS_BLOCKING_TOOL_PID_FILE: pidFile },
 		args: [
 			"--no-session",
 			"--no-extensions",
@@ -130,7 +130,7 @@ test.sequential("startup custom UI can unblock engine binding after transport re
 		runtimeExecutable: bunExecutable(),
 		provider: "isolation-fixture",
 		model: "blocking-model",
-		env: { ATOMIC_STARTUP_CUSTOM_UI: "1" },
+		env: { ORPHUS_STARTUP_CUSTOM_UI: "1" },
 		args: [
 			"--no-session",
 			"--no-extensions",
@@ -175,7 +175,7 @@ test.sequential("blocking extension initialization cannot delay creation of the 
 		runtimeExecutable: bunExecutable(),
 		provider: "isolation-fixture",
 		model: "blocking-model",
-		env: { ATOMIC_BLOCKING_EXTENSION_INIT: "1" },
+		env: { ORPHUS_BLOCKING_EXTENSION_INIT: "1" },
 		args: [
 			"--no-session",
 			"--no-extensions",

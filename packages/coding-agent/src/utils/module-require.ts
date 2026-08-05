@@ -18,7 +18,7 @@ export function createModuleRequire(moduleUrl: string): NodeJS.Require {
 /**
  * A resolution base URL safe for the current runtime.
  *
- * In compiled binaries (monolithic bun or the Atomic split launcher) the
+ * In compiled binaries (monolithic bun or the Orphus split launcher) the
  * bundled `import.meta.url` is the build machine's source URL — a foreign-OS
  * `file://` URL that `fileURLToPath` rejects on other platforms (notably a
  * macOS `file:///Users/...` URL on Windows). Any API that decodes the base

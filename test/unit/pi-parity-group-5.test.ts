@@ -19,10 +19,10 @@ import { buildSettingsItems } from "../../packages/coding-agent/src/modes/intera
 import { initTheme } from "../../packages/coding-agent/src/modes/interactive/theme/theme.ts";
 import { readClipboardText } from "../../packages/coding-agent/src/utils/clipboard.ts";
 
-const envSnapshot = { atomic: process.env.ATOMIC_CODING_AGENT_DIR, pi: process.env.PI_CODING_AGENT_DIR };
+const envSnapshot = { atomic: process.env.ORPHUS_CODING_AGENT_DIR, pi: process.env.PI_CODING_AGENT_DIR };
 afterEach(() => {
-	if (envSnapshot.atomic === undefined) delete process.env.ATOMIC_CODING_AGENT_DIR;
-	else process.env.ATOMIC_CODING_AGENT_DIR = envSnapshot.atomic;
+	if (envSnapshot.atomic === undefined) delete process.env.ORPHUS_CODING_AGENT_DIR;
+	else process.env.ORPHUS_CODING_AGENT_DIR = envSnapshot.atomic;
 	if (envSnapshot.pi === undefined) delete process.env.PI_CODING_AGENT_DIR;
 	else process.env.PI_CODING_AGENT_DIR = envSnapshot.pi;
 });
@@ -137,10 +137,10 @@ describe("Group 5 parity", () => {
 	});
 
 	test("first-run eligibility requires default agent dir and absent settings", () => {
-		delete process.env.ATOMIC_CODING_AGENT_DIR;
+		delete process.env.ORPHUS_CODING_AGENT_DIR;
 		delete process.env.PI_CODING_AGENT_DIR;
 		assert.equal(shouldRunFirstTimeSetup(`/tmp/atomic-missing-${crypto.randomUUID()}.json`), true);
-		process.env.ATOMIC_CODING_AGENT_DIR = "/tmp/custom";
+		process.env.ORPHUS_CODING_AGENT_DIR = "/tmp/custom";
 		assert.equal(shouldRunFirstTimeSetup(`/tmp/atomic-missing-${crypto.randomUUID()}.json`), false);
 	});
 	test("settings place output padding before autocomplete and expose cache notices", () => {

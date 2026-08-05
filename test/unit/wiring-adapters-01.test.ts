@@ -282,8 +282,8 @@ describe("prepareAtomicStageSessionOptions", () => {
 		const projectDir = join("/tmp", "project");
 		const atomicAgentDir = join("/home", "user", ".atomic", "agent");
 		const envKeys = [
-			"ATOMIC_SUBAGENT_CHILD",
-			"ATOMIC_SUBAGENT_FANOUT_CHILD",
+			"ORPHUS_SUBAGENT_CHILD",
+			"ORPHUS_SUBAGENT_FANOUT_CHILD",
 			"PI_SUBAGENT_CHILD",
 			"PI_SUBAGENT_FANOUT_CHILD",
 		] as const;
@@ -326,8 +326,8 @@ describe("prepareAtomicStageSessionOptions", () => {
 		let first: ReturnType<typeof prepareAtomicStageSessionOptions> | undefined;
 		let second: ReturnType<typeof prepareAtomicStageSessionOptions> | undefined;
 		try {
-			process.env.ATOMIC_SUBAGENT_CHILD = "1";
-			process.env.ATOMIC_SUBAGENT_FANOUT_CHILD = "0";
+			process.env.ORPHUS_SUBAGENT_CHILD = "1";
+			process.env.ORPHUS_SUBAGENT_FANOUT_CHILD = "0";
 			process.env.PI_SUBAGENT_CHILD = "legacy-child";
 			delete process.env.PI_SUBAGENT_FANOUT_CHILD;
 
@@ -337,8 +337,8 @@ describe("prepareAtomicStageSessionOptions", () => {
 			await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 			assert.deepEqual(Object.fromEntries(reloadGates[0]!.envDuringReload), {
-				ATOMIC_SUBAGENT_CHILD: "1",
-				ATOMIC_SUBAGENT_FANOUT_CHILD: "0",
+				ORPHUS_SUBAGENT_CHILD: "1",
+				ORPHUS_SUBAGENT_FANOUT_CHILD: "0",
 				PI_SUBAGENT_CHILD: "legacy-child",
 				PI_SUBAGENT_FANOUT_CHILD: undefined,
 			});
@@ -349,8 +349,8 @@ describe("prepareAtomicStageSessionOptions", () => {
 				"expected the second resource reload to start after the first completes",
 			);
 			assert.deepEqual(Object.fromEntries(reloadGates[1]!.envDuringReload), {
-				ATOMIC_SUBAGENT_CHILD: "1",
-				ATOMIC_SUBAGENT_FANOUT_CHILD: "0",
+				ORPHUS_SUBAGENT_CHILD: "1",
+				ORPHUS_SUBAGENT_FANOUT_CHILD: "0",
 				PI_SUBAGENT_CHILD: "legacy-child",
 				PI_SUBAGENT_FANOUT_CHILD: undefined,
 			});
@@ -364,8 +364,8 @@ describe("prepareAtomicStageSessionOptions", () => {
 				inheritProjectContext: true,
 				inheritSkills: true,
 			});
-			assert.equal(process.env.ATOMIC_SUBAGENT_CHILD, "1");
-			assert.equal(process.env.ATOMIC_SUBAGENT_FANOUT_CHILD, "0");
+			assert.equal(process.env.ORPHUS_SUBAGENT_CHILD, "1");
+			assert.equal(process.env.ORPHUS_SUBAGENT_FANOUT_CHILD, "0");
 			assert.equal(process.env.PI_SUBAGENT_CHILD, "legacy-child");
 			assert.equal(process.env.PI_SUBAGENT_FANOUT_CHILD, undefined);
 		} finally {

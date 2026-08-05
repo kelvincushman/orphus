@@ -1,7 +1,7 @@
 /**
  * `atomic auth print-api-key` / `atomic auth print-bearer-token`.
  *
- * The only door in Atomic whose purpose is emitting a secret. Everything here
+ * The only door in Orphus whose purpose is emitting a secret. Everything here
  * exists to keep that egress narrow:
  *
  * - the secret leaves as a `Secret`, which cannot be interpolated, serialized,
@@ -235,7 +235,7 @@ export function isCredentialPrintHelp(args: string[]): boolean {
 }
 
 export function printCredentialPrintHelp(): void {
-	// Branded through APP_NAME: Atomic's binary is `atomic`, and help output must
+	// Branded through APP_NAME: Orphus's binary is `atomic`, and help output must
 	// never render upstream's `pi`.
 	console.error(`Usage:
   ${APP_NAME} auth print-api-key --model <model> [--provider <provider>]

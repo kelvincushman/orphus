@@ -70,8 +70,8 @@ test("ChatSessionHost clears busy state when model fallback fails", () => {
 	host.dispose();
 });
 test("ChatSessionHost renders the lifecycle-origin one-cell Atomic identity in ordinary loader geometry", () => {
-	const previousReducedMotion = process.env.ATOMIC_REDUCED_MOTION;
-	delete process.env.ATOMIC_REDUCED_MOTION;
+	const previousReducedMotion = process.env.ORPHUS_REDUCED_MOTION;
+	delete process.env.ORPHUS_REDUCED_MOTION;
 	const host = makeHost();
 	try {
 		host.applyAgentEvent({ type: "agent_start" } as never);
@@ -82,13 +82,13 @@ test("ChatSessionHost renders the lifecycle-origin one-cell Atomic identity in o
 		assert.deepEqual(stripAnsi(lines[1] ?? "").match(/∀/g), ["∀"]);
 	} finally {
 		host.dispose();
-		if (previousReducedMotion === undefined) delete process.env.ATOMIC_REDUCED_MOTION;
-		else process.env.ATOMIC_REDUCED_MOTION = previousReducedMotion;
+		if (previousReducedMotion === undefined) delete process.env.ORPHUS_REDUCED_MOTION;
+		else process.env.ORPHUS_REDUCED_MOTION = previousReducedMotion;
 	}
 });
 test("ChatSessionHost keeps the Atomic identity static without a workflow animation tick under reduced motion", () => {
-	const previousReducedMotion = process.env.ATOMIC_REDUCED_MOTION;
-	process.env.ATOMIC_REDUCED_MOTION = "1";
+	const previousReducedMotion = process.env.ORPHUS_REDUCED_MOTION;
+	process.env.ORPHUS_REDUCED_MOTION = "1";
 	const host = makeHost();
 	try {
 		host.applyAgentEvent({ type: "agent_start" } as never);
@@ -97,8 +97,8 @@ test("ChatSessionHost keeps the Atomic identity static without a workflow animat
 		assert.equal(stripAnsi(lines[1] ?? "").trimEnd(), " ∀ Working...");
 	} finally {
 		host.dispose();
-		if (previousReducedMotion === undefined) delete process.env.ATOMIC_REDUCED_MOTION;
-		else process.env.ATOMIC_REDUCED_MOTION = previousReducedMotion;
+		if (previousReducedMotion === undefined) delete process.env.ORPHUS_REDUCED_MOTION;
+		else process.env.ORPHUS_REDUCED_MOTION = previousReducedMotion;
 	}
 });
 

@@ -1,6 +1,6 @@
 import type { SessionHeader, SessionWorkflowMetadata } from "./session-manager-types.ts";
 
-export const WORKFLOW_SESSION_METADATA_ENV = "ATOMIC_WORKFLOW_SESSION_METADATA";
+export const WORKFLOW_SESSION_METADATA_ENV = "ORPHUS_WORKFLOW_SESSION_METADATA";
 
 function isNonEmptyString(value: unknown): value is string {
 	return typeof value === "string" && value.trim().length > 0;

@@ -15,8 +15,8 @@ import { writeFileSync, writeSync } from "node:fs";
 
 import { INTERACTIVE_ENGINE_PROTOCOL_VERSION } from "../../../packages/coding-agent/src/modes/interactive-engine/protocol.ts";
 
-const marker = process.env.ATOMIC_ADMISSION_MARKER;
-const generationFile = process.env.ATOMIC_ADMISSION_GENERATION;
+const marker = process.env.ORPHUS_ADMISSION_MARKER;
+const generationFile = process.env.ORPHUS_ADMISSION_GENERATION;
 
 function write(value: object): void {
 	process.stdout.write(`${JSON.stringify(value)}\n`);
@@ -43,7 +43,7 @@ function writeAllSync(text: string): void {
 	}
 }
 
-const replacement = process.env.ATOMIC_ADMISSION_REPLACEMENT === "1";
+const replacement = process.env.ORPHUS_ADMISSION_REPLACEMENT === "1";
 // Recorded before readiness is announced, never after. The host treats
 // engine_ready as the point a generation exists, so a generation that appended
 // its pid afterwards could be counted by the host and still be missing from this

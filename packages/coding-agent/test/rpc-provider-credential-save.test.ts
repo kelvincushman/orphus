@@ -12,7 +12,7 @@ const tempDirs: string[] = [];
 beforeEach(() => {
 	// Saving triggers a catalog refresh. This persistence test does not exercise
 	// remote catalogs and must not inherit configured provider keys from the host.
-	vi.stubEnv("ATOMIC_OFFLINE", "1");
+	vi.stubEnv("ORPHUS_OFFLINE", "1");
 });
 afterEach(() => {
 	vi.restoreAllMocks();

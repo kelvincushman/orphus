@@ -117,7 +117,7 @@ test("build-consuming steps stay in the job that produced the build", async () =
 	const suites = jobSteps(blocks.get("suites") as string);
 	assert.ok(stepIndex(suites, "Build @bastani/atomic package") < stepIndex(suites, "Unit tests"));
 	assert.ok(stepIndex(suites, "Unit tests") < stepIndex(suites, "Integration tests"));
-	assert.match(namedStep(suites, "Integration tests"), /ATOMIC_REQUIRE_INSTALLED_NODE_SMOKE: "1"/u);
+	assert.match(namedStep(suites, "Integration tests"), /ORPHUS_REQUIRE_INSTALLED_NODE_SMOKE: "1"/u);
 	assert.match(blocks.get("suites") as string, /uses: actions\/setup-node@/u);
 	// The bundled subagent extension loads the Rust control plane at import, so
 	// both root suites are build-consuming steps for the native binding too.
@@ -129,7 +129,7 @@ test("build-consuming steps stay in the job that produced the build", async () =
 	assert.ok(
 		stepIndex(agent, "Build native bindings for package tests") < stepIndex(agent, "coding-agent vitest suite"),
 	);
-	assert.match(namedStep(agent, "coding-agent vitest suite"), /ATOMIC_REQUIRE_NATIVE_BINDING_SMOKE: "1"/u);
+	assert.match(namedStep(agent, "coding-agent vitest suite"), /ORPHUS_REQUIRE_NATIVE_BINDING_SMOKE: "1"/u);
 	assert.match(blocks.get("agent-suite") as string, /uses: dtolnay\/rust-toolchain@/u);
 
 	const archive = jobSteps(blocks.get("release-archive") as string);

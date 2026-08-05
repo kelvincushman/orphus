@@ -23,11 +23,11 @@ import type { StageSessionRuntime } from "../../packages/workflows/src/runs/fore
 
 const tempDirs: string[] = [];
 const ENV_KEYS = [
-	"ATOMIC_SUBAGENT_CHILD",
-	"ATOMIC_SUBAGENT_FANOUT_CHILD",
+	"ORPHUS_SUBAGENT_CHILD",
+	"ORPHUS_SUBAGENT_FANOUT_CHILD",
 	"PI_SUBAGENT_CHILD",
 	"PI_SUBAGENT_FANOUT_CHILD",
-	"ATOMIC_CODING_AGENT_DIR",
+	"ORPHUS_CODING_AGENT_DIR",
 	"PI_CODING_AGENT_DIR",
 ] as const;
 
@@ -147,7 +147,7 @@ describe("workflow stage bundled resources", () => {
 		const agentDir = join(cwd, "agent");
 		mkdirSync(agentDir, { recursive: true });
 		try {
-			process.env.ATOMIC_CODING_AGENT_DIR = agentDir;
+			process.env.ORPHUS_CODING_AGENT_DIR = agentDir;
 			delete process.env.PI_CODING_AGENT_DIR;
 
 			const builtinAgents = discoverAgentsAll(cwd).builtin;

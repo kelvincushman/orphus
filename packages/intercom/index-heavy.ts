@@ -31,11 +31,11 @@ import { createWorkflowStageDeliveryFailureHandler } from "./workflow-stage-deli
 import { resolveHomeGroup } from "./group.js";
 import { reconnectDelayMs } from "./reconnect-backoff.js";
 import { SupervisorAuthorizationRegistry } from "./supervisor-authorization-registry.js";
-if (process.env.ATOMIC_TEST_LAZY_IMPORT_SENTINEL === "1") {
-  process.env.ATOMIC_INTERCOM_HEAVY_IMPORTED = "1";
+if (process.env.ORPHUS_TEST_LAZY_IMPORT_SENTINEL === "1") {
+  process.env.ORPHUS_INTERCOM_HEAVY_IMPORTED = "1";
 }
-if (process.env.ATOMIC_TEST_LAZY_IMPORT_SENTINEL_FILE) {
-  appendFileSync(process.env.ATOMIC_TEST_LAZY_IMPORT_SENTINEL_FILE, "intercom\n");
+if (process.env.ORPHUS_TEST_LAZY_IMPORT_SENTINEL_FILE) {
+  appendFileSync(process.env.ORPHUS_TEST_LAZY_IMPORT_SENTINEL_FILE, "intercom\n");
 }
 
 const INTERCOM_SESSION_ID_ENV = `${APP_NAME.toUpperCase()}_INTERCOM_SESSION_ID`;

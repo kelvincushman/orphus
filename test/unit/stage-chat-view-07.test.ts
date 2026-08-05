@@ -113,8 +113,8 @@ describe("StageChatView", () => {
 	});
 
 	test("renders pi-style spacing between a full transcript and the streaming loader", () => {
-		const previousReducedMotion = process.env.ATOMIC_REDUCED_MOTION;
-		delete process.env.ATOMIC_REDUCED_MOTION;
+		const previousReducedMotion = process.env.ORPHUS_REDUCED_MOTION;
+		delete process.env.ORPHUS_REDUCED_MOTION;
 		const store = createStore();
 		setupRun(store, "run-1", "stage-a", "running");
 		const messages = Array.from({ length: 30 }, (_, i) => assistantTextMessage(`msg-${i}`));
@@ -152,14 +152,14 @@ describe("StageChatView", () => {
 			assert.equal(lines.join("\n").match(/Working\.\.\./g)?.length, 1);
 		} finally {
 			view.dispose();
-			if (previousReducedMotion === undefined) delete process.env.ATOMIC_REDUCED_MOTION;
-			else process.env.ATOMIC_REDUCED_MOTION = previousReducedMotion;
+			if (previousReducedMotion === undefined) delete process.env.ORPHUS_REDUCED_MOTION;
+			else process.env.ORPHUS_REDUCED_MOTION = previousReducedMotion;
 		}
 	});
 
 	test("64-column Atomic working mark keeps its label and composer in bounds", () => {
-		const previousReducedMotion = process.env.ATOMIC_REDUCED_MOTION;
-		delete process.env.ATOMIC_REDUCED_MOTION;
+		const previousReducedMotion = process.env.ORPHUS_REDUCED_MOTION;
+		delete process.env.ORPHUS_REDUCED_MOTION;
 		const store = createStore();
 		setupRun(store, "run-1", "stage-a", "running");
 		const { handle } = makeHandle({
@@ -199,8 +199,8 @@ describe("StageChatView", () => {
 			);
 		} finally {
 			view.dispose();
-			if (previousReducedMotion === undefined) delete process.env.ATOMIC_REDUCED_MOTION;
-			else process.env.ATOMIC_REDUCED_MOTION = previousReducedMotion;
+			if (previousReducedMotion === undefined) delete process.env.ORPHUS_REDUCED_MOTION;
+			else process.env.ORPHUS_REDUCED_MOTION = previousReducedMotion;
 		}
 	});
 

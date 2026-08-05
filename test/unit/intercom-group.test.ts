@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "vitest";
 import { DEFAULT_GROUP, normalizeGroup, resolveHomeGroup } from "../../packages/intercom/group.js";
 
-const ENV_KEYS = ["ATOMIC_INTERCOM_GROUP", "PI_INTERCOM_GROUP"] as const;
+const ENV_KEYS = ["ORPHUS_INTERCOM_GROUP", "PI_INTERCOM_GROUP"] as const;
 const saved: Record<string, string | undefined> = {};
 
 afterEach(() => {
@@ -29,11 +29,11 @@ test("normalizeGroup collapses empty/whitespace/undefined to default and trims n
 });
 
 test("resolveHomeGroup precedence: orchestrationContext > env > config > default", () => {
-	setEnv("ATOMIC_INTERCOM_GROUP", undefined);
+	setEnv("ORPHUS_INTERCOM_GROUP", undefined);
 	setEnv("PI_INTERCOM_GROUP", undefined);
 
 	// orchestrationContext wins over everything
-	setEnv("ATOMIC_INTERCOM_GROUP", "envGroup");
+	setEnv("ORPHUS_INTERCOM_GROUP", "envGroup");
 	assert.equal(
 		resolveHomeGroup({ group: "configGroup" }, { orchestrationContext: { intercomGroup: "ctxGroup" } }),
 		"ctxGroup",
@@ -43,7 +43,7 @@ test("resolveHomeGroup precedence: orchestrationContext > env > config > default
 	assert.equal(resolveHomeGroup({ group: "configGroup" }, {}), "envGroup");
 
 	// legacy PI_ env is honored via getEnvValue fallback
-	setEnv("ATOMIC_INTERCOM_GROUP", undefined);
+	setEnv("ORPHUS_INTERCOM_GROUP", undefined);
 	setEnv("PI_INTERCOM_GROUP", "legacyGroup");
 	assert.equal(resolveHomeGroup({ group: "configGroup" }, {}), "legacyGroup");
 

@@ -89,7 +89,7 @@ export function _installAgentNextTurnRefresh(this: AgentSession): void {
 		const transformed = previousTransformContext ? await previousTransformContext(messages, signal) : messages;
 		const guarded = this._finishPostToolCompactionPreflight(transformed);
 		// Last checkpoint before provider conversion: a structurally invalid context
-		// here becomes an unrecoverable provider 400, so surface it as an Atomic error.
+		// here becomes an unrecoverable provider 400, so surface it as an Orphus error.
 		assertToolPairingInvariant(guarded);
 		return guarded;
 	};

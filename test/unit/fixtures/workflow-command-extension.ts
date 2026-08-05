@@ -34,7 +34,7 @@ function message(content: AssistantMessage["content"], stopReason: AssistantMess
 }
 
 function recordInvocation(name: string, args: string): void {
-	const logFile = process.env.ATOMIC_WORKFLOW_COMMAND_LOG;
+	const logFile = process.env.ORPHUS_WORKFLOW_COMMAND_LOG;
 	if (!logFile) return;
 	appendFileSync(logFile, `${JSON.stringify({ name, args, pid: process.pid })}\n`, "utf8");
 }
@@ -76,7 +76,7 @@ export default function workflowCommandExtension(api: ExtensionAPI): void {
 		description: "Synthetic blocking tool used to force an engine restart in isolation coverage",
 		parameters: Type.Object({}),
 		execute: async () => {
-			const pidFile = process.env.ATOMIC_WORKFLOW_TOOL_PID_FILE;
+			const pidFile = process.env.ORPHUS_WORKFLOW_TOOL_PID_FILE;
 			if (pidFile) writeFileSync(pidFile, String(process.pid), "utf8");
 			const deadline = performance.now() + 5_000;
 			while (performance.now() < deadline) {

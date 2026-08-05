@@ -12,13 +12,13 @@ import {
 	workingLine,
 } from "./chat-session-host-working-lifecycle-fixture.ts";
 
-const originalReducedMotion = process.env.ATOMIC_REDUCED_MOTION;
+const originalReducedMotion = process.env.ORPHUS_REDUCED_MOTION;
 
 beforeAll(() => setThemeInstance(loadTheme("dark", "truecolor")));
 
 afterEach(() => {
-	if (originalReducedMotion === undefined) delete process.env.ATOMIC_REDUCED_MOTION;
-	else process.env.ATOMIC_REDUCED_MOTION = originalReducedMotion;
+	if (originalReducedMotion === undefined) delete process.env.ORPHUS_REDUCED_MOTION;
+	else process.env.ORPHUS_REDUCED_MOTION = originalReducedMotion;
 });
 
 const compactionResult = {
@@ -64,7 +64,7 @@ function midTurnEnd(overrides: object = {}): object {
 }
 
 test("attached chat paints post-tool compaction status from the start event, not the first tick", () => {
-	delete process.env.ATOMIC_REDUCED_MOTION;
+	delete process.env.ORPHUS_REDUCED_MOTION;
 	const timers = installLifecycleFakeClock();
 	const { host, renders } = makeHost();
 	try {
@@ -84,7 +84,7 @@ test("attached chat paints post-tool compaction status from the start event, not
 });
 
 test("attached chat keeps compaction precedence through the interposed turn_start and resumes Working", () => {
-	delete process.env.ATOMIC_REDUCED_MOTION;
+	delete process.env.ORPHUS_REDUCED_MOTION;
 	const timers = installLifecycleFakeClock();
 	const { host, renders } = makeHost();
 	try {
@@ -110,7 +110,7 @@ test("attached chat keeps compaction precedence through the interposed turn_star
 });
 
 test("attached chat resumes Working after a successful post-tool no-op compaction", () => {
-	delete process.env.ATOMIC_REDUCED_MOTION;
+	delete process.env.ORPHUS_REDUCED_MOTION;
 	const timers = installLifecycleFakeClock();
 	const { host } = makeHost();
 	try {
@@ -132,7 +132,7 @@ test("attached chat resumes Working after a successful post-tool no-op compactio
 });
 
 test("attached chat stops all activity when post-tool compaction aborts or fails", () => {
-	delete process.env.ATOMIC_REDUCED_MOTION;
+	delete process.env.ORPHUS_REDUCED_MOTION;
 	// The two outcomes do not carry the same status data. Core omits
 	// `errorMessage` from an abort event, so the attached host clears its
 	// transient status; a failure keeps the event-provided error text.

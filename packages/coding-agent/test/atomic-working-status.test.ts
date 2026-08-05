@@ -1,10 +1,10 @@
 import { Container, Text, visibleWidth } from "@earendil-works/pi-tui";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-	ATOMIC_WORKING_BOLD_PHASES,
-	ATOMIC_WORKING_FRAME_MS,
-	ATOMIC_WORKING_FRAMES,
-	ATOMIC_WORKING_PHASES,
+	ORPHUS_WORKING_BOLD_PHASES,
+	ORPHUS_WORKING_FRAME_MS,
+	ORPHUS_WORKING_FRAMES,
+	ORPHUS_WORKING_PHASES,
 	AtomicWorkingLoader,
 	AtomicWorkingStatusComponent,
 	atomicWorkingFrame,
@@ -64,7 +64,7 @@ const quantizedHex = (hex: string): string => {
 	return ansi256ToHex(Number(match[1]));
 };
 
-function restoreEnv(name: "ATOMIC_REDUCED_MOTION" | "NO_COLOR", value: string | undefined): void {
+function restoreEnv(name: "ORPHUS_REDUCED_MOTION" | "NO_COLOR", value: string | undefined): void {
 	if (value === undefined) delete process.env[name];
 	else process.env[name] = value;
 }
@@ -80,17 +80,17 @@ function customTheme(): Theme {
 
 afterEach(() => {
 	vi.useRealTimers();
-	delete process.env.ATOMIC_REDUCED_MOTION;
+	delete process.env.ORPHUS_REDUCED_MOTION;
 	delete process.env.NO_COLOR;
 	initTheme("dark");
 });
 
 describe("Atomic working status", () => {
 	it("keeps exact literal one-cell identity through the approved ten-phase ramp", () => {
-		expect(ATOMIC_WORKING_FRAMES).toEqual(Array(10).fill("∀"));
-		expect(ATOMIC_WORKING_FRAMES.map(visibleWidth)).toEqual(Array(10).fill(1));
-		expect(ATOMIC_WORKING_BOLD_PHASES).toEqual([false, false, false, false, true, true, true, false, false, false]);
-		expect(ATOMIC_WORKING_PHASES).toEqual([
+		expect(ORPHUS_WORKING_FRAMES).toEqual(Array(10).fill("∀"));
+		expect(ORPHUS_WORKING_FRAMES.map(visibleWidth)).toEqual(Array(10).fill(1));
+		expect(ORPHUS_WORKING_BOLD_PHASES).toEqual([false, false, false, false, true, true, true, false, false, false]);
+		expect(ORPHUS_WORKING_PHASES).toEqual([
 			"dark",
 			"lift",
 			"muted",
@@ -106,7 +106,7 @@ describe("Atomic working status", () => {
 
 	it("interpolates a custom theme dark to accent to bright and back with a bold peak", () => {
 		setThemeInstance(customTheme());
-		const rendered = ATOMIC_WORKING_FRAMES.map(
+		const rendered = ORPHUS_WORKING_FRAMES.map(
 			(_, frame) => new AtomicWorkingStatusComponent({ frame, messageColor: String }).render(64)[1]!,
 		);
 		expect(rendered.map(rgb)).toEqual([
@@ -122,12 +122,12 @@ describe("Atomic working status", () => {
 			"#1c2c3c",
 		]);
 		expect(rendered.map((line) => plain(line).trimEnd())).toEqual(Array(10).fill(" ∀ Working..."));
-		expect(rendered.map((line) => line.includes("\u001b[1m"))).toEqual(ATOMIC_WORKING_BOLD_PHASES);
+		expect(rendered.map((line) => line.includes("\u001b[1m"))).toEqual(ORPHUS_WORKING_BOLD_PHASES);
 	});
 
 	it("matches the approved high-contrast Catppuccin Mocha role ramp in truecolor", () => {
 		setThemeInstance(loadTheme("catppuccin-mocha", "truecolor"));
-		const colors = ATOMIC_WORKING_FRAMES.map((_, frame) =>
+		const colors = ORPHUS_WORKING_FRAMES.map((_, frame) =>
 			rgb(new AtomicWorkingStatusComponent({ frame, messageColor: String }).render(64)[1]!),
 		);
 		expect(colors).toEqual([
@@ -196,7 +196,7 @@ describe("Atomic working status", () => {
 		};
 		setThemeInstance(loadThemeFromContent("indexed-spinner.json", JSON.stringify(source), "256color"));
 		const expected = [1, 2, 3, 4, 5, 6, 5, 4, 3, 2];
-		const rendered = ATOMIC_WORKING_FRAMES.map(
+		const rendered = ORPHUS_WORKING_FRAMES.map(
 			(_, frame) => new AtomicWorkingStatusComponent({ frame, messageColor: String }).render(64)[1]!,
 		);
 		expect(rendered.map((line, index) => line.includes(`\u001b[38;5;${expected[index]}m∀`))).toEqual(
@@ -227,14 +227,14 @@ describe("Atomic working status", () => {
 	it("keeps every outward Catppuccin pulse phase above 3:1 with increasing contrast", () => {
 		const background = "#1e1e2e";
 		setThemeInstance(loadTheme("catppuccin-mocha", "truecolor"));
-		const truecolor = ATOMIC_WORKING_FRAMES.slice(0, 6).map((_, frame) => {
+		const truecolor = ORPHUS_WORKING_FRAMES.slice(0, 6).map((_, frame) => {
 			const color = rgb(new AtomicWorkingStatusComponent({ frame, messageColor: String }).render(64)[1]!);
 			if (!color) throw new Error(`Missing truecolor phase ${frame}`);
 			return color;
 		});
 
 		setThemeInstance(loadTheme("catppuccin-mocha", "256color"));
-		const quantized = ATOMIC_WORKING_FRAMES.slice(0, 6).map((_, frame) => {
+		const quantized = ORPHUS_WORKING_FRAMES.slice(0, 6).map((_, frame) => {
 			const color = indexed(new AtomicWorkingStatusComponent({ frame, messageColor: String }).render(64)[1]!);
 			if (color === undefined) throw new Error(`Missing indexed phase ${frame}`);
 			return ansi256ToHex(color);
@@ -281,7 +281,7 @@ describe("Atomic working status", () => {
 	});
 
 	it("uses an exact 88ms cadence with a ten-phase 880ms cycle", () => {
-		expect(ATOMIC_WORKING_FRAME_MS).toBe(88);
+		expect(ORPHUS_WORKING_FRAME_MS).toBe(88);
 		expect(atomicWorkingFrame(0)).toBe(0);
 		expect(atomicWorkingFrame(87)).toBe(0);
 		expect(atomicWorkingFrame(88)).toBe(1);
@@ -361,18 +361,18 @@ describe("Atomic working status", () => {
 
 	it("keeps regular/bold activity under NO_COLOR without foreground escapes", () => {
 		process.env.NO_COLOR = "";
-		const rendered = ATOMIC_WORKING_FRAMES.map(
+		const rendered = ORPHUS_WORKING_FRAMES.map(
 			(_, frame) => new AtomicWorkingStatusComponent({ frame }).render(64)[1]!,
 		);
 		expect(rendered.every((line) => !line.includes("\u001b[38;"))).toBe(true);
 		expect(rendered.every((line) => plain(line).trimEnd() === " ∀ Working...")).toBe(true);
-		expect(rendered.map((line) => line.includes("\u001b[1m"))).toEqual(ATOMIC_WORKING_BOLD_PHASES);
+		expect(rendered.map((line) => line.includes("\u001b[1m"))).toEqual(ORPHUS_WORKING_BOLD_PHASES);
 	});
 
 	it("renders a static regular accent identity with no timer under reduced motion", () => {
-		const previousReducedMotion = process.env.ATOMIC_REDUCED_MOTION;
+		const previousReducedMotion = process.env.ORPHUS_REDUCED_MOTION;
 		vi.useFakeTimers();
-		process.env.ATOMIC_REDUCED_MOTION = "1";
+		process.env.ORPHUS_REDUCED_MOTION = "1";
 		setThemeInstance(customTheme());
 		try {
 			const requestRender = vi.fn();
@@ -387,7 +387,7 @@ describe("Atomic working status", () => {
 			expect(requestRender).not.toHaveBeenCalled();
 			loader.stop();
 		} finally {
-			restoreEnv("ATOMIC_REDUCED_MOTION", previousReducedMotion);
+			restoreEnv("ORPHUS_REDUCED_MOTION", previousReducedMotion);
 		}
 	});
 });

@@ -29,10 +29,10 @@ export function validateInternalIntercomBrokerPath(
 	platform: NodeJS.Platform = process.platform,
 ): string {
 	if (!modulePath) {
-		throw new Error("Atomic internal intercom broker module path is required");
+		throw new Error("Orphus internal intercom broker module path is required");
 	}
 	if (!isBundledIntercomBrokerPath(modulePath, executablePath, platform)) {
-		throw new Error("Atomic internal intercom broker path must resolve to the bundled intercom broker module");
+		throw new Error("Orphus internal intercom broker path must resolve to the bundled intercom broker module");
 	}
 	return resolve(modulePath);
 }
@@ -44,7 +44,7 @@ export async function importInternalIntercomBroker(
 ): Promise<void> {
 	const brokerPath = validateInternalIntercomBrokerPath(modulePath, executablePath, platform);
 	if (!existsSync(brokerPath)) {
-		throw new Error(`Atomic internal intercom broker module not found at ${brokerPath}`);
+		throw new Error(`Orphus internal intercom broker module not found at ${brokerPath}`);
 	}
 	await import(pathToFileURL(brokerPath).href);
 }

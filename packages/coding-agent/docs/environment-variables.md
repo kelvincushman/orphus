@@ -6,13 +6,13 @@ Atomic accepts environment variables for configuration, provider credentials, an
 
 | Atomic variable | Legacy alias | Purpose |
 |---|---|---|
-| `ATOMIC_CODING_AGENT_DIR` | `PI_CODING_AGENT_DIR` | Agent/config directory; default `~/.atomic/agent` |
-| `ATOMIC_CODING_AGENT_SESSION_DIR` | `PI_CODING_AGENT_SESSION_DIR` | Session directory; `--session-dir` takes precedence |
-| `ATOMIC_PACKAGE_DIR` | `PI_PACKAGE_DIR` | Package directory override |
-| `ATOMIC_OFFLINE` | `PI_OFFLINE` | Disable startup network operations |
-| `ATOMIC_SKIP_VERSION_CHECK` | `PI_SKIP_VERSION_CHECK` | Skip automatic startup version checks; explicit self-update still checks |
-| `ATOMIC_TELEMETRY` | `PI_TELEMETRY` | Enable/disable install/update telemetry |
-| `ATOMIC_REDUCED_MOTION` | `PI_REDUCED_MOTION` | Use static reduced-motion presentation |
+| `ORPHUS_CODING_AGENT_DIR` | `PI_CODING_AGENT_DIR` | Agent/config directory; default `~/.atomic/agent` |
+| `ORPHUS_CODING_AGENT_SESSION_DIR` | `PI_CODING_AGENT_SESSION_DIR` | Session directory; `--session-dir` takes precedence |
+| `ORPHUS_PACKAGE_DIR` | `PI_PACKAGE_DIR` | Package directory override |
+| `ORPHUS_OFFLINE` | `PI_OFFLINE` | Disable startup network operations |
+| `ORPHUS_SKIP_VERSION_CHECK` | `PI_SKIP_VERSION_CHECK` | Skip automatic startup version checks; explicit self-update still checks |
+| `ORPHUS_TELEMETRY` | `PI_TELEMETRY` | Enable/disable install/update telemetry |
+| `ORPHUS_REDUCED_MOTION` | `PI_REDUCED_MOTION` | Use static reduced-motion presentation |
 
 `PI_CACHE_RETENTION=long` is a provider/upstream prompt-cache option and intentionally has no Atomic-prefixed alias. `VISUAL` and `EDITOR` select the Ctrl+G external editor when `externalEditor` is unset.
 
@@ -26,11 +26,11 @@ Every built-in, factory-created, direct, foreground/background, workflow-stage, 
 
 | Atomic variable | Exact Pi alias | Value |
 |---|---|---|
-| `ATOMIC_SESSION_ID` | `PI_SESSION_ID` | Active session ID |
-| `ATOMIC_SESSION_FILE` | `PI_SESSION_FILE` | Active JSONL file; omitted for unsaved/ephemeral sessions |
-| `ATOMIC_PROVIDER` | `PI_PROVIDER` | Active provider; omitted when no model is selected |
-| `ATOMIC_MODEL` | `PI_MODEL` | Active model ID; omitted when no model is selected |
-| `ATOMIC_REASONING_LEVEL` | `PI_REASONING_LEVEL` | Active reasoning level |
+| `ORPHUS_SESSION_ID` | `PI_SESSION_ID` | Active session ID |
+| `ORPHUS_SESSION_FILE` | `PI_SESSION_FILE` | Active JSONL file; omitted for unsaved/ephemeral sessions |
+| `ORPHUS_PROVIDER` | `PI_PROVIDER` | Active provider; omitted when no model is selected |
+| `ORPHUS_MODEL` | `PI_MODEL` | Active model ID; omitted when no model is selected |
+| `ORPHUS_REASONING_LEVEL` | `PI_REASONING_LEVEL` | Active reasoning level |
 
 Atomic clears these ten reserved names before overlaying the current snapshot, preventing stale metadata from another session or workflow stage. Unrelated inherited/caller variables remain intact. The snapshot is taken when execution begins, so a resumed session or later model change is reflected. SDK `createBashTool()` exposes it by default; set `exposeSessionEnvironment: false` to opt out.
 

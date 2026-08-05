@@ -34,12 +34,12 @@ test("the embedded session adapter keeps the workflow invocation group", async (
 	const group = optionsSeen[0]?.orchestrationContext?.intercomGroup;
 	assert.ok(group);
 	assert.notEqual(group, "default");
-	const savedGroup = process.env.ATOMIC_INTERCOM_GROUP;
-	process.env.ATOMIC_INTERCOM_GROUP = "environment-group";
+	const savedGroup = process.env.ORPHUS_INTERCOM_GROUP;
+	process.env.ORPHUS_INTERCOM_GROUP = "environment-group";
 	try {
 		assert.equal(resolveHomeGroup({ group: "config-group" }, optionsSeen[0]), group);
 	} finally {
-		if (savedGroup === undefined) delete process.env.ATOMIC_INTERCOM_GROUP;
-		else process.env.ATOMIC_INTERCOM_GROUP = savedGroup;
+		if (savedGroup === undefined) delete process.env.ORPHUS_INTERCOM_GROUP;
+		else process.env.ORPHUS_INTERCOM_GROUP = savedGroup;
 	}
 });

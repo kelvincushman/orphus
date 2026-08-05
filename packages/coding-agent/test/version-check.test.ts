@@ -8,21 +8,21 @@ import {
 	isNewerPackageVersion,
 } from "../src/utils/version-check.ts";
 
-const originalSkipVersionCheck = process.env.ATOMIC_SKIP_VERSION_CHECK;
-const originalOffline = process.env.ATOMIC_OFFLINE;
+const originalSkipVersionCheck = process.env.ORPHUS_SKIP_VERSION_CHECK;
+const originalOffline = process.env.ORPHUS_OFFLINE;
 
 afterEach(() => {
 	vi.restoreAllMocks();
 	vi.unstubAllEnvs();
 	if (originalSkipVersionCheck === undefined) {
-		delete process.env.ATOMIC_SKIP_VERSION_CHECK;
+		delete process.env.ORPHUS_SKIP_VERSION_CHECK;
 	} else {
-		process.env.ATOMIC_SKIP_VERSION_CHECK = originalSkipVersionCheck;
+		process.env.ORPHUS_SKIP_VERSION_CHECK = originalSkipVersionCheck;
 	}
 	if (originalOffline === undefined) {
-		delete process.env.ATOMIC_OFFLINE;
+		delete process.env.ORPHUS_OFFLINE;
 	} else {
-		process.env.ATOMIC_OFFLINE = originalOffline;
+		process.env.ORPHUS_OFFLINE = originalOffline;
 	}
 });
 
@@ -66,7 +66,7 @@ describe("version checks", () => {
 		await expect(getLatestPiRelease()).resolves.toEqual({ packageName: "@bastani/atomic", version: "1.2.4" });
 	});
 
-	it.each(["ATOMIC_SKIP_VERSION_CHECK", "PI_SKIP_VERSION_CHECK"])(
+	it.each(["ORPHUS_SKIP_VERSION_CHECK", "PI_SKIP_VERSION_CHECK"])(
 		"skips automatic api calls when %s is set",
 		async (name) => {
 			vi.stubEnv(name, "1");
@@ -78,7 +78,7 @@ describe("version checks", () => {
 		},
 	);
 
-	it.each(["ATOMIC_SKIP_VERSION_CHECK", "PI_SKIP_VERSION_CHECK"])(
+	it.each(["ORPHUS_SKIP_VERSION_CHECK", "PI_SKIP_VERSION_CHECK"])(
 		"allows explicit release checks when %s disables startup checks",
 		async (name) => {
 			vi.stubEnv(name, "1");

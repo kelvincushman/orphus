@@ -9,8 +9,8 @@ import {
 	WORKFLOW_STAGE_SUBAGENT_GUARD_ENV,
 } from "../../packages/subagents/src/shared/types.js";
 
-const DEPTH_ENV = "ATOMIC_SUBAGENT_DEPTH";
-const MAX_DEPTH_ENV = "ATOMIC_SUBAGENT_MAX_DEPTH";
+const DEPTH_ENV = "ORPHUS_SUBAGENT_DEPTH";
+const MAX_DEPTH_ENV = "ORPHUS_SUBAGENT_MAX_DEPTH";
 
 const savedEnv = new Map<string, string | undefined>();
 for (const key of [DEPTH_ENV, MAX_DEPTH_ENV, WORKFLOW_STAGE_SUBAGENT_GUARD_ENV]) {

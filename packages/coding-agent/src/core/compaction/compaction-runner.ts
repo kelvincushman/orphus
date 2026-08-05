@@ -131,7 +131,7 @@ function buildFreshContextWindow(preparation: VerbatimCompactionPreparation, har
  *
  * TOTAL. No provider, no credentials, no network, no signal, no failure mode,
  * no `Promise`. Port of codex `compact_token_budget` →
- * `Session::start_new_context_window`. Atomic's system prompt, context files,
+ * `Session::start_new_context_window`. Orphus's system prompt, context files,
  * and skills are rebuilt per request and were never in the transcript, so they
  * survive automatically.
  *

@@ -13,7 +13,7 @@ const __dirname = dirname(__filename);
 /**
  * Detect if we're running as a Bun compiled binary.
  * Bun binaries have import.meta.url containing "$bunfs", "~BUN", or "%7EBUN" (Bun's virtual filesystem path).
- * Split Windows/macOS/Linux release launchers also set ATOMIC_CODING_AGENT before importing the sidecar app bundle.
+ * Split Windows/macOS/Linux release launchers also set ORPHUS_CODING_AGENT before importing the sidecar app bundle.
  */
 const bunFsMarkers = ["$bunfs", "~BUN", "%7EBUN"];
 // Check process.argv[1] as well as import.meta.url: in a CJS (bytecode) bundle
@@ -30,7 +30,7 @@ export const isBunBinary =
  * The bundle build inlines this env var via `--define`, so it is a compile-time
  * constant there and undefined everywhere else.
  */
-export const isBundledBuild = process.env.ATOMIC_BUNDLED_BUILD === "1";
+export const isBundledBuild = process.env.ORPHUS_BUNDLED_BUILD === "1";
 
 /** Detect if Bun is the runtime (compiled binary or bun run) */
 export const isBunRuntime = !!process.versions.bun;
@@ -95,7 +95,7 @@ export function getUpdateInstruction(packageName: string): string {
 export function getPackageDir(): string {
 	// Allow override via environment variable (useful for Nix/Guix where store paths tokenize poorly).
 	// This runs before package.json app config is read, so the env var name is hardcoded.
-	const envDir = process.env.ATOMIC_PACKAGE_DIR ?? process.env.PI_PACKAGE_DIR;
+	const envDir = process.env.ORPHUS_PACKAGE_DIR ?? process.env.PI_PACKAGE_DIR;
 	if (envDir) {
 		return normalizePath(envDir);
 	}
@@ -123,7 +123,7 @@ export function getPackageDir(): string {
  * package-directory overrides instead need to select a package-root layout.
  */
 function getModuleAssetRoot(): string {
-	const hasPackageDirOverride = !!(process.env.ATOMIC_PACKAGE_DIR || process.env.PI_PACKAGE_DIR);
+	const hasPackageDirOverride = !!(process.env.ORPHUS_PACKAGE_DIR || process.env.PI_PACKAGE_DIR);
 	if (!isBundledBuild && !hasPackageDirOverride) {
 		return __dirname;
 	}
@@ -246,15 +246,18 @@ export const APP_NAME: string = appConfig?.name || packageAppName || "pi";
 export const APP_TITLE: string = appConfig?.name !== undefined || APP_NAME !== "pi" ? APP_NAME : "π";
 export const CONFIG_DIR_NAME: string = appConfig?.configDir || (APP_NAME === "pi" ? ".pi" : `.${APP_NAME}`);
 export const LEGACY_CONFIG_DIR_NAME = ".pi";
-export const CONFIG_DIR_NAMES: readonly string[] =
-	CONFIG_DIR_NAME === LEGACY_CONFIG_DIR_NAME ? [CONFIG_DIR_NAME] : [CONFIG_DIR_NAME, LEGACY_CONFIG_DIR_NAME];
+/** Fork lineage: Orphus also reads Atomic config dirs so existing setups keep working. */
+export const FORK_LEGACY_CONFIG_DIR_NAME = ".atomic";
+export const CONFIG_DIR_NAMES: readonly string[] = [
+	...new Set([CONFIG_DIR_NAME, FORK_LEGACY_CONFIG_DIR_NAME, LEGACY_CONFIG_DIR_NAME]),
+];
 export const VERSION: string = pkg.version || "0.0.0";
 export const CHANGELOG_URL: string | undefined = appConfig?.changelogUrl?.trim() || undefined;
 
 const ENV_PREFIX = APP_NAME.toUpperCase();
 export const LEGACY_ENV_PREFIX = "PI";
 
-// e.g., ATOMIC_CODING_AGENT_DIR (with PI_CODING_AGENT_DIR as a compatibility alias)
+// e.g., ORPHUS_CODING_AGENT_DIR (with PI_CODING_AGENT_DIR as a compatibility alias)
 export const ENV_AGENT_DIR = `${ENV_PREFIX}_CODING_AGENT_DIR`;
 export const ENV_SESSION_DIR = `${ENV_PREFIX}_CODING_AGENT_SESSION_DIR`;
 export const ENV_PACKAGE_DIR = `${ENV_PREFIX}_PACKAGE_DIR`;
@@ -408,7 +411,7 @@ export function getProjectConfigPaths(cwd: string, ...segments: string[]): strin
 	return getProjectConfigDirs(cwd).map((dir) => join(dir, ...segments));
 }
 
-/** Model config paths from highest to lowest precedence: Atomic project/global, then Pi project/global. */
+/** Model config paths from highest to lowest precedence: Orphus project/global, then Pi project/global. */
 export function getModelsConfigPaths(cwd: string, agentDir: string = getAgentDir(), includeProject = true): string[] {
 	const globalPaths =
 		agentDir === getAgentDir() ? getAgentConfigPaths("models.json") : [join(agentDir, "models.json")];

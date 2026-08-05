@@ -58,12 +58,12 @@ function agentDirWith(credentials: Record<string, unknown>): string {
 function cliEnv(agentDir: string): NodeJS.ProcessEnv {
 	return {
 		...process.env,
-		ATOMIC_CODING_AGENT_DIR: agentDir,
-		ATOMIC_CODING_AGENT_SESSION_DIR: join(agentDir, "sessions"),
-		ATOMIC_OFFLINE: "1",
-		ATOMIC_SKIP_VERSION_CHECK: "1",
-		ATOMIC_INTERACTIVE_ENGINE_CHILD: undefined,
-		ATOMIC_INTERACTIVE_ENGINE_API_KEY: undefined,
+		ORPHUS_CODING_AGENT_DIR: agentDir,
+		ORPHUS_CODING_AGENT_SESSION_DIR: join(agentDir, "sessions"),
+		ORPHUS_OFFLINE: "1",
+		ORPHUS_SKIP_VERSION_CHECK: "1",
+		ORPHUS_INTERACTIVE_ENGINE_CHILD: undefined,
+		ORPHUS_INTERACTIVE_ENGINE_API_KEY: undefined,
 		NO_COLOR: "1",
 	};
 }

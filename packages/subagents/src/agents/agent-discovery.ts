@@ -115,8 +115,8 @@ export function discoverAgentsAll(cwd: string): {
 	const chainDiagnostics = [...userChainLoads.flatMap((loaded) => loaded.diagnostics), ...projectChainDiagnostics];
 
 	const legacyUserAgentDir = userDirOld[0]!;
-	// ATOMIC_CODING_AGENT_DIR is already applied by getUserAgentDirs(); prefer that resolved path over ~/.agents.
-	const userDir = getEnvValue("ATOMIC_CODING_AGENT_DIR")
+	// ORPHUS_CODING_AGENT_DIR is already applied by getUserAgentDirs(); prefer that resolved path over ~/.agents.
+	const userDir = getEnvValue("ORPHUS_CODING_AGENT_DIR")
 		? legacyUserAgentDir
 		: fs.existsSync(userDirNew)
 			? userDirNew

@@ -10,10 +10,10 @@ import type { InteractiveEngineBootstrap } from "./interactive-engine-bootstrap.
  * caller-supplied value can neither select engine mode nor reach a child.
  */
 export const INTERACTIVE_ENGINE_ENV_VARS = [
-	"ATOMIC_INTERACTIVE_ENGINE_CHILD",
-	"ATOMIC_INTERACTIVE_ENGINE_HOST_PID",
-	"ATOMIC_INTERACTIVE_ENGINE_GUARD_FILE",
-	"ATOMIC_INTERACTIVE_ENGINE_API_KEY",
+	"ORPHUS_INTERACTIVE_ENGINE_CHILD",
+	"ORPHUS_INTERACTIVE_ENGINE_HOST_PID",
+	"ORPHUS_INTERACTIVE_ENGINE_GUARD_FILE",
+	"ORPHUS_INTERACTIVE_ENGINE_API_KEY",
 ] as const;
 
 /** Immutable startup values captured before they are removed from `process.env`. */
@@ -61,10 +61,10 @@ export function captureInteractiveEngineStartupEnv(
 					apiKey: bootstrap.apiKey,
 				}
 			: {
-					child: process.env.ATOMIC_INTERACTIVE_ENGINE_CHILD,
-					hostPid: process.env.ATOMIC_INTERACTIVE_ENGINE_HOST_PID,
-					guardFile: process.env.ATOMIC_INTERACTIVE_ENGINE_GUARD_FILE,
-					apiKey: process.env.ATOMIC_INTERACTIVE_ENGINE_API_KEY,
+					child: process.env.ORPHUS_INTERACTIVE_ENGINE_CHILD,
+					hostPid: process.env.ORPHUS_INTERACTIVE_ENGINE_HOST_PID,
+					guardFile: process.env.ORPHUS_INTERACTIVE_ENGINE_GUARD_FILE,
+					apiKey: process.env.ORPHUS_INTERACTIVE_ENGINE_API_KEY,
 				},
 	);
 	for (const name of INTERACTIVE_ENGINE_ENV_VARS) delete process.env[name];

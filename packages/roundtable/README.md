@@ -45,7 +45,7 @@ See `skills/roundtable/SKILL.md` for discussion patterns and
 ## Demo (no model required)
 
 ```bash
-ATOMIC_CODING_AGENT_DIR=/tmp/roundtable-demo bun packages/roundtable/demo/run-demo.ts
+ORPHUS_CODING_AGENT_DIR=/tmp/roundtable-demo bun packages/roundtable/demo/run-demo.ts
 ```
 
 Three scripted agents hold a 10-message design discussion over the real broker

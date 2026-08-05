@@ -1,5 +1,5 @@
 // @generated vendored verbatim from oh-my-pi packages/hashline @ 15b5c1397fc -- DO NOT EDIT.
-// Parity source for the Atomic hashline edit engine (issue #1483); adapted only for Atomic's Node runtime (relative imports, Bun->Node host calls, erasable constructor syntax).
+// Parity source for the Orphus hashline edit engine (issue #1483); adapted only for Orphus's Node runtime (relative imports, Bun->Node host calls, erasable constructor syntax).
 /** Centralized error/warning text for the hashline parser, applier, and patcher. */
 
 import { formatNumberedLine, HL_FILE_HASH_SEP, HL_FILE_PREFIX, HL_FILE_SUFFIX } from "./format.js";

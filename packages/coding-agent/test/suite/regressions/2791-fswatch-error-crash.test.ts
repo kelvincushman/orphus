@@ -65,7 +65,7 @@ mock.module("node:fs", () => ({
 	},
 }));
 
-process.env.ATOMIC_CODING_AGENT_DIR = ${JSON.stringify(agentDir)};
+process.env.ORPHUS_CODING_AGENT_DIR = ${JSON.stringify(agentDir)};
 
 const { setTheme, stopThemeWatcher } = await import(${JSON.stringify(themeModuleUrl)});
 setTheme("custom-test", true);
@@ -101,7 +101,7 @@ process.exit(0);
 			_stdout = execFileSync("bun", [scriptPath], {
 				timeout: 10000,
 				encoding: "utf-8",
-				env: { ...process.env, ATOMIC_CODING_AGENT_DIR: agentDir },
+				env: { ...process.env, ORPHUS_CODING_AGENT_DIR: agentDir },
 				stdio: ["pipe", "pipe", "pipe"],
 			});
 			exitCode = 0;

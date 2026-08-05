@@ -3,7 +3,7 @@ import { visibleWidth } from "@earendil-works/pi-tui";
 import type { Theme } from "../theme/theme.ts";
 import { theme } from "../theme/theme.ts";
 
-const ATOMIC_FORALL_BANNER_LINES: readonly string[] = [
+const ORPHUS_FORALL_BANNER_LINES: readonly string[] = [
 	"  ██████▙                  ▟██████  ",
 	"   ██████▙                ▟██████   ",
 	"    ██████▙              ▟██████    ",
@@ -26,10 +26,10 @@ export const STARTUP_MANIFESTO = [
 const SHADOW_CHAR = "░";
 
 function shadowGrid(): string[] {
-	const blankLine = " ".repeat(ATOMIC_FORALL_BANNER_LINES[0]?.length ?? 0);
-	return [...ATOMIC_FORALL_BANNER_LINES, blankLine].map((line, row) => {
+	const blankLine = " ".repeat(ORPHUS_FORALL_BANNER_LINES[0]?.length ?? 0);
+	return [...ORPHUS_FORALL_BANNER_LINES, blankLine].map((line, row) => {
 		const chars = [...line];
-		const previousLine = ATOMIC_FORALL_BANNER_LINES[row - 1];
+		const previousLine = ORPHUS_FORALL_BANNER_LINES[row - 1];
 		if (previousLine !== undefined) {
 			for (const [column, char] of [...previousLine].entries()) {
 				const shadowColumn = column + 1;
@@ -56,9 +56,9 @@ export function renderAtomicAssemblyBanner(gap: number, activeTheme: Theme, thin
 				.join(""),
 		);
 	}
-	const width = ATOMIC_FORALL_BANNER_LINES[0]!.length;
+	const width = ORPHUS_FORALL_BANNER_LINES[0]!.length;
 	return [
-		...ATOMIC_FORALL_BANNER_LINES.map((line) => {
+		...ORPHUS_FORALL_BANNER_LINES.map((line) => {
 			const cells = Array<string>(width).fill(" ");
 			for (const [column, char] of [...line].entries()) {
 				if (char === " ") continue;

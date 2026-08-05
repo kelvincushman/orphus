@@ -292,7 +292,7 @@ InteractiveModeBase.prototype.showLoadedResources = function (
 				new Text(
 					theme.fg(
 						"warning",
-						`Extension overlap detected: ${sources} ${verb} resources already bundled with Atomic. Atomic kept its bundled versions; non-conflicting extension features remain available.`,
+						`Extension overlap detected: ${sources} ${verb} resources already bundled with Orphus. Orphus kept its bundled versions; non-conflicting extension features remain available.`,
 					),
 					0,
 					0,

@@ -42,7 +42,7 @@ function createClient(agentDir: string, env: Record<string, string> = {}): RpcCl
 		runtimeExecutable: bunExecutable(),
 		provider: "isolation-fixture",
 		model: "blocking-model",
-		env: { ATOMIC_CODING_AGENT_DIR: agentDir, ...env },
+		env: { ORPHUS_CODING_AGENT_DIR: agentDir, ...env },
 		args: [
 			"--no-session",
 			"--no-extensions",
@@ -261,8 +261,8 @@ test.sequential("direct RPC reload updates one shared global and injected manage
 	writeExpandBinding(tempDir, "ctrl+x");
 	const sessionStartFile = join(tempDir, "session-start-bindings.txt");
 	const client = createClient(tempDir, {
-		ATOMIC_KEYBINDINGS_CUSTOM_UI: "1",
-		ATOMIC_KEYBINDINGS_SESSION_START_FILE: sessionStartFile,
+		ORPHUS_KEYBINDINGS_CUSTOM_UI: "1",
+		ORPHUS_KEYBINDINGS_SESSION_START_FILE: sessionStartFile,
 	});
 	const hostKeybindings = KeybindingsManager.create(tempDir);
 	const hostIdentity = hostKeybindings;
@@ -319,9 +319,9 @@ test.sequential("extension command-context reload updates the existing shared ma
 	writeExpandBinding(tempDir, "ctrl+x");
 	const sessionStartFile = join(tempDir, "session-start-bindings.txt");
 	const client = createClient(tempDir, {
-		ATOMIC_KEYBINDINGS_CUSTOM_UI: "1",
-		ATOMIC_KEYBINDINGS_RELOAD_COMMAND: "1",
-		ATOMIC_KEYBINDINGS_SESSION_START_FILE: sessionStartFile,
+		ORPHUS_KEYBINDINGS_CUSTOM_UI: "1",
+		ORPHUS_KEYBINDINGS_RELOAD_COMMAND: "1",
+		ORPHUS_KEYBINDINGS_SESSION_START_FILE: sessionStartFile,
 	});
 	const hostKeybindings = KeybindingsManager.create(tempDir);
 	const hostIdentity = hostKeybindings;

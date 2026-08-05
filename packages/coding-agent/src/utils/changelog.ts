@@ -21,7 +21,7 @@ export interface ChangelogEntry extends VersionParts {
 const RELEASE_VERSION_RE = /^(?:v)?((0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:alpha\.)?(0|[1-9]\d*))?)$/;
 const CHANGELOG_VERSION_HEADER_RE =
 	/^##\s+\[?((0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:alpha\.)?(0|[1-9]\d*))?)\]?/;
-const GITHUB_REPO = "bastani-inc/atomic";
+const GITHUB_REPO = "kelvincushman/orphus";
 const CHANGELOG_LINK_BASE_PATH = "packages/coding-agent";
 const LEGACY_REPO_RE = /^https:\/\/github\.com\/(?:badlogic|earendil-works)\/pi-mono(?=\/|$)/;
 const URL_SCHEME_RE = /^[a-z][a-z0-9+.-]*:/i;
@@ -210,13 +210,13 @@ export function compareVersions(v1: VersionParts, v2: VersionParts): number {
 /**
  * Get entries newer than lastVersion, optionally bounded by currentVersion.
  *
- * Atomic uses alpha prereleases (for example, 0.8.2-alpha.1, with the revision
+ * Orphus uses alpha prereleases (for example, 0.8.2-alpha.1, with the revision
  * starting at 1) while legacy numeric prerelease entries (for example, 0.8.1-0)
  * remain parseable, and started its own
  * version line above the upstream Pi changelog history. When currentVersion is
  * provided, changelog order wins over semantic version filtering so historical
  * upstream entries like 0.74.0 or an old 0.10.0 section are not treated as
- * newer Atomic releases.
+ * newer Orphus releases.
  */
 function findVersionIndex(entries: ChangelogEntry[], version: string): number {
 	const target = parseVersion(version);

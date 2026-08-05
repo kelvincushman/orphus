@@ -6,7 +6,7 @@ import { loadWorkflowConfig, toScopedDiscoveryConfig } from "../../workflows/src
 import { discoverWorkflows } from "../../workflows/src/extension/discovery.ts";
 
 const previousEnv = new Map<string, string | undefined>();
-const envKeys = ["HOME", "ATOMIC_CODING_AGENT_DIR", "PI_CODING_AGENT_DIR"] as const;
+const envKeys = ["HOME", "ORPHUS_CODING_AGENT_DIR", "PI_CODING_AGENT_DIR"] as const;
 const tempRoots: string[] = [];
 
 function rememberEnv(): void {
@@ -35,7 +35,7 @@ function setupIsolatedAgentDir(): { root: string; cwd: string; homeAgentDir: str
 	mkdirSync(homeAgentDir, { recursive: true });
 	mkdirSync(isolatedAgentDir, { recursive: true });
 	process.env.HOME = home;
-	process.env.ATOMIC_CODING_AGENT_DIR = isolatedAgentDir;
+	process.env.ORPHUS_CODING_AGENT_DIR = isolatedAgentDir;
 	delete process.env.PI_CODING_AGENT_DIR;
 	return { root, cwd, homeAgentDir, isolatedAgentDir };
 }
@@ -61,7 +61,7 @@ function writeShadowWorkflow(agentDir: string, name: "fan-out-and-synthesize" | 
 afterEach(restoreEnv);
 
 describe("workflow agent dir isolation", () => {
-	it("loads workflow config from ATOMIC_CODING_AGENT_DIR without reading home-global diagnostics", async () => {
+	it("loads workflow config from ORPHUS_CODING_AGENT_DIR without reading home-global diagnostics", async () => {
 		const { cwd, homeAgentDir, isolatedAgentDir } = setupIsolatedAgentDir();
 		mkdirSync(join(homeAgentDir, "extensions", "workflow"), { recursive: true });
 		writeFileSync(join(homeAgentDir, "extensions", "workflow", "config.json"), "{ not json");

@@ -331,12 +331,12 @@ describe("IntercomClient.send", () => {
 });
 test("typed child identity cannot inherit a parent supervisor capability from env", () => {
 	const keys = [
-		"ATOMIC_SUBAGENT_ORCHESTRATOR_TARGET",
-		"ATOMIC_SUBAGENT_RUN_ID",
-		"ATOMIC_SUBAGENT_CHILD_AGENT",
-		"ATOMIC_SUBAGENT_CHILD_INDEX",
-		"ATOMIC_SUBAGENT_SUPERVISOR_CAPABILITY",
-		"ATOMIC_SUBAGENT_SUPERVISOR_SESSION_ID",
+		"ORPHUS_SUBAGENT_ORCHESTRATOR_TARGET",
+		"ORPHUS_SUBAGENT_RUN_ID",
+		"ORPHUS_SUBAGENT_CHILD_AGENT",
+		"ORPHUS_SUBAGENT_CHILD_INDEX",
+		"ORPHUS_SUBAGENT_SUPERVISOR_CAPABILITY",
+		"ORPHUS_SUBAGENT_SUPERVISOR_SESSION_ID",
 	] as const;
 	const previous = new Map(keys.map((key) => [key, process.env[key]]));
 	try {

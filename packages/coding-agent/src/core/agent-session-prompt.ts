@@ -6,8 +6,8 @@ import { resolveWorkflowStageDeliveryTarget } from "./agent-session-delivery-for
 import type { AgentSessionInternalSurface as AgentSession } from "./agent-session-methods.ts";
 import type { PromptOptions } from "./agent-session-types.ts";
 import {
-	ATOMIC_GUIDE_COMMAND_NAME,
-	ATOMIC_GUIDE_HELP_CHOICES,
+	ORPHUS_GUIDE_COMMAND_NAME,
+	ORPHUS_GUIDE_HELP_CHOICES,
 	atomicGuideModeForChoice,
 	getAtomicGuideMessage,
 	isAtomicGuideHelpChoice,
@@ -277,13 +277,13 @@ export async function _continueQueuedAgentMessages(this: AgentSession): Promise<
 export async function _tryExecuteBuiltinSlashCommand(this: AgentSession, text: string): Promise<boolean> {
 	const spaceIndex = text.indexOf(" ");
 	const commandName = spaceIndex === -1 ? text.slice(1) : text.slice(1, spaceIndex);
-	if (commandName !== ATOMIC_GUIDE_COMMAND_NAME) return false;
+	if (commandName !== ORPHUS_GUIDE_COMMAND_NAME) return false;
 
 	const args = spaceIndex === -1 ? "" : text.slice(spaceIndex + 1);
 	const mode = normalizeAtomicGuideMode(args);
 	if (mode === "help" && this._extensionUIContext) {
-		const choice = await this._extensionUIContext.select("Atomic. Select where to start:", [
-			...ATOMIC_GUIDE_HELP_CHOICES,
+		const choice = await this._extensionUIContext.select("Orphus. Select where to start:", [
+			...ORPHUS_GUIDE_HELP_CHOICES,
 		]);
 		if (!choice || !isAtomicGuideHelpChoice(choice)) return true;
 		await this.sendCustomMessage(

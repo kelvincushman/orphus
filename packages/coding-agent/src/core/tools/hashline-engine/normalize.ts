@@ -1,5 +1,5 @@
-// @generated vendored from oh-my-pi packages/hashline @ 15b5c1397fc with Atomic parity adaptations -- DO NOT EDIT.
-// Parity source for the Atomic hashline edit engine (issue #1483); adapted for Atomic's Node runtime plus CR-only line-ending round trips.
+// @generated vendored from oh-my-pi packages/hashline @ 15b5c1397fc with Orphus parity adaptations -- DO NOT EDIT.
+// Parity source for the Orphus hashline edit engine (issue #1483); adapted for Orphus's Node runtime plus CR-only line-ending round trips.
 /**
  * Minimal text-shape normalization: line-ending detection / round-trip and
  * BOM stripping. The patcher uses these to canonicalize text to LF before

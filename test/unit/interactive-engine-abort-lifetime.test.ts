@@ -39,7 +39,7 @@ function makeClient(agentDir: string, requestTimeoutMs: number): RpcClient {
 		cliPath: join(moduleDir(import.meta.url), "../../packages/coding-agent/src/cli.ts"),
 		cwd: join(moduleDir(import.meta.url), "../.."),
 		runtimeExecutable: bunExecutable(),
-		env: { ATOMIC_CODING_AGENT_DIR: agentDir },
+		env: { ORPHUS_CODING_AGENT_DIR: agentDir },
 		provider: "isolation-fixture",
 		model: "blocking-model",
 		requestTimeoutMs,

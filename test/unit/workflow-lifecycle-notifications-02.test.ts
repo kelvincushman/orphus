@@ -256,10 +256,10 @@ describe("installWorkflowLifecycleNotifications", () => {
 
 	test("warns about send failures when workflow debug logging is enabled", () => {
 		const store = createStore();
-		const previousDebug = process.env.ATOMIC_WORKFLOW_DEBUG;
+		const previousDebug = process.env.ORPHUS_WORKFLOW_DEBUG;
 		const originalWarn = console.warn;
 		const warnings: unknown[][] = [];
-		process.env.ATOMIC_WORKFLOW_DEBUG = "1";
+		process.env.ORPHUS_WORKFLOW_DEBUG = "1";
 		console.warn = (...args: unknown[]) => {
 			warnings.push(args);
 		};
@@ -283,9 +283,9 @@ describe("installWorkflowLifecycleNotifications", () => {
 		} finally {
 			console.warn = originalWarn;
 			if (previousDebug === undefined) {
-				delete process.env.ATOMIC_WORKFLOW_DEBUG;
+				delete process.env.ORPHUS_WORKFLOW_DEBUG;
 			} else {
-				process.env.ATOMIC_WORKFLOW_DEBUG = previousDebug;
+				process.env.ORPHUS_WORKFLOW_DEBUG = previousDebug;
 			}
 		}
 
@@ -296,10 +296,10 @@ describe("installWorkflowLifecycleNotifications", () => {
 
 	test("does not warn about send failures unless workflow debug logging is enabled", () => {
 		const store = createStore();
-		const previousDebug = process.env.ATOMIC_WORKFLOW_DEBUG;
+		const previousDebug = process.env.ORPHUS_WORKFLOW_DEBUG;
 		const originalWarn = console.warn;
 		const warnings: unknown[][] = [];
-		delete process.env.ATOMIC_WORKFLOW_DEBUG;
+		delete process.env.ORPHUS_WORKFLOW_DEBUG;
 		console.warn = (...args: unknown[]) => {
 			warnings.push(args);
 		};
@@ -323,9 +323,9 @@ describe("installWorkflowLifecycleNotifications", () => {
 		} finally {
 			console.warn = originalWarn;
 			if (previousDebug === undefined) {
-				delete process.env.ATOMIC_WORKFLOW_DEBUG;
+				delete process.env.ORPHUS_WORKFLOW_DEBUG;
 			} else {
-				process.env.ATOMIC_WORKFLOW_DEBUG = previousDebug;
+				process.env.ORPHUS_WORKFLOW_DEBUG = previousDebug;
 			}
 		}
 

@@ -45,7 +45,7 @@ await new Promise((resolve) => setTimeout(resolve, 250));
 			cwd: repoRoot,
 			env: {
 				...process.env,
-				ATOMIC_TEST_LAZY_IMPORT_SENTINEL_FILE: sentinelPath,
+				ORPHUS_TEST_LAZY_IMPORT_SENTINEL_FILE: sentinelPath,
 			},
 			encoding: "utf-8",
 			timeout: subprocessTimeoutMs,
@@ -155,7 +155,7 @@ const { default: mcpAdapter } = await import(${JSON.stringify(mcpUrl)});
 const { computeServerHash } = await import(${JSON.stringify(metadataUrl)});
 const { writeFileSync } = await import("node:fs");
 const { join } = await import("node:path");
-const agentDir = process.env.ATOMIC_CODING_AGENT_DIR;
+const agentDir = process.env.ORPHUS_CODING_AGENT_DIR;
 const server = { command: "bun", args: ["--version"], directTools: true };
 if (${JSON.stringify(options.withCache)}) {
   writeFileSync(join(agentDir, "mcp-cache.json"), JSON.stringify({
@@ -192,7 +192,7 @@ process.exit(0);
 `;
 		const childEnv = {
 			...process.env,
-			ATOMIC_CODING_AGENT_DIR: agentDir,
+			ORPHUS_CODING_AGENT_DIR: agentDir,
 			PI_CODING_AGENT_DIR: "",
 		};
 		const result = spawnSync("bun", ["--eval", script], {

@@ -17,12 +17,12 @@ function writeExpandBinding(agentDir: string, binding: string): void {
 test.sequential("headless shortcut RPC uses one fallback manager from services.agentDir", async () => {
 	const serviceAgentDir = mkdtempSync(join(tmpdir(), "atomic-rpc-service-agent-dir-"));
 	const ambientAgentDir = mkdtempSync(join(tmpdir(), "atomic-rpc-ambient-agent-dir-"));
-	const previousAgentDir = process.env.ATOMIC_CODING_AGENT_DIR;
+	const previousAgentDir = process.env.ORPHUS_CODING_AGENT_DIR;
 	const invoked: string[] = [];
 	try {
 		writeExpandBinding(serviceAgentDir, "ctrl+x");
 		writeExpandBinding(ambientAgentDir, "ctrl+y");
-		process.env.ATOMIC_CODING_AGENT_DIR = ambientAgentDir;
+		process.env.ORPHUS_CODING_AGENT_DIR = ambientAgentDir;
 		const shortcuts = new Map<KeyId, ExtensionShortcut>([
 			[
 				"ctrl+x" as KeyId,
@@ -79,8 +79,8 @@ test.sequential("headless shortcut RPC uses one fallback manager from services.a
 		assert.equal(invokedResponse?.success, true);
 		assert.deepEqual(invoked, ["ctrl+y"]);
 	} finally {
-		if (previousAgentDir === undefined) delete process.env.ATOMIC_CODING_AGENT_DIR;
-		else process.env.ATOMIC_CODING_AGENT_DIR = previousAgentDir;
+		if (previousAgentDir === undefined) delete process.env.ORPHUS_CODING_AGENT_DIR;
+		else process.env.ORPHUS_CODING_AGENT_DIR = previousAgentDir;
 		rmSync(serviceAgentDir, { recursive: true, force: true });
 		rmSync(ambientAgentDir, { recursive: true, force: true });
 	}

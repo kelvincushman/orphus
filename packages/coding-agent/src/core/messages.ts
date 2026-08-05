@@ -99,7 +99,7 @@ export function userLikeContentIsLlmVisible(
 	return content.some((block, index) => !deletedBlockIndexes.has(index) && userLikeContentBlockIsLlmVisible(block));
 }
 
-/** Whether an Atomic message emits an LLM-visible user-like turn boundary. */
+/** Whether an Orphus message emits an LLM-visible user-like turn boundary. */
 export function messageStartsLlmUserTurn(
 	message: AgentMessage,
 	deletedBlockIndexes: ReadonlySet<number> = new Set<number>(),
@@ -123,7 +123,7 @@ export function messageStartsLlmUserTurn(
 	}
 }
 
-/** Whether an Atomic message survives conversion into provider-visible context. */
+/** Whether an Orphus message survives conversion into provider-visible context. */
 export function messageIsLlmVisible(
 	message: AgentMessage,
 	deletedBlockIndexes: ReadonlySet<number> = new Set<number>(),

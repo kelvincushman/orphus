@@ -27,7 +27,7 @@ function startupCustomUiClient(): RpcClient {
 		runtimeExecutable: bunExecutable(),
 		provider: "isolation-fixture",
 		model: "blocking-model",
-		env: { ATOMIC_STARTUP_CUSTOM_UI: "1" },
+		env: { ORPHUS_STARTUP_CUSTOM_UI: "1" },
 		args: [
 			"--no-session",
 			"--no-extensions",

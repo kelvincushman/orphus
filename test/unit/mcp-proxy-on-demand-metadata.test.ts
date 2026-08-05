@@ -8,7 +8,7 @@ import type { McpServerManager } from "../../packages/mcp/server-manager.js";
 import type { McpExtensionState } from "../../packages/mcp/state.js";
 import type { McpTool, ServerDefinition } from "../../packages/mcp/types.js";
 
-const originalEnv = process.env.ATOMIC_CODING_AGENT_DIR;
+const originalEnv = process.env.ORPHUS_CODING_AGENT_DIR;
 let tmpRoot = "";
 
 interface FakeConnection {
@@ -89,12 +89,12 @@ function createState(serverTools: Record<string, McpTool[]>): {
 
 beforeEach(() => {
 	tmpRoot = mkdtempSync(join(tmpdir(), "atomic-mcp-proxy-hydration-"));
-	process.env.ATOMIC_CODING_AGENT_DIR = join(tmpRoot, "agent");
+	process.env.ORPHUS_CODING_AGENT_DIR = join(tmpRoot, "agent");
 });
 
 afterEach(() => {
-	if (originalEnv === undefined) delete process.env.ATOMIC_CODING_AGENT_DIR;
-	else process.env.ATOMIC_CODING_AGENT_DIR = originalEnv;
+	if (originalEnv === undefined) delete process.env.ORPHUS_CODING_AGENT_DIR;
+	else process.env.ORPHUS_CODING_AGENT_DIR = originalEnv;
 	rmSync(tmpRoot, { recursive: true, force: true });
 });
 function resultText(result: Awaited<ReturnType<typeof executeSearch>>): string {

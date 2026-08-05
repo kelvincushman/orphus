@@ -15,7 +15,7 @@ import {
 } from "../helpers/runtime.js";
 
 const serialTest = process.platform === "win32" ? test.sequential.skip : test.sequential;
-const PREFIX = "@@ATOMIC_TEST@@";
+const PREFIX = "@@ORPHUS_TEST@@";
 const warning =
 	"Configured default model is unavailable or unsupported. Update defaultProvider/defaultModel or use /model.";
 
@@ -38,7 +38,7 @@ class Driver {
 	constructor(args: string[], env: Record<string, string>) {
 		const baseEnv: Record<string, string | undefined> = { ...process.env };
 		for (const key of Object.keys(baseEnv)) {
-			if (key.startsWith("ATOMIC_INTERACTIVE_ENGINE_")) delete baseEnv[key];
+			if (key.startsWith("ORPHUS_INTERACTIVE_ENGINE_")) delete baseEnv[key];
 		}
 		this.process = spawnProcess(
 			[bunExecutable(), join(moduleDir(import.meta.url), "fixtures", "default-main-interactive-host.ts"), ...args],
@@ -160,7 +160,7 @@ serialTest("isolated interactive startup replaces preliminary fallback with exte
 			"--offline",
 			"--approve",
 		],
-		{ ATOMIC_CODING_AGENT_DIR: agentDir, ATOMIC_SKIP_VERSION_CHECK: "1", NO_COLOR: "1" },
+		{ ORPHUS_CODING_AGENT_DIR: agentDir, ORPHUS_SKIP_VERSION_CHECK: "1", NO_COLOR: "1" },
 	);
 	try {
 		await driver.waitFor((report) => report.type === "engine_bound");
@@ -254,9 +254,9 @@ serialTest("isolated interactive persisted stale state shows one generic warning
 			"--approve",
 		],
 		{
-			ATOMIC_CODING_AGENT_DIR: agentDir,
-			ATOMIC_CODING_AGENT_SESSION_DIR: sessionDir,
-			ATOMIC_SKIP_VERSION_CHECK: "1",
+			ORPHUS_CODING_AGENT_DIR: agentDir,
+			ORPHUS_CODING_AGENT_SESSION_DIR: sessionDir,
+			ORPHUS_SKIP_VERSION_CHECK: "1",
 			NO_COLOR: "1",
 		},
 	);

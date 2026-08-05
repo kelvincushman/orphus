@@ -52,9 +52,9 @@ describe("correlated RPC bash streaming", () => {
 			{ id: "rpc-order", channel: "stdout", delta: "out-2" },
 		]);
 		expect(executionEnv).toMatchObject({
-			ATOMIC_SESSION_ID: harness.session.sessionId,
+			ORPHUS_SESSION_ID: harness.session.sessionId,
 			PI_SESSION_ID: harness.session.sessionId,
-			ATOMIC_PROVIDER: harness.session.model?.provider,
+			ORPHUS_PROVIDER: harness.session.model?.provider,
 			PI_PROVIDER: harness.session.model?.provider,
 		});
 		expect(result).toMatchObject({ output: "out-1err-1out-2", exitCode: 0, cancelled: false });

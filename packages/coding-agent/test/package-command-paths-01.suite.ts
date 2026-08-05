@@ -68,7 +68,7 @@ describe("package commands", () => {
 
 		originalCwd = process.cwd();
 		originalAgentDir = process.env[ENV_AGENT_DIR];
-		originalAtomicPackageDir = process.env.ATOMIC_PACKAGE_DIR;
+		originalAtomicPackageDir = process.env.ORPHUS_PACKAGE_DIR;
 		originalExitCode = process.exitCode;
 		originalExecPath = process.execPath;
 		process.exitCode = 0;
@@ -94,9 +94,9 @@ describe("package commands", () => {
 			process.env[ENV_AGENT_DIR] = originalAgentDir;
 		}
 		if (originalAtomicPackageDir === undefined) {
-			delete process.env.ATOMIC_PACKAGE_DIR;
+			delete process.env.ORPHUS_PACKAGE_DIR;
 		} else {
-			process.env.ATOMIC_PACKAGE_DIR = originalAtomicPackageDir;
+			process.env.ORPHUS_PACKAGE_DIR = originalAtomicPackageDir;
 		}
 		Object.defineProperty(process, "execPath", {
 			value: originalExecPath,
@@ -354,7 +354,7 @@ else fs.writeFileSync(${JSON.stringify(recordPath)},JSON.stringify(args));
 				2,
 			),
 		);
-		process.env.ATOMIC_PACKAGE_DIR = selfPackageDir;
+		process.env.ORPHUS_PACKAGE_DIR = selfPackageDir;
 		Object.defineProperty(process, "execPath", {
 			value: join(selfPackageDir, "dist", "cli.js"),
 			configurable: true,

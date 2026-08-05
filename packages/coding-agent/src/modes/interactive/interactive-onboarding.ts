@@ -1,7 +1,7 @@
 import { InteractiveModeBase } from "./interactive-mode-base.ts";
 
 export const ONBOARDING_COPY = [
-	"Atomic is a verifiable coding agent runtime for building and running",
+	"Orphus is a verifiable coding agent runtime for building and running",
 	"agent workflows you can feel confident in.",
 	"Use it to implement tickets, research a codebase, design a UI,",
 	"or build and run your own loops.",

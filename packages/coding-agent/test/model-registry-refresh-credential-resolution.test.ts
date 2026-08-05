@@ -7,7 +7,7 @@ import { createModelRegistry, getModelRuntime } from "./model-runtime-test-utils
 describeModelRegistry((context) => {
 	describe("extension catalog credential resolution", () => {
 		test("resolves configured environment-backed API keys", async () => {
-			const envVarName = "ATOMIC_EXTENSION_CATALOG_KEY";
+			const envVarName = "ORPHUS_EXTENSION_CATALOG_KEY";
 			const original = process.env[envVarName];
 			process.env[envVarName] = "environment-catalog-key";
 			try {
@@ -47,7 +47,7 @@ describeModelRegistry((context) => {
 		});
 
 		test("resolves stored API-key expressions", async () => {
-			const envVarName = "ATOMIC_STORED_CATALOG_KEY";
+			const envVarName = "ORPHUS_STORED_CATALOG_KEY";
 			const original = process.env[envVarName];
 			process.env[envVarName] = "stored-environment-key";
 			const tokenFile = join(context.tempDir, "stored-catalog-token");
@@ -112,9 +112,9 @@ describeModelRegistry((context) => {
 		test("does not pass unresolved stored API-key expressions literally", async () => {
 			await context.authStorage.modify("missing-expression", async () => ({
 				type: "api_key",
-				key: "$ATOMIC_MISSING_CATALOG_KEY",
+				key: "$ORPHUS_MISSING_CATALOG_KEY",
 			}));
-			delete process.env.ATOMIC_MISSING_CATALOG_KEY;
+			delete process.env.ORPHUS_MISSING_CATALOG_KEY;
 			const registry = await createModelRegistry(context.authStorage, context.modelsJsonPath);
 			let observedKey: string | undefined;
 			registry.registerProvider("missing-expression", {

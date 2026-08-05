@@ -4,7 +4,7 @@ import type { InteractiveMode } from "../../../packages/coding-agent/src/modes/i
 import { IsolatedInteractiveRuntime } from "../../../packages/coding-agent/src/modes/interactive-engine/isolated-runtime.ts";
 import { hasInteractiveEngineBootstrapArg } from "../../../packages/coding-agent/src/utils/interactive-engine-bootstrap.ts";
 
-const CONTROL_PREFIX = "@@ATOMIC_TEST@@";
+const CONTROL_PREFIX = "@@ORPHUS_TEST@@";
 
 function report(value: Record<string, object | boolean | null | number | string | undefined>): void {
 	process.stdout.write(`${CONTROL_PREFIX}${JSON.stringify(value)}\n`);

@@ -94,9 +94,9 @@ serialTest(
 		const driver = new DefaultMainDriver(
 			fixtureArgs(join(moduleDir(import.meta.url), "fixtures", "blocking-tool-extension.ts")),
 			{
-				ATOMIC_BLOCKING_TOOL_PID_FILE: toolPidFile,
-				ATOMIC_BLOCKING_GRANDCHILD_PID_FILE: grandchildPidFile,
-				ATOMIC_CODING_AGENT_DIR: join(temp, "agent"),
+				ORPHUS_BLOCKING_TOOL_PID_FILE: toolPidFile,
+				ORPHUS_BLOCKING_GRANDCHILD_PID_FILE: grandchildPidFile,
+				ORPHUS_CODING_AGENT_DIR: join(temp, "agent"),
 			},
 		);
 		try {
@@ -181,9 +181,9 @@ serialTest(
 		const driver = new DefaultMainDriver(
 			fixtureArgs(join(moduleDir(import.meta.url), "fixtures", "blocking-tool-extension.ts")),
 			{
-				ATOMIC_BLOCKING_TOOL_PID_FILE: toolPidFile,
-				ATOMIC_BLOCKING_GRANDCHILD_PID_FILE: grandchildPidFile,
-				ATOMIC_CODING_AGENT_DIR: join(temp, "agent"),
+				ORPHUS_BLOCKING_TOOL_PID_FILE: toolPidFile,
+				ORPHUS_BLOCKING_GRANDCHILD_PID_FILE: grandchildPidFile,
+				ORPHUS_CODING_AGENT_DIR: join(temp, "agent"),
 			},
 		);
 		try {
@@ -213,9 +213,9 @@ serialTest(
 		args.push("--session-dir", join(temp, "sessions"));
 		const toolPidFile = join(temp, "tool.pid");
 		const driver = new DefaultMainDriver(args, {
-			ATOMIC_CODING_AGENT_DIR: join(temp, "agent"),
-			ATOMIC_BLOCKING_TOOL_PID_FILE: toolPidFile,
-			ATOMIC_NONBLOCKING_TOOL: "1",
+			ORPHUS_CODING_AGENT_DIR: join(temp, "agent"),
+			ORPHUS_BLOCKING_TOOL_PID_FILE: toolPidFile,
+			ORPHUS_NONBLOCKING_TOOL: "1",
 		});
 		try {
 			await driver.waitFor((report) => report.type === "terminal_ready");
@@ -258,13 +258,13 @@ serialTest(
 		const toolRendererPidFile = join(temp, "tool-renderer.pid");
 		const extension = join(moduleDir(import.meta.url), "fixtures", "blocking-tool-extension.ts");
 		const driver = new DefaultMainDriver(fixtureArgs(extension), {
-			ATOMIC_RENDERER_FIXTURE: "1",
-			ATOMIC_RENDERER_PID_FILE: rendererPidFile,
-			ATOMIC_WIDGET_PID_FILE: widgetPidFile,
-			ATOMIC_CODING_AGENT_DIR: join(temp, "agent"),
-			ATOMIC_BLOCKING_TOOL_PID_FILE: toolPidFile,
-			ATOMIC_TOOL_RENDERER_PID_FILE: toolRendererPidFile,
-			ATOMIC_NONBLOCKING_TOOL: "1",
+			ORPHUS_RENDERER_FIXTURE: "1",
+			ORPHUS_RENDERER_PID_FILE: rendererPidFile,
+			ORPHUS_WIDGET_PID_FILE: widgetPidFile,
+			ORPHUS_CODING_AGENT_DIR: join(temp, "agent"),
+			ORPHUS_BLOCKING_TOOL_PID_FILE: toolPidFile,
+			ORPHUS_TOOL_RENDERER_PID_FILE: toolRendererPidFile,
+			ORPHUS_NONBLOCKING_TOOL: "1",
 		});
 		try {
 			const ready = await driver.waitFor((report) => report.type === "terminal_ready");
@@ -382,9 +382,9 @@ serialTest(
 		const logFile = join(temp, "commands.log");
 		const toolPidFile = join(temp, "tool.pid");
 		const driver = new DefaultMainDriver(args, {
-			ATOMIC_CODING_AGENT_DIR: join(temp, "agent"),
-			ATOMIC_WORKFLOW_COMMAND_LOG: logFile,
-			ATOMIC_WORKFLOW_TOOL_PID_FILE: toolPidFile,
+			ORPHUS_CODING_AGENT_DIR: join(temp, "agent"),
+			ORPHUS_WORKFLOW_COMMAND_LOG: logFile,
+			ORPHUS_WORKFLOW_TOOL_PID_FILE: toolPidFile,
 		});
 		try {
 			await driver.waitFor((report) => report.type === "terminal_ready");

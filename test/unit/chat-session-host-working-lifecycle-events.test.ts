@@ -63,9 +63,9 @@ test("ChatSessionHost disposal is final for public agent-event application", () 
 });
 
 test("successful retry and fallback stay ordinary-inactive until a genuine lifecycle start", () => {
-	const previousReducedMotion = process.env.ATOMIC_REDUCED_MOTION;
+	const previousReducedMotion = process.env.ORPHUS_REDUCED_MOTION;
 	const previousRandom = Math.random;
-	delete process.env.ATOMIC_REDUCED_MOTION;
+	delete process.env.ORPHUS_REDUCED_MOTION;
 	Math.random = () => 0;
 	const cases = [
 		{
@@ -128,15 +128,15 @@ test("successful retry and fallback stay ordinary-inactive until a genuine lifec
 		}
 	} finally {
 		Math.random = previousRandom;
-		if (previousReducedMotion === undefined) delete process.env.ATOMIC_REDUCED_MOTION;
-		else process.env.ATOMIC_REDUCED_MOTION = previousReducedMotion;
+		if (previousReducedMotion === undefined) delete process.env.ORPHUS_REDUCED_MOTION;
+		else process.env.ORPHUS_REDUCED_MOTION = previousReducedMotion;
 	}
 });
 
 test("ordinary assistant start coalesces into the active turn animation paint", () => {
-	const previousReducedMotion = process.env.ATOMIC_REDUCED_MOTION;
+	const previousReducedMotion = process.env.ORPHUS_REDUCED_MOTION;
 	const previousRandom = Math.random;
-	delete process.env.ATOMIC_REDUCED_MOTION;
+	delete process.env.ORPHUS_REDUCED_MOTION;
 	Math.random = () => 0;
 	const timers = installLifecycleFakeClock();
 	const paintedFrames: Array<string | undefined> = [];
@@ -174,14 +174,14 @@ test("ordinary assistant start coalesces into the active turn animation paint", 
 		host.dispose();
 		timers.restore();
 		Math.random = previousRandom;
-		if (previousReducedMotion === undefined) delete process.env.ATOMIC_REDUCED_MOTION;
-		else process.env.ATOMIC_REDUCED_MOTION = previousReducedMotion;
+		if (previousReducedMotion === undefined) delete process.env.ORPHUS_REDUCED_MOTION;
+		else process.env.ORPHUS_REDUCED_MOTION = previousReducedMotion;
 	}
 });
 
 test("public interrupt stops the working lifecycle and fences its captured callback", async () => {
-	const previousReducedMotion = process.env.ATOMIC_REDUCED_MOTION;
-	delete process.env.ATOMIC_REDUCED_MOTION;
+	const previousReducedMotion = process.env.ORPHUS_REDUCED_MOTION;
+	delete process.env.ORPHUS_REDUCED_MOTION;
 	const timers = installLifecycleFakeClock();
 	let streaming = true;
 	let renderRequests = 0;
@@ -216,8 +216,8 @@ test("public interrupt stops the working lifecycle and fences its captured callb
 	} finally {
 		host.dispose();
 		timers.restore();
-		if (previousReducedMotion === undefined) delete process.env.ATOMIC_REDUCED_MOTION;
-		else process.env.ATOMIC_REDUCED_MOTION = previousReducedMotion;
+		if (previousReducedMotion === undefined) delete process.env.ORPHUS_REDUCED_MOTION;
+		else process.env.ORPHUS_REDUCED_MOTION = previousReducedMotion;
 	}
 });
 
@@ -294,8 +294,8 @@ test("a stale lifecycle throttle cannot detach a newer current throttle", () => 
 });
 
 test("non-reduced in-flight host construction first renders the regular pulse phase", () => {
-	const previousReducedMotion = process.env.ATOMIC_REDUCED_MOTION;
-	delete process.env.ATOMIC_REDUCED_MOTION;
+	const previousReducedMotion = process.env.ORPHUS_REDUCED_MOTION;
+	delete process.env.ORPHUS_REDUCED_MOTION;
 	const timers = installLifecycleFakeClock();
 	let renderRequests = 0;
 	const host = makeLifecycleHost({
@@ -314,7 +314,7 @@ test("non-reduced in-flight host construction first renders the regular pulse ph
 	} finally {
 		host.dispose();
 		timers.restore();
-		if (previousReducedMotion === undefined) delete process.env.ATOMIC_REDUCED_MOTION;
-		else process.env.ATOMIC_REDUCED_MOTION = previousReducedMotion;
+		if (previousReducedMotion === undefined) delete process.env.ORPHUS_REDUCED_MOTION;
+		else process.env.ORPHUS_REDUCED_MOTION = previousReducedMotion;
 	}
 });

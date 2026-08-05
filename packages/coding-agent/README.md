@@ -280,10 +280,10 @@ See [docs/settings.md](docs/settings.md) for all options.
 
 Atomic has two separate startup features:
 
-- **Update check:** checks whether a newer Atomic version exists. Disable it with `ATOMIC_SKIP_VERSION_CHECK=1` (`PI_SKIP_VERSION_CHECK=1` remains a legacy alias). Disabling update checks only turns off this check.
-- **Install/update telemetry:** after first install or a changelog-detected update, sends an anonymous version ping. Opt out by setting `enableInstallTelemetry` to `false` in `settings.json`, or by setting `ATOMIC_TELEMETRY=0` (`PI_TELEMETRY=0` remains a legacy alias). This does not disable update checks; Atomic may still check for the latest version unless update checks are disabled or offline mode is enabled.
+- **Update check:** checks whether a newer Atomic version exists. Disable it with `ORPHUS_SKIP_VERSION_CHECK=1` (`PI_SKIP_VERSION_CHECK=1` remains a legacy alias). Disabling update checks only turns off this check.
+- **Install/update telemetry:** after first install or a changelog-detected update, sends an anonymous version ping. Opt out by setting `enableInstallTelemetry` to `false` in `settings.json`, or by setting `ORPHUS_TELEMETRY=0` (`PI_TELEMETRY=0` remains a legacy alias). This does not disable update checks; Atomic may still check for the latest version unless update checks are disabled or offline mode is enabled.
 
-Use `--offline` or `ATOMIC_OFFLINE=1` (`PI_OFFLINE=1` remains a legacy alias) to disable all startup network operations described here, including update checks, package update checks, and install/update telemetry.
+Use `--offline` or `ORPHUS_OFFLINE=1` (`PI_OFFLINE=1` remains a legacy alias) to disable all startup network operations described here, including update checks, package update checks, and install/update telemetry.
 
 ---
 
@@ -630,16 +630,16 @@ atomic --thinking high "Solve this complex problem"
 
 | Variable | Description |
 |----------|-------------|
-| `ATOMIC_CODING_AGENT_DIR` | Override config directory (default: `~/.atomic/agent`; `PI_CODING_AGENT_DIR` is a legacy alias) |
-| `ATOMIC_CODING_AGENT_SESSION_DIR` | Override session storage directory (overridden by `--session-dir`; `PI_CODING_AGENT_SESSION_DIR` is a legacy alias) |
-| `ATOMIC_PACKAGE_DIR` | Override package directory (useful for Nix/Guix where store paths tokenize poorly; `PI_PACKAGE_DIR` is a legacy alias) |
-| `ATOMIC_OFFLINE` | Disable startup network operations, including update checks, package update checks, and install/update telemetry (`PI_OFFLINE` is a legacy alias) |
-| `ATOMIC_SKIP_VERSION_CHECK` | Skip the Atomic version update check at startup. `PI_SKIP_VERSION_CHECK` is a legacy alias. |
-| `ATOMIC_TELEMETRY` | Override install/update telemetry. Use `1`/`true`/`yes` to enable or `0`/`false`/`no` to disable. This does not disable update checks (`PI_TELEMETRY` is a legacy alias). |
-| `PI_CACHE_RETENTION` | Provider/upstream-specific prompt-cache retention knob; set to `long` where supported. This is not an `ATOMIC_*` alias and has no Atomic-prefixed equivalent. |
+| `ORPHUS_CODING_AGENT_DIR` | Override config directory (default: `~/.atomic/agent`; `PI_CODING_AGENT_DIR` is a legacy alias) |
+| `ORPHUS_CODING_AGENT_SESSION_DIR` | Override session storage directory (overridden by `--session-dir`; `PI_CODING_AGENT_SESSION_DIR` is a legacy alias) |
+| `ORPHUS_PACKAGE_DIR` | Override package directory (useful for Nix/Guix where store paths tokenize poorly; `PI_PACKAGE_DIR` is a legacy alias) |
+| `ORPHUS_OFFLINE` | Disable startup network operations, including update checks, package update checks, and install/update telemetry (`PI_OFFLINE` is a legacy alias) |
+| `ORPHUS_SKIP_VERSION_CHECK` | Skip the Atomic version update check at startup. `PI_SKIP_VERSION_CHECK` is a legacy alias. |
+| `ORPHUS_TELEMETRY` | Override install/update telemetry. Use `1`/`true`/`yes` to enable or `0`/`false`/`no` to disable. This does not disable update checks (`PI_TELEMETRY` is a legacy alias). |
+| `PI_CACHE_RETENTION` | Provider/upstream-specific prompt-cache retention knob; set to `long` where supported. This is not an `ORPHUS_*` alias and has no Atomic-prefixed equivalent. |
 | `VISUAL`, `EDITOR` | External editor for CTRL+G |
 
-Bash commands also receive an execution-time session snapshot through `ATOMIC_SESSION_ID`, `ATOMIC_SESSION_FILE` (omitted for unsaved sessions), `ATOMIC_PROVIDER`, `ATOMIC_MODEL`, and `ATOMIC_REASONING_LEVEL`. The exact `PI_SESSION_ID`, `PI_SESSION_FILE`, `PI_PROVIDER`, `PI_MODEL`, and `PI_REASONING_LEVEL` aliases carry identical values. Unrelated inherited or caller-supplied environment variables are preserved.
+Bash commands also receive an execution-time session snapshot through `ORPHUS_SESSION_ID`, `ORPHUS_SESSION_FILE` (omitted for unsaved sessions), `ORPHUS_PROVIDER`, `ORPHUS_MODEL`, and `ORPHUS_REASONING_LEVEL`. The exact `PI_SESSION_ID`, `PI_SESSION_FILE`, `PI_PROVIDER`, `PI_MODEL`, and `PI_REASONING_LEVEL` aliases carry identical values. Unrelated inherited or caller-supplied environment variables are preserved.
 
 ---
 

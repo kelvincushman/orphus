@@ -74,8 +74,8 @@ describe("DefaultPackageManager", () => {
 	let previousOfflineEnv: string | undefined;
 
 	beforeEach(() => {
-		previousOfflineEnv = process.env.ATOMIC_OFFLINE;
-		delete process.env.ATOMIC_OFFLINE;
+		previousOfflineEnv = process.env.ORPHUS_OFFLINE;
+		delete process.env.ORPHUS_OFFLINE;
 		tempDir = join(tmpdir(), `pm-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 		mkdirSync(tempDir, { recursive: true });
 		agentDir = join(tempDir, "agent");
@@ -91,9 +91,9 @@ describe("DefaultPackageManager", () => {
 
 	afterEach(() => {
 		if (previousOfflineEnv === undefined) {
-			delete process.env.ATOMIC_OFFLINE;
+			delete process.env.ORPHUS_OFFLINE;
 		} else {
-			process.env.ATOMIC_OFFLINE = previousOfflineEnv;
+			process.env.ORPHUS_OFFLINE = previousOfflineEnv;
 		}
 		vi.restoreAllMocks();
 		const viWithUnstub = vi as typeof vi & { unstubAllGlobals?: () => void };
@@ -117,7 +117,7 @@ describe("DefaultPackageManager", () => {
 		});
 
 		it("should not check package updates when offline", async () => {
-			process.env.ATOMIC_OFFLINE = "1";
+			process.env.ORPHUS_OFFLINE = "1";
 			const runCommandCaptureSpy = vi.spyOn(packageManager as any, "runCommandCapture");
 
 			const updates = await packageManager.checkForAvailableUpdates();

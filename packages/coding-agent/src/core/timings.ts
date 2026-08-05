@@ -1,6 +1,6 @@
 /**
  * Central timing instrumentation for startup profiling.
- * Enable with the app-specific timing environment variable (for Atomic, ATOMIC_TIMING=1).
+ * Enable with the app-specific timing environment variable (for Orphus, ORPHUS_TIMING=1).
  */
 
 import { ENV_TIMING, getEnvValue } from "../config.ts";

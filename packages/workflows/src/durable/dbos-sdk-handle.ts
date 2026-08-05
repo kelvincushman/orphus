@@ -30,10 +30,10 @@ interface DbosStatus {
  * sessions share one DBOS database; a per-process id keeps DBOS-level recovery
  * and workflow ownership scoped to the process that actually runs the work.
  */
-const ATOMIC_EXECUTOR_ID = `atomic-${process.pid.toString(36)}-${crypto.randomUUID().slice(0, 8)}`;
+const ORPHUS_EXECUTOR_ID = `atomic-${process.pid.toString(36)}-${crypto.randomUUID().slice(0, 8)}`;
 
 export function getAtomicExecutorId(): string {
-	return ATOMIC_EXECUTOR_ID;
+	return ORPHUS_EXECUTOR_ID;
 }
 
 export interface DbosLogger {

@@ -1,11 +1,11 @@
 import type { Api, Model } from "@earendil-works/pi-ai/compat";
 
-/** Atomic compatibility alias accepted alongside pi-ai's canonical grammar capability. */
+/** Orphus compatibility alias accepted alongside pi-ai's canonical grammar capability. */
 export interface GrammarToolCapabilityAlias {
 	supportsGrammarTools?: boolean;
 }
 
-/** Pi provider compatibility metadata plus Atomic's public constrained-sampling fields. */
+/** Pi provider compatibility metadata plus Orphus's public constrained-sampling fields. */
 export type AtomicProviderCompat = NonNullable<Model<Api>["compat"]> &
 	GrammarToolCapabilityAlias & {
 		supportsStrictTools?: boolean;
@@ -19,8 +19,8 @@ type GrammarCompatible = NonNullable<Model<Api>["compat"]> &
 	};
 
 /**
- * Keep Atomic's documented capability alias synchronized with pi-ai's canonical
- * field. The canonical field wins when both are supplied, so Atomic never
+ * Keep Orphus's documented capability alias synchronized with pi-ai's canonical
+ * field. The canonical field wins when both are supplied, so Orphus never
  * advertises grammar enforcement that the provider runtime has disabled.
  */
 export function normalizeGrammarToolCapability(

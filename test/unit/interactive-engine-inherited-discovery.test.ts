@@ -14,7 +14,7 @@ import {
 } from "../helpers/runtime.js";
 
 const serialTest = process.platform === "win32" ? test.sequential.skip : test.sequential;
-const PREFIX = "@@ATOMIC_TEST@@";
+const PREFIX = "@@ORPHUS_TEST@@";
 const INHERITED_DISCOVERY_TIMEOUT_MS = 20_000;
 
 interface HarnessReport {
@@ -33,7 +33,7 @@ class InteractiveDriver {
 	constructor(args: string[], overrides: Record<string, string | undefined>) {
 		const inherited: Record<string, string | undefined> = { ...process.env };
 		for (const key of Object.keys(inherited)) {
-			if (key.startsWith("ATOMIC_INTERACTIVE_ENGINE_")) delete inherited[key];
+			if (key.startsWith("ORPHUS_INTERACTIVE_ENGINE_")) delete inherited[key];
 		}
 		const env: Record<string, string> = {};
 		for (const [key, value] of Object.entries({ ...inherited, ...overrides })) {
@@ -140,7 +140,7 @@ import { appendFileSync } from "node:fs";
 export default function(pi) {
   pi.registerCommand("legacy-compatible", {
     description: "legacy compatible command",
-    handler: async () => appendFileSync(process.env.ATOMIC_LEGACY_COMMAND_LOG, "invoked\\n"),
+    handler: async () => appendFileSync(process.env.ORPHUS_LEGACY_COMMAND_LOG, "invoked\\n"),
   });
 }
 `,
@@ -189,9 +189,9 @@ serialTest(
 			USERPROFILE: undefined,
 			HOMEDRIVE: undefined,
 			HOMEPATH: undefined,
-			ATOMIC_CODING_AGENT_DIR: undefined,
+			ORPHUS_CODING_AGENT_DIR: undefined,
 			PI_CODING_AGENT_DIR: undefined,
-			ATOMIC_LEGACY_COMMAND_LOG: logFile,
+			ORPHUS_LEGACY_COMMAND_LOG: logFile,
 		});
 		try {
 			await driver.waitFor((report) => report.type === "terminal_ready", 15_000);
@@ -221,7 +221,7 @@ serialTest(
 			USERPROFILE: undefined,
 			HOMEDRIVE: undefined,
 			HOMEPATH: undefined,
-			ATOMIC_CODING_AGENT_DIR: join(temp, "isolated-agent"),
+			ORPHUS_CODING_AGENT_DIR: join(temp, "isolated-agent"),
 			PI_CODING_AGENT_DIR: undefined,
 		});
 		try {

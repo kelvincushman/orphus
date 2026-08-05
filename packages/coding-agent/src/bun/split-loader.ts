@@ -6,7 +6,7 @@ import { INTERNAL_INTERCOM_BROKER_ARG, importInternalIntercomBroker } from "./in
 const APP_NAME = "atomic";
 
 process.title = APP_NAME;
-process.env.ATOMIC_CODING_AGENT = "true";
+process.env.ORPHUS_CODING_AGENT = "true";
 process.emitWarning = (() => {}) as typeof process.emitWarning;
 
 const args = process.argv.slice(2);
@@ -23,11 +23,11 @@ function readVersion(): string {
 
 if (args[0] === INTERNAL_INTERCOM_BROKER_ARG) {
 	if (args.length !== 2) {
-		console.error(`Atomic startup error: ${INTERNAL_INTERCOM_BROKER_ARG} requires exactly one broker module path`);
+		console.error(`Orphus startup error: ${INTERNAL_INTERCOM_BROKER_ARG} requires exactly one broker module path`);
 		process.exit(1);
 	}
 	void importInternalIntercomBroker(args[1]).catch((error: Error) => {
-		console.error(`Atomic startup error: ${error.message}`);
+		console.error(`Orphus startup error: ${error.message}`);
 		process.exit(1);
 	});
 } else {
@@ -38,7 +38,7 @@ if (args[0] === INTERNAL_INTERCOM_BROKER_ARG) {
 
 	const appPath = join(dirname(process.execPath), "app.js");
 	if (!existsSync(appPath)) {
-		console.error(`Atomic startup error: missing app bundle at ${appPath}`);
+		console.error(`Orphus startup error: missing app bundle at ${appPath}`);
 		process.exit(1);
 	}
 

@@ -14,8 +14,8 @@ export function normalizeGroup(value?: string | null): string {
   return trimmed.length > 0 ? trimmed : DEFAULT_GROUP;
 }
 
-/** `getEnvValue("ATOMIC_INTERCOM_GROUP")` also resolves the legacy `PI_INTERCOM_GROUP`. */
-const INTERCOM_GROUP_ENV = "ATOMIC_INTERCOM_GROUP";
+/** `getEnvValue("ORPHUS_INTERCOM_GROUP")` also resolves the legacy `PI_INTERCOM_GROUP`. */
+const INTERCOM_GROUP_ENV = "ORPHUS_INTERCOM_GROUP";
 
 interface HomeGroupContext {
   orchestrationContext?: { intercomGroup?: string } | undefined;
@@ -24,7 +24,7 @@ interface HomeGroupContext {
 /**
  * Resolve a session's home intercom group with precedence (most specific first):
  * per-session orchestrationContext.intercomGroup (in-process workflow stages) >
- * env ATOMIC_INTERCOM_GROUP (also PI_INTERCOM_GROUP legacy) > config.json "group" >
+ * env ORPHUS_INTERCOM_GROUP (also PI_INTERCOM_GROUP legacy) > config.json "group" >
  * "default". Always returns a concrete normalized string.
  */
 export function resolveHomeGroup(

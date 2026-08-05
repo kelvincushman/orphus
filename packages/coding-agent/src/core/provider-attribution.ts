@@ -52,7 +52,7 @@ function getDefaultAttributionHeaders(
 
 	if (isNvidiaNimModel(model)) {
 		return {
-			"X-BILLING-INVOKE-ORIGIN": "Atomic",
+			"X-BILLING-INVOKE-ORIGIN": "Orphus",
 		};
 	}
 

@@ -333,7 +333,7 @@ InteractiveModeBase.prototype.setupEditorSubmitHandler = function (this: Interac
 				this.editor.setText("");
 				return;
 			}
-			if (text === "/atomic" || text.startsWith("/atomic ")) {
+			if (text === "/orphus" || text.startsWith("/orphus ")) {
 				this.editor.setText("");
 				await this.session.prompt(text);
 				return;

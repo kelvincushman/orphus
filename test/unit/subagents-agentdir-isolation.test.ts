@@ -38,7 +38,7 @@ vi.mock("node:fs", async (importOriginal) => {
 });
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const AGENT_DIR_ENV = "ATOMIC_CODING_AGENT_DIR";
+const AGENT_DIR_ENV = "ORPHUS_CODING_AGENT_DIR";
 
 const roots: string[] = [];
 const savedAgentDirEnv = process.env[AGENT_DIR_ENV];

@@ -6,7 +6,7 @@ import type { PiCustomOverlayFactoryTui, PiOverlayHandle } from "../../packages/
 import type { GraphOverlayPort, OverlayPiSurface } from "../../packages/workflows/src/tui/overlay-adapter.js";
 import { bunExecutable } from "../helpers/runtime.js";
 
-const ISOLATED_PROCESS_ENV = "ATOMIC_OVERLAY_AUTOWRAP_ISOLATED";
+const ISOLATED_PROCESS_ENV = "ORPHUS_OVERLAY_AUTOWRAP_ISOLATED";
 
 async function registerIsolatedTests(): Promise<void> {
 	// Only ever reached inside the `bun test` child spawned below, where

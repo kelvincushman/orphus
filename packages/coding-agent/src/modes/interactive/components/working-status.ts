@@ -7,7 +7,7 @@ import {
 } from "./atomic-working-status.ts";
 
 export interface WorkingStatusComponentOptions {
-	/** Explicit caller-owned indicator frame; omitted uses Atomic's one-cell identity. */
+	/** Explicit caller-owned indicator frame; omitted uses Orphus's one-cell identity. */
 	spinner?: string;
 	frame?: number;
 	message?: string;

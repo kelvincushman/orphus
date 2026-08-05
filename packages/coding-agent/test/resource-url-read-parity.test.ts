@@ -23,14 +23,14 @@ describe("resource URL read parity", () => {
 	let testDir: string;
 	let previousPrivateUrlAllowance: string | undefined;
 	beforeEach(() => {
-		previousPrivateUrlAllowance = process.env.ATOMIC_ALLOW_PRIVATE_URL_READS;
-		process.env.ATOMIC_ALLOW_PRIVATE_URL_READS = "1";
+		previousPrivateUrlAllowance = process.env.ORPHUS_ALLOW_PRIVATE_URL_READS;
+		process.env.ORPHUS_ALLOW_PRIVATE_URL_READS = "1";
 		testDir = join(tmpdir(), `atomic-resource-url-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 		mkdirSync(testDir, { recursive: true });
 	});
 	afterEach(() => {
-		if (previousPrivateUrlAllowance === undefined) delete process.env.ATOMIC_ALLOW_PRIVATE_URL_READS;
-		else process.env.ATOMIC_ALLOW_PRIVATE_URL_READS = previousPrivateUrlAllowance;
+		if (previousPrivateUrlAllowance === undefined) delete process.env.ORPHUS_ALLOW_PRIVATE_URL_READS;
+		else process.env.ORPHUS_ALLOW_PRIVATE_URL_READS = previousPrivateUrlAllowance;
 		rmSync(testDir, { recursive: true, force: true });
 	});
 

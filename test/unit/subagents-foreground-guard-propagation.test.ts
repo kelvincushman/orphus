@@ -172,8 +172,8 @@ function makeExecutor(agents: MinimalAgentConfig[]) {
 }
 
 function clearSubagentGuardEnv(): void {
-	delete process.env.ATOMIC_SUBAGENT_DEPTH;
-	delete process.env.ATOMIC_SUBAGENT_MAX_DEPTH;
+	delete process.env.ORPHUS_SUBAGENT_DEPTH;
+	delete process.env.ORPHUS_SUBAGENT_MAX_DEPTH;
 	delete process.env[WORKFLOW_STAGE_SUBAGENT_GUARD_ENV];
 }
 

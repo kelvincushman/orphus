@@ -56,7 +56,7 @@ export function cleanupWindowsSelfUpdateQuarantine(packageDir: string): void {
 	try {
 		rmSync(quarantineRoot, { recursive: true, force: true });
 	} catch {
-		// A previous Atomic process may still be exiting and holding a native addon.
+		// A previous Orphus process may still be exiting and holding a native addon.
 	}
 }
 

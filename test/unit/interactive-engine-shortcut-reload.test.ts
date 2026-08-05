@@ -14,7 +14,7 @@ import {
 } from "../helpers/runtime.js";
 
 const serialTest = process.platform === "win32" ? test.sequential.skip : test.sequential;
-const PREFIX = "@@ATOMIC_TEST@@";
+const PREFIX = "@@ORPHUS_TEST@@";
 const ENGINE_BIND_SCENARIO_TIMEOUT_MS = 20_000;
 
 interface HarnessReport {
@@ -42,7 +42,7 @@ class InteractiveModeDriver {
 	constructor(args: string[], env: Record<string, string>) {
 		const baseEnv: Record<string, string | undefined> = { ...process.env };
 		for (const key of Object.keys(baseEnv)) {
-			if (key.startsWith("ATOMIC_INTERACTIVE_ENGINE_")) delete baseEnv[key];
+			if (key.startsWith("ORPHUS_INTERACTIVE_ENGINE_")) delete baseEnv[key];
 		}
 		this.process = spawnProcess(
 			[bunExecutable(), join(moduleDir(import.meta.url), "fixtures", "default-main-interactive-host.ts"), ...args],
@@ -260,11 +260,11 @@ serialTest(
 		writeFileSync(shortcutConfig, "ctrl+x,ctrl+y");
 		writeFileSync(keybindingsPath, JSON.stringify({ "app.tools.expand": "ctrl+x" }));
 		const driver = new InteractiveModeDriver(fixtureArgs(extension), {
-			ATOMIC_CODING_AGENT_DIR: agentDir,
-			ATOMIC_KEYBINDINGS_SHORTCUT_CONFIG_FILE: shortcutConfig,
-			ATOMIC_KEYBINDINGS_SHORTCUT_LOG_FILE: shortcutLog,
-			ATOMIC_KEYBINDINGS_RELOAD_COMMAND: "1",
-			ATOMIC_KEYBINDINGS_SESSION_START_FILE: sessionStartFile,
+			ORPHUS_CODING_AGENT_DIR: agentDir,
+			ORPHUS_KEYBINDINGS_SHORTCUT_CONFIG_FILE: shortcutConfig,
+			ORPHUS_KEYBINDINGS_SHORTCUT_LOG_FILE: shortcutLog,
+			ORPHUS_KEYBINDINGS_RELOAD_COMMAND: "1",
+			ORPHUS_KEYBINDINGS_SESSION_START_FILE: sessionStartFile,
 		});
 		try {
 			await driver.waitFor((report) => report.type === "terminal_ready");
@@ -327,10 +327,10 @@ serialTest(
 		writeFileSync(shortcutConfig, "ctrl+y");
 		writeFileSync(keybindingsPath, JSON.stringify({ "app.tools.expand": "ctrl+x" }));
 		const driver = new InteractiveModeDriver(fixtureArgs(extension), {
-			ATOMIC_CODING_AGENT_DIR: agentDir,
-			ATOMIC_KEYBINDINGS_SHORTCUT_CONFIG_FILE: shortcutConfig,
-			ATOMIC_KEYBINDINGS_SHORTCUT_LOG_FILE: shortcutLog,
-			ATOMIC_KEYBINDINGS_SESSION_START_GATE_FILE: startupGate,
+			ORPHUS_CODING_AGENT_DIR: agentDir,
+			ORPHUS_KEYBINDINGS_SHORTCUT_CONFIG_FILE: shortcutConfig,
+			ORPHUS_KEYBINDINGS_SHORTCUT_LOG_FILE: shortcutLog,
+			ORPHUS_KEYBINDINGS_SESSION_START_GATE_FILE: startupGate,
 		});
 		try {
 			await driver.waitFor((report) => report.type === "terminal_ready");
@@ -374,10 +374,10 @@ serialTest("post-bind shortcut readiness survives delayed extension session star
 	writeFileSync(shortcutConfig, "ctrl+y");
 	writeFileSync(keybindingsPath, JSON.stringify({ "app.tools.expand": "ctrl+x" }));
 	const driver = new InteractiveModeDriver(fixtureArgs(extension), {
-		ATOMIC_CODING_AGENT_DIR: agentDir,
-		ATOMIC_KEYBINDINGS_SHORTCUT_CONFIG_FILE: shortcutConfig,
-		ATOMIC_KEYBINDINGS_SHORTCUT_LOG_FILE: shortcutLog,
-		ATOMIC_KEYBINDINGS_SESSION_START_DELAY_MS: "9000",
+		ORPHUS_CODING_AGENT_DIR: agentDir,
+		ORPHUS_KEYBINDINGS_SHORTCUT_CONFIG_FILE: shortcutConfig,
+		ORPHUS_KEYBINDINGS_SHORTCUT_LOG_FILE: shortcutLog,
+		ORPHUS_KEYBINDINGS_SESSION_START_DELAY_MS: "9000",
 	});
 	try {
 		await driver.waitFor((report) => report.type === "terminal_ready");
@@ -412,11 +412,11 @@ serialTest(
 		writeFileSync(shortcutConfig, "ctrl+x,ctrl+y");
 		writeFileSync(keybindingsPath, JSON.stringify({ "app.tools.expand": "ctrl+x" }));
 		const driver = new InteractiveModeDriver(fixtureArgs(extension), {
-			ATOMIC_BLOCKING_EXTENSION_INIT: "1",
-			ATOMIC_BLOCKING_TOOL_PID_FILE: toolPidFile,
-			ATOMIC_CODING_AGENT_DIR: agentDir,
-			ATOMIC_KEYBINDINGS_SHORTCUT_CONFIG_FILE: shortcutConfig,
-			ATOMIC_KEYBINDINGS_SHORTCUT_LOG_FILE: shortcutLog,
+			ORPHUS_BLOCKING_EXTENSION_INIT: "1",
+			ORPHUS_BLOCKING_TOOL_PID_FILE: toolPidFile,
+			ORPHUS_CODING_AGENT_DIR: agentDir,
+			ORPHUS_KEYBINDINGS_SHORTCUT_CONFIG_FILE: shortcutConfig,
+			ORPHUS_KEYBINDINGS_SHORTCUT_LOG_FILE: shortcutLog,
 		});
 		try {
 			await driver.waitFor((report) => report.type === "terminal_ready");

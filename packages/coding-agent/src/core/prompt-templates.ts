@@ -72,7 +72,7 @@ export function substituteArgs(content: string, args: string[]): string {
 
 	// The default-value group is length-bounded to avoid polynomial-time regex
 	// backtracking (ReDoS) when scanning template content, which is read from
-	// disk. This is an Atomic hardening divergence from upstream; 1024 characters
+	// disk. This is an Orphus hardening divergence from upstream; 1024 characters
 	// far exceeds any realistic slash-command default value.
 	return content.replace(
 		/\$\{(\d+|ARGUMENTS|@):-([^}]{0,1024})\}|\$\{@:(\d+)(?::(\d+))?\}|\$(ARGUMENTS|@|\d+)/g,

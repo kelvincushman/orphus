@@ -6,12 +6,12 @@ import { isBrowserCookieAccessAllowed } from "./gemini-web-config.ts";
 import { deleteResult, getAllResults } from "./storage.js";
 import { loadConfigForExtensionInit, resolveWorkflow, saveConfig, type WebSearchWorkflow } from "./web-search-config.js";
 
-if (process.env.ATOMIC_TEST_LAZY_IMPORT_SENTINEL_FILE) {
-	appendFileSync(process.env.ATOMIC_TEST_LAZY_IMPORT_SENTINEL_FILE, "web-access\n");
+if (process.env.ORPHUS_TEST_LAZY_IMPORT_SENTINEL_FILE) {
+	appendFileSync(process.env.ORPHUS_TEST_LAZY_IMPORT_SENTINEL_FILE, "web-access\n");
 }
 
-if (process.env.ATOMIC_TEST_LAZY_IMPORT_SENTINEL === "1") {
-	process.env.ATOMIC_WEB_ACCESS_HEAVY_IMPORTED = "1";
+if (process.env.ORPHUS_TEST_LAZY_IMPORT_SENTINEL === "1") {
+	process.env.ORPHUS_WEB_ACCESS_HEAVY_IMPORTED = "1";
 }
 import { registerWebSearchFeatures } from "./web-search-features.js";
 

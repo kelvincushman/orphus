@@ -87,14 +87,14 @@ function commonArgs(sessionFile?: string): string[] {
 function isolatedEnv(agentDir: string, sessionDir: string): NodeJS.ProcessEnv {
 	return {
 		...process.env,
-		ATOMIC_CODING_AGENT_DIR: agentDir,
-		ATOMIC_CODING_AGENT_SESSION_DIR: sessionDir,
-		ATOMIC_OFFLINE: "1",
-		ATOMIC_INTERACTIVE_ENGINE_CHILD: undefined,
-		ATOMIC_INTERACTIVE_ENGINE_API_KEY: undefined,
-		ATOMIC_INTERCOM_GROUP: undefined,
+		ORPHUS_CODING_AGENT_DIR: agentDir,
+		ORPHUS_CODING_AGENT_SESSION_DIR: sessionDir,
+		ORPHUS_OFFLINE: "1",
+		ORPHUS_INTERACTIVE_ENGINE_CHILD: undefined,
+		ORPHUS_INTERACTIVE_ENGINE_API_KEY: undefined,
+		ORPHUS_INTERCOM_GROUP: undefined,
 		PI_INTERCOM_GROUP: undefined,
-		ATOMIC_SKIP_VERSION_CHECK: "1",
+		ORPHUS_SKIP_VERSION_CHECK: "1",
 		NO_COLOR: "1",
 	};
 }

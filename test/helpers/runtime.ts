@@ -48,7 +48,7 @@ let cachedBunExecutable: string | undefined;
  */
 export function bunExecutable(): string {
 	if (cachedBunExecutable !== undefined) return cachedBunExecutable;
-	const override = process.env.ATOMIC_BUN_EXECUTABLE;
+	const override = process.env.ORPHUS_BUN_EXECUTABLE;
 	if (override && existsSync(override)) {
 		cachedBunExecutable = override;
 		return cachedBunExecutable;
@@ -61,7 +61,7 @@ export function bunExecutable(): string {
 	throw new Error(
 		"Bun was not found on PATH. It remains a declared engine of this repository: it compiles the " +
 			"release binaries and runs scripts/*.ts and the Bun-hosted test fixtures. " +
-			"Install Bun >=1.3.14 or set ATOMIC_BUN_EXECUTABLE.",
+			"Install Bun >=1.3.14 or set ORPHUS_BUN_EXECUTABLE.",
 	);
 }
 

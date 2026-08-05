@@ -6,18 +6,18 @@ import { afterAll, describe, test } from "vitest";
 
 // Isolate the heavy module's config discovery from developer/user machines
 // before the lazy import chain can snapshot config paths.
-const previousAgentDir = process.env.ATOMIC_CODING_AGENT_DIR;
-const previousIntercomGroup = process.env.ATOMIC_INTERCOM_GROUP;
+const previousAgentDir = process.env.ORPHUS_CODING_AGENT_DIR;
+const previousIntercomGroup = process.env.ORPHUS_INTERCOM_GROUP;
 const previousLegacyIntercomGroup = process.env.PI_INTERCOM_GROUP;
-process.env.ATOMIC_CODING_AGENT_DIR = mkdtempSync(join(tmpdir(), "intercom-lazy-relay-"));
-delete process.env.ATOMIC_INTERCOM_GROUP;
+process.env.ORPHUS_CODING_AGENT_DIR = mkdtempSync(join(tmpdir(), "intercom-lazy-relay-"));
+delete process.env.ORPHUS_INTERCOM_GROUP;
 delete process.env.PI_INTERCOM_GROUP;
 
 afterAll(() => {
-	if (previousAgentDir === undefined) delete process.env.ATOMIC_CODING_AGENT_DIR;
-	else process.env.ATOMIC_CODING_AGENT_DIR = previousAgentDir;
-	if (previousIntercomGroup === undefined) delete process.env.ATOMIC_INTERCOM_GROUP;
-	else process.env.ATOMIC_INTERCOM_GROUP = previousIntercomGroup;
+	if (previousAgentDir === undefined) delete process.env.ORPHUS_CODING_AGENT_DIR;
+	else process.env.ORPHUS_CODING_AGENT_DIR = previousAgentDir;
+	if (previousIntercomGroup === undefined) delete process.env.ORPHUS_INTERCOM_GROUP;
+	else process.env.ORPHUS_INTERCOM_GROUP = previousIntercomGroup;
 	if (previousLegacyIntercomGroup === undefined) delete process.env.PI_INTERCOM_GROUP;
 	else process.env.PI_INTERCOM_GROUP = previousLegacyIntercomGroup;
 });

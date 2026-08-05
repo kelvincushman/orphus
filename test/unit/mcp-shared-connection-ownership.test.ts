@@ -99,17 +99,17 @@ function createLazyHarness(): LazyHarness {
 	};
 }
 
-const originalAgentDir = process.env.ATOMIC_CODING_AGENT_DIR;
+const originalAgentDir = process.env.ORPHUS_CODING_AGENT_DIR;
 let tempRoot = "";
 
 beforeEach(() => {
 	tempRoot = mkdtempSync(join(tmpdir(), "atomic-mcp-caller-wait-"));
-	process.env.ATOMIC_CODING_AGENT_DIR = join(tempRoot, "agent");
+	process.env.ORPHUS_CODING_AGENT_DIR = join(tempRoot, "agent");
 });
 
 afterEach(() => {
-	if (originalAgentDir === undefined) delete process.env.ATOMIC_CODING_AGENT_DIR;
-	else process.env.ATOMIC_CODING_AGENT_DIR = originalAgentDir;
+	if (originalAgentDir === undefined) delete process.env.ORPHUS_CODING_AGENT_DIR;
+	else process.env.ORPHUS_CODING_AGENT_DIR = originalAgentDir;
 	rmSync(tempRoot, { recursive: true, force: true });
 });
 

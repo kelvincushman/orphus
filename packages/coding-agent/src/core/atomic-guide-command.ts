@@ -2,12 +2,12 @@ import * as path from "node:path";
 import type { AutocompleteItem } from "@earendil-works/pi-tui";
 import { getChangelogPath, parseChangelog } from "../utils/changelog.ts";
 
-export const ATOMIC_GUIDE_COMMAND_NAME = "atomic";
-export const ATOMIC_GUIDE_COMMAND_DESCRIPTION = "Atomic onboarding and help guide";
+export const ORPHUS_GUIDE_COMMAND_NAME = "orphus";
+export const ORPHUS_GUIDE_COMMAND_DESCRIPTION = "Orphus onboarding and help guide";
 
-const OVERVIEW = `# Atomic overview
+const OVERVIEW = `# Orphus overview
 
-Atomic turns non-trivial work into executable, inspectable workflows. Default to a workflow for implementation, build, debugging, bug fixes, migrations, features, scoped multi-file changes, and validated docs/code work, or whenever a request has dependencies, handoffs, uncertainty, review gates, measurable done criteria, or evidence requirements. Use direct chat for tiny deterministic low-risk answers or edits. Loop-shaped prompts such as \`do X until Y\`, \`review/fix until passing\`, or \`run checks and fix until green\` are especially strong workflow signals. Workflow-first is not builtin-only or monolithic: use named workflows, direct modes, author a custom TypeScript \`workflow({...})\` inline, or import reusable project/package and builtin definitions from \`@bastani/workflows/builtin\` and nest them with \`ctx.workflow(...)\`. Nested children may compose further children within \`maxDepth\`, enabling powerful research → implementation → verification → approval graphs from reusable parts. Start Atomic in a project with \`atomic\`, then talk to it normally. Use \`@file\` to attach files, \`!command\` to run shell output through the model, and \`!!command\` to run shell output without adding it to context.
+Orphus turns non-trivial work into executable, inspectable workflows. Default to a workflow for implementation, build, debugging, bug fixes, migrations, features, scoped multi-file changes, and validated docs/code work, or whenever a request has dependencies, handoffs, uncertainty, review gates, measurable done criteria, or evidence requirements. Use direct chat for tiny deterministic low-risk answers or edits. Loop-shaped prompts such as \`do X until Y\`, \`review/fix until passing\`, or \`run checks and fix until green\` are especially strong workflow signals. Workflow-first is not builtin-only or monolithic: use named workflows, direct modes, author a custom TypeScript \`workflow({...})\` inline, or import reusable project/package and builtin definitions from \`@bastani/workflows/builtin\` and nest them with \`ctx.workflow(...)\`. Nested children may compose further children within \`maxDepth\`, enabling powerful research → implementation → verification → approval graphs from reusable parts. Start Orphus in a project with \`orphus\`, then talk to it normally. Use \`@file\` to attach files, \`!command\` to run shell output through the model, and \`!!command\` to run shell output without adding it to context.
 
 ## Core session commands
 
@@ -21,7 +21,7 @@ Atomic turns non-trivial work into executable, inspectable workflows. Default to
 | \`/compact\` | delete safe older context verbatim |
 | \`/hotkeys\`, \`/changelog\` | local help and release notes |
 
-## Examples of using Atomic
+## Examples of using Orphus
 
 | Goal | How to use |
 |---|---|
@@ -60,7 +60,7 @@ Use \`/workflow list\` to see what is available and \`/workflow inputs <name>\` 
 
 ## Subagents
 
-Subagents are focused child Atomic sessions you can point at one job inside the repo.
+Subagents are focused child Orphus sessions you can point at one job inside the repo.
 
 | Built-in subagent | Use |
 |---|---|
@@ -78,12 +78,12 @@ How the direct commands map to repo work:
 
 Where to next:
 
-\`/atomic example\` — see the pieces used on a code task
-\`/atomic workflows\` — learn when to use workflows`;
+\`/orphus example\` — see the pieces used on a code task
+\`/orphus workflows\` — learn when to use workflows`;
 
 const EXAMPLE = `# Practical example
 
-This example shows a spec-driven development process whose clearly delegated autonomous implementation benefits from durable workflow execution. For interactive or conversation-led work, stay inline or use bounded subagents while the parent remains in control. Type the examples below into the Atomic TUI chat after starting \`atomic\` in your project.
+This example shows a spec-driven development process whose clearly delegated autonomous implementation benefits from durable workflow execution. For interactive or conversation-led work, stay inline or use bounded subagents while the parent remains in control. Type the examples below into the Orphus TUI chat after starting \`atomic\` in your project.
 
 ## 1. Research what exists
 
@@ -123,14 +123,14 @@ If you implemented directly instead of using a workflow, you can still run:
 
 \`/parallel-review current diff\`
 
-Atomic will synthesize reviewer feedback and ask before applying fixes.
+Orphus will synthesize reviewer feedback and ask before applying fixes.
 
 ─────────────────────────────────────────────────────────────────
 
 Where to next:
 
-\`/atomic workflows\` — learn when to use workflows
-\`/atomic overview\` — quick refresh`;
+\`/orphus workflows\` — learn when to use workflows
+\`/orphus overview\` — quick refresh`;
 
 const WORKFLOWS = `# Workflows primer
 
@@ -138,7 +138,7 @@ A workflow is a TypeScript-defined pipeline exported from \`workflow({...})\`. I
 
 Default to workflows for non-trivial work and requests with inherent structure plus a verifiable objective. Implementation, debugging, migrations, multi-file changes, validation, review, evidence requirements, and explicit stop conditions are workflow-shaped; use direct chat only for tiny deterministic low-risk answers or edits.
 
-Workflow-first is not builtin-only or monolithic. Atomic can author custom TypeScript \`workflow({...})\` definitions inline, and workflows can import reusable project/package definitions or builtins from \`@bastani/workflows/builtin\`, then nest them with \`ctx.workflow(...)\`. Imported children can nest further children within \`maxDepth\`, so compose proven research, implementation, design, verification, and approval workflows instead of copying their stages. Use the documented starter patterns for classify-and-act routing, dynamic fan-out and synthesis, adversarial verification, candidate selection, and bounded convergence. Atomic writes the parent definition, reloads it, and runs the composed graph.
+Workflow-first is not builtin-only or monolithic. Orphus can author custom TypeScript \`workflow({...})\` definitions inline, and workflows can import reusable project/package definitions or builtins from \`@bastani/workflows/builtin\`, then nest them with \`ctx.workflow(...)\`. Imported children can nest further children within \`maxDepth\`, so compose proven research, implementation, design, verification, and approval workflows instead of copying their stages. Use the documented starter patterns for classify-and-act routing, dynamic fan-out and synthesis, adversarial verification, candidate selection, and bounded convergence. Orphus writes the parent definition, reloads it, and runs the composed graph.
 
 ## Built-in workflows
 
@@ -164,7 +164,7 @@ A good workflow request is explicit about stage purpose, model choice, handoff, 
 
 For workflow-owned side effects such as filesystem writes, network mutations, and external API actions, prefer \`ctx.tool(name, args, fn)\`: completed calls are durably cached, so resume returns the saved result without rerunning \`fn\`. Keep pure computation as ordinary TypeScript, and do not wrap agent-stage internals or every function call indiscriminately.
 
-Example: ask Atomic in chat with something like this:
+Example: ask Orphus in chat with something like this:
 
 ~~~text
 Create a reusable workflow called review-changes.
@@ -215,14 +215,14 @@ Workflows run as background tasks. Use F2 or \`/workflow connect <run-id>\` for 
 
 ## Author your own
 
-Describe your workflow in plain chat — say what you want the workflow to accomplish, what inputs it should accept, what stages should run, and what final output or decision it should return. Atomic will use the workflow docs to scaffold a reusable definition under \`.atomic/workflows/\`, ask clarifying questions when stage purpose, models, or handoffs are ambiguous, and run \`/workflow reload\` so you can launch it immediately.
+Describe your workflow in plain chat — say what you want the workflow to accomplish, what inputs it should accept, what stages should run, and what final output or decision it should return. Orphus will use the workflow docs to scaffold a reusable definition under \`.atomic/workflows/\`, ask clarifying questions when stage purpose, models, or handoffs are ambiguous, and run \`/workflow reload\` so you can launch it immediately.
 
 ─────────────────────────────────────────────────────────────────
 
 Where to next:
 
-\`/atomic example\` — see workflows in a normal task flow
-\`/atomic overview\` — quick refresh`;
+\`/orphus example\` — see workflows in a normal task flow
+\`/orphus overview\` — quick refresh`;
 
 const GUIDE_SECTIONS = [
 	{
@@ -268,7 +268,7 @@ export type AtomicGuideHelpChoice = AtomicGuideSection["label"];
 
 export type AtomicGuideMode = "help" | AtomicGuideSectionName;
 
-export const ATOMIC_GUIDE_HELP_CHOICES: readonly AtomicGuideHelpChoice[] = GUIDE_SECTIONS.map(
+export const ORPHUS_GUIDE_HELP_CHOICES: readonly AtomicGuideHelpChoice[] = GUIDE_SECTIONS.map(
 	(section) => section.label,
 );
 
@@ -288,11 +288,11 @@ export function isAtomicGuideHelpChoice(choice: string): choice is AtomicGuideHe
 	return GUIDE_SECTIONS_BY_LABEL.has(choice);
 }
 
-const ATOMIC_GUIDE_TRAILING_PUNCTUATION = "?!.,;:";
+const ORPHUS_GUIDE_TRAILING_PUNCTUATION = "?!.,;:";
 
 function stripTrailingAtomicGuidePunctuation(value: string): string {
 	let end = value.length;
-	while (end > 0 && ATOMIC_GUIDE_TRAILING_PUNCTUATION.includes(value.charAt(end - 1))) {
+	while (end > 0 && ORPHUS_GUIDE_TRAILING_PUNCTUATION.includes(value.charAt(end - 1))) {
 		end--;
 	}
 	return value.slice(0, end);
@@ -304,15 +304,15 @@ function getGuideSectionForChoice(choice: string): AtomicGuideSection | undefine
 
 function getGuideSectionForMode(mode: AtomicGuideSectionName): AtomicGuideSection {
 	const section = GUIDE_SECTIONS_BY_NAME.get(mode);
-	if (!section) throw new Error(`Unknown Atomic guide section: ${mode}`);
+	if (!section) throw new Error(`Unknown Orphus guide section: ${mode}`);
 	return section;
 }
 
 function getAtomicGuideHelpMenu(): string {
 	const sectionHelp = GUIDE_SECTIONS.map(
-		(section) => `- \`${section.label}\` — run \`/atomic ${section.label}\``,
+		(section) => `- \`${section.label}\` — run \`/orphus ${section.label}\``,
 	).join("\n");
-	return `# Atomic\n\nSelect where to start:\n\n${sectionHelp}`;
+	return `# Orphus\n\nSelect where to start:\n\n${sectionHelp}`;
 }
 
 export function normalizeAtomicGuideMode(args: string): AtomicGuideMode {
@@ -344,11 +344,11 @@ function readLatestStableChangelog(cwd: string): string {
 		.filter(Boolean);
 
 	if (stableSections.length === 0) {
-		return `# What's new\n\nNo stable release sections were found. Try \`/changelog\` for the interactive changelog viewer.\n\n─────────────────────────────────────────────────────────────────\n\nWhere to next:\n\n\`/atomic example\` — see a practical first workflow\n\`/atomic overview\` — quick refresh`;
+		return `# What's new\n\nNo stable release sections were found. Try \`/changelog\` for the interactive changelog viewer.\n\n─────────────────────────────────────────────────────────────────\n\nWhere to next:\n\n\`/orphus example\` — see a practical first workflow\n\`/orphus overview\` — quick refresh`;
 	}
 
 	const relativePath = path.relative(cwd, changelogPath) || changelogPath;
-	return `# What's new\n\n${stableSections.join("\n\n")}\n\nSource: \`${relativePath}\`\n\n─────────────────────────────────────────────────────────────────\n\nWhere to next:\n\n\`/atomic example\` — see a practical first workflow\n\`/atomic overview\` — quick refresh`;
+	return `# What's new\n\n${stableSections.join("\n\n")}\n\nSource: \`${relativePath}\`\n\n─────────────────────────────────────────────────────────────────\n\nWhere to next:\n\n\`/orphus example\` — see a practical first workflow\n\`/orphus overview\` — quick refresh`;
 }
 
 export function getAtomicGuideMessage(mode: AtomicGuideMode, cwd: string): string {

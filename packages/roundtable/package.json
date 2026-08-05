@@ -22,6 +22,14 @@
     "DESIGN.md",
     "LICENSE"
   ],
+  "orphus": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "skills": [
+      "./skills"
+    ]
+  },
   "atomic": {
     "extensions": [
       "./index.ts"

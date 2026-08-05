@@ -1,4 +1,4 @@
-const INTERACTIVE_ENGINE_ENV_PREFIX = "ATOMIC_INTERACTIVE_ENGINE_";
+const INTERACTIVE_ENGINE_ENV_PREFIX = "ORPHUS_INTERACTIVE_ENGINE_";
 
 /** Run synchronous RPC-mode setup without inheriting an enclosing engine-child identity. */
 export function withNormalRpcEnvironment(start: () => void): void {

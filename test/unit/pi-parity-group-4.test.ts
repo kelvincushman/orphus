@@ -152,11 +152,11 @@ test("ModelRuntime delegates enumeration, runtime auth, snapshots, and refresh",
 
 test("ModelRuntime delegates provider login and logout", async () => {
 	const auth = AuthStorage.inMemory();
-	const previousOffline = process.env.ATOMIC_OFFLINE;
-	process.env.ATOMIC_OFFLINE = "1";
+	const previousOffline = process.env.ORPHUS_OFFLINE;
+	process.env.ORPHUS_OFFLINE = "1";
 	const runtime = await ModelRuntime.create({ credentials: auth, modelsPath: null });
-	if (previousOffline === undefined) delete process.env.ATOMIC_OFFLINE;
-	else process.env.ATOMIC_OFFLINE = previousOffline;
+	if (previousOffline === undefined) delete process.env.ORPHUS_OFFLINE;
+	else process.env.ORPHUS_OFFLINE = previousOffline;
 	const interaction = createAuthInteraction({
 		onAuth() {},
 		onDeviceCode() {},

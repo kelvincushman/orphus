@@ -78,9 +78,9 @@ serialTest(
 		const temp = mkdtempSync(join(tmpdir(), "atomic-engine-death-inline-"));
 		const mountFile = join(temp, "mounted.pid");
 		const driver = new DefaultMainDriver(fixtureArgs(temp), {
-			ATOMIC_CODING_AGENT_DIR: join(temp, "agent"),
-			ATOMIC_FREEZE_MOUNT_FILE: mountFile,
-			ATOMIC_NONBLOCKING_TOOL: "1",
+			ORPHUS_CODING_AGENT_DIR: join(temp, "agent"),
+			ORPHUS_FREEZE_MOUNT_FILE: mountFile,
+			ORPHUS_NONBLOCKING_TOOL: "1",
 		});
 		try {
 			const enginePid = await mountFrozenCustomUi(driver, "/freeze-inline", mountFile);
@@ -150,9 +150,9 @@ serialTest(
 		const temp = mkdtempSync(join(tmpdir(), "atomic-engine-death-overlay-"));
 		const mountFile = join(temp, "mounted.pid");
 		const driver = new DefaultMainDriver(fixtureArgs(temp), {
-			ATOMIC_CODING_AGENT_DIR: join(temp, "agent"),
-			ATOMIC_FREEZE_MOUNT_FILE: mountFile,
-			ATOMIC_NONBLOCKING_TOOL: "1",
+			ORPHUS_CODING_AGENT_DIR: join(temp, "agent"),
+			ORPHUS_FREEZE_MOUNT_FILE: mountFile,
+			ORPHUS_NONBLOCKING_TOOL: "1",
 		});
 		try {
 			const enginePid = await mountFrozenCustomUi(driver, "/freeze-overlay", mountFile);
@@ -197,9 +197,9 @@ serialTest(
 		const temp = mkdtempSync(join(tmpdir(), "atomic-engine-death-order-"));
 		const mountFile = join(temp, "mounted.pid");
 		const driver = new DefaultMainDriver(fixtureArgs(temp), {
-			ATOMIC_CODING_AGENT_DIR: join(temp, "agent"),
-			ATOMIC_FREEZE_MOUNT_FILE: mountFile,
-			ATOMIC_NONBLOCKING_TOOL: "1",
+			ORPHUS_CODING_AGENT_DIR: join(temp, "agent"),
+			ORPHUS_FREEZE_MOUNT_FILE: mountFile,
+			ORPHUS_NONBLOCKING_TOOL: "1",
 		});
 		try {
 			const enginePid = await mountFrozenCustomUi(driver, "/freeze-inline", mountFile);
@@ -248,9 +248,9 @@ serialTest(
 		const temp = mkdtempSync(join(tmpdir(), "atomic-engine-death-nested-"));
 		const mountFile = join(temp, "mounted.pid");
 		const driver = new DefaultMainDriver(fixtureArgs(temp), {
-			ATOMIC_CODING_AGENT_DIR: join(temp, "agent"),
-			ATOMIC_FREEZE_MOUNT_FILE: mountFile,
-			ATOMIC_NONBLOCKING_TOOL: "1",
+			ORPHUS_CODING_AGENT_DIR: join(temp, "agent"),
+			ORPHUS_FREEZE_MOUNT_FILE: mountFile,
+			ORPHUS_NONBLOCKING_TOOL: "1",
 		});
 		try {
 			const enginePid = await mountFrozenCustomUi(driver, "/freeze-nested", mountFile);

@@ -18,7 +18,7 @@ export function startupStateAtElapsed(elapsedMs: number): StartupAnimationState 
 }
 
 export function startupMotionEnabled(): boolean {
-	return process.stdout.isTTY === true && process.env.ATOMIC_REDUCED_MOTION !== "1";
+	return process.stdout.isTTY === true && process.env.ORPHUS_REDUCED_MOTION !== "1";
 }
 
 export class StartupIdentityComponent implements Component {

@@ -21,15 +21,15 @@ import { store } from "../../packages/workflows/src/shared/store.js";
 import { testRunId } from "../helpers/run-id.js";
 
 const originalCwd = process.cwd();
-const originalAgentDir = process.env.ATOMIC_CODING_AGENT_DIR;
+const originalAgentDir = process.env.ORPHUS_CODING_AGENT_DIR;
 const originalHome = process.env.HOME;
 const originalUserProfile = process.env.USERPROFILE;
 const roots: string[] = [];
 
 afterEach(async () => {
 	process.chdir(originalCwd);
-	if (originalAgentDir === undefined) delete process.env.ATOMIC_CODING_AGENT_DIR;
-	else process.env.ATOMIC_CODING_AGENT_DIR = originalAgentDir;
+	if (originalAgentDir === undefined) delete process.env.ORPHUS_CODING_AGENT_DIR;
+	else process.env.ORPHUS_CODING_AGENT_DIR = originalAgentDir;
 	if (originalHome === undefined) delete process.env.HOME;
 	else process.env.HOME = originalHome;
 	if (originalUserProfile === undefined) delete process.env.USERPROFILE;
@@ -167,7 +167,7 @@ async function makeIsolatedRoots(label: string): Promise<{ root: string; project
 	process.chdir(project);
 	process.env.HOME = home;
 	process.env.USERPROFILE = home;
-	delete process.env.ATOMIC_CODING_AGENT_DIR;
+	delete process.env.ORPHUS_CODING_AGENT_DIR;
 	return { root, project, agent };
 }
 

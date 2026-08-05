@@ -6,7 +6,7 @@ import { getKeybindings, Text } from "@earendil-works/pi-tui";
 import type { ExtensionAPI } from "../../../packages/coding-agent/src/core/extensions/types.js";
 import { formatKeyText, keyText } from "../../../packages/coding-agent/src/modes/interactive/components/keybinding-hints.js";
 import { trackDetachedChildPid } from "../../../packages/coding-agent/src/utils/shell.js";
-if (process.env.ATOMIC_BLOCKING_EXTENSION_INIT === "1") {
+if (process.env.ORPHUS_BLOCKING_EXTENSION_INIT === "1") {
 	const deadline = performance.now() + 1_000;
 	while (performance.now() < deadline) {
 		// Intentionally block module evaluation in the engine child.
@@ -58,7 +58,7 @@ export default function blockingToolExtension(api: ExtensionAPI): void {
 		streamSimple: (_activeModel, context) => {
 			const stream = createAssistantMessageEventStream();
 			queueMicrotask(() => {
-				const pidFile = process.env.ATOMIC_BLOCKING_TOOL_PID_FILE;
+				const pidFile = process.env.ORPHUS_BLOCKING_TOOL_PID_FILE;
 				const alreadyInterrupted = pidFile ? existsSync(pidFile) : false;
 				const hasToolResult = context.messages.some((entry) => entry.role === "toolResult");
 				const reason = hasToolResult || alreadyInterrupted ? "stop" : "toolUse";
@@ -73,26 +73,26 @@ export default function blockingToolExtension(api: ExtensionAPI): void {
 	});
 
 	api.registerMessageRenderer("fixture-message", () => {
-		const pidFile = process.env.ATOMIC_RENDERER_PID_FILE;
+		const pidFile = process.env.ORPHUS_RENDERER_PID_FILE;
 		if (pidFile) writeFileSync(pidFile, String(process.pid), "utf8");
 		return new Text("custom renderer parity", 0, 0);
 	});
 
-	if (process.env.ATOMIC_KEYBINDINGS_RELOAD_COMMAND === "1") {
+	if (process.env.ORPHUS_KEYBINDINGS_RELOAD_COMMAND === "1") {
 		api.registerCommand("reload-keybindings-fixture", {
 			description: "Reload keybindings through extension command context",
 			handler: async (_args, ctx) => ctx.reload(),
 		});
 	}
 
-	const shortcutConfigFile = process.env.ATOMIC_KEYBINDINGS_SHORTCUT_CONFIG_FILE;
+	const shortcutConfigFile = process.env.ORPHUS_KEYBINDINGS_SHORTCUT_CONFIG_FILE;
 	if (shortcutConfigFile && existsSync(shortcutConfigFile)) {
 		const shortcuts = readFileSync(shortcutConfigFile, "utf8").split(/[\s,]+/).filter(Boolean);
 		for (const shortcut of shortcuts) {
 			api.registerShortcut(shortcut as Parameters<ExtensionAPI["registerShortcut"]>[0], {
 				description: "reloadable fixture shortcut",
 				handler: () => {
-					const logFile = process.env.ATOMIC_KEYBINDINGS_SHORTCUT_LOG_FILE;
+					const logFile = process.env.ORPHUS_KEYBINDINGS_SHORTCUT_LOG_FILE;
 					if (logFile) appendFileSync(logFile, `${shortcut}:${process.pid}\n`);
 				},
 			});
@@ -100,16 +100,16 @@ export default function blockingToolExtension(api: ExtensionAPI): void {
 	}
 
 	api.on("session_start", async (event, ctx) => {
-		const startupDelayMs = Number(process.env.ATOMIC_KEYBINDINGS_SESSION_START_DELAY_MS ?? 0);
+		const startupDelayMs = Number(process.env.ORPHUS_KEYBINDINGS_SESSION_START_DELAY_MS ?? 0);
 		if (Number.isFinite(startupDelayMs) && startupDelayMs > 0) await Bun.sleep(startupDelayMs);
-		const startupGateFile = process.env.ATOMIC_KEYBINDINGS_SESSION_START_GATE_FILE;
+		const startupGateFile = process.env.ORPHUS_KEYBINDINGS_SESSION_START_GATE_FILE;
 		if (startupGateFile) {
 			writeFileSync(startupGateFile, "waiting");
 			while (!existsSync(`${startupGateFile}.release`)) await Bun.sleep(10);
 		}
-		const sessionStartFile = process.env.ATOMIC_KEYBINDINGS_SESSION_START_FILE;
+		const sessionStartFile = process.env.ORPHUS_KEYBINDINGS_SESSION_START_FILE;
 		if (sessionStartFile) appendFileSync(sessionStartFile, `${event.reason}:${keyText("app.tools.expand")}\n`);
-		if (process.env.ATOMIC_KEYBINDINGS_CUSTOM_UI === "1") {
+		if (process.env.ORPHUS_KEYBINDINGS_CUSTOM_UI === "1") {
 			void ctx.ui.custom<void>((_tui, _theme, keybindings, done) => ({
 				render: () => {
 					const injected = formatKeyText(keybindings.getKeys("app.tools.expand").join("/"));
@@ -119,14 +119,14 @@ export default function blockingToolExtension(api: ExtensionAPI): void {
 				invalidate: () => {},
 			}));
 		}
-		if (process.env.ATOMIC_RENDERER_FIXTURE === "1") {
+		if (process.env.ORPHUS_RENDERER_FIXTURE === "1") {
 			ctx.ui.setWidget("fixture-widget", () => {
-				const pidFile = process.env.ATOMIC_WIDGET_PID_FILE;
+				const pidFile = process.env.ORPHUS_WIDGET_PID_FILE;
 				if (pidFile) writeFileSync(pidFile, String(process.pid), "utf8");
 				return new Text("factory widget parity", 0, 0);
 			}, { placement: "belowEditor" });
 		}
-		if (process.env.ATOMIC_STARTUP_CUSTOM_UI !== "1") return;
+		if (process.env.ORPHUS_STARTUP_CUSTOM_UI !== "1") return;
 		await ctx.ui.custom<void>((_tui, _theme, _keybindings, done) => ({
 			render: (width) => [`startup:${width}`],
 			handleInput: (data) => { if (data === "\r") done(); },
@@ -134,7 +134,7 @@ export default function blockingToolExtension(api: ExtensionAPI): void {
 		}));
 	});
 
-	if (process.env.ATOMIC_RENDERER_FIXTURE === "1") {
+	if (process.env.ORPHUS_RENDERER_FIXTURE === "1") {
 		// Send the display message on the first agent turn instead of a startup
 		// timer: a session_start-time send races the host InteractiveMode's agent
 		// subscription in isolated mode and is dropped from the chat when the host
@@ -151,21 +151,21 @@ export default function blockingToolExtension(api: ExtensionAPI): void {
 		name: "busy_loop",
 		label: "Busy loop",
 		renderCall: (_args, _theme, context) => {
-			const pidFile = process.env.ATOMIC_TOOL_RENDERER_PID_FILE;
+			const pidFile = process.env.ORPHUS_TOOL_RENDERER_PID_FILE;
 			if (pidFile) writeFileSync(pidFile, String(process.pid), "utf8");
 			return new Text(`child tool renderer:${context.toolCallId}`, 0, 0);
 		},
 		description: "Synthetic blocking tool for interactive-engine isolation regression coverage",
 		parameters: Type.Object({}),
 		execute: async () => {
-			const pidFile = process.env.ATOMIC_BLOCKING_TOOL_PID_FILE;
-			if (!pidFile) throw new Error("ATOMIC_BLOCKING_TOOL_PID_FILE is required");
+			const pidFile = process.env.ORPHUS_BLOCKING_TOOL_PID_FILE;
+			if (!pidFile) throw new Error("ORPHUS_BLOCKING_TOOL_PID_FILE is required");
 			writeFileSync(pidFile, String(process.pid), "utf8");
-			if (process.env.ATOMIC_NONBLOCKING_TOOL === "1") {
+			if (process.env.ORPHUS_NONBLOCKING_TOOL === "1") {
 				await Bun.sleep(50);
 				return { content: [{ type: "text", text: "finished" }], details: {} };
 			}
-			const grandchildPidFile = process.env.ATOMIC_BLOCKING_GRANDCHILD_PID_FILE;
+			const grandchildPidFile = process.env.ORPHUS_BLOCKING_GRANDCHILD_PID_FILE;
 			if (grandchildPidFile) {
 				const grandchild = Bun.spawn([process.execPath, "-e", "setInterval(() => {}, 1000)"], {
 					detached: true,

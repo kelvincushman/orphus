@@ -129,7 +129,7 @@ Ctrl+G in main chat, embedded chat, and extension editor dialogs uses one shared
 
 `enableInstallTelemetry` only controls the anonymous install/update ping to `https://pi.dev/api/report-install`. Opting out of telemetry does not disable update checks; Atomic can still fetch the npm registry latest package metadata at `https://registry.npmjs.org/@bastani/atomic/latest` to look for the latest version.
 
-Set `ATOMIC_SKIP_VERSION_CHECK=1` to disable the Atomic version update check. Use `--offline` or `ATOMIC_OFFLINE=1` to disable all startup network operations described here, including update checks, package update checks, and install/update telemetry. Legacy `PI_*` aliases are also supported for app-specific environment variables.
+Set `ORPHUS_SKIP_VERSION_CHECK=1` to disable the Atomic version update check. Use `--offline` or `ORPHUS_OFFLINE=1` to disable all startup network operations described here, including update checks, package update checks, and install/update telemetry. Legacy `PI_*` aliases are also supported for app-specific environment variables.
 
 
 On a genuine first run, Atomic previews available themes and asks whether to opt into analytics. The choice and locally generated identifier are stored as `enableAnalytics` and `trackingId`; analytics remains off unless explicitly enabled.
@@ -297,7 +297,7 @@ Normally the package manager's global modules location is queried using `root -g
 { "sessionDir": ".atomic/sessions" }
 ```
 
-When multiple sources specify a session directory, precedence is `--session-dir`, `ATOMIC_CODING_AGENT_SESSION_DIR`, then `sessionDir` in settings.json.
+When multiple sources specify a session directory, precedence is `--session-dir`, `ORPHUS_CODING_AGENT_SESSION_DIR`, then `sessionDir` in settings.json.
 
 ### Models
 

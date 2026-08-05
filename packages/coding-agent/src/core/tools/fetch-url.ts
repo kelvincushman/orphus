@@ -270,7 +270,7 @@ async function assertSafeFetchUrl(url: string): Promise<SafeFetchAddress | undef
 	const parsed = new URL(url);
 	if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
 		throw new Error(`Unsupported URL protocol: ${parsed.protocol}`);
-	if (process.env.ATOMIC_ALLOW_PRIVATE_URL_READS === "1") return undefined;
+	if (process.env.ORPHUS_ALLOW_PRIVATE_URL_READS === "1") return undefined;
 	const hostname = parsed.hostname
 		.replace(/^\[|\]$/g, "")
 		.replace(/\.$/, "")

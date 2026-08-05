@@ -18,7 +18,7 @@ test.sequential("real isolated child discovers and acquires engine-only custom O
 		cliPath: join(moduleDir(import.meta.url), "../../packages/coding-agent/src/cli.ts"),
 		cwd: join(moduleDir(import.meta.url), "../.."),
 		runtimeExecutable: bunExecutable(),
-		env: { ATOMIC_CODING_AGENT_DIR: agentDir, ATOMIC_CUSTOM_OAUTH_LOG: logFile },
+		env: { ORPHUS_CODING_AGENT_DIR: agentDir, ORPHUS_CUSTOM_OAUTH_LOG: logFile },
 		args: [
 			"--no-session",
 			"--no-extensions",

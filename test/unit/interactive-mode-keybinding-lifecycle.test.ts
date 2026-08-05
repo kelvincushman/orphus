@@ -38,14 +38,14 @@ class FakeTerminal implements Terminal {
 	setProgress(): void {}
 }
 
-const originalAgentDir = process.env.ATOMIC_CODING_AGENT_DIR;
+const originalAgentDir = process.env.ORPHUS_CODING_AGENT_DIR;
 const originalKeybindings = getKeybindings();
 const cleanup: Array<() => Promise<void>> = [];
 
 afterEach(async () => {
 	while (cleanup.length > 0) await cleanup.pop()?.();
-	if (originalAgentDir === undefined) delete process.env.ATOMIC_CODING_AGENT_DIR;
-	else process.env.ATOMIC_CODING_AGENT_DIR = originalAgentDir;
+	if (originalAgentDir === undefined) delete process.env.ORPHUS_CODING_AGENT_DIR;
+	else process.env.ORPHUS_CODING_AGENT_DIR = originalAgentDir;
 	setKeybindings(originalKeybindings);
 });
 
@@ -106,7 +106,7 @@ test.sequential("exported InteractiveMode uses services.agentDir for display and
 	const agentDir = mkdtempSync(join(tmpdir(), "atomic-explicit-agent-dir-"));
 	writeExpandBinding(agentDir, "ctrl+x");
 	const ambientDir = mkdtempSync(join(tmpdir(), "atomic-ambient-agent-dir-"));
-	process.env.ATOMIC_CODING_AGENT_DIR = ambientDir;
+	process.env.ORPHUS_CODING_AGENT_DIR = ambientDir;
 	cleanup.push(async () => {
 		rmSync(ambientDir, { recursive: true, force: true });
 	});
@@ -130,7 +130,7 @@ test.sequential("exported InteractiveMode uses services.agentDir for display and
 
 test.sequential("local slash and extension-context reloads stage keybindings before session_start and roll back in place", async () => {
 	const agentDir = mkdtempSync(join(tmpdir(), "atomic-local-reload-agent-dir-"));
-	process.env.ATOMIC_CODING_AGENT_DIR = agentDir;
+	process.env.ORPHUS_CODING_AGENT_DIR = agentDir;
 	writeExpandBinding(agentDir, "ctrl+x");
 	const observed: string[] = [];
 	const extension: ExtensionFactory = (api) => {

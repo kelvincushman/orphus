@@ -128,7 +128,7 @@ class InteractiveCli {
 		// A suite that itself runs inside an Atomic session would otherwise leak
 		// its agent directory and its engine-child markers into the child.
 		for (const key of Object.keys(environment)) {
-			if (key.startsWith("ATOMIC_") || key.startsWith("ISSUE_2074_")) delete environment[key];
+			if (key.startsWith("ORPHUS_") || key.startsWith("ISSUE_2074_")) delete environment[key];
 		}
 		// `packages/workflows/src/extension/wiring.ts` treats NODE_ENV=test and
 		// NODE_TEST_CONTEXT as "give stages a stub session". vitest sets the first
@@ -148,9 +148,9 @@ class InteractiveCli {
 			env: {
 				...environment,
 				NODE_ENV: "production",
-				ATOMIC_CODING_AGENT_DIR: agentDir,
-				ATOMIC_CODING_AGENT_SESSION_DIR: sessionDir,
-				ATOMIC_SKIP_VERSION_CHECK: "1",
+				ORPHUS_CODING_AGENT_DIR: agentDir,
+				ORPHUS_CODING_AGENT_SESSION_DIR: sessionDir,
+				ORPHUS_SKIP_VERSION_CHECK: "1",
 				NO_COLOR: "1",
 			},
 			stdin: "pipe",

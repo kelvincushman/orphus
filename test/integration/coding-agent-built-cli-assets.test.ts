@@ -52,16 +52,16 @@ function compileFixture(): void {
 
 async function runCli(
 	cliPath: string,
-	packageDirOverride?: { name: "ATOMIC_PACKAGE_DIR" | "PI_PACKAGE_DIR"; value: string },
+	packageDirOverride?: { name: "ORPHUS_PACKAGE_DIR" | "PI_PACKAGE_DIR"; value: string },
 ): Promise<{ exitCode: number; output: string }> {
 	const env: Record<string, string | undefined> = {
 		...process.env,
-		ATOMIC_CODING_AGENT_DIR: agentDir,
+		ORPHUS_CODING_AGENT_DIR: agentDir,
 	};
-	delete env.ATOMIC_PACKAGE_DIR;
+	delete env.ORPHUS_PACKAGE_DIR;
 	delete env.PI_PACKAGE_DIR;
 	if (packageDirOverride) env[packageDirOverride.name] = packageDirOverride.value;
-	delete env.ATOMIC_CODING_AGENT;
+	delete env.ORPHUS_CODING_AGENT;
 
 	const child = spawnProcess(
 		[
@@ -117,7 +117,7 @@ describe("coding-agent asset paths", () => {
 		assert.doesNotMatch(result.output, /ENOENT/);
 
 		const overridden = await runCli(join(distDir, "cli.js"), {
-			name: "ATOMIC_PACKAGE_DIR",
+			name: "ORPHUS_PACKAGE_DIR",
 			value: fixtureRoot,
 		});
 		assert.equal(overridden.exitCode, 0, overridden.output);

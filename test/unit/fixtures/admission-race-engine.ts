@@ -39,7 +39,7 @@ process.stdin.on("data", (chunk: Buffer) => {
 			command: typeof parsed.type === "string" ? parsed.type : "unknown",
 		});
 		// Hold mode: admit and stay alive, so only the host can end the request.
-		if (process.env.ATOMIC_ADMISSION_HOLD === "1") continue;
+		if (process.env.ORPHUS_ADMISSION_HOLD === "1") continue;
 		// No flush, no await: exit while the frame is still queued.
 		process.exit(0);
 	}

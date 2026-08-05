@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeAll, test } from "vitest";
 import { ChatSessionHost } from "../../packages/coding-agent/src/index.ts";
-import { ATOMIC_WORKING_FRAME_MS } from "../../packages/coding-agent/src/modes/interactive/components/atomic-working-status.ts";
+import { ORPHUS_WORKING_FRAME_MS } from "../../packages/coding-agent/src/modes/interactive/components/atomic-working-status.ts";
 import { ANIMATION_FRAME_MS } from "../../packages/coding-agent/src/modes/interactive/components/chat-session-host-utils.ts";
 import { setThemeInstance } from "../../packages/coding-agent/src/modes/interactive/theme/theme.ts";
 import { loadTheme } from "../../packages/coding-agent/src/modes/interactive/theme/theme-loading.ts";
@@ -15,7 +15,7 @@ import {
 	workingLine,
 } from "./chat-session-host-working-lifecycle-fixture.ts";
 
-const originalReducedMotion = process.env.ATOMIC_REDUCED_MOTION;
+const originalReducedMotion = process.env.ORPHUS_REDUCED_MOTION;
 const pulseStyle = {
 	...plainStyle,
 	workingIndicatorPalette: () => ({
@@ -47,12 +47,12 @@ beforeAll(() => {
 });
 
 afterEach(() => {
-	if (originalReducedMotion === undefined) delete process.env.ATOMIC_REDUCED_MOTION;
-	else process.env.ATOMIC_REDUCED_MOTION = originalReducedMotion;
+	if (originalReducedMotion === undefined) delete process.env.ORPHUS_REDUCED_MOTION;
+	else process.env.ORPHUS_REDUCED_MOTION = originalReducedMotion;
 });
 
 test("ChatSessionHost advances the exact luminous ramp every lifecycle-relative 88ms", () => {
-	delete process.env.ATOMIC_REDUCED_MOTION;
+	delete process.env.ORPHUS_REDUCED_MOTION;
 	const timers = installLifecycleFakeClock();
 	let renderRequests = 0;
 	const host = new ChatSessionHost<never>({
@@ -69,7 +69,7 @@ test("ChatSessionHost advances the exact luminous ramp every lifecycle-relative 
 	};
 	try {
 		assert.equal(ANIMATION_FRAME_MS, 80, "unrelated canonical loader cadence stays unchanged");
-		assert.equal(ATOMIC_WORKING_FRAME_MS, 88);
+		assert.equal(ORPHUS_WORKING_FRAME_MS, 88);
 		host.applyAgentEvent({ type: "agent_start" } as never);
 		assert.equal(renderRequests, 1, "agent_start requests one immediate paint");
 		assert.deepEqual(timers.intervalDelays(), [88]);
@@ -96,7 +96,7 @@ test("ChatSessionHost advances the exact luminous ramp every lifecycle-relative 
 });
 
 test("ChatSessionHost preserves caller-owned accent styling without a palette", () => {
-	delete process.env.ATOMIC_REDUCED_MOTION;
+	delete process.env.ORPHUS_REDUCED_MOTION;
 	const timers = installLifecycleFakeClock();
 	const host = new ChatSessionHost<never>({
 		style: {
@@ -119,7 +119,7 @@ test("ChatSessionHost preserves caller-owned accent styling without a palette", 
 });
 
 test("ChatSessionHost resets luminous phase and cadence on every turn start", () => {
-	delete process.env.ATOMIC_REDUCED_MOTION;
+	delete process.env.ORPHUS_REDUCED_MOTION;
 	const previousRandom = Math.random;
 	let selections = 0;
 	Math.random = () => {
@@ -163,7 +163,7 @@ test("ChatSessionHost resets luminous phase and cadence on every turn start", ()
 });
 
 test("ChatSessionHost ignores callbacks from replaced timers and after disposal", () => {
-	delete process.env.ATOMIC_REDUCED_MOTION;
+	delete process.env.ORPHUS_REDUCED_MOTION;
 	const timers = installLifecycleFakeClock();
 	let renderRequests = 0;
 	const host = new ChatSessionHost<never>({
@@ -211,7 +211,7 @@ test("ChatSessionHost ignores callbacks from replaced timers and after disposal"
 });
 
 test("ChatSessionHost terminal cleanup stops ordinary and compaction animation while preserving factual copy", () => {
-	delete process.env.ATOMIC_REDUCED_MOTION;
+	delete process.env.ORPHUS_REDUCED_MOTION;
 	const cases = [
 		[{ type: "agent_end", messages: [] }, undefined],
 		[
@@ -268,7 +268,7 @@ test("ChatSessionHost terminal cleanup stops ordinary and compaction animation w
 });
 
 test("ChatSessionHost reduced motion keeps each lifecycle at an un-emphasized identity without animation ticks", () => {
-	process.env.ATOMIC_REDUCED_MOTION = "1";
+	process.env.ORPHUS_REDUCED_MOTION = "1";
 	const timers = installLifecycleFakeClock();
 	let renderRequests = 0;
 	const host = new ChatSessionHost<never>({
@@ -312,7 +312,7 @@ test("ChatSessionHost reduced motion keeps each lifecycle at an un-emphasized id
 });
 
 test("ChatSessionHost stops lifecycle animation on failed or cancelled compaction and preserves its factual status", () => {
-	delete process.env.ATOMIC_REDUCED_MOTION;
+	delete process.env.ORPHUS_REDUCED_MOTION;
 	for (const [event, factualCopy] of [
 		[
 			{

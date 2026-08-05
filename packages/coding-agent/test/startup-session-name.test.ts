@@ -66,7 +66,7 @@ async function runCli(args: string[], dirs: CliDirs): Promise<CliResult> {
 		env: {
 			...process.env,
 			[ENV_AGENT_DIR]: dirs.agentDir,
-			ATOMIC_OFFLINE: "1",
+			ORPHUS_OFFLINE: "1",
 			TSX_TSCONFIG_PATH: resolve(__dirname, "../../../tsconfig.json"),
 		},
 	});

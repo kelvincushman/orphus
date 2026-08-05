@@ -20,20 +20,20 @@ interface RegisteredTool {
 type SessionHandler = (event: Record<string, never>, ctx: ExtensionContext) => Promise<void> | void;
 
 const originalArgv = [...process.argv];
-const originalAgentDir = process.env.ATOMIC_CODING_AGENT_DIR;
+const originalAgentDir = process.env.ORPHUS_CODING_AGENT_DIR;
 const originalDirectTools = process.env.MCP_DIRECT_TOOLS;
 let tempDir = "";
 
 beforeEach(() => {
 	tempDir = mkdtempSync(join(tmpdir(), "atomic-mcp-init-retry-"));
-	process.env.ATOMIC_CODING_AGENT_DIR = join(tempDir, "agent");
+	process.env.ORPHUS_CODING_AGENT_DIR = join(tempDir, "agent");
 	process.env.MCP_DIRECT_TOOLS = "__none__";
 });
 
 afterEach(() => {
 	process.argv = [...originalArgv];
-	if (originalAgentDir === undefined) delete process.env.ATOMIC_CODING_AGENT_DIR;
-	else process.env.ATOMIC_CODING_AGENT_DIR = originalAgentDir;
+	if (originalAgentDir === undefined) delete process.env.ORPHUS_CODING_AGENT_DIR;
+	else process.env.ORPHUS_CODING_AGENT_DIR = originalAgentDir;
 	if (originalDirectTools === undefined) delete process.env.MCP_DIRECT_TOOLS;
 	else process.env.MCP_DIRECT_TOOLS = originalDirectTools;
 	rmSync(tempDir, { recursive: true, force: true });

@@ -17,20 +17,20 @@ let isolatedAgentDir: string;
 const cleanupPaths = new Set<string>();
 
 beforeEach(() => {
-	previousAtomicAgentDir = process.env.ATOMIC_CODING_AGENT_DIR;
+	previousAtomicAgentDir = process.env.ORPHUS_CODING_AGENT_DIR;
 	previousHome = process.env.HOME;
 	previousUserProfile = process.env.USERPROFILE;
 	isolatedAgentDir = mkdtempSync(join(tmpdir(), "atomic-subagents-skills-agent-"));
 	cleanupPaths.add(isolatedAgentDir);
-	process.env.ATOMIC_CODING_AGENT_DIR = isolatedAgentDir;
+	process.env.ORPHUS_CODING_AGENT_DIR = isolatedAgentDir;
 	process.env.HOME = isolatedAgentDir;
 	process.env.USERPROFILE = isolatedAgentDir;
 	clearSkillCache();
 });
 
 afterEach(() => {
-	if (previousAtomicAgentDir === undefined) delete process.env.ATOMIC_CODING_AGENT_DIR;
-	else process.env.ATOMIC_CODING_AGENT_DIR = previousAtomicAgentDir;
+	if (previousAtomicAgentDir === undefined) delete process.env.ORPHUS_CODING_AGENT_DIR;
+	else process.env.ORPHUS_CODING_AGENT_DIR = previousAtomicAgentDir;
 	if (previousHome === undefined) delete process.env.HOME;
 	else process.env.HOME = previousHome;
 	if (previousUserProfile === undefined) delete process.env.USERPROFILE;

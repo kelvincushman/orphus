@@ -126,7 +126,7 @@ function getBuiltinPackageCandidateContext(): BuiltinPackageCandidateContext {
 }
 
 /**
- * Built-in pi package roots shipped with this Atomic distribution.
+ * Built-in pi package roots shipped with this Orphus distribution.
  *
  * Development layout:
  *   packages/coding-agent/src/core -> packages/<builtin>

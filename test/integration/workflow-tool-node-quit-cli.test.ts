@@ -142,14 +142,14 @@ class RpcCli {
 		// A suite that itself runs inside an Atomic engine session would otherwise
 		// leak its engine-child markers and its own fixture state directory.
 		for (const key of Object.keys(environment)) {
-			if (key.startsWith("ATOMIC_") || key.startsWith("ISSUE_2078_")) delete environment[key];
+			if (key.startsWith("ORPHUS_") || key.startsWith("ISSUE_2078_")) delete environment[key];
 		}
 		this.child = spawnProcess({
 			cmd: [bunExecutable(), join(repositoryRoot, "packages/coding-agent/src/cli.ts"), ...CLI_ARGS],
 			cwd: projectDir,
 			env: {
 				...environment,
-				ATOMIC_CODING_AGENT_DIR: agentDir,
+				ORPHUS_CODING_AGENT_DIR: agentDir,
 				ISSUE_2078_STATE_DIR: stateDir,
 				// Durability is deliberately in-process: the shared local Postgres
 				// cluster under ~/.atomic is shared by every concurrent Atomic

@@ -19,7 +19,7 @@ export interface ChatSessionHostStyle {
 		bright: string;
 		peak: string;
 	};
-	/** Use Atomic's live global theme when the host shares the interactive theme proxy. */
+	/** Use Orphus's live global theme when the host shares the interactive theme proxy. */
 	workingIndicatorUseGlobalTheme?: boolean;
 	rule(hex: string, text: string): string;
 	cursor(): string;

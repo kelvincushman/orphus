@@ -169,7 +169,7 @@ export interface ExtensionAPI {
 	refreshWorkflowResources?: () => Promise<ResolvedResource[]>;
 
 	/**
-	 * Return the resource-loader options that child Atomic sessions should inherit without sharing this loader instance.
+	 * Return the resource-loader options that child Orphus sessions should inherit without sharing this loader instance.
 	 */
 	getResourceLoaderInheritanceSnapshot?: () => DefaultResourceLoaderInheritanceSnapshot;
 

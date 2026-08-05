@@ -1,8 +1,8 @@
 import type { AutocompleteItem } from "@earendil-works/pi-tui";
 import { APP_NAME } from "../config.ts";
 import {
-	ATOMIC_GUIDE_COMMAND_DESCRIPTION,
-	ATOMIC_GUIDE_COMMAND_NAME,
+	ORPHUS_GUIDE_COMMAND_DESCRIPTION,
+	ORPHUS_GUIDE_COMMAND_NAME,
 	getAtomicGuideArgumentCompletions,
 } from "./atomic-guide-command.ts";
 import type { SourceInfo } from "./source-info.ts";
@@ -298,8 +298,8 @@ export const BUILTIN_SLASH_COMMANDS: ReadonlyArray<BuiltinSlashCommand> = [
 	{ name: "session", description: "Show session info and stats" },
 	{ name: "changelog", description: "Show changelog entries" },
 	{
-		name: ATOMIC_GUIDE_COMMAND_NAME,
-		description: ATOMIC_GUIDE_COMMAND_DESCRIPTION,
+		name: ORPHUS_GUIDE_COMMAND_NAME,
+		description: ORPHUS_GUIDE_COMMAND_DESCRIPTION,
 		getArgumentCompletions: getAtomicGuideArgumentCompletions,
 	},
 	{ name: "hotkeys", description: "Show all keyboard shortcuts" },
@@ -321,7 +321,7 @@ export const BUNDLED_EXTENSION_SLASH_COMMANDS: ReadonlyArray<BuiltinSlashCommand
 	{
 		name: "workflow",
 		description:
-			"Run or inspect Atomic workflows. Usage: /workflow <name> [key=value…] | /workflow [list|status|connect|attach|interrupt|quit|pause|resume|inputs|reload] [args]",
+			"Run or inspect Orphus workflows. Usage: /workflow <name> [key=value…] | /workflow [list|status|connect|attach|interrupt|quit|pause|resume|inputs|reload] [args]",
 		getArgumentCompletions: getBundledWorkflowArgumentCompletions,
 	},
 	{ name: "run", description: "Run a subagent directly: /run agent[output=file] [task] [--bg] [--fork]" },

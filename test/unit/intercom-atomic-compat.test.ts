@@ -65,11 +65,11 @@ describe("intercom Atomic agent-dir paths", () => {
 				USERPROFILE: undefined,
 				HOMEDRIVE: undefined,
 				HOMEPATH: undefined,
-				ATOMIC_CODING_AGENT_DIR: undefined,
+				ORPHUS_CODING_AGENT_DIR: undefined,
 				PI_CODING_AGENT_DIR: undefined,
 			},
 			() => {
-				const agentDir = join(home, ".atomic", "agent");
+				const agentDir = join(home, ".orphus", "agent");
 				assert.equal(getIntercomDirPath(), join(agentDir, "intercom"));
 				assert.equal(getBrokerSocketPath("darwin"), join(agentDir, "intercom", "broker.sock"));
 				assert.equal(getBrokerPidPath(), join(agentDir, "intercom", "broker.pid"));
@@ -78,17 +78,17 @@ describe("intercom Atomic agent-dir paths", () => {
 		);
 	});
 
-	test("honors ATOMIC_CODING_AGENT_DIR and legacy PI_CODING_AGENT_DIR aliases", () => {
+	test("honors ORPHUS_CODING_AGENT_DIR and legacy PI_CODING_AGENT_DIR aliases", () => {
 		const home = tempDir("atomic-intercom-home-");
 		const atomicAgentDir = join(home, "custom-atomic-agent");
 		const piAgentDir = join(home, "custom-pi-agent");
 
-		withEnv({ HOME: home, ATOMIC_CODING_AGENT_DIR: atomicAgentDir, PI_CODING_AGENT_DIR: piAgentDir }, () => {
+		withEnv({ HOME: home, ORPHUS_CODING_AGENT_DIR: atomicAgentDir, PI_CODING_AGENT_DIR: piAgentDir }, () => {
 			assert.equal(getBrokerSocketPath("linux"), join(atomicAgentDir, "intercom", "broker.sock"));
 			assert.equal(getBrokerPidPath(), join(atomicAgentDir, "intercom", "broker.pid"));
 		});
 
-		withEnv({ HOME: home, ATOMIC_CODING_AGENT_DIR: undefined, PI_CODING_AGENT_DIR: piAgentDir }, () => {
+		withEnv({ HOME: home, ORPHUS_CODING_AGENT_DIR: undefined, PI_CODING_AGENT_DIR: piAgentDir }, () => {
 			assert.equal(getBrokerSocketPath("linux"), join(piAgentDir, "intercom", "broker.sock"));
 			assert.equal(getBrokerPidPath(), join(piAgentDir, "intercom", "broker.pid"));
 		});
@@ -112,7 +112,7 @@ function runLoadConfig(home: string): { status?: string; brokerCommand: string; 
 	const env: NodeJS.ProcessEnv = { ...process.env, HOME: home, USERPROFILE: home };
 	delete env.HOMEDRIVE;
 	delete env.HOMEPATH;
-	delete env.ATOMIC_CODING_AGENT_DIR;
+	delete env.ORPHUS_CODING_AGENT_DIR;
 	delete env.PI_CODING_AGENT_DIR;
 	const result = spawnSync("bun", ["--eval", script], {
 		cwd: process.cwd(),
@@ -291,9 +291,9 @@ describe("intercom default broker runtime", () => {
 });
 
 describe("intercom config path precedence", () => {
-	test("prefers ~/.atomic/agent/intercom/config.json over legacy ~/.pi fallback", () => {
+	test("prefers ~/.orphus/agent/intercom/config.json over legacy ~/.pi fallback", () => {
 		const home = tempDir("atomic-intercom-config-");
-		const atomicDir = join(home, ".atomic", "agent", "intercom");
+		const atomicDir = join(home, ".orphus", "agent", "intercom");
 		const piDir = join(home, ".pi", "agent", "intercom");
 		mkdirSync(atomicDir, { recursive: true });
 		mkdirSync(piDir, { recursive: true });
@@ -364,7 +364,7 @@ describe("lazy intercom registration", () => {
 	test("registers the Pi-compatible public tool, command, and shortcut in normal sessions", () => {
 		const captured = captureIntercomRegistration({
 			PI_SUBAGENT_ORCHESTRATOR_TARGET: undefined,
-			ATOMIC_SUBAGENT_ORCHESTRATOR_TARGET: undefined,
+			ORPHUS_SUBAGENT_ORCHESTRATOR_TARGET: undefined,
 		});
 
 		assert.ok(captured.toolNames.includes("intercom"));
@@ -378,7 +378,7 @@ describe("lazy intercom registration", () => {
 	test("uses Atomic/Pi-neutral model-visible wording for the public intercom tool", () => {
 		const captured = captureIntercomRegistration({
 			PI_SUBAGENT_ORCHESTRATOR_TARGET: undefined,
-			ATOMIC_SUBAGENT_ORCHESTRATOR_TARGET: undefined,
+			ORPHUS_SUBAGENT_ORCHESTRATOR_TARGET: undefined,
 		});
 		const intercomTool = captured.tools.find((tool) => tool.name === "intercom");
 		assert.ok(intercomTool);
@@ -392,7 +392,7 @@ describe("lazy intercom registration", () => {
 
 	test("registers contact_supervisor when PI or ATOMIC subagent bridge metadata exists", () => {
 		const piCaptured = captureIntercomRegistration({ PI_SUBAGENT_ORCHESTRATOR_TARGET: "parent" });
-		const atomicCaptured = captureIntercomRegistration({ ATOMIC_SUBAGENT_ORCHESTRATOR_TARGET: "parent" });
+		const atomicCaptured = captureIntercomRegistration({ ORPHUS_SUBAGENT_ORCHESTRATOR_TARGET: "parent" });
 
 		assert.ok(piCaptured.toolNames.includes("contact_supervisor"));
 		assert.ok(atomicCaptured.toolNames.includes("contact_supervisor"));
@@ -402,11 +402,13 @@ describe("lazy intercom registration", () => {
 describe("intercom package manifest compatibility", () => {
 	test("bundled intercom publishes preferred atomic metadata and legacy pi metadata", () => {
 		const manifest = JSON.parse(readFileSync("packages/intercom/package.json", "utf8")) as {
+			orphus?: { extensions?: string[]; skills?: string[] };
 			atomic?: { extensions?: string[]; skills?: string[] };
 			pi?: { extensions?: string[]; skills?: string[] };
 		};
 
-		assert.deepEqual(manifest.atomic, { extensions: ["./index.ts"], skills: ["./skills"] });
+		assert.deepEqual(manifest.orphus, { extensions: ["./index.ts"], skills: ["./skills"] });
+		assert.deepEqual(manifest.atomic, manifest.orphus);
 		assert.deepEqual(manifest.pi, manifest.atomic);
 	});
 

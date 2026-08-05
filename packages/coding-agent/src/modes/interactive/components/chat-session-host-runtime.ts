@@ -1,4 +1,4 @@
-import { ATOMIC_WORKING_FRAME_MS, ATOMIC_WORKING_FRAMES } from "./atomic-working-status.ts";
+import { ORPHUS_WORKING_FRAME_MS, ORPHUS_WORKING_FRAMES } from "./atomic-working-status.ts";
 import type { ChatSessionHostState } from "./chat-session-host-state.ts";
 import { finalizeTerminalWorkflowToolEntries } from "./chat-session-host-terminal-cleanup.ts";
 import type { ChatSessionSubmitMode } from "./chat-session-host-types.ts";
@@ -140,17 +140,17 @@ export function syncChatSessionAnimationTick<TExtraEntry extends ChatTranscriptE
 ): void {
 	const shouldAnimate =
 		!state.disposed &&
-		process.env.ATOMIC_REDUCED_MOTION !== "1" &&
+		process.env.ORPHUS_REDUCED_MOTION !== "1" &&
 		(state.workingLifecycleActive || state.compacting);
 	if (shouldAnimate && !state.animationTimer) {
 		const intervalMs =
-			state.workingLifecycleActive || state.compacting ? ATOMIC_WORKING_FRAME_MS : ANIMATION_FRAME_MS;
+			state.workingLifecycleActive || state.compacting ? ORPHUS_WORKING_FRAME_MS : ANIMATION_FRAME_MS;
 		const timer = setInterval(() => {
 			if (state.disposed || state.animationTimer !== timer || (!state.workingLifecycleActive && !state.compacting)) {
 				return;
 			}
 			if (state.workingLifecycleActive || state.compacting) {
-				state.workingFrame = (state.workingFrame + 1) % ATOMIC_WORKING_FRAMES.length;
+				state.workingFrame = (state.workingFrame + 1) % ORPHUS_WORKING_FRAMES.length;
 			}
 			state.requestRender?.();
 		}, intervalMs);

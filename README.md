@@ -1,4 +1,11 @@
-<h1 align="center">Atomic</h1>
+<h1 align="center">Orphus</h1>
+
+<p align="center"><b>A fork of <a href="https://github.com/bastani-inc/atomic">Atomic</a> extended with roundtable: bounded multi-agent discussion rooms, and a self-improvement loop.</b></p>
+
+<p align="center">Agents deliberate in shared rooms whose transcripts live outside every context window; each agent pays only a budgeted digest to catch up. See <a href="./packages/roundtable/README.md">packages/roundtable</a>, <a href="./docs/orca-integration.md">docs/orca-integration.md</a>, and <a href="./docs/self-improvement-loop.md">docs/self-improvement-loop.md</a>.</p>
+
+<hr/>
+
 
 <p align="center"><img width="800" height="450" alt="Atomic coding agent runtime" src="./assets/atomic-promo.gif" /></p>
 

@@ -3,7 +3,7 @@
  *
  * Port of codex's `history.remove_first_item()` retry on
  * `ContextWindowExceeded` (`compact.rs:309-343`). Codex can discard trimmed
- * history because it writes a summary; Atomic promises validated deletion
+ * history because it writes a summary; Orphus promises validated deletion
  * boundaries over the original numbered lines, so trimming here is a *view*
  * over the same region:
  *

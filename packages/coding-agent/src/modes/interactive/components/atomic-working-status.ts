@@ -2,10 +2,10 @@ import { type Component, Loader, type LoaderIndicatorOptions, Text, type TUI } f
 import { ansi256ToHex, fgAnsi, hexToRgb } from "../theme/color-utils.ts";
 import { theme } from "../theme/theme.ts";
 
-/** Atomic's literal one-cell identity follows the approved ten-step luminance ramp. */
-export const ATOMIC_WORKING_FRAMES = ["∀", "∀", "∀", "∀", "∀", "∀", "∀", "∀", "∀", "∀"] as const;
-export const ATOMIC_WORKING_BOLD_PHASES = [false, false, false, false, true, true, true, false, false, false] as const;
-export const ATOMIC_WORKING_FRAME_MS = 88;
+/** Orphus's literal one-cell identity follows the approved ten-step luminance ramp. */
+export const ORPHUS_WORKING_FRAMES = ["∀", "∀", "∀", "∀", "∀", "∀", "∀", "∀", "∀", "∀"] as const;
+export const ORPHUS_WORKING_BOLD_PHASES = [false, false, false, false, true, true, true, false, false, false] as const;
+export const ORPHUS_WORKING_FRAME_MS = 88;
 
 export interface AtomicWorkingPalette {
 	dark: string;
@@ -18,7 +18,7 @@ export interface AtomicWorkingPalette {
 
 export type AtomicWorkingTone = keyof AtomicWorkingPalette;
 
-export const ATOMIC_WORKING_PHASES: readonly AtomicWorkingTone[] = [
+export const ORPHUS_WORKING_PHASES: readonly AtomicWorkingTone[] = [
 	"dark",
 	"lift",
 	"muted",
@@ -41,7 +41,7 @@ export interface AtomicWorkingStatusOptions {
 }
 
 function normalizedFrameIndex(frame: number): number {
-	return ((frame % ATOMIC_WORKING_FRAMES.length) + ATOMIC_WORKING_FRAMES.length) % ATOMIC_WORKING_FRAMES.length;
+	return ((frame % ORPHUS_WORKING_FRAMES.length) + ORPHUS_WORKING_FRAMES.length) % ORPHUS_WORKING_FRAMES.length;
 }
 
 function noColorRequested(): boolean {
@@ -106,7 +106,7 @@ function colorizePhase(
 	text: string,
 	paletteOption?: AtomicWorkingPalette | (() => AtomicWorkingPalette),
 ): string {
-	const tone = ATOMIC_WORKING_PHASES[frameIndex]!;
+	const tone = ORPHUS_WORKING_PHASES[frameIndex]!;
 	if (noColorRequested()) return text;
 	const palette = typeof paletteOption === "function" ? paletteOption() : paletteOption;
 	if (palette) return `${fgAnsi(palette[tone], theme.getColorMode())}${text}\x1b[39m`;
@@ -136,11 +136,11 @@ export class AtomicWorkingStatusComponent implements Component {
 	}
 
 	render(width: number): string[] {
-		const reducedMotion = process.env.ATOMIC_REDUCED_MOTION === "1";
+		const reducedMotion = process.env.ORPHUS_REDUCED_MOTION === "1";
 		const frameIndex = reducedMotion ? 3 : normalizedFrameIndex(this.options.frame ?? 0);
-		const frame = ATOMIC_WORKING_FRAMES[frameIndex];
+		const frame = ORPHUS_WORKING_FRAMES[frameIndex];
 		const message = this.options.message ?? "Working...";
-		const bold = !reducedMotion && ATOMIC_WORKING_BOLD_PHASES[frameIndex];
+		const bold = !reducedMotion && ORPHUS_WORKING_BOLD_PHASES[frameIndex];
 		const icon =
 			styleLegacyFrame(frame, bold, this.options) ??
 			(bold
@@ -199,12 +199,12 @@ export class AtomicWorkingLoader implements Component {
 			return;
 		}
 		this.stop();
-		if (process.env.ATOMIC_REDUCED_MOTION === "1") return;
+		if (process.env.ORPHUS_REDUCED_MOTION === "1") return;
 		const timer = setInterval(() => {
 			if (this.timer !== timer || this.delegate) return;
-			this.frame = (this.frame + 1) % ATOMIC_WORKING_FRAMES.length;
+			this.frame = (this.frame + 1) % ORPHUS_WORKING_FRAMES.length;
 			this.ui.requestRender();
-		}, ATOMIC_WORKING_FRAME_MS);
+		}, ORPHUS_WORKING_FRAME_MS);
 		this.timer = timer;
 		this.timer.unref?.();
 	}
@@ -259,6 +259,6 @@ export class AtomicWorkingLoader implements Component {
 }
 
 export function atomicWorkingFrame(now = Date.now()): number {
-	if (process.env.ATOMIC_REDUCED_MOTION === "1") return 3;
-	return Math.floor(now / ATOMIC_WORKING_FRAME_MS) % ATOMIC_WORKING_FRAMES.length;
+	if (process.env.ORPHUS_REDUCED_MOTION === "1") return 3;
+	return Math.floor(now / ORPHUS_WORKING_FRAME_MS) % ORPHUS_WORKING_FRAMES.length;
 }

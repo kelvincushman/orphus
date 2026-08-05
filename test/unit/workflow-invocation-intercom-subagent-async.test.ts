@@ -175,8 +175,8 @@ test("async single, parallel, and chain children inherit workflow groups through
 });
 
 test("in-process child resolves intercom group through typed admission without an env bridge", async () => {
-	const previousGroup = process.env.ATOMIC_INTERCOM_GROUP;
-	process.env.ATOMIC_INTERCOM_GROUP = "ambient-group";
+	const previousGroup = process.env.ORPHUS_INTERCOM_GROUP;
+	process.env.ORPHUS_INTERCOM_GROUP = "ambient-group";
 	const dir = mkdtempSync(join(tmpdir(), "atomic-workflow-group-inprocess-"));
 	try {
 		const agent = {
@@ -197,10 +197,10 @@ test("in-process child resolves intercom group through typed admission without a
 		});
 		assert.equal(result.status, "ok");
 		assert.equal(result.finalOutput, "done");
-		assert.equal(process.env.ATOMIC_INTERCOM_GROUP, "ambient-group");
+		assert.equal(process.env.ORPHUS_INTERCOM_GROUP, "ambient-group");
 	} finally {
 		rmSync(dir, { recursive: true, force: true });
-		if (previousGroup === undefined) delete process.env.ATOMIC_INTERCOM_GROUP;
-		else process.env.ATOMIC_INTERCOM_GROUP = previousGroup;
+		if (previousGroup === undefined) delete process.env.ORPHUS_INTERCOM_GROUP;
+		else process.env.ORPHUS_INTERCOM_GROUP = previousGroup;
 	}
 });

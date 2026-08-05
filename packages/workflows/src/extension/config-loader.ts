@@ -119,7 +119,7 @@ export interface LoadWorkflowConfigOpts {
 	readonly homeDir?: string;
 	/**
 	 * User agent config directories in precedence order. Defaults to Atomic's
-	 * configured agent directories, honoring ATOMIC_CODING_AGENT_DIR.
+	 * configured agent directories, honoring ORPHUS_CODING_AGENT_DIR.
 	 */
 	readonly agentDirs?: readonly string[];
 }
@@ -258,7 +258,7 @@ export interface ScopedDiscoveryConfigOpts {
 	readonly homeDir?: string;
 	/**
 	 * User agent config directory. Defaults to Atomic's configured agent dir,
-	 * honoring ATOMIC_CODING_AGENT_DIR.
+	 * honoring ORPHUS_CODING_AGENT_DIR.
 	 */
 	readonly agentDir?: string;
 }

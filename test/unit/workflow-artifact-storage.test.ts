@@ -40,7 +40,7 @@ test("durable workflow artifacts default to the configured Atomic config root", 
 	const root = await mkdtemp(join(tmpdir(), "workflow-artifact-root-"));
 	try {
 		await withEnv(
-			{ [ENV_WORKFLOW_ARTIFACT_DIR]: undefined, ATOMIC_CODING_AGENT_DIR: join(root, "agent") },
+			{ [ENV_WORKFLOW_ARTIFACT_DIR]: undefined, ORPHUS_CODING_AGENT_DIR: join(root, "agent") },
 			async () => {
 				assert.equal(workflowArtifactRunsRoot(), join(root, "workflows", "runs"));
 				const runDirectory = await createWorkflowArtifactDirectory("durable-resume-run");

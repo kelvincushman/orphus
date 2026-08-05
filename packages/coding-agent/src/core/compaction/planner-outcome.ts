@@ -80,7 +80,7 @@ const QUOTA_EXHAUSTED_PATTERN = buildProviderErrorPattern([
  * This is a deliberate **local addition**, not a mirror: pi-ai lists it in
  * neither its non-retryable nor its retryable pattern, so `retryAssistantCall`
  * never schedules a backoff for it. Classifying it as transient throttling would
- * report `exhausted: true` for a retry budget that was never spent, so Atomic
+ * report `exhausted: true` for a retry budget that was never spent, so Orphus
  * treats it as quota exhaustion (`exhausted: false`). pi-ai's own
  * `Monthly usage limit reached` entry above already covers the specific form.
  */
@@ -108,7 +108,7 @@ const RATE_LIMITED_PATTERN = buildProviderErrorPattern([
  * A deliberate local broadening: the RFC and the acceptance contract enumerate
  * `5xx`, while pi-ai lists only 500/502/503/504/524, so a `501` would otherwise
  * fall through to `providerError`. The consequence is that pi-ai may schedule no
- * backoff for a status Atomic types as rate limiting — which is exactly why
+ * backoff for a status Orphus types as rate limiting — which is exactly why
  * `exhausted` reports *observed* retry activity rather than assuming it.
  */
 const HTTP_5XX_PATTERN = /(?<![\d.])5\d\d(?![\d.])/;
@@ -162,7 +162,7 @@ export function syntheticErrorResponse(
  * produced no usable deletion record, and billed reasoning tokens.
  *
  * This is a diagnostic category only. Codex has no starvation concept and never
- * retries one; neither does Atomic. A starved outcome advances the ladder
+ * retries one; neither does Orphus. A starved outcome advances the ladder
  * exactly like any other `unusable` output.
  */
 export function isReasoningStarved(response: AssistantMessage, hasUsableRanges: boolean): boolean {

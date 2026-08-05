@@ -23,7 +23,7 @@ export default function customOAuthExtension(api: ExtensionAPI): void {
 		baseUrl: "https://corp.invalid/v1",
 		models,
 		refreshModels: async () => {
-			const log = process.env.ATOMIC_CUSTOM_OAUTH_LOG;
+			const log = process.env.ORPHUS_CUSTOM_OAUTH_LOG;
 			if (log) appendFileSync(log, `refresh:${process.pid}\n`);
 			return models;
 		},
@@ -33,7 +33,7 @@ export default function customOAuthExtension(api: ExtensionAPI): void {
 			usesCallbackServer: true,
 			login: async (baseCallbacks) => {
 				const callbacks = baseCallbacks as ExtendedCallbacks;
-				const log = process.env.ATOMIC_CUSTOM_OAUTH_LOG;
+				const log = process.env.ORPHUS_CUSTOM_OAUTH_LOG;
 				if (log) appendFileSync(log, `engine:${process.pid}\n`);
 				callbacks.onAuth({ url: "https://corp.invalid/login", instructions: "Open Corp" });
 				callbacks.onDeviceCode({ userCode: "CORP-CODE", verificationUri: "https://corp.invalid/device" });

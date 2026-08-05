@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url";
 /**
  * Split-launcher / foreign-build `import.meta.url` handling.
  *
- * Atomic's release binaries use a split launcher: a tiny compiled `atomic` /
- * `atomic.exe` executable sets `ATOMIC_CODING_AGENT=true` and then dynamically
+ * Orphus's release binaries use a split launcher: a tiny compiled `atomic` /
+ * `atomic.exe` executable sets `ORPHUS_CODING_AGENT=true` and then dynamically
  * imports the bundled sidecar `app.js` (plus raw-TS built-in extensions) from
  * disk next to the executable.
  *
@@ -24,7 +24,7 @@ import { fileURLToPath } from "node:url";
  * scattered ad-hoc guards.
  */
 export function isSplitLauncherRuntime(): boolean {
-	return process.env.ATOMIC_CODING_AGENT === "true" && /(?:^|[\\/])atomic(?:\.exe)?$/i.test(process.execPath);
+	return process.env.ORPHUS_CODING_AGENT === "true" && /(?:^|[\\/])atomic(?:\.exe)?$/i.test(process.execPath);
 }
 
 /** Directory containing the launcher executable and its sidecar bundle/assets. */

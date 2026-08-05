@@ -13,7 +13,7 @@ import type { RunSnapshot } from "./store-types.js";
 export const WORKFLOW_ARTIFACT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** Overrides the durable workflow-artifact root, mirroring the agent-directory override convention. */
-export const ENV_WORKFLOW_ARTIFACT_DIR = "ATOMIC_WORKFLOW_ARTIFACT_DIR";
+export const ENV_WORKFLOW_ARTIFACT_DIR = "ORPHUS_WORKFLOW_ARTIFACT_DIR";
 
 export type WorkflowArtifactRunState = "protected" | "terminal" | "orphan";
 export type WorkflowArtifactRunStateResolver = (runId: string) => WorkflowArtifactRunState | undefined;

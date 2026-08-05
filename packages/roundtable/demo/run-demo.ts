@@ -3,7 +3,7 @@
  * over the real broker socket, then each pulls a bounded digest.
  *
  * Run from repo root:
- *   ATOMIC_CODING_AGENT_DIR=/tmp/roundtable-demo bun packages/roundtable/demo/run-demo.ts
+ *   ORPHUS_CODING_AGENT_DIR=/tmp/roundtable-demo bun packages/roundtable/demo/run-demo.ts
  *
  * No model is involved — this proves the transport and the context-window
  * bound. Point real Atomic sessions at the same broker for the live version.

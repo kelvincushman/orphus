@@ -321,7 +321,7 @@ function answerNoticeKey(
 }
 
 function warnHilAnswerSendFailure(error: unknown): void {
-	if (process.env.ATOMIC_WORKFLOW_DEBUG !== "1") return;
+	if (process.env.ORPHUS_WORKFLOW_DEBUG !== "1") return;
 	const message = error instanceof Error ? error.message : String(error);
 	console.warn("[workflows] workflow HiL answer notice send failed", message);
 }

@@ -21,17 +21,17 @@ describe("getThemeExportColors", () => {
 
 	beforeEach(() => {
 		tempRoot = mkdtempSync(join(tmpdir(), "pi-theme-export-"));
-		previousAgentDir = process.env.ATOMIC_CODING_AGENT_DIR;
-		process.env.ATOMIC_CODING_AGENT_DIR = join(tempRoot, "agent");
-		mkdirSync(join(process.env.ATOMIC_CODING_AGENT_DIR, "themes"), { recursive: true });
+		previousAgentDir = process.env.ORPHUS_CODING_AGENT_DIR;
+		process.env.ORPHUS_CODING_AGENT_DIR = join(tempRoot, "agent");
+		mkdirSync(join(process.env.ORPHUS_CODING_AGENT_DIR, "themes"), { recursive: true });
 	});
 
 	afterEach(() => {
 		rmSync(tempRoot, { recursive: true, force: true });
 		if (previousAgentDir === undefined) {
-			delete process.env.ATOMIC_CODING_AGENT_DIR;
+			delete process.env.ORPHUS_CODING_AGENT_DIR;
 		} else {
-			process.env.ATOMIC_CODING_AGENT_DIR = previousAgentDir;
+			process.env.ORPHUS_CODING_AGENT_DIR = previousAgentDir;
 		}
 	});
 
@@ -58,7 +58,7 @@ describe("getThemeExportColors", () => {
 		};
 
 		writeFileSync(
-			join(process.env.ATOMIC_CODING_AGENT_DIR!, "themes", "custom-export-vars.json"),
+			join(process.env.ORPHUS_CODING_AGENT_DIR!, "themes", "custom-export-vars.json"),
 			JSON.stringify(customTheme, null, 2),
 		);
 
@@ -91,7 +91,7 @@ describe("getThemeExportColors", () => {
 		};
 
 		writeFileSync(
-			join(process.env.ATOMIC_CODING_AGENT_DIR!, "themes", "custom-export-recursive.json"),
+			join(process.env.ORPHUS_CODING_AGENT_DIR!, "themes", "custom-export-recursive.json"),
 			JSON.stringify(customTheme, null, 2),
 		);
 

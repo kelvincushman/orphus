@@ -8,19 +8,19 @@ import { resolveMcpDirectToolsSelection, scheduleMcpStartupWarmup } from "../../
 import type { McpExtensionState } from "../../packages/mcp/state.ts";
 import type { McpConfig } from "../../packages/mcp/types.ts";
 
-const originalAgentDir = process.env.ATOMIC_CODING_AGENT_DIR;
+const originalAgentDir = process.env.ORPHUS_CODING_AGENT_DIR;
 let tmpRoot = "";
 
 type McpConnection = Awaited<ReturnType<McpServerManager["connect"]>>;
 
 beforeEach(() => {
 	tmpRoot = mkdtempSync(join(tmpdir(), "atomic-mcp-warmup-cancel-"));
-	process.env.ATOMIC_CODING_AGENT_DIR = join(tmpRoot, "agent");
+	process.env.ORPHUS_CODING_AGENT_DIR = join(tmpRoot, "agent");
 });
 
 afterEach(() => {
-	if (originalAgentDir === undefined) delete process.env.ATOMIC_CODING_AGENT_DIR;
-	else process.env.ATOMIC_CODING_AGENT_DIR = originalAgentDir;
+	if (originalAgentDir === undefined) delete process.env.ORPHUS_CODING_AGENT_DIR;
+	else process.env.ORPHUS_CODING_AGENT_DIR = originalAgentDir;
 	rmSync(tmpRoot, { recursive: true, force: true });
 });
 

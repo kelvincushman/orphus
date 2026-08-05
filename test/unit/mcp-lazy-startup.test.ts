@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, test } from "vitest";
 import { initializeMcp } from "../../packages/mcp/init.js";
 import { McpServerManager } from "../../packages/mcp/server-manager.js";
 
-const originalEnv = process.env.ATOMIC_CODING_AGENT_DIR;
+const originalEnv = process.env.ORPHUS_CODING_AGENT_DIR;
 let tmpRoot = "";
 let originalConnect: McpServerManager["connect"];
 let originalCloseAll: McpServerManager["closeAll"];
@@ -31,7 +31,7 @@ function pi(configPath: string): ExtensionAPI {
 
 beforeEach(() => {
 	tmpRoot = mkdtempSync(join(tmpdir(), "atomic-mcp-lazy-startup-"));
-	process.env.ATOMIC_CODING_AGENT_DIR = join(tmpRoot, "agent");
+	process.env.ORPHUS_CODING_AGENT_DIR = join(tmpRoot, "agent");
 	originalConnect = McpServerManager.prototype.connect;
 	originalCloseAll = McpServerManager.prototype.closeAll;
 });
@@ -39,8 +39,8 @@ beforeEach(() => {
 afterEach(() => {
 	McpServerManager.prototype.connect = originalConnect;
 	McpServerManager.prototype.closeAll = originalCloseAll;
-	if (originalEnv === undefined) delete process.env.ATOMIC_CODING_AGENT_DIR;
-	else process.env.ATOMIC_CODING_AGENT_DIR = originalEnv;
+	if (originalEnv === undefined) delete process.env.ORPHUS_CODING_AGENT_DIR;
+	else process.env.ORPHUS_CODING_AGENT_DIR = originalEnv;
 	rmSync(tmpRoot, { recursive: true, force: true });
 });
 

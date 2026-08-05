@@ -37,7 +37,7 @@ export function mergeHeaders(
 
 type ResolveAuth = (model: Model<Api>, overrides?: ModelRuntimeAuthOverrides) => Promise<AuthResult | undefined>;
 
-/** Streaming request preparation split from ModelRuntime solely for Atomic's 500-line source gate. */
+/** Streaming request preparation split from ModelRuntime solely for Orphus's 500-line source gate. */
 export class ModelRuntimeStreaming {
 	private readonly models: MutableModels;
 	private readonly resolveAuth: ResolveAuth;

@@ -69,8 +69,8 @@ test("rejects invalid URL line selectors", () => {
 });
 
 test.sequential("blocks private URL reads by default", async () => {
-	const previous = process.env.ATOMIC_ALLOW_PRIVATE_URL_READS;
-	delete process.env.ATOMIC_ALLOW_PRIVATE_URL_READS;
+	const previous = process.env.ORPHUS_ALLOW_PRIVATE_URL_READS;
+	delete process.env.ORPHUS_ALLOW_PRIVATE_URL_READS;
 	try {
 		await expect(loadPage("http://127.0.0.1:1/", 100)).rejects.toThrow("Refusing to fetch private or metadata URL");
 		await expect(loadPage("http://localhost:1/", 100)).rejects.toThrow("Refusing to fetch private or metadata URL");
@@ -85,19 +85,19 @@ test.sequential("blocks private URL reads by default", async () => {
 		]) {
 			await expect(loadPage(`http://${host}/`, 100)).rejects.toThrow("Refusing to fetch private or metadata URL");
 		}
-		process.env.ATOMIC_ALLOW_PRIVATE_URL_READS = "1";
+		process.env.ORPHUS_ALLOW_PRIVATE_URL_READS = "1";
 		await expect(loadPage("file:///etc/passwd", 100)).rejects.toThrow("Unsupported URL protocol");
-		delete process.env.ATOMIC_ALLOW_PRIVATE_URL_READS;
+		delete process.env.ORPHUS_ALLOW_PRIVATE_URL_READS;
 	} finally {
-		if (previous === undefined) delete process.env.ATOMIC_ALLOW_PRIVATE_URL_READS;
-		else process.env.ATOMIC_ALLOW_PRIVATE_URL_READS = previous;
+		if (previous === undefined) delete process.env.ORPHUS_ALLOW_PRIVATE_URL_READS;
+		else process.env.ORPHUS_ALLOW_PRIVATE_URL_READS = previous;
 	}
 });
 
 test.sequential("revalidates redirect targets before fetching them", async () => {
-	const previousAllowance = process.env.ATOMIC_ALLOW_PRIVATE_URL_READS;
+	const previousAllowance = process.env.ORPHUS_ALLOW_PRIVATE_URL_READS;
 	const previousFetch = globalThis.fetch;
-	delete process.env.ATOMIC_ALLOW_PRIVATE_URL_READS;
+	delete process.env.ORPHUS_ALLOW_PRIVATE_URL_READS;
 	let calls = 0;
 	globalThis.fetch = (async () => {
 		calls++;
@@ -108,8 +108,8 @@ test.sequential("revalidates redirect targets before fetching them", async () =>
 		expect(calls).toBe(1);
 	} finally {
 		globalThis.fetch = previousFetch;
-		if (previousAllowance === undefined) delete process.env.ATOMIC_ALLOW_PRIVATE_URL_READS;
-		else process.env.ATOMIC_ALLOW_PRIVATE_URL_READS = previousAllowance;
+		if (previousAllowance === undefined) delete process.env.ORPHUS_ALLOW_PRIVATE_URL_READS;
+		else process.env.ORPHUS_ALLOW_PRIVATE_URL_READS = previousAllowance;
 	}
 });
 
@@ -127,9 +127,9 @@ test("pins the DNS-resolved address for hostname fetches (no rebinding at connec
 	// Bun's compiled binary, so a hostname target must route through undici's
 	// own client for the pinned lookup to take effect. If the pinned (undici)
 	// path is taken, a mocked global fetch returning 200 must NOT be reached.
-	const previousAllowance = process.env.ATOMIC_ALLOW_PRIVATE_URL_READS;
+	const previousAllowance = process.env.ORPHUS_ALLOW_PRIVATE_URL_READS;
 	const previousFetch = globalThis.fetch;
-	delete process.env.ATOMIC_ALLOW_PRIVATE_URL_READS;
+	delete process.env.ORPHUS_ALLOW_PRIVATE_URL_READS;
 	let globalFetchCalls = 0;
 	globalThis.fetch = (async () => {
 		globalFetchCalls++;
@@ -146,7 +146,7 @@ test("pins the DNS-resolved address for hostname fetches (no rebinding at connec
 	} finally {
 		setResolvedHost(null);
 		globalThis.fetch = previousFetch;
-		if (previousAllowance === undefined) delete process.env.ATOMIC_ALLOW_PRIVATE_URL_READS;
-		else process.env.ATOMIC_ALLOW_PRIVATE_URL_READS = previousAllowance;
+		if (previousAllowance === undefined) delete process.env.ORPHUS_ALLOW_PRIVATE_URL_READS;
+		else process.env.ORPHUS_ALLOW_PRIVATE_URL_READS = previousAllowance;
 	}
 });

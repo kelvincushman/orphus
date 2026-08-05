@@ -132,7 +132,7 @@ export function isCommandConfigValue(config: string): boolean {
 	return parseConfigValueReference(config).type === "command";
 }
 
-/** Atomic migration compatibility for pre-template bare environment variable names. */
+/** Orphus migration compatibility for pre-template bare environment variable names. */
 export function isLegacyEnvVarNameConfigValue(config: string): boolean {
 	return LEGACY_ENV_VAR_NAME_RE.test(config);
 }

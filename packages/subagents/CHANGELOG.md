@@ -5,7 +5,7 @@
 ### Breaking Changes
 
 - `async: true` no longer survives parent exit. Async subagents now run as in-process children of the parent session on the same foreground executor, so quitting Atomic ends any in-flight async run. The child's canonical identity and its session file persist on disk and can be reloaded on a later start, but the running work does not continue in the background across a restart. The detached runner process that previously provided parent-exit survival has been deleted ([#2188](https://github.com/bastani-inc/atomic/issues/2188)).
-- Removed the `ATOMIC_SUBAGENT_*` process-era environment bridge variables consumed by the deleted spawn path and the synthesized numeric child-result exit-code protocol (`0/1/-1/-2/143`). Child identity, policy, supervisor capability, and terminal outcomes now cross typed admission; results use required `status` (`ok | error | skipped | interrupted | continued`) plus `cause` and `stats` ([#2188](https://github.com/bastani-inc/atomic/issues/2188)).
+- Removed the `ORPHUS_SUBAGENT_*` process-era environment bridge variables consumed by the deleted spawn path and the synthesized numeric child-result exit-code protocol (`0/1/-1/-2/143`). Child identity, policy, supervisor capability, and terminal outcomes now cross typed admission; results use required `status` (`ok | error | skipped | interrupted | continued`) plus `cause` and `stats` ([#2188](https://github.com/bastani-inc/atomic/issues/2188)).
 
 ### Added
 
@@ -109,7 +109,7 @@
 
 ### Added
 
-- Added a `group` option on subagent tasks, parallel/chain items, and the top-level call that sets the intercom home group for spawned children so same-group subagents can intercom each other while staying isolated from other groups. A named string joins that group; `true` auto-generates one shared UUID group per parallel set (shared across all items in the set). Precedence is `explicit subagent group > inherited current-session (stage) group > env ATOMIC_INTERCOM_GROUP > config > "default"`. When a subagent does not specify a group it inherits its launching session's group — read race-safely from the session's `orchestrationContext.intercomGroup` rather than global env — so subagents spawned by a grouped workflow stage join that stage's group by default. The child group env (`ATOMIC_INTERCOM_GROUP`) is written only when the child actually has intercom access (the peer `intercom` tool or the `contact_supervisor` tool); a child without intercom is never placed into a group. `contact_supervisor` retains cross-group supervisor access through a broker-issued child capability rather than a client-authored channel marker.
+- Added a `group` option on subagent tasks, parallel/chain items, and the top-level call that sets the intercom home group for spawned children so same-group subagents can intercom each other while staying isolated from other groups. A named string joins that group; `true` auto-generates one shared UUID group per parallel set (shared across all items in the set). Precedence is `explicit subagent group > inherited current-session (stage) group > env ORPHUS_INTERCOM_GROUP > config > "default"`. When a subagent does not specify a group it inherits its launching session's group — read race-safely from the session's `orchestrationContext.intercomGroup` rather than global env — so subagents spawned by a grouped workflow stage join that stage's group by default. The child group env (`ORPHUS_INTERCOM_GROUP`) is written only when the child actually has intercom access (the peer `intercom` tool or the `contact_supervisor` tool); a child without intercom is never placed into a group. `contact_supervisor` retains cross-group supervisor access through a broker-issued child capability rather than a client-authored channel marker.
 
 ### Changed
 
@@ -130,7 +130,7 @@
 
 ### Added
 
-- Added a `group` option on subagent tasks, parallel/chain items, and the top-level call that sets the intercom home group for spawned children so same-group subagents can intercom each other while staying isolated from other groups. A named string joins that group; `true` auto-generates one shared UUID group per parallel set (shared across all items in the set). Precedence is `explicit subagent group > inherited current-session (stage) group > env ATOMIC_INTERCOM_GROUP > config > "default"`. When a subagent does not specify a group it inherits its launching session's group — read race-safely from the session's `orchestrationContext.intercomGroup` rather than global env — so subagents spawned by a grouped workflow stage join that stage's group by default. The child group env (`ATOMIC_INTERCOM_GROUP`) is written only when the child actually has intercom access (the peer `intercom` tool or the `contact_supervisor` tool); a child without intercom is never placed into a group. `contact_supervisor` retains cross-group supervisor access through a broker-issued child capability rather than a client-authored channel marker.
+- Added a `group` option on subagent tasks, parallel/chain items, and the top-level call that sets the intercom home group for spawned children so same-group subagents can intercom each other while staying isolated from other groups. A named string joins that group; `true` auto-generates one shared UUID group per parallel set (shared across all items in the set). Precedence is `explicit subagent group > inherited current-session (stage) group > env ORPHUS_INTERCOM_GROUP > config > "default"`. When a subagent does not specify a group it inherits its launching session's group — read race-safely from the session's `orchestrationContext.intercomGroup` rather than global env — so subagents spawned by a grouped workflow stage join that stage's group by default. The child group env (`ORPHUS_INTERCOM_GROUP`) is written only when the child actually has intercom access (the peer `intercom` tool or the `contact_supervisor` tool); a child without intercom is never placed into a group. `contact_supervisor` retains cross-group supervisor access through a broker-issued child capability rather than a client-authored channel marker.
 
 ### Changed
 
@@ -325,7 +325,7 @@
 
 ### Added
 
-- Added a watchdog escape hatch: setting `ATOMIC_SUBAGENT_ATTEMPT_IDLE_TIMEOUT_MS` or `ATOMIC_SUBAGENT_ATTEMPT_TIMEOUT_MS` to `0` (or a negative value) disables the corresponding per-attempt timeout entirely; the `ATOMIC_SUBAGENT_ATTEMPT_KILL_GRACE_MS` SIGTERM→SIGKILL grace period intentionally cannot be disabled so escalation always stays bounded ([#1581](https://github.com/bastani-inc/atomic/pull/1581)).
+- Added a watchdog escape hatch: setting `ORPHUS_SUBAGENT_ATTEMPT_IDLE_TIMEOUT_MS` or `ORPHUS_SUBAGENT_ATTEMPT_TIMEOUT_MS` to `0` (or a negative value) disables the corresponding per-attempt timeout entirely; the `ORPHUS_SUBAGENT_ATTEMPT_KILL_GRACE_MS` SIGTERM→SIGKILL grace period intentionally cannot be disabled so escalation always stays bounded ([#1581](https://github.com/bastani-inc/atomic/pull/1581)).
 
 ### Changed
 
@@ -367,7 +367,7 @@
 
 ### Added
 
-- Added a watchdog escape hatch: setting `ATOMIC_SUBAGENT_ATTEMPT_IDLE_TIMEOUT_MS` or `ATOMIC_SUBAGENT_ATTEMPT_TIMEOUT_MS` to `0` (or a negative value) now disables the corresponding per-attempt timeout entirely; non-numeric values are ignored and the defaults apply. The `ATOMIC_SUBAGENT_ATTEMPT_KILL_GRACE_MS` SIGTERM→SIGKILL grace period intentionally cannot be disabled — `0`, negative, or non-numeric values fall back to its default so escalation always stays bounded ([#1581](https://github.com/bastani-inc/atomic/pull/1581)).
+- Added a watchdog escape hatch: setting `ORPHUS_SUBAGENT_ATTEMPT_IDLE_TIMEOUT_MS` or `ORPHUS_SUBAGENT_ATTEMPT_TIMEOUT_MS` to `0` (or a negative value) now disables the corresponding per-attempt timeout entirely; non-numeric values are ignored and the defaults apply. The `ORPHUS_SUBAGENT_ATTEMPT_KILL_GRACE_MS` SIGTERM→SIGKILL grace period intentionally cannot be disabled — `0`, negative, or non-numeric values fall back to its default so escalation always stays bounded ([#1581](https://github.com/bastani-inc/atomic/pull/1581)).
 
 ## [0.9.4-alpha.6] - 2026-07-01
 

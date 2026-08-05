@@ -393,7 +393,7 @@ export function createWorkflowExtensionRuntimeState(
 			isWorkflowDiscoveryCurrent(discoveryStart);
 		void pending
 			.catch((error) => {
-				if (isCurrentWarmup() && process.env.ATOMIC_WORKFLOW_DEBUG === "1") {
+				if (isCurrentWarmup() && process.env.ORPHUS_WORKFLOW_DEBUG === "1") {
 					const message = error instanceof Error ? error.message : String(error);
 					console.warn(`Workflow background discovery failed: ${message}`);
 				}
@@ -405,7 +405,7 @@ export function createWorkflowExtensionRuntimeState(
 				try {
 					onSettled?.();
 				} catch (error) {
-					if (process.env.ATOMIC_WORKFLOW_DEBUG === "1") {
+					if (process.env.ORPHUS_WORKFLOW_DEBUG === "1") {
 						const message = error instanceof Error ? error.message : String(error);
 						console.warn(`Workflow background discovery callback failed: ${message}`);
 					}

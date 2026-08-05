@@ -1,19 +1,20 @@
 {
   "name": "@bastani/atomic",
   "version": "0.0.0",
-  "description": "Atomic coding agent CLI with read, bash, edit, write tools and session management",
+  "description": "Orphus coding agent CLI with read, bash, edit, write tools, session management, and roundtable multi-agent rooms",
   "type": "module",
   "atomicConfig": {
-    "name": "atomic",
-    "configDir": ".atomic",
-    "changelogUrl": "https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/CHANGELOG.md"
+    "name": "orphus",
+    "configDir": ".orphus",
+    "changelogUrl": "https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/CHANGELOG.md"
   },
   "piConfig": {
-    "name": "atomic",
-    "configDir": ".atomic",
-    "changelogUrl": "https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/CHANGELOG.md"
+    "name": "orphus",
+    "configDir": ".orphus",
+    "changelogUrl": "https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/CHANGELOG.md"
   },
   "bin": {
+    "orphus": "dist/cli.js",
     "atomic": "dist/cli.js"
   },
   "main": "./dist/index.js",
@@ -63,7 +64,7 @@
     "clean": "shx rm -rf dist",
     "dev": "tsgo -p tsconfig.build.json --watch --preserveWatchOutput",
     "build": "tsgo -p tsconfig.build.json && shx chmod +x dist/cli.js dist/rpc-entry.js && bun run copy-assets",
-    "bundle:dev": "bun build src/cli.ts --target=bun --minify --external mupdf --define process.env.ATOMIC_BUNDLED_BUILD=\"'1'\" --outfile dist-dev/cli.js",
+    "bundle:dev": "bun build src/cli.ts --target=bun --minify --external mupdf --define process.env.ORPHUS_BUNDLED_BUILD=\"'1'\" --outfile dist-dev/cli.js",
     "start:fast": "bun run bundle:dev && bun dist-dev/cli.js",
     "build:binary": "bun run clean && bun run build && bun build --target=bun --format=cjs --external mupdf ./dist/bun/cli.js --outfile dist/app.js && bun build --target=bun --format=cjs --external mupdf ./src/utils/image-resize-worker.ts --outfile dist/image-resize-worker.js && bun build --compile --bytecode --format=cjs --external mupdf --no-compile-autoload-dotenv --no-compile-autoload-bunfig ./dist/bun/split-loader.js --outfile dist/atomic && bun run copy-binary-assets && bun run assert-binary-assets",
     "copy-assets": "shx mkdir -p dist/modes/interactive/theme && shx cp src/modes/interactive/theme/*.json dist/modes/interactive/theme/ && shx mkdir -p dist/modes/interactive/assets && shx cp src/modes/interactive/assets/*.png dist/modes/interactive/assets/ && shx mkdir -p dist/core/export-html/vendor dist/core/export-html/template-js && shx cp src/core/export-html/template.html src/core/export-html/template.css src/core/export-html/template.js dist/core/export-html/ && shx cp src/core/export-html/template-js/*.js dist/core/export-html/template-js/ && shx cp src/core/export-html/vendor/*.js dist/core/export-html/vendor/ && bun run copy-builtin-packages",

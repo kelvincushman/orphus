@@ -9,7 +9,7 @@ import { createAgentSession } from "../src/core/sdk.ts";
 import { SessionManager } from "../src/core/session-manager.ts";
 import { SettingsManager } from "../src/core/settings-manager.ts";
 
-const missingApiKeyEnv = "ATOMIC_SDK_SESSION_MANAGER_MISSING_KEY";
+const missingApiKeyEnv = "ORPHUS_SDK_SESSION_MANAGER_MISSING_KEY";
 const testModel = (id: string) => ({
 	id,
 	name: id,
@@ -161,7 +161,7 @@ describe("createAgentSession session manager defaults", () => {
 		});
 		expect(session.sessionFile).toBeTruthy();
 		expect(session.systemPrompt).toContain(
-			"Inspect ATOMIC_* or PI_* environment variables for current model and session details.",
+			"Inspect ORPHUS_* or PI_* environment variables for current model and session details.",
 		);
 
 		const bashTool = session.agent.state.tools.find((tool) => tool.name === "bash");

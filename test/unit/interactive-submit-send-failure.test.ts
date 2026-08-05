@@ -17,7 +17,7 @@ initTheme("dark");
 /**
  * Contract item 6 for the submit paths that never reach `runUserPromptTurn()`.
  *
- * `/atomic`, a deferred slash command, an extension command during compaction, a
+ * `/orphus`, a deferred slash command, an extension command during compaction, a
  * streaming steer send, `!bash`, `/compact`, and Alt+Enter all clear the editor
  * and dispatch straight to the engine. Before this, a send the engine never
  * accepted discarded the text on every one of those branches.
@@ -143,7 +143,7 @@ const DIRECT_BRANCHES: Array<{
 	text: string;
 	options?: Parameters<typeof makeSubmitStub>[0];
 }> = [
-	{ name: "/atomic", text: "/atomic do the thing" },
+	{ name: "/orphus", text: "/orphus do the thing" },
 	{ name: "deferred slash command", text: "/some-extension-command", options: { deferredStartupPending: true } },
 	{
 		name: "extension command during compaction",
@@ -176,15 +176,15 @@ for (const branch of DIRECT_BRANCHES) {
 
 test("a direct-branch failure that is not a send failure still propagates", async () => {
 	const stub = makeSubmitStub({ failSend: true, failWith: "Model provider returned 500" });
-	await assert.rejects(() => stub.submit("/atomic boom"), /Model provider returned 500/);
+	await assert.rejects(() => stub.submit("/orphus boom"), /Model provider returned 500/);
 	assert.equal(stub.editorText, "", "an unrelated failure must not resurrect the submission");
 	assert.deepEqual(stub.errors, []);
 });
 
 test("the restored direct-branch draft is the untrimmed callback text", async () => {
 	const stub = makeSubmitStub({ failSend: true });
-	await stub.submit("  /atomic spaced  ");
-	assert.equal(stub.editorText, "  /atomic spaced  ", "the callback draft was trimmed again before restoring");
+	await stub.submit("  /orphus spaced  ");
+	assert.equal(stub.editorText, "  /orphus spaced  ", "the callback draft was trimmed again before restoring");
 });
 
 test("a direct-branch draft merges ahead of text typed while the send was pending", async () => {
@@ -196,8 +196,8 @@ test("a direct-branch draft merges ahead of text typed while the send was pendin
 		editor.setText("typed during the hang");
 		return originalPrompt(text);
 	};
-	await stub.submit("/atomic slow");
-	assert.equal(stub.editorText, "/atomic slow\n\ntyped during the hang");
+	await stub.submit("/orphus slow");
+	assert.equal(stub.editorText, "/orphus slow\n\ntyped during the hang");
 });
 
 test("Alt+Enter streaming follow-up returns the draft when the send fails", async () => {

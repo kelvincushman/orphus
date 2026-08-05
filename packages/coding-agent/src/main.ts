@@ -425,7 +425,7 @@ export async function main(argv: string[], options?: MainOptions) {
 									defaultProjectTrust: runtimeSettingsManager.getDefaultProjectTrust(),
 									extensionsResult,
 									projectTrustContext: getProjectTrustContext(),
-									promptMessage: `Trust extension source?\n${source}\n\nThis allows Atomic to load project-local .atomic/.pi resources and .agents/skills from this -e source, including extensions and workflows that can execute code.`,
+									promptMessage: `Trust extension source?\n${source}\n\nThis allows Orphus to load project-local .atomic/.pi resources and .agents/skills from this -e source, including extensions and workflows that can execute code.`,
 									onExtensionError: (message) => console.error(chalk.yellow(`Warning: ${message}`)),
 								});
 								borrowedExtensionSourceTrustByPath.set(source, trusted);

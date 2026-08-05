@@ -1,7 +1,7 @@
 /**
  * Shared out-of-process driver for the default-main interactive host fixture.
  *
- * Spawns `default-main-interactive-host.ts`, decodes its `@@ATOMIC_TEST@@`
+ * Spawns `default-main-interactive-host.ts`, decodes its `@@ORPHUS_TEST@@`
  * control reports, and exposes report waiters plus POSIX liveness helpers. Kept
  * separate so every interactive-engine end-to-end suite drives the same real
  * host/engine pair instead of re-implementing the transport.
@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { bunExecutable, decodeStream, moduleDir, readStreamText, sleep, type SpawnedProcess, spawnProcess } from "../../helpers/runtime.js";
 
-export const PREFIX = "@@ATOMIC_TEST@@";
+export const PREFIX = "@@ORPHUS_TEST@@";
 
 export interface HarnessReport {
 	type?: string;
@@ -44,11 +44,11 @@ export class DefaultMainDriver {
 
 	constructor(args: string[], env: Record<string, string>) {
 		// Strip inherited engine-child markers: when this suite itself runs inside an
-		// isolated Atomic engine session, ATOMIC_INTERACTIVE_ENGINE_CHILD=1 would leak
+		// isolated Atomic engine session, ORPHUS_INTERACTIVE_ENGINE_CHILD=1 would leak
 		// into the fixture and silently flip it into engine-child mode.
 		const baseEnv: Record<string, string | undefined> = { ...process.env };
 		for (const key of Object.keys(baseEnv)) {
-			if (key.startsWith("ATOMIC_INTERACTIVE_ENGINE_")) delete baseEnv[key];
+			if (key.startsWith("ORPHUS_INTERACTIVE_ENGINE_")) delete baseEnv[key];
 		}
 		this.process = spawnProcess([
 			bunExecutable(),

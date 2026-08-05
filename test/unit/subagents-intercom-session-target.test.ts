@@ -5,7 +5,7 @@ import {
 	resolveIntercomSessionTarget,
 } from "../../packages/subagents/src/intercom/intercom-bridge.js";
 
-const SESSION_ID_ENV = "ATOMIC_INTERCOM_SESSION_ID";
+const SESSION_ID_ENV = "ORPHUS_INTERCOM_SESSION_ID";
 
 test("prefers the connected Intercom session id over a duplicate-prone display name", () => {
 	const previous = process.env[SESSION_ID_ENV];

@@ -170,7 +170,7 @@ serialTest(
 			cliPath: join(moduleDir(import.meta.url), "fixtures", "admission-backlog-engine.ts"),
 			cwd: join(moduleDir(import.meta.url), "../.."),
 			runtimeExecutable: bunExecutable(),
-			env: { ATOMIC_ADMISSION_MARKER: marker, ATOMIC_ADMISSION_GENERATION: generations },
+			env: { ORPHUS_ADMISSION_MARKER: marker, ORPHUS_ADMISSION_GENERATION: generations },
 			interactiveEngine: { onDiagnostic: () => {} },
 		});
 		// Exactly the runtime's shape: recovery begins synchronously on death.
@@ -229,7 +229,7 @@ serialTest(
 			cliPath: join(moduleDir(import.meta.url), "fixtures", "admission-race-engine.ts"),
 			cwd: join(moduleDir(import.meta.url), "../.."),
 			runtimeExecutable: bunExecutable(),
-			env: { ATOMIC_ADMISSION_HOLD: "1" },
+			env: { ORPHUS_ADMISSION_HOLD: "1" },
 			interactiveEngine: { onDiagnostic: () => {} },
 		});
 		try {

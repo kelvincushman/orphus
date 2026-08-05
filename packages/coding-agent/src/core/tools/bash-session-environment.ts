@@ -3,11 +3,11 @@ import type { Api, Model } from "@earendil-works/pi-ai/compat";
 import type { ReadonlySessionManager } from "../session-manager.ts";
 
 const SESSION_ENVIRONMENT_KEYS = [
-	"ATOMIC_SESSION_ID",
-	"ATOMIC_SESSION_FILE",
-	"ATOMIC_PROVIDER",
-	"ATOMIC_MODEL",
-	"ATOMIC_REASONING_LEVEL",
+	"ORPHUS_SESSION_ID",
+	"ORPHUS_SESSION_FILE",
+	"ORPHUS_PROVIDER",
+	"ORPHUS_MODEL",
+	"ORPHUS_REASONING_LEVEL",
 	"PI_SESSION_ID",
 	"PI_SESSION_FILE",
 	"PI_PROVIDER",
@@ -32,20 +32,20 @@ export function snapshotBashSessionEnvironment(
 	const model = context.model;
 	const thinkingLevel = context.thinkingLevel;
 	return {
-		ATOMIC_SESSION_ID: sessionId,
+		ORPHUS_SESSION_ID: sessionId,
 		PI_SESSION_ID: sessionId,
-		...(sessionFile ? { ATOMIC_SESSION_FILE: sessionFile, PI_SESSION_FILE: sessionFile } : {}),
+		...(sessionFile ? { ORPHUS_SESSION_FILE: sessionFile, PI_SESSION_FILE: sessionFile } : {}),
 		...(model
 			? {
-					ATOMIC_PROVIDER: model.provider,
+					ORPHUS_PROVIDER: model.provider,
 					PI_PROVIDER: model.provider,
-					ATOMIC_MODEL: model.id,
+					ORPHUS_MODEL: model.id,
 					PI_MODEL: model.id,
 				}
 			: {}),
 		...(thinkingLevel
 			? {
-					ATOMIC_REASONING_LEVEL: thinkingLevel,
+					ORPHUS_REASONING_LEVEL: thinkingLevel,
 					PI_REASONING_LEVEL: thinkingLevel,
 				}
 			: {}),

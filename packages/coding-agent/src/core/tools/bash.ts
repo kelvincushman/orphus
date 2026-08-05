@@ -105,7 +105,7 @@ export function createLocalBashOperations(options?: { shellPath?: string }): Bas
 	return {
 		exec: async (command, cwd, { onData, signal, timeout, env, pty }) => {
 			if (timeout !== undefined) validateExplicitTimeoutSeconds(timeout);
-			if (pty && process.env.PI_NO_PTY !== "1" && process.env.ATOMIC_NO_PTY !== "1") {
+			if (pty && process.env.PI_NO_PTY !== "1" && process.env.ORPHUS_NO_PTY !== "1") {
 				try {
 					return await executeNativePty(command, cwd, {
 						onData: (data) => onData(data, "stdout"),
@@ -199,7 +199,7 @@ export type BashInterceptor = (
 ) => Promise<BashInterceptorResult | undefined> | BashInterceptorResult | undefined;
 export interface BashToolOptions {
 	operations?: BashOperations;
-	/** Expose the execution-time Atomic session snapshot and PI compatibility aliases. Default: true. */
+	/** Expose the execution-time Orphus session snapshot and PI compatibility aliases. Default: true. */
 	exposeSessionEnvironment?: boolean;
 	/** Prefix prepended to every shell command before execution. */
 	commandPrefix?: string;
@@ -369,7 +369,7 @@ export function createBashToolDefinition(
 		description: "Execute a shell command in the session workspace, with optional PTY or background-job handling.",
 		promptSnippet: "Execute a shell command.",
 		promptGuidelines: exposeSessionEnvironment
-			? ["Inspect ATOMIC_* or PI_* environment variables for current model and session details."]
+			? ["Inspect ORPHUS_* or PI_* environment variables for current model and session details."]
 			: undefined,
 		parameters: asyncEnabled ? bashSchema : (bashBaseSchema as typeof bashSchema),
 		maxResultSizeChars: Infinity,

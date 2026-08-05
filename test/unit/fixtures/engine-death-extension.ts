@@ -17,7 +17,7 @@ import { INTERACTIVE_ENGINE_BOOTSTRAP_FLAG } from "../../../packages/coding-agen
  * grandchild's) so the env-leak regression can be checked against a real child.
  */
 export default function engineDeathFixture(api: ExtensionAPI): void {
-	const envProbeFile = process.env.ATOMIC_ENGINE_ENV_PROBE_FILE;
+	const envProbeFile = process.env.ORPHUS_ENGINE_ENV_PROBE_FILE;
 	if (envProbeFile) {
 		const names = [...INTERACTIVE_ENGINE_ENV_VARS];
 		const own: Record<string, string | undefined> = {};
@@ -44,7 +44,7 @@ export default function engineDeathFixture(api: ExtensionAPI): void {
 	}
 
 	const mountFreeze = async (overlay: boolean, ctx: Parameters<Parameters<ExtensionAPI["registerCommand"]>[1]["handler"]>[1]) => {
-		const markerFile = process.env.ATOMIC_FREEZE_MOUNT_FILE;
+		const markerFile = process.env.ORPHUS_FREEZE_MOUNT_FILE;
 		await ctx.ui.custom<void>(
 			() => {
 				if (markerFile) writeFileSync(markerFile, String(process.pid), "utf8");

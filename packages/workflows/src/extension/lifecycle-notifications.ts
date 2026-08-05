@@ -473,7 +473,7 @@ function restingStage(run: RunSnapshot): StageSnapshot | undefined {
 }
 
 function warnLifecycleSendFailure(error: unknown): void {
-	if (process.env.ATOMIC_WORKFLOW_DEBUG !== "1") return;
+	if (process.env.ORPHUS_WORKFLOW_DEBUG !== "1") return;
 	const message = error instanceof Error ? error.message : String(error);
 	console.warn("[workflows] workflow lifecycle notice send failed", message);
 }

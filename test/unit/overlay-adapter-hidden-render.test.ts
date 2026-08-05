@@ -22,7 +22,7 @@ import type { RunSnapshot } from "../../packages/workflows/src/shared/store-type
 import type { GraphOverlayPort, OverlayPiSurface } from "../../packages/workflows/src/tui/overlay-adapter.js";
 import { bunExecutable } from "../helpers/runtime.js";
 
-const ISOLATED_PROCESS_ENV = "ATOMIC_OVERLAY_HIDDEN_RENDER_ISOLATED";
+const ISOLATED_PROCESS_ENV = "ORPHUS_OVERLAY_HIDDEN_RENDER_ISOLATED";
 
 async function registerIsolatedTests(): Promise<void> {
 	// Only ever reached inside the `bun test` child spawned below, where

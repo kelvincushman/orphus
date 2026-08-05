@@ -125,7 +125,7 @@ export class CustomEditor extends Editor {
 	 *
 	 * pi-tui's `submitValue()` expands paste markers, trims, and clears the editor
 	 * before it calls `onSubmit`, so the callback argument can never be the text
-	 * the user actually had. Atomic needs the pre-trim buffer to put an unaccepted
+	 * the user actually had. Orphus needs the pre-trim buffer to put an unaccepted
 	 * submission back exactly as typed, and 0.82.1 exposes no pre-trim hook.
 	 */
 	private submittedDraftSnapshot: string | undefined;

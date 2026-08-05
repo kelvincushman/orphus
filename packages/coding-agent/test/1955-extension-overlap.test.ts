@@ -22,7 +22,7 @@ const ENV_KEYS = [
 	"USERPROFILE",
 	"HOMEDRIVE",
 	"HOMEPATH",
-	"ATOMIC_CODING_AGENT_DIR",
+	"ORPHUS_CODING_AGENT_DIR",
 	"PI_CODING_AGENT_DIR",
 ] as const;
 const originalEnv = new Map<string, string | undefined>();
@@ -125,7 +125,7 @@ function setupFixture(): { legacyPackage: string } {
 	delete process.env.USERPROFILE;
 	delete process.env.HOMEDRIVE;
 	delete process.env.HOMEPATH;
-	delete process.env.ATOMIC_CODING_AGENT_DIR;
+	delete process.env.ORPHUS_CODING_AGENT_DIR;
 	delete process.env.PI_CODING_AGENT_DIR;
 
 	const legacyPackage = join(root, "legacy-package");

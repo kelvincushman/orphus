@@ -76,7 +76,7 @@ export interface ProviderModelConfig {
 	maxTokens: number;
 	/** Custom headers for this model. */
 	headers?: Record<string, string>;
-	/** Provider capability settings, including Atomic's `supportsGrammarTools` alias. */
+	/** Provider capability settings, including Orphus's `supportsGrammarTools` alias. */
 	compat?: AtomicProviderCompat;
 }
 

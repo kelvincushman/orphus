@@ -11,7 +11,7 @@ import {
 
 const execPathDescriptor = Object.getOwnPropertyDescriptor(process, "execPath");
 const originalPath = process.env.PATH;
-const originalAtomicPackageDir = process.env.ATOMIC_PACKAGE_DIR;
+const originalAtomicPackageDir = process.env.ORPHUS_PACKAGE_DIR;
 let tempDir: string | undefined;
 
 const testUnixWritableBits = process.platform === "win32" ? test.skip : test;
@@ -37,9 +37,9 @@ afterEach(() => {
 		process.env.PATH = originalPath;
 	}
 	if (originalAtomicPackageDir === undefined) {
-		delete process.env.ATOMIC_PACKAGE_DIR;
+		delete process.env.ORPHUS_PACKAGE_DIR;
 	} else {
-		process.env.ATOMIC_PACKAGE_DIR = originalAtomicPackageDir;
+		process.env.ORPHUS_PACKAGE_DIR = originalAtomicPackageDir;
 	}
 	if (tempDir) {
 		chmodSync(tempDir, 0o700);
@@ -61,7 +61,7 @@ function createNpmPrefixInstall(template = "pi-prefix-"): { prefix: string; pack
 	chmodSync(npmPath, 0o755);
 	tempDir = prefix;
 	process.env.PATH = `${binDir}${delimiter}${originalPath ?? ""}`;
-	process.env.ATOMIC_PACKAGE_DIR = packageDir;
+	process.env.ORPHUS_PACKAGE_DIR = packageDir;
 	setExecPath(join(packageDir, "dist", "cli.js"));
 	return { prefix, packageDir };
 }
@@ -77,7 +77,7 @@ function createPnpmGlobalInstall(): { root: string; packageDir: string } {
 	chmodSync(join(binDir, commandFileName("pnpm")), 0o755);
 	tempDir = temp;
 	process.env.PATH = `${binDir}${delimiter}${originalPath ?? ""}`;
-	process.env.ATOMIC_PACKAGE_DIR = packageDir;
+	process.env.ORPHUS_PACKAGE_DIR = packageDir;
 	setExecPath(join(root, ".pnpm", "@bastani+atomic@0.0.0", "node_modules", "@bastani", "atomic", "dist", "cli.js"));
 	return { root, packageDir };
 }
@@ -93,7 +93,7 @@ function createYarnGlobalInstall(): { globalDir: string; packageDir: string } {
 	chmodSync(join(binDir, commandFileName("yarn")), 0o755);
 	tempDir = temp;
 	process.env.PATH = `${binDir}${delimiter}${originalPath ?? ""}`;
-	process.env.ATOMIC_PACKAGE_DIR = packageDir;
+	process.env.ORPHUS_PACKAGE_DIR = packageDir;
 	setExecPath(join(globalDir, ".yarn", "@bastani", "atomic", "dist", "cli.js"));
 	return { globalDir, packageDir };
 }
@@ -111,7 +111,7 @@ function createBunGlobalInstall(): { packageDir: string } {
 	chmodSync(join(bunBin, commandFileName("bun")), 0o755);
 	tempDir = temp;
 	process.env.PATH = `${bunBin}${delimiter}${originalPath ?? ""}`;
-	process.env.ATOMIC_PACKAGE_DIR = packageDir;
+	process.env.ORPHUS_PACKAGE_DIR = packageDir;
 	setExecPath(join(packageDir, "dist", "cli.js"));
 	return { packageDir };
 }
@@ -263,7 +263,7 @@ describe("detectInstallMethod", () => {
 
 	test("does not infer Windows npm custom prefixes from package paths", () => {
 		const packageDir = "C:\\Users\\Admin\\npm prefix\\node_modules\\@bastani\\atomic";
-		process.env.ATOMIC_PACKAGE_DIR = packageDir;
+		process.env.ORPHUS_PACKAGE_DIR = packageDir;
 		setExecPath(`${packageDir}\\dist\\cli.js`);
 
 		expect(detectInstallMethod()).toBe("npm");

@@ -18,7 +18,7 @@ const EXPECTED_NATIVE_EXPORTS = [
 	"search",
 ] as const;
 
-const requireNativeBinding = process.env.ATOMIC_REQUIRE_NATIVE_BINDING_SMOKE === "1";
+const requireNativeBinding = process.env.ORPHUS_REQUIRE_NATIVE_BINDING_SMOKE === "1";
 let binding: object | undefined;
 let loadError: Error | undefined;
 try {

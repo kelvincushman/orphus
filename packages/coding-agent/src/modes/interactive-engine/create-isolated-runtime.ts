@@ -23,7 +23,7 @@ export async function createIsolatedInteractiveRuntime(options: {
 	const launchedByRuntime = ["bun", "bun.exe", "node", "node.exe"].includes(executableName);
 	const cliPath = launchedByRuntime ? process.argv[1] : "";
 	if (launchedByRuntime && !cliPath)
-		throw new Error("Cannot start isolated interactive engine: Atomic entrypoint is unavailable");
+		throw new Error("Cannot start isolated interactive engine: Orphus entrypoint is unavailable");
 	let isolatedRuntime: IsolatedInteractiveRuntime | undefined;
 	const pendingDiagnostics: ActivityWatchdogDiagnostic[] = [];
 	let callbackActive = false;

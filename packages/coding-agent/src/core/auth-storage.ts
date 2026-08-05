@@ -123,7 +123,7 @@ export class AuthStorage implements CredentialStore {
 	}
 }
 
-/** Read one persisted provider credential using Atomic's layered auth.json paths. */
+/** Read one persisted provider credential using Orphus's layered auth.json paths. */
 export function readStoredCredential(providerId: string, authPath?: string | string[]): Credential | undefined {
 	const paths =
 		authPath === undefined ? getAgentConfigPaths("auth.json") : Array.isArray(authPath) ? authPath : [authPath];
