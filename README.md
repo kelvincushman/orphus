@@ -124,12 +124,18 @@ git am path/to/orphus/patches/atomic/*.patch
 bun install && bun run typecheck
 ```
 
-Three patches, applied in order: `0001` adds the full `packages/roundtable`
+Four patches, applied in order: `0001` adds the full `packages/roundtable`
 package with 20 repo-root tests and tsconfig wiring; `0002` is the complete
 Orphus rebrand (terminal branding, `orphus` binary, `/orphus` guide command,
-`ORPHUS_*` env vars, `.orphus` config dir, and the ORPHUS wordmark startup banner (`0003`) — with Atomic and Pi manifests,
-config dirs, and env names still accepted as legacy fallbacks). Verified
-against atomic `d84fc43`: strict typecheck clean, ~5,000 unit tests passing.
+`ORPHUS_*` env vars, `.orphus` config dir — with Atomic and Pi manifests,
+config dirs, and env names still accepted as legacy fallbacks); `0003` is the
+ORPHUS wordmark startup banner; `0004` closes the gaps the rebrand left
+against upstream's own gates (fork-legacy `.atomic` agent-dir fallback,
+first-run skip for existing installs, per-source workflow path resolution,
+CI env renames, lockfile sync). Verified against atomic `d84fc43`: strict
+typecheck clean; unit (5,844), integration (485), and CI-contract (40)
+suites all passing. This series is live at
+[kelvincushman/orphus-harness](https://github.com/kelvincushman/orphus-harness).
 
 ## Orchestrating a fleet with Orca
 
