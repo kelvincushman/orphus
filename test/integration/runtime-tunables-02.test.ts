@@ -20,6 +20,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { CONFIG_DIR_NAME } from "@bastani/atomic";
 import { afterEach, beforeEach, describe, test } from "vitest";
 import { createStatusWriter } from "../../packages/workflows/src/extension/status-writer.js";
 import { createStore } from "../../packages/workflows/src/shared/store.js";
@@ -208,7 +209,7 @@ describe("runtime tunables — statusFile", () => {
 
 	test("write uses projectRoot default path when statusFilePath not set", async () => {
 		const projectRoot = join(tmpDir, "project");
-		const expectedPath = join(projectRoot, ".atomic", "workflows", "status.json");
+		const expectedPath = join(projectRoot, CONFIG_DIR_NAME, "workflows", "status.json");
 
 		const s = createStore();
 		const writer = createStatusWriter(s, baseConfig({ statusFile: true, statusFilePath: undefined }), {

@@ -325,6 +325,9 @@ export function createWorkflowExtensionRuntimeState(
 				hasGlobal || hasProject
 					? toScopedDiscoveryConfig(configResult.globalConfig ?? null, configResult.projectConfig ?? null, {
 							projectRoot: process.cwd(),
+							...(configResult.resolvedGlobalWorkflows !== undefined
+								? { resolvedGlobalWorkflows: configResult.resolvedGlobalWorkflows }
+								: {}),
 						})
 					: undefined;
 			const packageWorkflowPaths = await loadPackageWorkflowPaths();

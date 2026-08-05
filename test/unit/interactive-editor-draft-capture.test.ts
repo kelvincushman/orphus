@@ -130,7 +130,7 @@ test("the submit handler falls back to the callback text for editors without cap
 	const mode = host as unknown as InteractiveModeBase;
 	InteractiveModeBase.prototype.setupEditorSubmitHandler.call(mode);
 	// No takeSubmittedDraft on this editor: the callback argument is all there is.
-	await editor.onSubmit?.("/atomic fallback");
-	assert.equal(state.editorText, "/atomic fallback");
+	await editor.onSubmit?.("/orphus fallback");
+	assert.equal(state.editorText, "/orphus fallback");
 	assert.deepEqual(state.errors, []);
 });

@@ -376,14 +376,14 @@ export function getLegacyAgentDir(): string {
 	return join(getHomeDir(), LEGACY_CONFIG_DIR_NAME, "agent");
 }
 
-/** Get agent config directories in precedence order (primary first, then legacy). */
+/** Get agent config directories in precedence order (primary first, then fork-legacy, then legacy). */
 export function getAgentDirs(): string[] {
 	const primary = getAgentDir();
 	if (hasEnvValue(ENV_AGENT_DIR) || CONFIG_DIR_NAME === LEGACY_CONFIG_DIR_NAME) {
 		return [primary];
 	}
-	const legacy = getLegacyAgentDir();
-	return legacy === primary ? [primary] : [primary, legacy];
+	const fallbacks = CONFIG_DIR_NAMES.map((name) => join(getHomeDir(), name, "agent"));
+	return [...new Set([primary, ...fallbacks])];
 }
 
 /** Get user config root directories in precedence order (primary first, then legacy). */

@@ -1,13 +1,13 @@
 import { Container, Text, visibleWidth } from "@earendil-works/pi-tui";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+	AtomicWorkingLoader,
+	AtomicWorkingStatusComponent,
+	atomicWorkingFrame,
 	ORPHUS_WORKING_BOLD_PHASES,
 	ORPHUS_WORKING_FRAME_MS,
 	ORPHUS_WORKING_FRAMES,
 	ORPHUS_WORKING_PHASES,
-	AtomicWorkingLoader,
-	AtomicWorkingStatusComponent,
-	atomicWorkingFrame,
 } from "../src/modes/interactive/components/atomic-working-status.ts";
 import { WorkingStatusComponent } from "../src/modes/interactive/components/working-status.ts";
 import { ansi256ToHex, fgAnsi } from "../src/modes/interactive/theme/color-utils.ts";

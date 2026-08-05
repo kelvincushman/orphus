@@ -98,6 +98,12 @@ export interface ConfigLoadResult {
 	 * from callers that constructed ConfigLoadResult before this field was added.
 	 */
 	readonly projectConfig?: WorkflowExtensionConfig | null;
+	/**
+	 * Global workflow paths with relative entries resolved against the agent dir
+	 * whose config.json declared them. `globalConfig` stays raw for provenance;
+	 * pass this to toScopedDiscoveryConfig for per-source-correct resolution.
+	 */
+	readonly resolvedGlobalWorkflows?: Readonly<Record<string, string>>;
 	/** CONFIG_INVALID diagnostics from all sources. Empty when all is well. */
 	readonly diagnostics: readonly ConfigDiagnostic[];
 }
@@ -261,6 +267,12 @@ export interface ScopedDiscoveryConfigOpts {
 	 * honoring ORPHUS_CODING_AGENT_DIR.
 	 */
 	readonly agentDir?: string;
+	/**
+	 * Pre-resolved global workflow paths from ConfigLoadResult. When a key is
+	 * present here it wins over joining the entry's relative path onto the
+	 * single global base, preserving which agent dir declared the entry.
+	 */
+	readonly resolvedGlobalWorkflows?: Readonly<Record<string, string>>;
 }
 
 export interface ScopedDiscoveryConfig {
@@ -334,7 +346,8 @@ export function toScopedDiscoveryConfig(
 		const globalEntries = Object.entries(globalConfig.workflows)
 			.filter(([name]) => !projectKeys.has(name))
 			.map(([name, entry]): [string, string] => {
-				return [name, isAbsolute(entry.path) ? entry.path : join(globalBase, entry.path)];
+				const resolved = opts.resolvedGlobalWorkflows?.[name];
+				return [name, resolved ?? (isAbsolute(entry.path) ? entry.path : join(globalBase, entry.path))];
 			});
 
 		if (globalEntries.length > 0) {
@@ -362,15 +375,18 @@ export async function loadWorkflowConfig(opts: LoadWorkflowConfigOpts = {}): Pro
 	const diagnostics: ConfigDiagnostic[] = [];
 
 	// Global config paths (primary Atomic first, then legacy pi/defaults).
-	const globalCandidates = workflowAgentDirs(opts).map((agentDir) =>
-		join(agentDir, "extensions", "workflow", "config.json"),
-	);
+	const globalAgentDirs = workflowAgentDirs(opts);
+	const globalCandidates = globalAgentDirs.map((agentDir) => join(agentDir, "extensions", "workflow", "config.json"));
 
 	// Project-local config paths (primary Atomic first, then legacy pi)
 	const projectCandidates: string[] = getProjectConfigPaths(projectRoot, "extensions", "workflow", "config.json");
 
-	// Load global config (primary overrides legacy)
+	// Load global config (primary overrides legacy). `globalConfig` stays raw for
+	// provenance; `resolvedGlobalWorkflows` resolves each relative workflow path
+	// against the agent dir whose config.json declared it, so a fallback-dir
+	// config cannot point into the primary dir by accident.
 	let globalConfig: WorkflowExtensionConfig | null = null;
+	const resolvedGlobalWorkflows: Record<string, string> = {};
 	for (let i = globalCandidates.length - 1; i >= 0; i--) {
 		const globalPath = globalCandidates[i]!;
 		const outcome = await loadConfigFile(globalPath);
@@ -378,6 +394,9 @@ export async function loadWorkflowConfig(opts: LoadWorkflowConfigOpts = {}): Pro
 			diagnostics.push(outcome.diagnostic);
 		} else if (outcome.kind === "ok") {
 			globalConfig = globalConfig ? mergeConfigs(globalConfig, outcome.parsed) : outcome.parsed;
+			for (const [name, entry] of Object.entries(outcome.parsed.workflows ?? {})) {
+				resolvedGlobalWorkflows[name] = isAbsolute(entry.path) ? entry.path : join(globalAgentDirs[i]!, entry.path);
+			}
 		}
 		// "missing" → silently skip
 	}
@@ -411,6 +430,7 @@ export async function loadWorkflowConfig(opts: LoadWorkflowConfigOpts = {}): Pro
 		config: merged,
 		globalConfig,
 		projectConfig,
+		...(Object.keys(resolvedGlobalWorkflows).length > 0 ? { resolvedGlobalWorkflows } : {}),
 		diagnostics,
 	};
 }

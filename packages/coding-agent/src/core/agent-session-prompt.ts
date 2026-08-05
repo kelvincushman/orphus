@@ -6,12 +6,12 @@ import { resolveWorkflowStageDeliveryTarget } from "./agent-session-delivery-for
 import type { AgentSessionInternalSurface as AgentSession } from "./agent-session-methods.ts";
 import type { PromptOptions } from "./agent-session-types.ts";
 import {
-	ORPHUS_GUIDE_COMMAND_NAME,
-	ORPHUS_GUIDE_HELP_CHOICES,
 	atomicGuideModeForChoice,
 	getAtomicGuideMessage,
 	isAtomicGuideHelpChoice,
 	normalizeAtomicGuideMode,
+	ORPHUS_GUIDE_COMMAND_NAME,
+	ORPHUS_GUIDE_HELP_CHOICES,
 } from "./atomic-guide-command.ts";
 import {
 	formatNoApiKeyFoundMessage,

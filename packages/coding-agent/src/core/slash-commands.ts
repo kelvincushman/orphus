@@ -1,9 +1,9 @@
 import type { AutocompleteItem } from "@earendil-works/pi-tui";
 import { APP_NAME } from "../config.ts";
 import {
+	getAtomicGuideArgumentCompletions,
 	ORPHUS_GUIDE_COMMAND_DESCRIPTION,
 	ORPHUS_GUIDE_COMMAND_NAME,
-	getAtomicGuideArgumentCompletions,
 } from "./atomic-guide-command.ts";
 import type { SourceInfo } from "./source-info.ts";
 

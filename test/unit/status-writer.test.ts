@@ -16,6 +16,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { CONFIG_DIR_NAME } from "@bastani/atomic";
 import { afterEach, beforeEach, describe, test } from "vitest";
 import {
 	atomicWriteJson,
@@ -59,16 +60,16 @@ describe("resolveStatusFilePath", () => {
 		assert.equal(resolveStatusFilePath(cfg, { projectRoot: "/some/root" }), "/explicit/status.json");
 	});
 
-	test("defaults to <projectRoot>/.atomic/workflows/status.json", () => {
+	test("defaults to <projectRoot>/<CONFIG_DIR_NAME>/workflows/status.json", () => {
 		const cfg = makeConfig({ statusFilePath: undefined });
 		const result = resolveStatusFilePath(cfg, { projectRoot: "/myproject" });
-		assert.equal(result, join("/myproject", ".atomic", "workflows", "status.json"));
+		assert.equal(result, join("/myproject", CONFIG_DIR_NAME, "workflows", "status.json"));
 	});
 
 	test("uses process.cwd() when projectRoot not provided", () => {
 		const cfg = makeConfig({ statusFilePath: undefined });
 		const result = resolveStatusFilePath(cfg);
-		assert.equal(result, join(process.cwd(), ".atomic", "workflows", "status.json"));
+		assert.equal(result, join(process.cwd(), CONFIG_DIR_NAME, "workflows", "status.json"));
 	});
 });
 
@@ -307,7 +308,7 @@ describe("createStatusWriter — statusFile:true", () => {
 	test("resolves default path relative to projectRoot", async () => {
 		// Use a real nested path under tmpDir as projectRoot
 		const projectRoot = join(tmpDir, "myproject");
-		const expectedPath = join(projectRoot, ".atomic", "workflows", "status.json");
+		const expectedPath = join(projectRoot, CONFIG_DIR_NAME, "workflows", "status.json");
 
 		const s = createStore();
 		const writer = createStatusWriter(s, makeConfig({ statusFilePath: undefined }), { projectRoot });

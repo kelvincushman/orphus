@@ -218,22 +218,22 @@ describe("coding-agent builtin resources", () => {
 				assert.ok(skillNames.has(skillName), `expected builtin skill ${skillName}`);
 			}
 
-			const atomicPrompt = loader.getPrompts().prompts.find((prompt) => prompt.name === "atomic");
-			assert.equal(atomicPrompt, undefined, "expected /atomic to be a builtin command, not an LLM prompt template");
+			const guidePrompt = loader.getPrompts().prompts.find((prompt) => prompt.name === "orphus");
+			assert.equal(guidePrompt, undefined, "expected /orphus to be a builtin command, not an LLM prompt template");
 
 			const subagentExtension = extensions.extensions.find((extension) =>
 				extension.path.replace(/\\/g, "/").endsWith("packages/subagents/src/extension/index.ts"),
 			);
 			assert.equal(
-				subagentExtension?.commands.get("atomic"),
+				subagentExtension?.commands.get("orphus"),
 				undefined,
-				"expected subagents not to register /atomic",
+				"expected subagents not to register /orphus",
 			);
 
-			const atomicCommand = BUILTIN_SLASH_COMMANDS.find((command) => command.name === "atomic");
-			assert.ok(atomicCommand, "expected builtin /atomic command");
-			assert.equal(atomicCommand.description, "Atomic onboarding and help guide");
-			assert.equal(typeof atomicCommand.getArgumentCompletions, "function");
+			const guideCommand = BUILTIN_SLASH_COMMANDS.find((command) => command.name === "orphus");
+			assert.ok(guideCommand, "expected builtin /orphus command");
+			assert.equal(guideCommand.description, "Orphus onboarding and help guide");
+			assert.equal(typeof guideCommand.getArgumentCompletions, "function");
 		},
 		fullBuiltinPackageLoadTimeoutMs,
 	);

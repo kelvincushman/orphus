@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { ProcessTerminal, setKeybindings, TUI } from "@earendil-works/pi-tui";
-import { ENV_AGENT_DIR, getAgentDir, getEnvValue, getSettingsPath } from "../config.ts";
+import { ENV_AGENT_DIR, getAgentConfigPaths, getAgentDir, getEnvValue } from "../config.ts";
 import { KeybindingsManager } from "../core/keybindings.ts";
 import type { SettingsManager } from "../core/settings-manager.ts";
 import { ExtensionInputComponent } from "../modes/interactive/components/extension-input.ts";
@@ -38,9 +38,16 @@ async function detectStartupTheme(ui: TUI): Promise<TerminalTheme> {
 	return (await detectTerminalBackgroundTheme({ ui, timeoutMs: 100 })).theme;
 }
 
-/** First-run setup is eligible only in the default agent directory before settings.json exists. */
-export function shouldRunFirstTimeSetup(settingsPath: string = getSettingsPath()): boolean {
-	return !getEnvValue(ENV_AGENT_DIR) && !existsSync(settingsPath);
+/**
+ * First-run setup is eligible only in the default agent directory before
+ * settings.json exists in any config-dir tier — a settings file left by a
+ * fork-legacy or legacy install means this is not a first run.
+ */
+export function shouldRunFirstTimeSetup(
+	settingsPaths: string | readonly string[] = getAgentConfigPaths("settings.json"),
+): boolean {
+	const paths = typeof settingsPaths === "string" ? [settingsPaths] : settingsPaths;
+	return !getEnvValue(ENV_AGENT_DIR) && !paths.some((path) => existsSync(path));
 }
 
 export async function showFirstTimeSetup(settingsManager: SettingsManager): Promise<void> {
