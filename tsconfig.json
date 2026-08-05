@@ -32,12 +32,15 @@
             "@bastani/web-access": ["./packages/web-access/index.ts"],
             "@bastani/web-access/*": ["./packages/web-access/*"],
             "@bastani/intercom": ["./packages/intercom/index.ts"],
-            "@bastani/intercom/*": ["./packages/intercom/*"]
+            "@bastani/intercom/*": ["./packages/intercom/*"],
+            "@bastani/roundtable": ["./packages/roundtable/index.ts"],
+            "@bastani/roundtable/*": ["./packages/roundtable/*"]
         }
     },
     "include": [
         "packages/coding-agent/src/**/*.d.ts",
         "packages/workflows/**/*",
+        "packages/roundtable/**/*",
         "test/**/*",
         "examples/**/*",
         ".atomic/workflows/**/*"
