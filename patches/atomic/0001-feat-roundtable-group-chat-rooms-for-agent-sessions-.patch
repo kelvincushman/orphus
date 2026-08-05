@@ -1,0 +1,2029 @@
+From 4794bcc0b05cfd0a71df29c2de4b7b1c49261437 Mon Sep 17 00:00:00 2001
+From: Kelvin Lee <kelvin.cushman@gmail.com>
+Date: Wed, 5 Aug 2026 21:18:41 +0100
+Subject: [PATCH] feat(roundtable): group chat rooms for agent sessions with
+ budgeted digests
+
+Adds @bastani/roundtable: a broker-based group discussion layer where the
+room transcript lives outside every session's context window. Members get
+coalesced one-line activity pings; content only enters context via
+deterministic, character-budgeted digests (newest verbatim, older as
+headlines, rest collapsed). Read cursors are broker-side, keyed by member
+name, surviving reconnects.
+
+- broker: unix-socket room server, auto-spawned, idle shutdown (framing
+  shared with @bastani/intercom)
+- tool: rooms/join/leave/post/digest/peek
+- extension: lazy connect, coalesced follow-up notifications
+- demo: scripted 3-agent design discussion + late-joining reviewer paying
+  33% of transcript cost, over the real socket
+- tests: 20 (digest bound, room store, real-socket integration)
+- docs: DESIGN.md, orca-integration.md, self-improvement-loop.md
+---
+ docs/orca-integration.md                      |  43 ++++
+ docs/self-improvement-loop.md                 |  46 ++++
+ packages/roundtable/DESIGN.md                 |  71 +++++++
+ packages/roundtable/LICENSE                   |  24 +++
+ packages/roundtable/README.md                 |  60 ++++++
+ packages/roundtable/broker/broker.ts          | 192 +++++++++++++++++
+ packages/roundtable/broker/client.ts          | 198 ++++++++++++++++++
+ packages/roundtable/broker/framing.ts         |  51 +++++
+ packages/roundtable/broker/main.ts            |   6 +
+ packages/roundtable/broker/paths.ts           |  53 +++++
+ packages/roundtable/broker/room-store.ts      | 144 +++++++++++++
+ packages/roundtable/broker/spawn.ts           |  70 +++++++
+ packages/roundtable/demo/run-demo.ts          | 108 ++++++++++
+ packages/roundtable/digest.ts                 | 128 +++++++++++
+ packages/roundtable/index.ts                  |  64 ++++++
+ packages/roundtable/package.json              |  53 +++++
+ packages/roundtable/roundtable-tool.ts        | 124 +++++++++++
+ .../roundtable/skills/roundtable/SKILL.md     |  47 +++++
+ packages/roundtable/types.ts                  |  56 +++++
+ test/unit/roundtable-broker-client.test.ts    |  87 ++++++++
+ test/unit/roundtable-digest.test.ts           |  73 +++++++
+ .../unit/roundtable-extension-surface.test.ts |  10 +
+ test/unit/roundtable-room-store.test.ts       |  88 ++++++++
+ tsconfig.json                                 |   5 +-
+ 24 files changed, 1800 insertions(+), 1 deletion(-)
+ create mode 100644 docs/orca-integration.md
+ create mode 100644 docs/self-improvement-loop.md
+ create mode 100644 packages/roundtable/DESIGN.md
+ create mode 100644 packages/roundtable/LICENSE
+ create mode 100644 packages/roundtable/README.md
+ create mode 100644 packages/roundtable/broker/broker.ts
+ create mode 100644 packages/roundtable/broker/client.ts
+ create mode 100644 packages/roundtable/broker/framing.ts
+ create mode 100644 packages/roundtable/broker/main.ts
+ create mode 100644 packages/roundtable/broker/paths.ts
+ create mode 100644 packages/roundtable/broker/room-store.ts
+ create mode 100644 packages/roundtable/broker/spawn.ts
+ create mode 100644 packages/roundtable/demo/run-demo.ts
+ create mode 100644 packages/roundtable/digest.ts
+ create mode 100644 packages/roundtable/index.ts
+ create mode 100644 packages/roundtable/package.json
+ create mode 100644 packages/roundtable/roundtable-tool.ts
+ create mode 100644 packages/roundtable/skills/roundtable/SKILL.md
+ create mode 100644 packages/roundtable/types.ts
+ create mode 100644 test/unit/roundtable-broker-client.test.ts
+ create mode 100644 test/unit/roundtable-digest.test.ts
+ create mode 100644 test/unit/roundtable-extension-surface.test.ts
+ create mode 100644 test/unit/roundtable-room-store.test.ts
+
+diff --git a/docs/orca-integration.md b/docs/orca-integration.md
+new file mode 100644
+index 0000000..9273fd1
+--- /dev/null
++++ b/docs/orca-integration.md
+@@ -0,0 +1,43 @@
++# Running this fork under Orca
++
++[Orca](https://github.com/stablyai/orca) orchestrates CLI agents in parallel
++git worktrees and already ships a Pi integration (`src/main/pi/`), which this
++fork remains compatible with.
++
++## Setup
++
++1. Install the fork globally so Orca's PATH lookup finds it:
++   ```bash
++   bun add -g @bastani/atomic   # or npm/pnpm from your fork checkout
++   ```
++2. In Orca, add the agent as a Pi-compatible CLI agent (Settings → Agents).
++   Atomic keeps Pi-compatible extension points, and Orca's Pi status extension
++   reads the same session state files.
++3. Launch multiple worktrees from one prompt as usual.
++
++## Making Orca worktrees deliberate with each other
++
++Orca runs each agent in its own worktree but on the same machine — which is
++exactly roundtable's trust boundary. To have a fleet of Orca-spawned sessions
++share a discussion room:
++
++- Set a shared agent dir so all worktrees hit the same broker:
++  `ATOMIC_CODING_AGENT_DIR=~/.atomic/agent` (the default already is shared).
++- Give each worktree a role name (`--session-name planner`, etc.) so cursors
++  and attribution are stable.
++- Prompt each agent to `join` the task room, e.g. `#orca-task-123`, post
++  conclusions, and `digest` before major decisions.
++
++The Orca UI shows each agent's own transcript; the shared discussion lives in
++the broker and each transcript only ever contains that agent's bounded digests
++— which is the point.
++
++## Demo choreography (for the book / talks)
++
++1. Open Orca, fan one prompt across three worktrees: planner, researcher, critic.
++2. Prompt template per role: "Join roundtable room #design. Discuss the rate
++   limiter design with your peers. Post conclusions, digest before deciding."
++3. Show any agent's transcript: a handful of one-line activity pings and small
++   digests — while the full discussion (visible via
++   `bun packages/roundtable/demo/run-demo.ts`-style inspection or a `peek`)
++   is far larger.
+diff --git a/docs/self-improvement-loop.md b/docs/self-improvement-loop.md
+new file mode 100644
+index 0000000..9f14563
+--- /dev/null
++++ b/docs/self-improvement-loop.md
+@@ -0,0 +1,46 @@
++# The self-improvement loop
++
++Goal: the harness improves itself along two axes, both gated by verification —
++never by self-report.
++
++## Axis 1: skills and prompts (low risk, continuous)
++
++After a workflow run completes, a `retrospective` stage reviews the run's
++evidence (tool calls, verifier reports, repair counts) and proposes edits to
++skills, prompt snippets, and workflow definitions. Proposals are ordinary file
++diffs, reviewed like any other change.
++
++Loop, expressed with the primitives this fork already has:
++
++1. **Collect** — the workflow checkpoint already records stages, verifier
++   verdicts, and repair cycles.
++2. **Deliberate** — retrospective agents join `#retro-<runId>` via roundtable
++   and argue about what caused repairs; the room keeps deliberation out of
++   the proposal context.
++3. **Propose** — one agent writes diffs to `skills/` or workflow prompt files.
++4. **Verify** — an adversarial-verification workflow (already builtin:
++   `builtin/adversarial-verification.ts`) checks the proposal against a rubric:
++   does the changed skill still pass its evals? (`skill-creator` evals apply.)
++5. **Gate** — human approval merges. Deterministic code, not the model,
++   decides whether the gate is reached.
++
++## Axis 2: harness code (high risk, gated)
++
++Same loop, but the target is this repository and the rubric is mechanical:
++typecheck, test suite, and a reviewer agent that must produce file:line
++evidence for objections. Use the author/verifier separation the runtime
++enforces — the agent proposing a change to (say) `digest.ts` never verifies
++itself; a fresh-context verifier derives checks from the DESIGN contract
++("digest never exceeds budget + one marker line") and runs the tests.
++
++Bootstrap sequence that demonstrably closes the loop:
++
++1. Run the roundtable demo; capture metrics (digest chars vs transcript chars).
++2. Ask the improvement workflow to reduce digest cost at equal information
++   (e.g. smarter headline extraction).
++3. The workflow edits `digest.ts`, reruns `test/unit/roundtable-digest.test.ts`
++   plus the demo, and reports before/after metrics.
++4. Human gate reviews the diff with the metrics attached.
++
++Each accepted iteration becomes a chapter artifact: the diff, the metrics, the
++verifier transcript — the book writes itself from the evidence trail.
+diff --git a/packages/roundtable/DESIGN.md b/packages/roundtable/DESIGN.md
+new file mode 100644
+index 0000000..3b360d0
+--- /dev/null
++++ b/packages/roundtable/DESIGN.md
+@@ -0,0 +1,71 @@
++# Roundtable design
++
++## Goal
++
++Let N agent sessions deliberate without any session paying O(discussion) context
++cost. The bound must be enforced by the runtime, not by prompt discipline.
++
++## Architecture
++
++```
++┌──────────┐   post/digest    ┌────────────────────┐
++│ session A │◄───────────────►│  roundtable broker  │
++└──────────┘   (tool calls)   │  (unix socket /     │
++┌──────────┐                  │   named pipe)       │
++│ session B │◄───────────────►│                     │
++└──────────┘  activity pings  │  RoomStore:         │
++┌──────────┐   (1-liners)     │   rooms, ring       │
++│ session C │◄───────────────►│   buffers, cursors  │
++└──────────┘                  └────────────────────┘
++```
++
++- **Broker** (`broker/broker.ts`): one per machine per agent dir, auto-spawned
++  detached on first tool use, exits 5s after the last session disconnects.
++  Length-prefixed JSON framing, identical to intercom's.
++- **RoomStore** (`broker/room-store.ts`): pure in-memory state — rooms, ring
++  buffers (500 msgs/room), per-member-name read cursors. No sockets; unit-tested
++  directly.
++- **Client** (`broker/client.ts`): promise-based request/response with a small
++  activity event stream.
++- **Extension** (`index.ts`): registers the `roundtable` tool; coalesces
++  activity pings (1.5s window) into ONE follow-up custom message; connects
++  lazily on first tool use so idle sessions pay nothing.
++
++## The context-window contract
++
++Three delivery tiers, each with a hard bound:
++
++| Tier | What enters context | Bound |
++|---|---|---|
++| Activity ping | "#design: 3 new (planner, critic)" | one line per quiet period |
++| Digest | newest verbatim → headlines → collapsed count | `budget` chars (default 2000) |
++| Explicit fetch | raw messages by seq range | caller-chosen limit |
++
++`buildDigest` (digest.ts) is deterministic and model-free: budget is spent on
++newest messages first, rendered chronologically. A hostile or verbose peer
++cannot inflate another agent's context — oversized messages are capped with
++truncation markers, overflow collapses to a count line.
++
++## Decisions and trade-offs
++
++- **Cursors keyed by member name, not session id** — sessions restart and
++  reconnect; roles ("planner") persist. Cost: two sessions sharing a name share
++  a cursor. Acceptable locally; revisit if rooms go cross-machine.
++- **Separate broker from intercom** — intercom's broker carries supervisor
++  capabilities and reply-waiting machinery with security invariants; a room
++  server bolted into it would widen that attack surface. Shared framing keeps a
++  later merge cheap.
++- **No model-side summarization in v1** — the digest is extractive. A
++  summarizer hook (cheap model compressing collapsed history on request) slots
++  in behind `buildDigest` without protocol changes; kept out of v1 so the bound
++  is provable.
++- **Ephemeral rooms** — in-memory only. JSONL persistence under
++  `~/.atomic/agent/roundtable/rooms/` is a straightforward follow-up if
++  discussions must survive broker restarts.
++
++## Security posture
++
++Same trust model as intercom: local-machine, same-user sessions. The socket
++lives under the agent dir with user-only permissions. Rooms carry no
++capabilities — nothing a room message can do besides be read; the dangerous
++verbs (spawning, supervising) stay in intercom.
+diff --git a/packages/roundtable/LICENSE b/packages/roundtable/LICENSE
+new file mode 100644
+index 0000000..9485732
+--- /dev/null
++++ b/packages/roundtable/LICENSE
+@@ -0,0 +1,24 @@
++MIT License
++
++Copyright (c) 2025 Bastani, Inc.
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++If your product or service exceeds 100 million monthly active users or $20 million in monthly revenue, 
++you must prominently display 'Atomic' on the user interface of such product or service.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
+diff --git a/packages/roundtable/README.md b/packages/roundtable/README.md
+new file mode 100644
+index 0000000..6b3e33f
+--- /dev/null
++++ b/packages/roundtable/README.md
+@@ -0,0 +1,60 @@
++# @bastani/roundtable
++
++Group chat rooms between local Atomic/pi agent sessions — with a hard,
++deterministic bound on what the discussion costs each agent's context window.
++
++## The problem
++
++Multi-agent "discussions" usually mean piping every agent's output into every
++other agent's prompt. Context windows fill with other agents' reasoning, costs
++grow quadratically with participants, and long collaborations die of transcript
++bloat.
++
++## The mechanism
++
++Roundtable inverts delivery:
++
++- **The room transcript lives in a local broker** (a small socket server,
++  auto-spawned, one per machine) — never in any session transcript.
++- **Push is metadata-only.** Members receive coalesced one-line notifications
++  ("#design: 3 new (planner, critic)"), not message bodies.
++- **Pull is budgeted.** `digest` renders unread messages into a fixed character
++  budget: newest verbatim, older as one-line headlines, the rest collapsed to a
++  count. The bound holds no matter what peers post. Read cursors are kept
++  broker-side, keyed by member name, so they survive restarts.
++
++An agent in a 200-message discussion pays ~2000 characters to catch up, and
++chooses when to pay it.
++
++## Usage
++
++The extension registers a `roundtable` tool in every session:
++
++```typescript
++roundtable({ action: "rooms" })
++roundtable({ action: "join", room: "design", topic: "Rate limiter" })
++roundtable({ action: "post", room: "design", message: "Proposal: ..." })
++roundtable({ action: "digest", room: "design" })            // bounded catch-up, marks read
++roundtable({ action: "peek", room: "design" })              // same, cursor unchanged
++roundtable({ action: "digest", room: "design", budget: 4000 })
++```
++
++See `skills/roundtable/SKILL.md` for discussion patterns and
++[DESIGN.md](./DESIGN.md) for the architecture.
++
++## Demo (no model required)
++
++```bash
++ATOMIC_CODING_AGENT_DIR=/tmp/roundtable-demo bun packages/roundtable/demo/run-demo.ts
++```
++
++Three scripted agents hold a 10-message design discussion over the real broker
++socket, then each catches up under a 1200-char budget. The demo prints the
++digest-vs-transcript context cost per agent.
++
++## Relationship to intercom
++
++`@bastani/intercom` is targeted 1:1 messaging with reply-waiting (`ask`).
++Roundtable is many-to-many discussion with pull-based bounded reads. They share
++the same framing protocol and paths conventions and complement each other:
++intercom to task one session, roundtable to deliberate among several.
+diff --git a/packages/roundtable/broker/broker.ts b/packages/roundtable/broker/broker.ts
+new file mode 100644
+index 0000000..2f52c3c
+--- /dev/null
++++ b/packages/roundtable/broker/broker.ts
+@@ -0,0 +1,192 @@
++import net from "net";
++import { mkdirSync, unlinkSync, writeFileSync } from "fs";
++import { randomUUID } from "crypto";
++import { createMessageReader, writeMessage } from "./framing.ts";
++import { getBrokerPidPath, getBrokerSocketPath, getRoundtableDirPath } from "./paths.ts";
++import { RoomStore } from "./room-store.ts";
++import type { RoundtableBrokerMessage, RoundtableClientMessage } from "../types.ts";
++
++interface ConnectedSession {
++  id: string;
++  name: string;
++  pid: number;
++  cwd: string;
++  socket: net.Socket;
++}
++
++const SHUTDOWN_GRACE_MS = 5000;
++
++/**
++ * The roundtable broker: a small room server over a local socket.
++ * One per machine (per agent dir), auto-spawned on first use, exits when idle.
++ */
++export class RoundtableBroker {
++  private sessions = new Map<string, ConnectedSession>();
++  private store = new RoomStore();
++  private server: net.Server;
++  private shutdownTimer: NodeJS.Timeout | null = null;
++
++  constructor(
++    private socketPath: string = getBrokerSocketPath(),
++    private pidPath: string = getBrokerPidPath(),
++    private dirPath: string = getRoundtableDirPath(),
++  ) {
++    mkdirSync(this.dirPath, { recursive: true });
++    if (process.platform !== "win32") {
++      try {
++        unlinkSync(this.socketPath);
++      } catch {
++        // A clean startup has no stale socket to remove.
++      }
++    }
++    this.server = net.createServer(this.handleConnection.bind(this));
++  }
++
++  start(onListening?: () => void): void {
++    this.server.listen(this.socketPath, () => {
++      writeFileSync(this.pidPath, String(process.pid));
++      onListening?.();
++    });
++    process.on("SIGTERM", () => this.shutdown());
++    process.on("SIGINT", () => this.shutdown());
++  }
++
++  shutdown(): void {
++    for (const session of this.sessions.values()) session.socket.destroy();
++    this.sessions.clear();
++    this.server.close();
++    if (process.platform !== "win32") {
++      try {
++        unlinkSync(this.socketPath);
++      } catch {
++        // Already removed.
++      }
++    }
++    try {
++      unlinkSync(this.pidPath);
++    } catch {
++      // Already removed.
++    }
++  }
++
++  private scheduleShutdownCheck(): void {
++    if (this.shutdownTimer) return;
++    this.shutdownTimer = setTimeout(() => {
++      this.shutdownTimer = null;
++      if (this.sessions.size === 0) {
++        this.shutdown();
++        process.exit(0);
++      }
++    }, SHUTDOWN_GRACE_MS);
++  }
++
++  private handleConnection(socket: net.Socket): void {
++    let sessionId: string | null = null;
++
++    const reader = createMessageReader(
++      (msg) => {
++        sessionId = this.handleMessage(socket, msg as RoundtableClientMessage, sessionId);
++      },
++      (error) => {
++        socket.destroy(error);
++      },
++    );
++
++    socket.on("data", reader);
++    socket.on("close", () => {
++      if (!sessionId) return;
++      this.sessions.delete(sessionId);
++      const left = this.store.evictSession(sessionId);
++      for (const room of left) {
++        this.notifyRoom(room, { type: "activity", room, from: "(left)", seq: 0 }, sessionId);
++      }
++      this.scheduleShutdownCheck();
++    });
++    socket.on("error", () => {
++      // close handler does the cleanup.
++    });
++  }
++
++  private send(socket: net.Socket, msg: RoundtableBrokerMessage): void {
++    writeMessage(socket, msg);
++  }
++
++  private notifyRoom(room: string, msg: RoundtableBrokerMessage, exceptSessionId?: string): void {
++    for (const memberId of this.store.memberSessionIds(room)) {
++      if (memberId === exceptSessionId) continue;
++      const member = this.sessions.get(memberId);
++      if (member) this.send(member.socket, msg);
++    }
++  }
++
++  private handleMessage(
++    socket: net.Socket,
++    msg: RoundtableClientMessage,
++    sessionId: string | null,
++  ): string | null {
++    if (msg.type === "register") {
++      const id = randomUUID();
++      this.sessions.set(id, { id, name: msg.name, pid: msg.pid, cwd: msg.cwd, socket });
++      this.send(socket, { type: "registered", sessionId: id });
++      return id;
++    }
++
++    if (!sessionId) {
++      this.send(socket, { type: "error", error: "Register before sending requests" });
++      return sessionId;
++    }
++    const session = this.sessions.get(sessionId);
++    if (!session) {
++      this.send(socket, { type: "error", error: "Unknown session" });
++      return sessionId;
++    }
++
++    try {
++      switch (msg.type) {
++        case "rooms": {
++          this.send(socket, { type: "rooms", requestId: msg.requestId, rooms: this.store.listRooms() });
++          break;
++        }
++        case "join": {
++          const { room, cursor } = this.store.join(msg.room, { sessionId, name: session.name }, msg.topic);
++          this.send(socket, { type: "joined", requestId: msg.requestId, room, cursor });
++          this.notifyRoom(msg.room, { type: "activity", room: msg.room, from: session.name, seq: room.lastSeq }, sessionId);
++          break;
++        }
++        case "leave": {
++          this.store.leave(msg.room, sessionId);
++          this.send(socket, { type: "left", requestId: msg.requestId, room: msg.room });
++          break;
++        }
++        case "post": {
++          const message = this.store.post(msg.room, { sessionId, name: session.name }, msg.text, msg.replyTo);
++          this.send(socket, { type: "posted", requestId: msg.requestId, message });
++          this.notifyRoom(msg.room, { type: "activity", room: msg.room, from: session.name, seq: message.seq }, sessionId);
++          break;
++        }
++        case "fetch": {
++          const { messages, lastSeq } = this.store.fetch(msg.room, msg.afterSeq, msg.limit);
++          const cursor = this.store.getCursor(msg.room, session.name);
++          this.send(socket, { type: "messages", requestId: msg.requestId, room: msg.room, messages, lastSeq, cursor });
++          break;
++        }
++        case "set_cursor": {
++          const seq = this.store.setCursor(msg.room, session.name, msg.seq);
++          this.send(socket, { type: "cursor_set", requestId: msg.requestId, room: msg.room, seq });
++          break;
++        }
++        default: {
++          this.send(socket, { type: "error", error: `Unknown message type: ${(msg as { type?: string }).type ?? "?"}` });
++        }
++      }
++    } catch (error) {
++      const requestId = "requestId" in msg ? msg.requestId : undefined;
++      this.send(socket, {
++        type: "error",
++        ...(requestId !== undefined ? { requestId } : {}),
++        error: error instanceof Error ? error.message : String(error),
++      });
++    }
++    return sessionId;
++  }
++}
+diff --git a/packages/roundtable/broker/client.ts b/packages/roundtable/broker/client.ts
+new file mode 100644
+index 0000000..39b21db
+--- /dev/null
++++ b/packages/roundtable/broker/client.ts
+@@ -0,0 +1,198 @@
++import net from "net";
++import { randomUUID } from "crypto";
++import { createMessageReader, writeMessage } from "./framing.ts";
++import { getBrokerSocketPath } from "./paths.ts";
++import type {
++  RoomInfo,
++  RoomMessage,
++  RoundtableBrokerMessage,
++  RoundtableClientMessage,
++} from "../types.ts";
++
++export interface ActivityEvent {
++  room: string;
++  from: string;
++  seq: number;
++}
++
++type PendingResolver = {
++  resolve: (msg: RoundtableBrokerMessage) => void;
++  reject: (error: Error) => void;
++  timer: NodeJS.Timeout;
++};
++
++const REQUEST_TIMEOUT_MS = 10_000;
++
++/** Promise-based roundtable broker client with a tiny activity event stream. */
++export class RoundtableClient {
++  private socket: net.Socket | null = null;
++  private pending = new Map<string, PendingResolver>();
++  private activityListeners = new Set<(event: ActivityEvent) => void>();
++  sessionId: string | null = null;
++
++  constructor(
++    readonly name: string,
++    private socketPath: string = getBrokerSocketPath(),
++  ) {}
++
++  onActivity(listener: (event: ActivityEvent) => void): () => void {
++    this.activityListeners.add(listener);
++    return () => this.activityListeners.delete(listener);
++  }
++
++  async connect(): Promise<void> {
++    if (this.socket) return;
++    const socket = net.createConnection(this.socketPath);
++    this.socket = socket;
++
++    const registered = new Promise<void>((resolve, reject) => {
++      const timer = setTimeout(() => reject(new Error("Roundtable registration timed out")), REQUEST_TIMEOUT_MS);
++      const reader = createMessageReader(
++        (raw) => {
++          const msg = raw as RoundtableBrokerMessage;
++          if (msg.type === "registered" && !this.sessionId) {
++            this.sessionId = msg.sessionId;
++            clearTimeout(timer);
++            resolve();
++            return;
++          }
++          this.dispatch(msg);
++        },
++        (error) => {
++          clearTimeout(timer);
++          reject(error);
++          socket.destroy();
++        },
++      );
++      socket.on("data", reader);
++      socket.on("error", (error) => {
++        clearTimeout(timer);
++        reject(error);
++        this.failAllPending(error);
++      });
++      socket.on("close", () => {
++        this.socket = null;
++        this.sessionId = null;
++        this.failAllPending(new Error("Roundtable broker connection closed"));
++      });
++    });
++
++    await new Promise<void>((resolve, reject) => {
++      socket.once("connect", resolve);
++      socket.once("error", reject);
++    });
++
++    this.write({ type: "register", name: this.name, pid: process.pid, cwd: process.cwd() });
++    await registered;
++  }
++
++  disconnect(): void {
++    this.socket?.destroy();
++    this.socket = null;
++    this.sessionId = null;
++  }
++
++  get connected(): boolean {
++    return this.socket !== null && this.sessionId !== null;
++  }
++
++  private failAllPending(error: Error): void {
++    for (const pending of this.pending.values()) {
++      clearTimeout(pending.timer);
++      pending.reject(error);
++    }
++    this.pending.clear();
++  }
++
++  private dispatch(msg: RoundtableBrokerMessage): void {
++    if (msg.type === "activity") {
++      for (const listener of this.activityListeners) listener(msg);
++      return;
++    }
++    const requestId = "requestId" in msg ? msg.requestId : undefined;
++    if (!requestId) return;
++    const pending = this.pending.get(requestId);
++    if (!pending) return;
++    this.pending.delete(requestId);
++    clearTimeout(pending.timer);
++    if (msg.type === "error") {
++      pending.reject(new Error(msg.error));
++    } else {
++      pending.resolve(msg);
++    }
++  }
++
++  private write(msg: RoundtableClientMessage): void {
++    if (!this.socket) throw new Error("Not connected to roundtable broker");
++    writeMessage(this.socket, msg);
++  }
++
++  private request<T extends RoundtableBrokerMessage["type"]>(
++    build: (requestId: string) => RoundtableClientMessage,
++    expected: T,
++  ): Promise<Extract<RoundtableBrokerMessage, { type: T }>> {
++    const requestId = randomUUID();
++    return new Promise((resolve, reject) => {
++      const timer = setTimeout(() => {
++        this.pending.delete(requestId);
++        reject(new Error("Roundtable request timed out"));
++      }, REQUEST_TIMEOUT_MS);
++      this.pending.set(requestId, {
++        resolve: (msg) => {
++          if (msg.type === expected) {
++            resolve(msg as Extract<RoundtableBrokerMessage, { type: T }>);
++          } else {
++            reject(new Error(`Unexpected broker response: ${msg.type}`));
++          }
++        },
++        reject,
++        timer,
++      });
++      try {
++        this.write(build(requestId));
++      } catch (error) {
++        this.pending.delete(requestId);
++        clearTimeout(timer);
++        reject(error instanceof Error ? error : new Error(String(error)));
++      }
++    });
++  }
++
++  async listRooms(): Promise<RoomInfo[]> {
++    const response = await this.request((requestId) => ({ type: "rooms", requestId }), "rooms");
++    return response.rooms;
++  }
++
++  async join(room: string, topic?: string): Promise<{ room: RoomInfo; cursor: number }> {
++    const response = await this.request(
++      (requestId) => ({ type: "join", requestId, room, ...(topic !== undefined ? { topic } : {}) }),
++      "joined",
++    );
++    return { room: response.room, cursor: response.cursor };
++  }
++
++  async leave(room: string): Promise<void> {
++    await this.request((requestId) => ({ type: "leave", requestId, room }), "left");
++  }
++
++  async post(room: string, text: string, replyTo?: string): Promise<RoomMessage> {
++    const response = await this.request(
++      (requestId) => ({ type: "post", requestId, room, text, ...(replyTo !== undefined ? { replyTo } : {}) }),
++      "posted",
++    );
++    return response.message;
++  }
++
++  async fetch(room: string, afterSeq: number, limit?: number): Promise<{ messages: RoomMessage[]; lastSeq: number; cursor: number }> {
++    const response = await this.request(
++      (requestId) => ({ type: "fetch", requestId, room, afterSeq, ...(limit !== undefined ? { limit } : {}) }),
++      "messages",
++    );
++    return { messages: response.messages, lastSeq: response.lastSeq, cursor: response.cursor };
++  }
++
++  async setCursor(room: string, seq: number): Promise<number> {
++    const response = await this.request((requestId) => ({ type: "set_cursor", requestId, room, seq }), "cursor_set");
++    return response.seq;
++  }
++}
+diff --git a/packages/roundtable/broker/framing.ts b/packages/roundtable/broker/framing.ts
+new file mode 100644
+index 0000000..addf2de
+--- /dev/null
++++ b/packages/roundtable/broker/framing.ts
+@@ -0,0 +1,51 @@
++import type { Socket } from "net";
++
++/**
++ * Write a length-prefixed message to a socket.
++ * Format: 4-byte big-endian length + JSON payload.
++ * Mirrors @bastani/intercom framing so the two brokers stay protocol-cousins.
++ */
++export function writeMessage(socket: Socket, msg: unknown): void {
++  const json = JSON.stringify(msg);
++  const payload = Buffer.from(json, "utf-8");
++  const header = Buffer.alloc(4);
++  header.writeUInt32BE(payload.length, 0);
++  socket.write(Buffer.concat([header, payload]));
++}
++
++/** Create a message reader that handles partial reads. */
++export function createMessageReader(
++  onMessage: (msg: unknown) => void,
++  onError: (error: Error) => void,
++) {
++  let buffer = Buffer.alloc(0);
++
++  return (data: Buffer) => {
++    buffer = Buffer.concat([buffer, data]);
++
++    while (buffer.length >= 4) {
++      const length = buffer.readUInt32BE(0);
++      if (buffer.length < 4 + length) break;
++
++      const payload = buffer.subarray(4, 4 + length);
++      buffer = buffer.subarray(4 + length);
++
++      let msg: unknown;
++      try {
++        msg = JSON.parse(payload.toString("utf-8"));
++      } catch (error) {
++        const message = error instanceof Error ? error.message : String(error);
++        onError(new Error(`Failed to parse roundtable message: ${message}`, { cause: error }));
++        return;
++      }
++
++      try {
++        onMessage(msg);
++      } catch (error) {
++        const message = error instanceof Error ? error.message : String(error);
++        onError(new Error(`Failed to handle roundtable message: ${message}`, { cause: error }));
++        return;
++      }
++    }
++  };
++}
+diff --git a/packages/roundtable/broker/main.ts b/packages/roundtable/broker/main.ts
+new file mode 100644
+index 0000000..4fd0df8
+--- /dev/null
++++ b/packages/roundtable/broker/main.ts
+@@ -0,0 +1,6 @@
++import { RoundtableBroker } from "./broker.ts";
++
++const broker = new RoundtableBroker();
++broker.start(() => {
++  console.log(`Roundtable broker started (pid: ${process.pid})`);
++});
+diff --git a/packages/roundtable/broker/paths.ts b/packages/roundtable/broker/paths.ts
+new file mode 100644
+index 0000000..3697e6c
+--- /dev/null
++++ b/packages/roundtable/broker/paths.ts
+@@ -0,0 +1,53 @@
++import { homedir } from "os";
++import { join } from "path";
++
++function getHomeDir(): string {
++  if (process.platform === "win32") {
++    if (process.env.USERPROFILE) return process.env.USERPROFILE;
++    if (process.env.HOMEDRIVE && process.env.HOMEPATH) return `${process.env.HOMEDRIVE}${process.env.HOMEPATH}`;
++    if (process.env.HOME) return process.env.HOME;
++    return homedir();
++  }
++  return process.env.HOME || process.env.USERPROFILE || homedir();
++}
++
++function expandTildePath(path: string): string {
++  if (path === "~") return getHomeDir();
++  if (path.startsWith("~/") || (process.platform === "win32" && path.startsWith("~\\"))) {
++    return join(getHomeDir(), path.slice(2));
++  }
++  return path;
++}
++
++function getAgentDir(): string {
++  const atomicAgentDir = process.env.ATOMIC_CODING_AGENT_DIR;
++  if (atomicAgentDir) return expandTildePath(atomicAgentDir);
++  const piAgentDir = process.env.PI_CODING_AGENT_DIR;
++  if (piAgentDir) return expandTildePath(piAgentDir);
++  return join(getHomeDir(), ".atomic", "agent");
++}
++
++function sanitizePipeSegment(value: string): string {
++  return value
++    .replace(/[^a-zA-Z0-9]+/g, "-")
++    .replace(/^-+|-+$/g, "")
++    .toLowerCase() || "default";
++}
++
++export function getRoundtableDirPath(agentDir: string = getAgentDir()): string {
++  return join(agentDir, "roundtable");
++}
++
++export function getBrokerPidPath(agentDir: string = getAgentDir()): string {
++  return join(getRoundtableDirPath(agentDir), "broker.pid");
++}
++
++export function getBrokerSocketPath(
++  platform: NodeJS.Platform = process.platform,
++  agentDir: string = getAgentDir(),
++): string {
++  if (platform === "win32") {
++    return `\\\\.\\pipe\\atomic-roundtable-${sanitizePipeSegment(agentDir)}`;
++  }
++  return join(getRoundtableDirPath(agentDir), "broker.sock");
++}
+diff --git a/packages/roundtable/broker/room-store.ts b/packages/roundtable/broker/room-store.ts
+new file mode 100644
+index 0000000..b886ab7
+--- /dev/null
++++ b/packages/roundtable/broker/room-store.ts
+@@ -0,0 +1,144 @@
++import { randomUUID } from "crypto";
++import type { RoomInfo, RoomMember, RoomMessage } from "../types.ts";
++
++/** Per-room message cap; older messages are dropped ring-buffer style. */
++export const DEFAULT_ROOM_CAPACITY = 500;
++
++interface RoomState {
++  name: string;
++  topic?: string;
++  members: Map<string, RoomMember>; // keyed by sessionId
++  messages: RoomMessage[];
++  nextSeq: number;
++  lastActivity: number;
++  /** Read cursors keyed by member NAME so they survive reconnects. */
++  cursors: Map<string, number>;
++}
++
++/**
++ * Pure in-memory room state: join/leave/post/fetch and read cursors.
++ * No sockets — the broker wires this to the wire protocol, tests hit it directly.
++ */
++export class RoomStore {
++  private rooms = new Map<string, RoomState>();
++
++  constructor(private capacity: number = DEFAULT_ROOM_CAPACITY) {}
++
++  private roomInfo(state: RoomState): RoomInfo {
++    return {
++      name: state.name,
++      ...(state.topic !== undefined ? { topic: state.topic } : {}),
++      members: [...state.members.values()],
++      messageCount: state.messages.length,
++      lastSeq: state.nextSeq - 1,
++      lastActivity: state.lastActivity,
++    };
++  }
++
++  listRooms(): RoomInfo[] {
++    return [...this.rooms.values()].map((state) => this.roomInfo(state));
++  }
++
++  getRoom(room: string): RoomInfo | undefined {
++    const state = this.rooms.get(room);
++    return state ? this.roomInfo(state) : undefined;
++  }
++
++  /** Sessions (by id) that should be notified about activity in a room. */
++  memberSessionIds(room: string): string[] {
++    const state = this.rooms.get(room);
++    return state ? [...state.members.keys()] : [];
++  }
++
++  join(room: string, member: { sessionId: string; name: string }, topic?: string): { room: RoomInfo; cursor: number } {
++    let state = this.rooms.get(room);
++    if (!state) {
++      state = {
++        name: room,
++        ...(topic !== undefined ? { topic } : {}),
++        members: new Map(),
++        messages: [],
++        nextSeq: 1,
++        lastActivity: Date.now(),
++        cursors: new Map(),
++      };
++      this.rooms.set(room, state);
++    } else if (topic !== undefined && state.topic === undefined) {
++      state.topic = topic;
++    }
++    if (!state.members.has(member.sessionId)) {
++      state.members.set(member.sessionId, { ...member, joinedAt: Date.now() });
++    }
++    const cursor = state.cursors.get(member.name) ?? 0;
++    return { room: this.roomInfo(state), cursor };
++  }
++
++  leave(room: string, sessionId: string): boolean {
++    const state = this.rooms.get(room);
++    if (!state) return false;
++    const removed = state.members.delete(sessionId);
++    if (state.members.size === 0 && state.messages.length === 0) {
++      this.rooms.delete(room);
++    }
++    return removed;
++  }
++
++  /** Remove a disconnecting session from every room. Returns rooms it left. */
++  evictSession(sessionId: string): string[] {
++    const left: string[] = [];
++    for (const [name, state] of this.rooms) {
++      if (state.members.delete(sessionId)) left.push(name);
++    }
++    return left;
++  }
++
++  post(
++    room: string,
++    from: { sessionId: string; name: string },
++    text: string,
++    replyTo?: string,
++  ): RoomMessage {
++    const state = this.rooms.get(room);
++    if (!state) throw new Error(`Room "${room}" does not exist; join it first`);
++    if (!state.members.has(from.sessionId)) throw new Error(`Not a member of room "${room}"; join it first`);
++    const message: RoomMessage = {
++      id: randomUUID(),
++      seq: state.nextSeq++,
++      timestamp: Date.now(),
++      room,
++      from: { ...from },
++      text,
++      ...(replyTo !== undefined ? { replyTo } : {}),
++    };
++    state.messages.push(message);
++    if (state.messages.length > this.capacity) {
++      state.messages.splice(0, state.messages.length - this.capacity);
++    }
++    state.lastActivity = message.timestamp;
++    // The author has read their own message.
++    const authorCursor = state.cursors.get(from.name) ?? 0;
++    if (message.seq > authorCursor) state.cursors.set(from.name, message.seq);
++    return message;
++  }
++
++  /** Messages with seq > afterSeq, ascending, capped at limit. */
++  fetch(room: string, afterSeq: number, limit = 200): { messages: RoomMessage[]; lastSeq: number } {
++    const state = this.rooms.get(room);
++    if (!state) throw new Error(`Room "${room}" does not exist`);
++    const messages = state.messages.filter((m) => m.seq > afterSeq).slice(0, Math.max(1, limit));
++    return { messages, lastSeq: state.nextSeq - 1 };
++  }
++
++  getCursor(room: string, memberName: string): number {
++    return this.rooms.get(room)?.cursors.get(memberName) ?? 0;
++  }
++
++  setCursor(room: string, memberName: string, seq: number): number {
++    const state = this.rooms.get(room);
++    if (!state) throw new Error(`Room "${room}" does not exist`);
++    const current = state.cursors.get(memberName) ?? 0;
++    const next = Math.max(current, Math.min(seq, state.nextSeq - 1));
++    state.cursors.set(memberName, next);
++    return next;
++  }
++}
+diff --git a/packages/roundtable/broker/spawn.ts b/packages/roundtable/broker/spawn.ts
+new file mode 100644
+index 0000000..40441dd
+--- /dev/null
++++ b/packages/roundtable/broker/spawn.ts
+@@ -0,0 +1,70 @@
++import { spawn } from "child_process";
++import { existsSync, mkdirSync } from "fs";
++import net from "net";
++import { dirname, join } from "path";
++import { createRequire } from "module";
++import { fileURLToPath } from "url";
++import { getBrokerSocketPath, getRoundtableDirPath } from "./paths.ts";
++
++const EXTENSION_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
++const BROKER_MAIN = join(dirname(fileURLToPath(import.meta.url)), "main.ts");
++
++const SPAWN_WAIT_ATTEMPTS = 25;
++const SPAWN_WAIT_INTERVAL_MS = 200;
++
++function sleep(ms: number): Promise<void> {
++  return new Promise((resolve) => setTimeout(resolve, ms));
++}
++
++function canConnect(socketPath: string): Promise<boolean> {
++  return new Promise((resolve) => {
++    const socket = net.createConnection(socketPath);
++    const finish = (result: boolean) => {
++      socket.destroy();
++      resolve(result);
++    };
++    socket.once("connect", () => finish(true));
++    socket.once("error", () => finish(false));
++    setTimeout(() => finish(false), 1000);
++  });
++}
++
++function resolveTsxCliPath(): string | null {
++  try {
++    const require = createRequire(join(EXTENSION_DIR, "package.json"));
++    const tsxMain = require.resolve("tsx");
++    return join(dirname(tsxMain), "cli.mjs");
++  } catch {
++    const bundled = join(EXTENSION_DIR, "node_modules", "tsx", "dist", "cli.mjs");
++    return existsSync(bundled) ? bundled : null;
++  }
++}
++
++function brokerCommand(): { command: string; args: string[] } {
++  if (process.versions.bun) {
++    return { command: process.execPath, args: [BROKER_MAIN] };
++  }
++  const tsx = resolveTsxCliPath();
++  if (!tsx) throw new Error("Cannot resolve tsx to launch the roundtable broker under Node");
++  return { command: process.execPath, args: [tsx, BROKER_MAIN] };
++}
++
++/** Ensure a roundtable broker is reachable, spawning a detached one if needed. */
++export async function ensureBrokerRunning(socketPath: string = getBrokerSocketPath()): Promise<void> {
++  if (await canConnect(socketPath)) return;
++
++  mkdirSync(getRoundtableDirPath(), { recursive: true });
++  const { command, args } = brokerCommand();
++  const child = spawn(command, args, {
++    detached: true,
++    stdio: "ignore",
++    env: process.env,
++  });
++  child.unref();
++
++  for (let attempt = 0; attempt < SPAWN_WAIT_ATTEMPTS; attempt++) {
++    await sleep(SPAWN_WAIT_INTERVAL_MS);
++    if (await canConnect(socketPath)) return;
++  }
++  throw new Error("Roundtable broker did not start in time");
++}
+diff --git a/packages/roundtable/demo/run-demo.ts b/packages/roundtable/demo/run-demo.ts
+new file mode 100644
+index 0000000..0c66eb5
+--- /dev/null
++++ b/packages/roundtable/demo/run-demo.ts
+@@ -0,0 +1,108 @@
++/**
++ * Roundtable demo: three scripted "agents" hold a design discussion in a room
++ * over the real broker socket, then each pulls a bounded digest.
++ *
++ * Run from repo root:
++ *   ATOMIC_CODING_AGENT_DIR=/tmp/roundtable-demo bun packages/roundtable/demo/run-demo.ts
++ *
++ * No model is involved — this proves the transport and the context-window
++ * bound. Point real Atomic sessions at the same broker for the live version.
++ */
++import { RoundtableBroker } from "../broker/broker.ts";
++import { RoundtableClient } from "../broker/client.ts";
++import { buildDigest } from "../digest.ts";
++import { getBrokerSocketPath } from "../broker/paths.ts";
++
++const ROOM = "design";
++const TOPIC = "Rate limiter design for the public API";
++
++const SCRIPT: Array<{ agent: "planner" | "researcher" | "critic"; text: string }> = [
++  { agent: "planner", text: "Kicking off: we need a rate limiter for the public API. Constraints: 10k req/s aggregate, per-key fairness, p99 added latency < 1ms. Proposals welcome." },
++  { agent: "researcher", text: "Survey of options:\n1. Token bucket — O(1) memory per key, burst-friendly, easy to reason about. Redis or in-process.\n2. Sliding window log — exact but O(n) memory per key at high rates; rules it out at 10k req/s.\n3. Sliding window counter — approximation of the log with two buckets; good accuracy, O(1).\n4. GCRA (leaky bucket as meter) — single timestamp per key, elegant, precise, slightly harder to explain to ops.\nAt our rate, token bucket or GCRA are the serious candidates. Redis round-trip will eat the 1ms budget unless we use local buckets with async sync." },
++  { agent: "critic", text: "Pushback on Redis-per-request: a network hop per decision blows the p99 budget on its own. If we go distributed state we need local decisions with eventual reconciliation, which reintroduces burst overshoot. Quantify the overshoot before choosing." },
++  { agent: "planner", text: "Agreed. Working assumption: local token buckets per node, async usage broadcast every 100ms, global cap enforced by adjusting local refill rates. Researcher, can you bound the worst-case overshoot?" },
++  { agent: "researcher", text: "Overshoot bound: with N nodes, sync interval T, per-key limit L req/s — worst case transient overshoot is L * (N-1)/N * T extra tokens before rates adjust. For N=8, T=100ms, L=100/s that's ~8.75 extra requests per key per adjustment window. Acceptable for API keys; not acceptable for auth-sensitive endpoints, which should use the strict path." },
++  { agent: "critic", text: "That bound assumes uniform traffic spread. Adversarial clients hitting one node concentrate the overshoot. Recommend a per-node hard ceiling of 2x fair share as a backstop. Also: what happens on Redis partition? Fail-open or fail-closed must be explicit per endpoint class." },
++  { agent: "planner", text: "Adopted: 2x fair-share node ceiling, fail-open for public reads, fail-closed for writes and auth. Decision: GCRA locally (single float per key beats bucket bookkeeping), async rate reconciliation at 100ms, strict Redis path only for auth endpoints. Researcher, write up the spec; critic, draft the failure-mode test plan." },
++  { agent: "researcher", text: "Spec started at specs/rate-limiter.md — GCRA math, reconciliation protocol, and the overshoot proof included." },
++  { agent: "critic", text: "Test plan: partition drills, thundering-herd on rate reset, adversarial single-node concentration, clock skew between nodes. Will fail the build if p99 added latency exceeds 1ms at 10k req/s in the harness." },
++];
++
++async function main(): Promise<void> {
++  const socketPath = getBrokerSocketPath();
++  const broker = new RoundtableBroker();
++  await new Promise<void>((resolve) => broker.start(resolve));
++  console.log(`Broker listening at ${socketPath}\n`);
++
++  const agents = {
++    planner: new RoundtableClient("planner"),
++    researcher: new RoundtableClient("researcher"),
++    critic: new RoundtableClient("critic"),
++  } as const;
++
++  const activitySeen: Record<string, number> = { planner: 0, researcher: 0, critic: 0 };
++  for (const [name, client] of Object.entries(agents)) {
++    await client.connect();
++    client.onActivity(() => {
++      activitySeen[name] = (activitySeen[name] ?? 0) + 1;
++    });
++    await client.join(ROOM, TOPIC);
++  }
++  console.log(`planner, researcher, critic joined #${ROOM} — ${TOPIC}\n`);
++
++  for (const step of SCRIPT) {
++    const posted = await agents[step.agent].post(ROOM, step.text);
++    console.log(`  ${step.agent}#${posted.seq} posted (${step.text.length} chars)`);
++  }
++
++  const transcriptChars = SCRIPT.reduce((sum, step) => sum + step.text.length, 0);
++  console.log(`\nFull room transcript: ${SCRIPT.length} messages, ${transcriptChars} chars`);
++  console.log("=".repeat(72));
++
++  // Each agent catches up with a bounded digest instead of the full transcript.
++  for (const [name, client] of Object.entries(agents)) {
++    const { messages, cursor } = await client.fetch(ROOM, 0);
++    const unread = messages.filter((m) => m.seq > cursor);
++    const digest = buildDigest(unread, { budget: 1200 });
++    if (digest.consumedSeq > 0) await client.setCursor(ROOM, digest.consumedSeq);
++
++    console.log(`\n${name} catches up — unread: ${digest.total}, digest: ${digest.chars} chars (budget 1200)`);
++    console.log(`  verbatim ${digest.verbatim} · headlines ${digest.headlines} · collapsed ${digest.collapsed}`);
++    const saved = unread.reduce((sum, m) => sum + m.text.length, 0);
++    if (saved > 0) {
++      console.log(`  context cost: ${digest.chars}/${saved} chars = ${Math.round((digest.chars / saved) * 100)}% of raw unread`);
++    }
++    console.log("-".repeat(72));
++    console.log(digest.text.split("\n").map((line) => `  ${line}`).join("\n"));
++  }
++
++  // The money shot: a reviewer joins LATE with the entire discussion unread.
++  const reviewer = new RoundtableClient("reviewer");
++  await reviewer.connect();
++  const joined = await reviewer.join(ROOM);
++  const backlog = await reviewer.fetch(ROOM, joined.cursor);
++  const reviewerDigest = buildDigest(backlog.messages, { budget: 800 });
++  await reviewer.setCursor(ROOM, reviewerDigest.consumedSeq);
++  console.log(`\nreviewer joins late — unread: ${reviewerDigest.total} (entire discussion, ${transcriptChars} chars)`);
++  console.log(`  digest: ${reviewerDigest.chars} chars (budget 800) = ${Math.round((reviewerDigest.chars / transcriptChars) * 100)}% of the raw transcript`);
++  console.log(`  verbatim ${reviewerDigest.verbatim} · headlines ${reviewerDigest.headlines} · collapsed ${reviewerDigest.collapsed}`);
++  console.log("-".repeat(72));
++  console.log(reviewerDigest.text.split("\n").map((line) => `  ${line}`).join("\n"));
++  reviewer.disconnect();
++
++  console.log(`\n${"=".repeat(72)}`);
++  console.log("Push notifications received while 'working' (tiny activity events, not bodies):");
++  for (const [name, count] of Object.entries(activitySeen)) {
++    console.log(`  ${name}: ${count} activity pings`);
++  }
++
++  for (const client of Object.values(agents)) client.disconnect();
++  broker.shutdown();
++  console.log("\nDemo complete: full discussion lived in the broker; each agent paid only its digest.");
++  process.exit(0);
++}
++
++main().catch((error) => {
++  console.error(error);
++  process.exit(1);
++});
+diff --git a/packages/roundtable/digest.ts b/packages/roundtable/digest.ts
+new file mode 100644
+index 0000000..8de2c38
+--- /dev/null
++++ b/packages/roundtable/digest.ts
+@@ -0,0 +1,128 @@
++import type { RoomMessage } from "./types.ts";
++
++/**
++ * Token-budget protection for inter-agent chat.
++ *
++ * A digest is the ONLY way room content enters an agent's context window.
++ * It renders unread messages newest-first into three tiers until the character
++ * budget is spent:
++ *
++ *   1. verbatim   — full body (capped per message)
++ *   2. headline   — one line: author + first fragment of the body
++ *   3. collapsed  — a single count line for everything older
++ *
++ * The result is rendered oldest→newest so the agent reads chronologically,
++ * but budget is always spent on the NEWEST messages first.
++ */
++export interface DigestOptions {
++  /** Total character budget for the rendered digest body. Default 2000. */
++  budget?: number;
++  /** Per-message cap for verbatim bodies. Default 600. */
++  perMessageCap?: number;
++  /** Cap for headline fragments. Default 100. */
++  headlineCap?: number;
++}
++
++export interface Digest {
++  /** Rendered digest body, guaranteed ≤ budget + one overflow marker line. */
++  text: string;
++  /** Highest seq consumed; pass to set_cursor to mark read. 0 when no messages. */
++  consumedSeq: number;
++  total: number;
++  verbatim: number;
++  headlines: number;
++  collapsed: number;
++  chars: number;
++}
++
++const DEFAULT_BUDGET = 2000;
++const DEFAULT_PER_MESSAGE_CAP = 600;
++const DEFAULT_HEADLINE_CAP = 100;
++
++function clock(timestamp: number): string {
++  const d = new Date(timestamp);
++  const hh = String(d.getHours()).padStart(2, "0");
++  const mm = String(d.getMinutes()).padStart(2, "0");
++  return `${hh}:${mm}`;
++}
++
++function capText(text: string, cap: number): { text: string; truncated: number } {
++  const oneLineSafe = text.trimEnd();
++  if (oneLineSafe.length <= cap) return { text: oneLineSafe, truncated: 0 };
++  return { text: oneLineSafe.slice(0, cap), truncated: oneLineSafe.length - cap };
++}
++
++function renderVerbatim(message: RoomMessage, perMessageCap: number): string {
++  const { text, truncated } = capText(message.text, perMessageCap);
++  const marker = truncated > 0 ? ` …(+${truncated} chars)` : "";
++  const reply = message.replyTo ? ` (reply to ${message.replyTo})` : "";
++  return `[${clock(message.timestamp)}] ${message.from.name}#${message.seq}${reply}: ${text}${marker}`;
++}
++
++function renderHeadline(message: RoomMessage, headlineCap: number): string {
++  const firstLine = message.text.split("\n", 1)[0] ?? "";
++  const { text, truncated } = capText(firstLine, headlineCap);
++  const marker = truncated > 0 || message.text.length > firstLine.length ? " …" : "";
++  return `· ${message.from.name}#${message.seq}: ${text}${marker}`;
++}
++
++/**
++ * Build a bounded digest from unread messages (ascending seq order expected).
++ * Deterministic and model-free: the bound holds no matter what peers post.
++ */
++export function buildDigest(messages: readonly RoomMessage[], options: DigestOptions = {}): Digest {
++  const budget = Math.max(options.budget ?? DEFAULT_BUDGET, 200);
++  const perMessageCap = Math.max(options.perMessageCap ?? DEFAULT_PER_MESSAGE_CAP, 80);
++  const headlineCap = Math.max(options.headlineCap ?? DEFAULT_HEADLINE_CAP, 40);
++
++  if (messages.length === 0) {
++    return { text: "No new messages.", consumedSeq: 0, total: 0, verbatim: 0, headlines: 0, collapsed: 0, chars: 0 };
++  }
++
++  const newestFirst = [...messages].sort((a, b) => b.seq - a.seq);
++  const consumedSeq = newestFirst[0]?.seq ?? 0;
++
++  const verbatimLines: string[] = [];
++  const headlineLines: string[] = [];
++  let collapsed = 0;
++  let spent = 0;
++  let tier: "verbatim" | "headline" = "verbatim";
++
++  for (const message of newestFirst) {
++    if (tier === "verbatim") {
++      const line = renderVerbatim(message, perMessageCap);
++      if (spent + line.length + 1 <= budget) {
++        verbatimLines.push(line);
++        spent += line.length + 1;
++        continue;
++      }
++      tier = "headline";
++    }
++    const headline = renderHeadline(message, headlineCap);
++    if (spent + headline.length + 1 <= budget) {
++      headlineLines.push(headline);
++      spent += headline.length + 1;
++    } else {
++      collapsed += 1;
++    }
++  }
++
++  const parts: string[] = [];
++  if (collapsed > 0) {
++    parts.push(`(${collapsed} older message${collapsed === 1 ? "" : "s"} collapsed — raise budget or fetch by seq to expand)`);
++  }
++  // Tiers were filled newest-first; render oldest-first for chronological reading.
++  parts.push(...headlineLines.reverse());
++  parts.push(...verbatimLines.reverse());
++
++  const text = parts.join("\n");
++  return {
++    text,
++    consumedSeq,
++    total: messages.length,
++    verbatim: verbatimLines.length,
++    headlines: headlineLines.length,
++    collapsed,
++    chars: text.length,
++  };
++}
+diff --git a/packages/roundtable/index.ts b/packages/roundtable/index.ts
+new file mode 100644
+index 0000000..0f2d214
+--- /dev/null
++++ b/packages/roundtable/index.ts
+@@ -0,0 +1,64 @@
++import type { ExtensionAPI } from "@bastani/atomic";
++import { RoundtableClient } from "./broker/client.ts";
++import { ensureBrokerRunning } from "./broker/spawn.ts";
++import { registerRoundtableTool } from "./roundtable-tool.ts";
++
++const NOTIFY_COALESCE_MS = 1500;
++
++/**
++ * Roundtable extension: group chat rooms between local agent sessions.
++ *
++ * Context-window contract:
++ *  - Room transcripts live in the broker, never in the session transcript.
++ *  - Incoming activity surfaces as ONE coalesced one-liner per quiet period.
++ *  - Content only enters context when the agent pulls a bounded digest.
++ */
++export default function roundtableExtension(pi: ExtensionAPI): void {
++  let client: RoundtableClient | null = null;
++  let pendingActivity = new Map<string, { count: number; from: Set<string> }>();
++  let notifyTimer: NodeJS.Timeout | null = null;
++
++  const flushActivity = () => {
++    notifyTimer = null;
++    if (pendingActivity.size === 0) return;
++    const parts: string[] = [];
++    for (const [room, info] of pendingActivity) {
++      parts.push(`#${room}: ${info.count} new (${[...info.from].join(", ")})`);
++    }
++    pendingActivity = new Map();
++    pi.sendMessage(
++      {
++        customType: "roundtable_activity",
++        content: `Roundtable activity — ${parts.join(" · ")}. Use roundtable({ action: "digest", room: "…" }) to catch up when relevant.`,
++        display: true,
++      },
++      { deliverAs: "followUp" },
++    );
++  };
++
++  const ensureConnected = async (): Promise<RoundtableClient> => {
++    if (client?.connected) return client;
++    await ensureBrokerRunning();
++    const name = pi.getSessionName() ?? `session-${process.pid}`;
++    const fresh = new RoundtableClient(typeof name === "string" && name.trim() ? name.trim() : `session-${process.pid}`);
++    await fresh.connect();
++    fresh.onActivity((event) => {
++      if (event.seq === 0) return; // membership churn, not content
++      const entry = pendingActivity.get(event.room) ?? { count: 0, from: new Set<string>() };
++      entry.count += 1;
++      entry.from.add(event.from);
++      pendingActivity.set(event.room, entry);
++      if (!notifyTimer) notifyTimer = setTimeout(flushActivity, NOTIFY_COALESCE_MS);
++    });
++    client = fresh;
++    return fresh;
++  };
++
++  registerRoundtableTool(pi, { ensureConnected });
++
++  pi.on("session_shutdown", () => {
++    if (notifyTimer) clearTimeout(notifyTimer);
++    client?.disconnect();
++    client = null;
++  });
++}
+diff --git a/packages/roundtable/package.json b/packages/roundtable/package.json
+new file mode 100644
+index 0000000..5aa2a81
+--- /dev/null
++++ b/packages/roundtable/package.json
+@@ -0,0 +1,53 @@
++{
++  "name": "@bastani/roundtable",
++  "version": "0.0.0",
++  "private": true,
++  "description": "Atomic extension providing group chat rooms between agent sessions with token-budgeted digests that keep inter-agent discussion out of the context window until pulled.",
++  "license": "MIT",
++  "type": "module",
++  "engines": {
++    "bun": ">=1.3.14"
++  },
++  "main": "./index.ts",
++  "types": "./index.ts",
++  "exports": {
++    ".": "./index.ts"
++  },
++  "files": [
++    "*.ts",
++    "broker/**/*.ts",
++    "demo/**/*.ts",
++    "skills/**/*",
++    "README.md",
++    "DESIGN.md",
++    "LICENSE"
++  ],
++  "atomic": {
++    "extensions": [
++      "./index.ts"
++    ],
++    "skills": [
++      "./skills"
++    ]
++  },
++  "pi": {
++    "extensions": [
++      "./index.ts"
++    ],
++    "skills": [
++      "./skills"
++    ]
++  },
++  "peerDependencies": {
++    "@bastani/atomic": "*"
++  },
++  "peerDependenciesMeta": {
++    "@bastani/atomic": {
++      "optional": true
++    }
++  },
++  "dependencies": {
++    "tsx": "^4.23.1",
++    "typebox": "^1.3.7"
++  }
++}
+diff --git a/packages/roundtable/roundtable-tool.ts b/packages/roundtable/roundtable-tool.ts
+new file mode 100644
+index 0000000..792e80b
+--- /dev/null
++++ b/packages/roundtable/roundtable-tool.ts
+@@ -0,0 +1,124 @@
++import type { ExtensionAPI } from "@bastani/atomic";
++import { Type } from "typebox";
++import { buildDigest, type DigestOptions } from "./digest.ts";
++import type { RoundtableClient } from "./broker/client.ts";
++
++interface RoundtableToolDeps {
++  ensureConnected(): Promise<RoundtableClient>;
++}
++
++function errorResult(text: string) {
++  return { content: [{ type: "text" as const, text }], isError: true, details: { error: true } };
++}
++
++function okResult(text: string, details: Record<string, unknown> = {}) {
++  return { content: [{ type: "text" as const, text }], isError: false, details };
++}
++
++function getErrorMessage(error: unknown): string {
++  return error instanceof Error ? error.message : String(error);
++}
++
++export function registerRoundtableTool(pi: ExtensionAPI, deps: RoundtableToolDeps): void {
++  pi.registerTool({
++    name: "roundtable",
++    label: "Roundtable",
++    description: `Group chat rooms shared with other local agent sessions.
++Rooms hold the full discussion OUTSIDE your context window; you pull bounded digests when you need to catch up.
++
++Usage:
++  roundtable({ action: "rooms" })                               → List rooms and activity
++  roundtable({ action: "join", room: "design" })                → Join (creates if missing; optional topic)
++  roundtable({ action: "post", room: "design", message: "…" })  → Post to the room
++  roundtable({ action: "digest", room: "design" })              → Pull unread as a bounded digest and mark read
++  roundtable({ action: "digest", room: "design", budget: 4000 })→ Same with a larger character budget
++  roundtable({ action: "peek", room: "design" })                → Digest WITHOUT marking read
++  roundtable({ action: "leave", room: "design" })               → Leave the room
++
++Prefer digest over repeated peeks; keep budgets small and raise them only when you truly need history.`,
++    promptSnippet:
++      "Group discussion rooms with other local agent sessions. Post findings, then pull bounded digests to catch up — the full transcript stays out of your context window.",
++    parameters: Type.Object({
++      action: Type.String({
++        description: "Action: 'rooms', 'join', 'leave', 'post', 'digest', or 'peek'",
++      }),
++      room: Type.Optional(Type.String({ description: "Room name (required for all actions except 'rooms')" })),
++      message: Type.Optional(Type.String({ description: "Message to post (for 'post')" })),
++      replyTo: Type.Optional(Type.String({ description: "Message id to reply to (for 'post')" })),
++      topic: Type.Optional(Type.String({ description: "Room topic when creating via 'join'" })),
++      budget: Type.Optional(Type.Number({ description: "Digest character budget (default 2000)" })),
++    }),
++
++    async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
++      let client: RoundtableClient;
++      try {
++        client = await deps.ensureConnected();
++      } catch (error) {
++        return errorResult(`Roundtable not connected: ${getErrorMessage(error)}`);
++      }
++
++      const { action, room, message, replyTo, topic, budget } = params;
++
++      try {
++        switch (action) {
++          case "rooms": {
++            const rooms = await client.listRooms();
++            if (rooms.length === 0) return okResult("No active rooms. Use join to create one.");
++            const lines = rooms.map((r) => {
++              const members = r.members.map((m) => m.name).join(", ") || "none";
++              return `#${r.name}${r.topic ? ` — ${r.topic}` : ""} · ${r.messageCount} msgs · members: ${members}`;
++            });
++            return okResult(lines.join("\n"), { rooms: rooms.length });
++          }
++          case "join": {
++            if (!room) return errorResult("Missing 'room' parameter");
++            const joined = await client.join(room, topic);
++            const unread = joined.room.lastSeq - joined.cursor;
++            return okResult(
++              `Joined #${room}${joined.room.topic ? ` — ${joined.room.topic}` : ""}. ${joined.room.members.length} member(s), ${unread} unread message(s).${unread > 0 ? " Use digest to catch up." : ""}`,
++              { room, unread },
++            );
++          }
++          case "leave": {
++            if (!room) return errorResult("Missing 'room' parameter");
++            await client.leave(room);
++            return okResult(`Left #${room}.`);
++          }
++          case "post": {
++            if (!room || !message) return errorResult("Missing 'room' or 'message' parameter");
++            const posted = await client.post(room, message, replyTo);
++            return okResult(`Posted to #${room} as ${posted.from.name}#${posted.seq}.`, { room, seq: posted.seq, id: posted.id });
++          }
++          case "digest":
++          case "peek": {
++            if (!room) return errorResult("Missing 'room' parameter");
++            const { messages, lastSeq, cursor } = await client.fetch(room, await cursorFor(client, room));
++            const options: DigestOptions = budget !== undefined ? { budget } : {};
++            const digest = buildDigest(messages, options);
++            if (action === "digest" && digest.consumedSeq > 0) {
++              await client.setCursor(room, digest.consumedSeq);
++            }
++            const header = `#${room} · ${digest.total} unread · showing ${digest.verbatim} verbatim, ${digest.headlines} headline(s), ${digest.collapsed} collapsed · ${digest.chars} chars${action === "peek" ? " · peek (cursor unchanged)" : ""}`;
++            return okResult(`${header}\n${digest.text}`, {
++              room,
++              lastSeq,
++              cursorBefore: cursor,
++              consumedSeq: digest.consumedSeq,
++              chars: digest.chars,
++            });
++          }
++          default:
++            return errorResult(`Unknown action: ${action}`);
++        }
++      } catch (error) {
++        return errorResult(`Roundtable ${action} failed: ${getErrorMessage(error)}`);
++      }
++    },
++  });
++}
++
++async function cursorFor(client: RoundtableClient, room: string): Promise<number> {
++  // fetch(afterSeq=cursor) needs the member cursor; a zero-window fetch returns it.
++  const probe = await client.fetch(room, Number.MAX_SAFE_INTEGER, 1);
++  return probe.cursor;
++}
+diff --git a/packages/roundtable/skills/roundtable/SKILL.md b/packages/roundtable/skills/roundtable/SKILL.md
+new file mode 100644
+index 0000000..da33d61
+--- /dev/null
++++ b/packages/roundtable/skills/roundtable/SKILL.md
+@@ -0,0 +1,47 @@
++---
++name: roundtable
++description: Patterns for multi-agent group discussion via roundtable rooms without paying full-transcript context costs.
++---
++
++# Roundtable: multi-agent discussion patterns
++
++Roundtable gives local agent sessions shared chat rooms. The room transcript
++lives in a broker outside every agent's context window; agents pull bounded
++digests when they need to catch up.
++
++## Core rules
++
++1. **Post small, post often.** Lead with the conclusion; link to files for detail
++   (`specs/rate-limiter.md`) instead of pasting them into the room.
++2. **Digest, don't peek repeatedly.** `digest` marks messages read; `peek` does
++   not. Peeking in a loop re-pays the same context cost every time.
++3. **Default budget first.** Only raise `budget` when the digest tells you
++   messages were collapsed AND you actually need them.
++4. **One room per concern.** `#design`, `#review`, `#incident-123`. Cross-posting
++   multiplies everyone's digest cost.
++
++## Patterns
++
++### Planner / worker / critic discussion
++
++```typescript
++roundtable({ action: "join", room: "design", topic: "Rate limiter design" })
++roundtable({ action: "post", room: "design", message: "Proposal: GCRA locally, async reconciliation at 100ms. Full spec: specs/rate-limiter.md" })
++// ... do other work; activity notifications arrive as one-liners ...
++roundtable({ action: "digest", room: "design" })   // catch up, bounded
++roundtable({ action: "post", room: "design", message: "Adopted with a 2x fair-share node ceiling. Objections before I implement?" })
++```
++
++### Handoff with evidence
++
++Post the decision and where the evidence lives, not the evidence itself:
++
++```
++"EICR review done. 3 blockers, listed in review/findings.md. Blocking: yes."
++```
++
++### When to use intercom instead
++
++Roundtable is a many-to-many room. For a targeted 1:1 exchange (asking one
++specific session to do something and waiting for its answer), use `intercom`
++with `ask` — it has reply-waiting semantics that rooms deliberately do not.
+diff --git a/packages/roundtable/types.ts b/packages/roundtable/types.ts
+new file mode 100644
+index 0000000..b0eb3ed
+--- /dev/null
++++ b/packages/roundtable/types.ts
+@@ -0,0 +1,56 @@
++/** A single message posted to a roundtable room. */
++export interface RoomMessage {
++  /** Broker-assigned unique id. */
++  id: string;
++  /** Broker-assigned per-room monotonic sequence number, starting at 1. */
++  seq: number;
++  timestamp: number;
++  room: string;
++  from: {
++    sessionId: string;
++    /** Stable member name (survives reconnects); cursors are keyed by this. */
++    name: string;
++  };
++  text: string;
++  /** Message id this replies to, for threading. */
++  replyTo?: string;
++}
++
++export interface RoomMember {
++  sessionId: string;
++  name: string;
++  joinedAt: number;
++}
++
++export interface RoomInfo {
++  name: string;
++  topic?: string;
++  members: RoomMember[];
++  messageCount: number;
++  /** Highest sequence number in the room; 0 when empty. */
++  lastSeq: number;
++  lastActivity: number;
++}
++
++/** Client → broker protocol. */
++export type RoundtableClientMessage =
++  | { type: "register"; name: string; pid: number; cwd: string }
++  | { type: "rooms"; requestId: string }
++  | { type: "join"; requestId: string; room: string; topic?: string }
++  | { type: "leave"; requestId: string; room: string }
++  | { type: "post"; requestId: string; room: string; text: string; replyTo?: string }
++  | { type: "fetch"; requestId: string; room: string; afterSeq: number; limit?: number }
++  | { type: "set_cursor"; requestId: string; room: string; seq: number };
++
++/** Broker → client protocol. */
++export type RoundtableBrokerMessage =
++  | { type: "registered"; sessionId: string }
++  | { type: "rooms"; requestId: string; rooms: RoomInfo[] }
++  | { type: "joined"; requestId: string; room: RoomInfo; cursor: number }
++  | { type: "left"; requestId: string; room: string }
++  | { type: "posted"; requestId: string; message: RoomMessage }
++  | { type: "messages"; requestId: string; room: string; messages: RoomMessage[]; lastSeq: number; cursor: number }
++  | { type: "cursor_set"; requestId: string; room: string; seq: number }
++  /** Push notification: something happened in a room you belong to. Intentionally tiny. */
++  | { type: "activity"; room: string; from: string; seq: number }
++  | { type: "error"; requestId?: string; error: string };
+diff --git a/test/unit/roundtable-broker-client.test.ts b/test/unit/roundtable-broker-client.test.ts
+new file mode 100644
+index 0000000..d59fb2b
+--- /dev/null
++++ b/test/unit/roundtable-broker-client.test.ts
+@@ -0,0 +1,87 @@
++import { mkdtempSync, rmSync } from "fs";
++import { tmpdir } from "os";
++import { join } from "path";
++import { afterEach, beforeEach, describe, expect, it } from "vitest";
++import { RoundtableBroker } from "../../packages/roundtable/broker/broker.ts";
++import { RoundtableClient } from "../../packages/roundtable/broker/client.ts";
++import { getBrokerPidPath, getBrokerSocketPath, getRoundtableDirPath } from "../../packages/roundtable/broker/paths.ts";
++
++describe("roundtable broker and client over a real socket", () => {
++	let agentDir: string;
++	let broker: RoundtableBroker;
++	let socketPath: string;
++	const clients: RoundtableClient[] = [];
++
++	beforeEach(async () => {
++		agentDir = mkdtempSync(join(tmpdir(), "roundtable-test-"));
++		socketPath = getBrokerSocketPath(process.platform, agentDir);
++		broker = new RoundtableBroker(socketPath, getBrokerPidPath(agentDir), getRoundtableDirPath(agentDir));
++		await new Promise<void>((resolve) => broker.start(resolve));
++	});
++
++	afterEach(() => {
++		for (const client of clients.splice(0)) client.disconnect();
++		broker.shutdown();
++		rmSync(agentDir, { recursive: true, force: true });
++	});
++
++	async function connect(name: string): Promise<RoundtableClient> {
++		const client = new RoundtableClient(name, socketPath);
++		await client.connect();
++		clients.push(client);
++		return client;
++	}
++
++	it("registers, joins, posts, and fetches across two clients", async () => {
++		const planner = await connect("planner");
++		const critic = await connect("critic");
++
++		await planner.join("design", "rate limiter");
++		await critic.join("design");
++
++		const posted = await planner.post("design", "Proposal: GCRA locally");
++		expect(posted.seq).toBe(1);
++
++		const { messages, lastSeq } = await critic.fetch("design", 0);
++		expect(lastSeq).toBe(1);
++		expect(messages).toHaveLength(1);
++		expect(messages[0]?.text).toBe("Proposal: GCRA locally");
++		expect(messages[0]?.from.name).toBe("planner");
++	});
++
++	it("pushes tiny activity events to other members only", async () => {
++		const planner = await connect("planner");
++		const critic = await connect("critic");
++		await planner.join("design");
++		await critic.join("design");
++
++		const criticEvents: Array<{ room: string; from: string; seq: number }> = [];
++		const plannerEvents: Array<{ room: string; from: string; seq: number }> = [];
++		critic.onActivity((event) => criticEvents.push(event));
++		planner.onActivity((event) => plannerEvents.push(event));
++
++		await planner.post("design", "hello");
++		await new Promise((resolve) => setTimeout(resolve, 100));
++
++		expect(criticEvents.some((e) => e.room === "design" && e.from === "planner" && e.seq === 1)).toBe(true);
++		expect(plannerEvents.filter((e) => e.seq === 1)).toHaveLength(0);
++	});
++
++	it("persists read cursors across reconnects by member name", async () => {
++		const planner = await connect("planner");
++		await planner.join("design");
++		await planner.post("design", "one");
++		await planner.post("design", "two");
++		await planner.setCursor("design", 2);
++
++		planner.disconnect();
++		const reborn = await connect("planner");
++		const { cursor } = await reborn.join("design");
++		expect(cursor).toBe(2);
++	});
++
++	it("rejects posting to a room the session has not joined", async () => {
++		const outsider = await connect("outsider");
++		await expect(outsider.post("nowhere", "hi")).rejects.toThrow(/does not exist|join it first/);
++	});
++});
+diff --git a/test/unit/roundtable-digest.test.ts b/test/unit/roundtable-digest.test.ts
+new file mode 100644
+index 0000000..ee6dc39
+--- /dev/null
++++ b/test/unit/roundtable-digest.test.ts
+@@ -0,0 +1,73 @@
++import { describe, expect, it } from "vitest";
++import { buildDigest } from "../../packages/roundtable/digest.ts";
++import type { RoomMessage } from "../../packages/roundtable/types.ts";
++
++function message(seq: number, text: string, name = "agent"): RoomMessage {
++	return {
++		id: `id-${seq}`,
++		seq,
++		timestamp: 1_700_000_000_000 + seq * 1000,
++		room: "design",
++		from: { sessionId: `session-${name}`, name },
++		text,
++	};
++}
++
++describe("roundtable digest", () => {
++	it("returns an empty digest for no messages", () => {
++		const digest = buildDigest([]);
++		expect(digest.total).toBe(0);
++		expect(digest.consumedSeq).toBe(0);
++		expect(digest.text).toBe("No new messages.");
++	});
++
++	it("shows few short messages verbatim", () => {
++		const digest = buildDigest([message(1, "hello"), message(2, "world")]);
++		expect(digest.verbatim).toBe(2);
++		expect(digest.headlines).toBe(0);
++		expect(digest.collapsed).toBe(0);
++		expect(digest.consumedSeq).toBe(2);
++		expect(digest.text).toContain("hello");
++		expect(digest.text).toContain("world");
++	});
++
++	it("renders chronologically but budgets newest-first", () => {
++		const messages = [
++			message(1, "oldest message that is fairly long ".repeat(20)),
++			message(2, "middle message"),
++			message(3, "newest message"),
++		];
++		const digest = buildDigest(messages, { budget: 300 });
++		const newestIndex = digest.text.indexOf("newest message");
++		expect(newestIndex).toBeGreaterThan(-1);
++		// Newest survives verbatim; the long oldest is demoted or collapsed.
++		expect(digest.verbatim).toBeGreaterThanOrEqual(1);
++		expect(digest.total).toBe(3);
++		const middleIndex = digest.text.indexOf("middle message");
++		if (middleIndex !== -1) expect(middleIndex).toBeLessThan(newestIndex);
++	});
++
++	it("never exceeds budget plus one collapse marker line", () => {
++		const messages = Array.from({ length: 60 }, (_, i) => message(i + 1, `message ${i + 1}: ${"x".repeat(400)}`));
++		const budget = 1500;
++		const digest = buildDigest(messages, { budget });
++		// Collapse marker line is the only allowance beyond the budget.
++		const markerAllowance = 120;
++		expect(digest.chars).toBeLessThanOrEqual(budget + markerAllowance);
++		expect(digest.collapsed).toBeGreaterThan(0);
++		expect(digest.consumedSeq).toBe(60);
++	});
++
++	it("caps oversized single messages with a truncation marker", () => {
++		const digest = buildDigest([message(1, "y".repeat(5000))], { budget: 2000, perMessageCap: 300 });
++		expect(digest.chars).toBeLessThanOrEqual(2000);
++		expect(digest.text).toContain("chars)");
++	});
++
++	it("collapses everything to a count line under a tiny budget", () => {
++		const messages = Array.from({ length: 30 }, (_, i) => message(i + 1, `msg ${i}: ${"z".repeat(200)}`));
++		const digest = buildDigest(messages, { budget: 200 });
++		expect(digest.collapsed).toBeGreaterThan(0);
++		expect(digest.text).toMatch(/collapsed/);
++	});
++});
+diff --git a/test/unit/roundtable-extension-surface.test.ts b/test/unit/roundtable-extension-surface.test.ts
+new file mode 100644
+index 0000000..97c4baf
+--- /dev/null
++++ b/test/unit/roundtable-extension-surface.test.ts
+@@ -0,0 +1,10 @@
++import { describe, expect, it } from "vitest";
++import roundtableExtension from "../../packages/roundtable/index.ts";
++import { registerRoundtableTool } from "../../packages/roundtable/roundtable-tool.ts";
++
++describe("roundtable extension surface", () => {
++	it("exports an extension entry point and tool registrar", () => {
++		expect(typeof roundtableExtension).toBe("function");
++		expect(typeof registerRoundtableTool).toBe("function");
++	});
++});
+diff --git a/test/unit/roundtable-room-store.test.ts b/test/unit/roundtable-room-store.test.ts
+new file mode 100644
+index 0000000..0225c3f
+--- /dev/null
++++ b/test/unit/roundtable-room-store.test.ts
+@@ -0,0 +1,88 @@
++import { describe, expect, it } from "vitest";
++import { RoomStore } from "../../packages/roundtable/broker/room-store.ts";
++
++const alice = { sessionId: "s-alice", name: "alice" };
++const bob = { sessionId: "s-bob", name: "bob" };
++
++describe("roundtable room store", () => {
++	it("creates a room on first join and tracks members", () => {
++		const store = new RoomStore();
++		const { room, cursor } = store.join("design", alice, "topic");
++		expect(room.name).toBe("design");
++		expect(room.topic).toBe("topic");
++		expect(room.members).toHaveLength(1);
++		expect(cursor).toBe(0);
++	});
++
++	it("assigns monotonic per-room sequence numbers", () => {
++		const store = new RoomStore();
++		store.join("design", alice);
++		store.join("design", bob);
++		const first = store.post("design", alice, "one");
++		const second = store.post("design", bob, "two");
++		expect(first.seq).toBe(1);
++		expect(second.seq).toBe(2);
++	});
++
++	it("rejects posts from non-members", () => {
++		const store = new RoomStore();
++		store.join("design", alice);
++		expect(() => store.post("design", bob, "hi")).toThrow(/join it first/);
++	});
++
++	it("fetch returns only messages after the given seq", () => {
++		const store = new RoomStore();
++		store.join("design", alice);
++		store.post("design", alice, "one");
++		store.post("design", alice, "two");
++		store.post("design", alice, "three");
++		const { messages, lastSeq } = store.fetch("design", 1);
++		expect(messages.map((m) => m.text)).toEqual(["two", "three"]);
++		expect(lastSeq).toBe(3);
++	});
++
++	it("keeps cursors per member name and marks own posts read", () => {
++		const store = new RoomStore();
++		store.join("design", alice);
++		store.join("design", bob);
++		store.post("design", alice, "from alice");
++		expect(store.getCursor("design", "alice")).toBe(1);
++		expect(store.getCursor("design", "bob")).toBe(0);
++		store.setCursor("design", "bob", 1);
++		expect(store.getCursor("design", "bob")).toBe(1);
++	});
++
++	it("cursor survives reconnect because it is keyed by name", () => {
++		const store = new RoomStore();
++		store.join("design", alice);
++		store.post("design", alice, "one");
++		store.evictSession(alice.sessionId);
++		const rejoined = store.join("design", { sessionId: "s-alice-2", name: "alice" });
++		expect(rejoined.cursor).toBe(1);
++	});
++
++	it("cursor cannot exceed lastSeq or move backwards", () => {
++		const store = new RoomStore();
++		store.join("design", alice);
++		store.post("design", alice, "one");
++		expect(store.setCursor("design", "alice", 99)).toBe(1);
++		expect(store.setCursor("design", "alice", 0)).toBe(1);
++	});
++
++	it("drops oldest messages beyond capacity ring-buffer style", () => {
++		const store = new RoomStore(3);
++		store.join("design", alice);
++		for (let i = 1; i <= 5; i++) store.post("design", alice, `msg ${i}`);
++		const { messages } = store.fetch("design", 0);
++		expect(messages.map((m) => m.text)).toEqual(["msg 3", "msg 4", "msg 5"]);
++	});
++
++	it("evicts a session from all rooms on disconnect", () => {
++		const store = new RoomStore();
++		store.join("design", alice);
++		store.join("infra", alice);
++		store.post("design", alice, "keep room alive");
++		const left = store.evictSession(alice.sessionId);
++		expect(left.sort()).toEqual(["design", "infra"]);
++	});
++});
+diff --git a/tsconfig.json b/tsconfig.json
+index c419409..eb4468c 100644
+--- a/tsconfig.json
++++ b/tsconfig.json
+@@ -32,12 +32,15 @@
+             "@bastani/web-access": ["./packages/web-access/index.ts"],
+             "@bastani/web-access/*": ["./packages/web-access/*"],
+             "@bastani/intercom": ["./packages/intercom/index.ts"],
+-            "@bastani/intercom/*": ["./packages/intercom/*"]
++            "@bastani/intercom/*": ["./packages/intercom/*"],
++            "@bastani/roundtable": ["./packages/roundtable/index.ts"],
++            "@bastani/roundtable/*": ["./packages/roundtable/*"]
+         }
+     },
+     "include": [
+         "packages/coding-agent/src/**/*.d.ts",
+         "packages/workflows/**/*",
++        "packages/roundtable/**/*",
+         "test/**/*",
+         "examples/**/*",
+         ".atomic/workflows/**/*"
+-- 
+2.34.1
+
