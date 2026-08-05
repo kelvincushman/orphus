@@ -113,10 +113,10 @@ git am path/to/orphus/patches/atomic/*.patch
 bun install && bun run typecheck
 ```
 
-Two patches, applied in order: `0001` adds the full `packages/roundtable`
+Three patches, applied in order: `0001` adds the full `packages/roundtable`
 package with 20 repo-root tests and tsconfig wiring; `0002` is the complete
 Orphus rebrand (terminal branding, `orphus` binary, `/orphus` guide command,
-`ORPHUS_*` env vars, `.orphus` config dir — with Atomic and Pi manifests,
+`ORPHUS_*` env vars, `.orphus` config dir, and the ORPHUS wordmark startup banner (`0003`) — with Atomic and Pi manifests,
 config dirs, and env names still accepted as legacy fallbacks). Verified
 against atomic `d84fc43`: strict typecheck clean, ~5,000 unit tests passing.
 
