@@ -16,24 +16,33 @@ interface ConnectedSession {
 }
 
 const SHUTDOWN_GRACE_MS = 5000;
+const PROBE_TIMEOUT_MS = 1000;
 
 type SocketProbe = "live" | "missing" | "stale";
 
 function probeSocket(socketPath: string): Promise<SocketProbe> {
   return new Promise((resolve, reject) => {
     const socket = net.createConnection(socketPath);
-    socket.once("connect", () => {
+    let settled = false;
+    const finish = (result: SocketProbe | Error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
       socket.destroy();
-      resolve("live");
+      if (result instanceof Error) reject(result);
+      else resolve(result);
+    };
+    const timer = setTimeout(() => finish("live"), PROBE_TIMEOUT_MS);
+    socket.once("connect", () => {
+      finish("live");
     });
     socket.once("error", (error: NodeJS.ErrnoException) => {
-      socket.destroy();
       if (error.code === "ENOENT") {
-        resolve("missing");
+        finish("missing");
       } else if (error.code === "ECONNREFUSED") {
-        resolve("stale");
+        finish("stale");
       } else {
-        reject(error);
+        finish(error);
       }
     });
   });
@@ -51,6 +60,9 @@ export class RoundtableBroker {
   private ownsSocket = false;
   private shuttingDown = false;
   private readonly handleSignal = () => this.shutdown();
+  private readonly handleServerError = (error: Error) => {
+    if (!this.shuttingDown) console.error(`Roundtable broker server error: ${error.message}`);
+  };
 
   constructor(
     private socketPath: string = getBrokerSocketPath(),
@@ -82,6 +94,7 @@ export class RoundtableBroker {
       };
       const handleListening = () => {
         this.server.off("error", handleError);
+        this.server.on("error", this.handleServerError);
         try {
           this.ownsSocket = true;
           writeFileSync(this.pidPath, String(process.pid));
@@ -110,6 +123,7 @@ export class RoundtableBroker {
     }
     process.off("SIGTERM", this.handleSignal);
     process.off("SIGINT", this.handleSignal);
+    this.server.off("error", this.handleServerError);
     for (const session of this.sessions.values()) session.socket.destroy();
     this.sessions.clear();
     if (this.server.listening) this.server.close();

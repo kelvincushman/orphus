@@ -32,8 +32,15 @@ describe("roundtable digest", () => {
 	});
 
 	it("renders timestamps in UTC", () => {
-		const atUtc = { ...message(1, "utc"), timestamp: Date.UTC(2026, 0, 2, 3, 4) };
-		expect(buildDigest([atUtc]).text).toContain("[03:04]");
+		const previousTz = process.env.TZ;
+		process.env.TZ = "America/Los_Angeles";
+		try {
+			const atUtc = { ...message(1, "utc"), timestamp: Date.UTC(2026, 0, 2, 3, 4) };
+			expect(buildDigest([atUtc]).text).toContain("[03:04]");
+		} finally {
+			if (previousTz === undefined) delete process.env.TZ;
+			else process.env.TZ = previousTz;
+		}
 	});
 
 	it("renders chronologically but budgets newest-first", () => {
@@ -79,8 +86,8 @@ describe("roundtable digest", () => {
 	it("clamps finite budgets and falls back for non-finite values", () => {
 		const messages = Array.from({ length: 50 }, (_, i) => message(i + 1, "x".repeat(500)));
 		const clamped = buildDigest(messages, { budget: MAX_DIGEST_BUDGET * 10 });
-		expect(clamped.chars).toBeLessThanOrEqual(MAX_DIGEST_BUDGET + 120);
+		expect(clamped).toEqual(buildDigest(messages, { budget: MAX_DIGEST_BUDGET }));
 		const fallback = buildDigest(messages, { budget: Number.POSITIVE_INFINITY });
-		expect(fallback.chars).toBeLessThanOrEqual(2000 + 120);
+		expect(fallback).toEqual(buildDigest(messages));
 	});
 });

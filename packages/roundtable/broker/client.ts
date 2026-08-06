@@ -135,6 +135,7 @@ export class RoundtableClient {
         socket.once("error", onError);
         socket.once("close", onClose);
       });
+      connected.catch(() => {});
       await Promise.race([connected, cancelled]);
 
       this.write({ type: "register", name: this.name, pid: process.pid, cwd: process.cwd() });

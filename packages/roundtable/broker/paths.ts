@@ -46,6 +46,17 @@ export function getBrokerPidPath(agentDir: string = getAgentDir()): string {
   return join(getRoundtableDirPath(agentDir), "broker.pid");
 }
 
+/** Keep custom broker ownership separate from the default broker pid file. */
+export function getBrokerPidPathForSocket(
+  socketPath: string,
+  platform: NodeJS.Platform = process.platform,
+  agentDir: string = getAgentDir(),
+): string {
+  if (platform !== "win32") return `${socketPath}.pid`;
+  const digest = createHash("sha256").update(socketPath.toLowerCase()).digest("hex").slice(0, 12);
+  return join(getRoundtableDirPath(agentDir), `broker-${digest}.pid`);
+}
+
 export function getBrokerSocketPath(
   platform: NodeJS.Platform = process.platform,
   agentDir: string = getAgentDir(),
@@ -58,7 +69,7 @@ export function getBrokerSocketPath(
     const normalized = win32.normalize(agentDir);
     const root = win32.parse(normalized).root;
     const canonical = normalized.length > root.length ? normalized.replace(/[\\/]+$/, "") : normalized;
-    const digest = createHash("sha256").update(canonical).digest("hex").slice(0, 12);
+    const digest = createHash("sha256").update(canonical.toLowerCase()).digest("hex").slice(0, 12);
     const readable = sanitizePipeSegment(canonical).slice(0, 64);
     return `\\\\.\\pipe\\atomic-roundtable-${readable}-${digest}`;
   }
