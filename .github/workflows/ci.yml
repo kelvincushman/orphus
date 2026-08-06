@@ -13,6 +13,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Manual re-run, for when GitHub drops a push trigger (as it did for d9ad9814).
+  workflow_dispatch:
 
 permissions:
   contents: read
