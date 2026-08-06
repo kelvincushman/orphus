@@ -1,4 +1,5 @@
-import { mkdtempSync, rmSync, writeFileSync } from "fs";
+import { spawnSync } from "child_process";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -138,6 +139,56 @@ describe("plan formats", () => {
 			// The bare footer text must never appear outside single quotes.
 			expect(script).not.toMatch(/--append-system-prompt You are the/);
 		}
+	});
+});
+
+// The tmux script is piped straight to `sh` (`orphus-roles --format tmux | sh`),
+// and --session-name is unvalidated operator input, so a crafted name must not
+// be able to inject a command. These run the real generated script with a stub
+// `tmux` on PATH (so `set -e` does not abort before the trailing echo) and assert
+// no injected side effect fires.
+describe("tmux script injection safety", () => {
+	function withStubTmux(): string {
+		const binDir = join(dir, "bin");
+		mkdirSync(binDir, { recursive: true });
+		const tmux = join(binDir, "tmux");
+		writeFileSync(tmux, "#!/bin/sh\nexit 0\n");
+		chmodSync(tmux, 0o755);
+		return binDir;
+	}
+
+	function runScript(script: string, binDir: string) {
+		const scriptPath = join(dir, "launch.sh");
+		writeFileSync(scriptPath, script);
+		return spawnSync("sh", [scriptPath], {
+			cwd: dir,
+			env: { ...process.env, PATH: `${binDir}:${process.env.PATH ?? ""}` },
+			encoding: "utf8",
+		});
+	}
+
+	it("blocks command injection through the echo line's session name", () => {
+		const binDir = withStubTmux();
+		const marker = join(dir, "PWNED");
+		const script = formatPlan(plan(), "tmux", { sessionName: `x'; touch ${marker}; echo '` });
+		const result = runScript(script, binDir);
+		expect(result.status).toBe(0);
+		expect(existsSync(marker)).toBe(false);
+	});
+
+	it("blocks command injection through a newline in the session name", () => {
+		const binDir = withStubTmux();
+		const marker = join(dir, "PWNED2");
+		const script = formatPlan(plan(), "tmux", { sessionName: `a\ntouch ${marker}` });
+		const result = runScript(script, binDir);
+		expect(result.status).toBe(0);
+		expect(existsSync(marker)).toBe(false);
+	});
+
+	it("produces a syntactically valid script for a name with an apostrophe", () => {
+		const script = formatPlan(plan(), "tmux", { sessionName: "O'Brien" });
+		const check = spawnSync("sh", ["-n"], { input: script, encoding: "utf8" });
+		expect(check.status).toBe(0);
 	});
 });
 

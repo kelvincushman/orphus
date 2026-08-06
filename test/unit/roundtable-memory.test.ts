@@ -16,17 +16,27 @@ import { registerMemoryTool } from "../../packages/roundtable/memory-tool.ts";
 let dir: string;
 let stub: string;
 
-// A stub that stands in for `python -m dossier`: it prints the argv and cwd it
-// received as JSON, and fails loudly when the first arg is "boom". Running the
-// whole memory path against it proves argv, cwd, and exit handling end to end
-// without Python or a wiki on disk.
+// A stub that stands in for `python -m dossier`. Running the whole memory path
+// against it proves argv, cwd, and exit handling end to end without Python or a
+// wiki on disk. Special first args exercise the failure modes the review found:
+//   boom     — exit 3 with stderr
+//   selfkill — die by signal (close fires with code=null)
+//   split    — write one UTF-8 char as two separate byte writes across chunks
 const STUB = `#!/usr/bin/env node
 const args = process.argv.slice(2);
 if (args[0] === "boom") {
 	process.stderr.write("stub failure");
 	process.exit(3);
+} else if (args[0] === "selfkill") {
+	process.kill(process.pid, "SIGKILL");
+} else if (args[0] === "split") {
+	// "日" is E6 97 A5; writing byte 1 then bytes 2-3 separately (with a gap to
+	// force two 'data' events) splits the sequence across chunk boundaries.
+	process.stdout.write(Buffer.from([0xe6]));
+	setTimeout(() => process.stdout.write(Buffer.from([0x97, 0xa5])), 15);
+} else {
+	process.stdout.write(JSON.stringify({ args, cwd: process.cwd() }));
 }
-process.stdout.write(JSON.stringify({ args, cwd: process.cwd() }));
 `;
 
 beforeEach(() => {
@@ -133,6 +143,22 @@ describe("runDossier against a stub backend", () => {
 		const result = await runDossier(stubConfig(), ["boom"]);
 		expect(result.code).toBe(3);
 		expect(result.stderr).toContain("stub failure");
+	});
+
+	// A signal-killed backend (OOM, SIGSEGV) fires close with code=null. Collapsing
+	// that to 0 would read as a successful empty answer; it must be a failure.
+	it("reports a signal-terminated backend as a non-zero failure", async () => {
+		const result = await runDossier(stubConfig(), ["selfkill"]);
+		expect(result.code).not.toBe(0);
+		expect(result.stderr).toMatch(/signal/i);
+	});
+
+	// A multi-byte character split across two chunks must not decode to U+FFFD.
+	it("decodes multi-byte UTF-8 that straddles a chunk boundary", async () => {
+		const result = await runDossier(stubConfig(), ["split"]);
+		expect(result.code).toBe(0);
+		expect(result.stdout).toBe("日");
+		expect(result.stdout).not.toContain("�");
 	});
 
 	it("rejects when the backend command is missing", async () => {

@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { homedir } from "os";
 import { join } from "path";
 
@@ -50,7 +51,12 @@ export function getBrokerSocketPath(
   agentDir: string = getAgentDir(),
 ): string {
   if (platform === "win32") {
-    return `\\\\.\\pipe\\atomic-roundtable-${sanitizePipeSegment(agentDir)}`;
+    // sanitizePipeSegment is many-to-one (it collapses punctuation/case), so on
+    // its own it would collide distinct agent dirs — e.g. team.one and team_one —
+    // onto one machine-global pipe. Append a hash of the full path for uniqueness;
+    // the sanitized part stays for human readability.
+    const digest = createHash("sha256").update(agentDir).digest("hex").slice(0, 12);
+    return `\\\\.\\pipe\\atomic-roundtable-${sanitizePipeSegment(agentDir)}-${digest}`;
   }
   return join(getRoundtableDirPath(agentDir), "broker.sock");
 }

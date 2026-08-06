@@ -85,3 +85,23 @@ describe("roundtable broker and client over a real socket", () => {
 		await expect(outsider.post("nowhere", "hi")).rejects.toThrow(/does not exist|join it first/);
 	});
 });
+
+// The Windows named-pipe name derives from the agent dir. A lossy sanitizer
+// would collide distinct dirs onto one machine-global pipe; the name must be
+// unique per full path.
+describe("windows broker pipe naming", () => {
+	it("gives distinct agent dirs distinct pipe names despite punctuation/case", () => {
+		const names = [
+			"C:\\agents\\team.one",
+			"C:\\agents\\team_one",
+			"C:\\agents\\team-one",
+			"C:\\agents\\Team.One",
+		].map((d) => getBrokerSocketPath("win32", d));
+		expect(new Set(names).size).toBe(names.length);
+		for (const name of names) expect(name.startsWith("\\\\.\\pipe\\atomic-roundtable-")).toBe(true);
+	});
+
+	it("is deterministic for the same agent dir", () => {
+		expect(getBrokerSocketPath("win32", "C:\\agents\\x")).toBe(getBrokerSocketPath("win32", "C:\\agents\\x"));
+	});
+});

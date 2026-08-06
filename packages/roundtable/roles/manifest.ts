@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "fs";
+import { accessSync, constants, existsSync, readFileSync, statSync } from "fs";
 import { dirname, isAbsolute, resolve } from "path";
 import { parse as parseYaml } from "yaml";
 import { RoleManifestError, type RoleBudgets, type RoleManifest, type RoleSpec } from "./types.ts";
@@ -21,6 +21,24 @@ const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]*$/i;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Reject any key not in `allowed`. A misspelled OPTIONAL key (worktree, cwd,
+ * brief, a per-role room, a budget) would otherwise be silently dropped and its
+ * default substituted, emitting a launch command that quietly ignores intent.
+ */
+function rejectUnknownKeys(
+  raw: Record<string, unknown>,
+  allowed: readonly string[],
+  manifestPath: string,
+  prefix: string,
+): void {
+  for (const key of Object.keys(raw)) {
+    if (!allowed.includes(key)) {
+      fail(manifestPath, prefix ? `${prefix}.${key}` : key, `unknown key; allowed here: ${allowed.join(", ")}`);
+    }
+  }
 }
 
 function fail(manifestPath: string, keyPath: string, problem: string): never {
@@ -61,6 +79,7 @@ function parsePositiveInt(value: unknown, manifestPath: string, keyPath: string,
 function parseBudgets(raw: unknown, manifestPath: string): RoleBudgets {
   if (raw === undefined) return { digest: DEFAULT_DIGEST_BUDGET, perMessage: DEFAULT_PER_MESSAGE_CAP };
   if (!isRecord(raw)) fail(manifestPath, "budgets", `expected a map, got ${describe(raw)}`);
+  rejectUnknownKeys(raw, ["digest", "perMessage"], manifestPath, "budgets");
   return {
     digest: parsePositiveInt(raw.digest, manifestPath, "budgets.digest", DEFAULT_DIGEST_BUDGET),
     perMessage: parsePositiveInt(raw.perMessage, manifestPath, "budgets.perMessage", DEFAULT_PER_MESSAGE_CAP),
@@ -74,6 +93,7 @@ function resolveFrom(dir: string, path: string): string {
 function parseRole(name: string, raw: unknown, manifestPath: string, dir: string, defaultRoom: string): RoleSpec {
   const keyPath = `roles.${name}`;
   if (!isRecord(raw)) fail(manifestPath, keyPath, `expected a map of role settings, got ${describe(raw)}`);
+  rejectUnknownKeys(raw, ["provider", "model", "room", "cwd", "worktree", "brief"], manifestPath, keyPath);
 
   const spec: RoleSpec = {
     name: requireName(name, manifestPath, `${keyPath} (role name)`),
@@ -88,11 +108,16 @@ function parseRole(name: string, raw: unknown, manifestPath: string, dir: string
   if (raw.brief === undefined) return spec;
 
   const briefPath = resolveFrom(dir, requireString(raw.brief, manifestPath, `${keyPath}.brief`));
-  // A missing brief is not a soft failure downstream: --append-system-prompt
-  // treats an unreadable path as literal prompt text, so a typo would quietly
-  // become the role's system prompt instead of erroring.
-  if (!existsSync(briefPath)) {
-    fail(manifestPath, `${keyPath}.brief`, `file not found: ${briefPath}`);
+  // A bad brief path is not a soft failure downstream: --append-system-prompt
+  // treats an unreadable path as literal prompt text, so a typo (or a directory,
+  // or an unreadable file) would quietly become the role's system prompt instead
+  // of erroring. existsSync alone is not enough — it is true for a directory.
+  if (!existsSync(briefPath)) fail(manifestPath, `${keyPath}.brief`, `file not found: ${briefPath}`);
+  if (!statSync(briefPath).isFile()) fail(manifestPath, `${keyPath}.brief`, `not a regular file: ${briefPath}`);
+  try {
+    accessSync(briefPath, constants.R_OK);
+  } catch {
+    fail(manifestPath, `${keyPath}.brief`, `not readable: ${briefPath}`);
   }
   return { ...spec, briefPath };
 }
@@ -110,6 +135,7 @@ export function parseRoleManifest(text: string, manifestPath: string): RoleManif
   }
 
   if (!isRecord(raw)) fail(path, "(document)", `expected a map at the top level, got ${describe(raw)}`);
+  rejectUnknownKeys(raw, ["task", "room", "roles", "budgets"], path, "");
 
   const task = requireName(raw.task, path, "task");
   const room = requireName(raw.room, path, "room");

@@ -32,14 +32,13 @@ export function runDossier(
       ...(signal ? { signal } : {}),
     });
 
-    let stdout = "";
-    let stderr = "";
-    child.stdout?.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr?.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
+    // Collect raw Buffers and decode ONCE at the end. Decoding each chunk as it
+    // arrives would split a multi-byte UTF-8 sequence that straddles a chunk
+    // boundary into U+FFFD — routine for a Python backend flushing incrementally.
+    const outChunks: Buffer[] = [];
+    const errChunks: Buffer[] = [];
+    child.stdout?.on("data", (chunk: Buffer) => outChunks.push(chunk));
+    child.stderr?.on("data", (chunk: Buffer) => errChunks.push(chunk));
 
     // ENOENT (backend not installed) and abort both arrive as 'error'; a normal
     // run ends in 'close'. Guard so a late 'close' after 'error' cannot double-settle.
@@ -48,10 +47,20 @@ export function runDossier(
       settled = true;
       reject(error);
     });
-    child.once("close", (code) => {
+    child.once("close", (code, killSignal) => {
       if (settled) return;
       settled = true;
-      resolve({ code: code ?? 0, stdout, stderr });
+      const stdout = Buffer.concat(outChunks).toString("utf8");
+      let stderr = Buffer.concat(errChunks).toString("utf8");
+      // A signal-terminated child (OOM kill, SIGSEGV) reports code=null. Collapsing
+      // that to 0 would read as success; surface it as a non-zero failure instead.
+      if (code === null) {
+        const note = `process terminated by signal ${killSignal ?? "unknown"}`;
+        stderr = stderr.trim() ? `${stderr}\n${note}` : note;
+        resolve({ code: 1, stdout, stderr });
+        return;
+      }
+      resolve({ code, stdout, stderr });
     });
   });
 }

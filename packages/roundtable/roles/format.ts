@@ -85,7 +85,10 @@ function renderTmux(plan: LaunchPlan, sessionName: string): string {
     "#!/bin/sh",
     "set -e",
     `# Orphus roundtable — task "${plan.task}", room #${plan.room}`,
-    `# Run it, then: tmux attach -t ${sessionName}`,
+    // sessionName is unvalidated operator input (--session-name), so it is never
+    // interpolated raw: a quote or newline would break or inject the piped-to-sh
+    // script. The attach command is printed by the quoted echo on the last line.
+    "# Run it, then attach with the command printed on the last line.",
     "",
   ];
   plan.launches.forEach((launch, index) => {
@@ -101,7 +104,7 @@ function renderTmux(plan: LaunchPlan, sessionName: string): string {
       );
     }
   });
-  lines.push("", `echo 'roundtable up — tmux attach -t ${sessionName}'`);
+  lines.push("", `echo ${shellQuote(`roundtable up — tmux attach -t ${sessionName}`)}`);
   return lines.join("\n");
 }
 

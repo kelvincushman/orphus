@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -153,5 +153,47 @@ roles:
 		writeFileSync(manifestPath(), MINIMAL);
 		expect(loadRoleManifest(manifestPath()).task).toBe("demo");
 		expect(() => loadRoleManifest(join(dir, "nope.yaml"))).toThrow(/manifest not found/);
+	});
+
+	// existsSync is true for a directory, which would then become the role's
+	// literal system prompt via --append-system-prompt. The brief must be a file.
+	it("rejects a brief that resolves to a directory", () => {
+		mkdirSync(join(dir, "briefs"));
+		expect(() =>
+			parseRoleManifest(
+				`
+task: demo
+room: design
+roles:
+  planner: { provider: anthropic, model: claude-opus, brief: briefs }
+`,
+				manifestPath(),
+			),
+		).toThrow(/roles\.planner\.brief — not a regular file/);
+	});
+
+	// A misspelled OPTIONAL key would otherwise be silently dropped and the
+	// default substituted, emitting a launch command that ignores the intent.
+	it("rejects an unknown per-role key (e.g. a misspelled worktree)", () => {
+		expect(() =>
+			parseRoleManifest(
+				`
+task: demo
+room: design
+roles:
+  critic: { provider: xai, model: grok, wroktree: name:critic }
+`,
+				manifestPath(),
+			),
+		).toThrow(/roles\.critic\.wroktree — unknown key/);
+	});
+
+	it("rejects an unknown top-level key and an unknown budgets key", () => {
+		expect(() => parseRoleManifest(`${MINIMAL}\nbudgts:\n  digest: 100\n`, manifestPath())).toThrow(
+			/budgts — unknown key/,
+		);
+		expect(() => parseRoleManifest(`${MINIMAL}\nbudgets:\n  diges: 100\n`, manifestPath())).toThrow(
+			/budgets\.diges — unknown key/,
+		);
 	});
 });
