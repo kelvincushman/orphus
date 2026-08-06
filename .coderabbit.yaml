@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit config for Orphus. This file is inert until the CodeRabbit GitHub
+# App is installed on the repository (github.com/apps/coderabbitai) — installing
+# it is an account-level authorization the repo owner must grant; a config file
+# alone does nothing.
+#
+# Scope: Orphus is a fork of a large vendored Atomic/Pi tree. Reviewing all of
+# it would bury the signal, so path_filters focus CodeRabbit on the code this
+# project actually authors. Widen the list when you start working on the
+# harness itself.
+language: en-US
+
+tone_instructions: >-
+  Be direct and technical. Prioritize correctness, security, and the
+  context-window contract over style. Do not flag 2-space indentation in
+  packages/roundtable — those files ship as raw TypeScript and sit outside
+  biome's include set on purpose.
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  review_status: true
+  poem: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+
+  # Focus on Orphus-authored surfaces; skip the vendored upstream and generated files.
+  path_filters:
+    - "packages/roundtable/**"
+    - "test/unit/roundtable-*.test.ts"
+    - "docs/**"
+    - "roles/**"
+    - "orphus.roles.yaml"
+    - ".github/workflows/ci.yml"
+    - "!**/*.generated.ts"
+    - "!**/node_modules/**"
+
+  path_instructions:
+    - path: "packages/roundtable/**"
+      instructions: >-
+        The Orphus contribution on top of a vendored Atomic fork. Enforce the
+        context-window contract: digests must stay deterministic and bounded
+        (no model in the digest path); memory reads happen only via an explicit
+        tool call (never pushed through pings or digests); memory writes are
+        gated to the single librarian role. Flag any shell-quoting gap in the
+        role-launcher formatters (roles/format.ts) — a mis-quoted footer
+        silently changes a launched agent's instructions. Do not suggest adding
+        a build step; these packages distribute raw .ts.
+    - path: "test/unit/roundtable-*.test.ts"
+      instructions: >-
+        Watch for assertions that can never fail and for behaviors claimed in
+        code comments or commit messages that no test actually covers.
+
+chat:
+  auto_reply: true
