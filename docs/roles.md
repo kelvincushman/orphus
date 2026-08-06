@@ -64,6 +64,12 @@ options. Post findings as conclusions with file references, never raw dumps."
 **critic.md** — "You attack proposals: edge cases, failure modes, unstated
 assumptions. A proposal you cannot break earns an explicit pass."
 
+**librarian** *(phase 3)* — the only role allowed to write long-term memory:
+it ingests concluded room transcripts into the
+[Dossier wiki](memory.md) and runs the consolidation pass. Every other role
+queries read-only. One writer is what keeps shared memory free of write
+contention and gives every memory change a single accountable diff.
+
 ## The role manifest
 
 Writing those command lines by hand is how a deliberation stops being

@@ -66,8 +66,9 @@ Two axes, both gated by evidence, never self-report:
 - **Axis 1, skills/prompts (continuous, low risk):** after each workflow run, retrospective agents join `#retro-<runId>`, deliberate over the run's evidence (verifier verdicts, repair counts), and propose diffs to skills and prompt files. Proposals are verified by Atomic's builtin adversarial-verification workflow against skill evals, then human-gated.
 - **Axis 2, harness code (gated, high risk):** same loop targeting the Orphus repo itself. The proposing agent never verifies itself — a fresh-context verifier derives checks from the design contract (e.g. "digest never exceeds budget + one marker line") and runs the test suite. Mechanical rubric: typecheck + tests + file:line-evidenced review. Human approval merges.
 - **Bootstrap demonstration that closes the loop:** ask the improvement workflow to reduce digest cost at equal information; it edits the digest algorithm, reruns tests and demo, reports before/after metrics; you review the diff with metrics attached. Each accepted iteration is a chapter artifact.
+- **Long-term memory ([HMLR-Wiki / Dossier](https://github.com/kelvincushman/HMLR-Wiki)):** the durable layer the loop writes into. Rooms stay ephemeral working memory; Dossier holds compiled knowledge from past deliberations. Contract in [docs/memory.md](docs/memory.md): reads only via the explicit-fetch tier (never pings or digests, so the provable bound stays clean), a single `librarian` role owns ingest and the gardener pass, room transcripts ingest post-task, and every memory write is a reviewable markdown diff — which makes retro conclusions book evidence for free. Integration shells out to the benchmarked Python (`python -m dossier`) rather than porting it.
 
-Exit criteria: one accepted self-authored improvement to skills, and one to harness code, with full evidence trails.
+Exit criteria: one accepted self-authored improvement to skills, and one to harness code, with full evidence trails; a `memory` tool wired per the contract, with one room transcript ingested and queryable.
 
 ### Phase 4 — Book and public demo
 

@@ -44,3 +44,11 @@ Bootstrap sequence that demonstrably closes the loop:
 
 Each accepted iteration becomes a chapter artifact: the diff, the metrics, the
 verifier transcript — the book writes itself from the evidence trail.
+
+## Where the learning goes
+
+Retro conclusions must outlive the room they were reached in. The durable layer
+is [HMLR-Wiki / Dossier](memory.md): the `librarian` role ingests the concluded
+`#retro-<runId>` transcript, Dossier compiles it into wiki pages, and those
+markdown diffs are simultaneously the memory write *and* the human-reviewable
+evidence artifact. Rooms stay ephemeral; the wiki accumulates.

@@ -120,7 +120,7 @@ packages/{workflows,subagents,intercom,mcp,web-access,natives}
 orphus.roles.yaml · roles/    Example role manifest and briefs — copy-me templates
 test/unit/roundtable-*        52 tests: digest bound, room store, socket, role launcher
 patches/atomic/               The 0001–0004 series, as applied to upstream `d84fc43`
-docs/                         Orca orchestration, roles, self-improvement loop
+docs/                         Orca orchestration, roles, memory, self-improvement loop
 PLAN.md · DESIGN.md · AGENTS.md
 ```
 
@@ -240,6 +240,14 @@ skills or harness code, an independent verifier derives checks from the design
 contract and runs the tests, and a human gate merges. The bootstrap demonstration:
 ask the loop to reduce digest cost at equal information, and review the diff with
 before/after metrics attached.
+
+The loop writes what it learns into a durable memory layer:
+[HMLR-Wiki / Dossier](https://github.com/kelvincushman/HMLR-Wiki), a wiki-backed,
+RAGAS-benchmarked memory system (also by Kelvin Lee). Rooms stay ephemeral working
+memory; Dossier compiles past deliberations into queryable, git-diffable markdown.
+Memory reads stay in the explicit-fetch tier and a single `librarian` role owns all
+writes, so the context-window bound stays provable. Contract:
+[docs/memory.md](docs/memory.md).
 
 Design: [docs/self-improvement-loop.md](docs/self-improvement-loop.md) · Plan and
 phases: [PLAN.md](PLAN.md)
