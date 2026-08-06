@@ -1,0 +1,11 @@
+import "./package-manager-resolve.suite.ts";
+import "./package-manager-discovery.suite.ts";
+import "./package-manager-extension-sources.suite.ts";
+import "./package-manager-npm-command-install.suite.ts";
+import "./package-manager-npm-command-managed.suite.ts";
+import "./package-manager-source-settings.suite.ts";
+import "./package-manager-patterns.suite.ts";
+import "./package-manager-dedup-multifile.suite.ts";
+import "./package-manager-updates.suite.ts";
+import "./package-manager-offline-resolve.suite.ts";
+import "./package-manager-offline-checks.suite.ts";

@@ -1,0 +1,107 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+	checkForNewPiVersion,
+	comparePackageVersions,
+	getLatestPiRelease,
+	getLatestPiVersion,
+	isDevVersion,
+	isNewerPackageVersion,
+} from "../src/utils/version-check.ts";
+
+const originalSkipVersionCheck = process.env.ORPHUS_SKIP_VERSION_CHECK;
+const originalOffline = process.env.ORPHUS_OFFLINE;
+
+afterEach(() => {
+	vi.restoreAllMocks();
+	vi.unstubAllEnvs();
+	if (originalSkipVersionCheck === undefined) {
+		delete process.env.ORPHUS_SKIP_VERSION_CHECK;
+	} else {
+		process.env.ORPHUS_SKIP_VERSION_CHECK = originalSkipVersionCheck;
+	}
+	if (originalOffline === undefined) {
+		delete process.env.ORPHUS_OFFLINE;
+	} else {
+		process.env.ORPHUS_OFFLINE = originalOffline;
+	}
+});
+
+describe("version checks", () => {
+	it("compares package versions", () => {
+		expect(comparePackageVersions("0.70.6", "0.70.5")).toBeGreaterThan(0);
+		expect(comparePackageVersions("0.70.5", "0.70.5")).toBe(0);
+		expect(comparePackageVersions("0.70.4", "0.70.5")).toBeLessThan(0);
+		expect(comparePackageVersions("5.0.0-beta.20", "5.0.0-beta.9")).toBeGreaterThan(0);
+		expect(isNewerPackageVersion("0.70.5", "0.70.5")).toBe(false);
+		expect(isNewerPackageVersion("0.70.6", "0.70.5")).toBe(true);
+	});
+
+	it("returns only newer versions", async () => {
+		const fetchMock = vi.fn(async () => Response.json({ version: "1.2.3" }));
+		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
+
+		await expect(checkForNewPiVersion("1.2.3")).resolves.toBeUndefined();
+		await expect(checkForNewPiVersion("1.2.2")).resolves.toBe("1.2.3");
+	});
+
+	it("queries the npm registry for the package's latest version", async () => {
+		const fetchMock = vi.fn(async () => Response.json({ name: "@bastani/atomic", version: "1.2.4" }));
+		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
+
+		await expect(getLatestPiVersion()).resolves.toBe("1.2.4");
+		expect(fetchMock).toHaveBeenCalledWith(
+			"https://registry.npmjs.org/@bastani/atomic/latest",
+			expect.objectContaining({
+				headers: expect.objectContaining({
+					accept: "application/json",
+				}),
+			}),
+		);
+	});
+
+	it("returns the package name from the registry response", async () => {
+		const fetchMock = vi.fn(async () => Response.json({ name: "@bastani/atomic", version: "1.2.4" }));
+		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
+
+		await expect(getLatestPiRelease()).resolves.toEqual({ packageName: "@bastani/atomic", version: "1.2.4" });
+	});
+
+	it.each(["ORPHUS_SKIP_VERSION_CHECK", "PI_SKIP_VERSION_CHECK"])(
+		"skips automatic api calls when %s is set",
+		async (name) => {
+			vi.stubEnv(name, "1");
+			const fetchMock = vi.fn(async () => Response.json({ version: "1.2.4" }));
+			vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
+
+			await expect(checkForNewPiVersion("1.2.3")).resolves.toBeUndefined();
+			expect(fetchMock).not.toHaveBeenCalled();
+		},
+	);
+
+	it.each(["ORPHUS_SKIP_VERSION_CHECK", "PI_SKIP_VERSION_CHECK"])(
+		"allows explicit release checks when %s disables startup checks",
+		async (name) => {
+			vi.stubEnv(name, "1");
+			const fetchMock = vi.fn(async () => Response.json({ version: "1.2.4" }));
+			vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
+
+			await expect(getLatestPiVersion()).resolves.toBe("1.2.4");
+			expect(fetchMock).toHaveBeenCalledOnce();
+		},
+	);
+
+	it("treats the versionless placeholder as a dev build", () => {
+		expect(isDevVersion("0.0.0")).toBe(true);
+		expect(isDevVersion(" 0.0.0 ")).toBe(true);
+		expect(isDevVersion("1.2.3")).toBe(false);
+		expect(isDevVersion("0.0.1")).toBe(false);
+	});
+
+	it("does not nag dev builds (0.0.0) for updates", async () => {
+		const fetchMock = vi.fn(async () => Response.json({ version: "1.2.3" }));
+		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
+
+		await expect(checkForNewPiVersion("0.0.0")).resolves.toBeUndefined();
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+});

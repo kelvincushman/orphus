@@ -1,0 +1,339 @@
+import type { AutocompleteItem } from "@earendil-works/pi-tui";
+import { APP_NAME } from "../config.ts";
+import {
+	getAtomicGuideArgumentCompletions,
+	ORPHUS_GUIDE_COMMAND_DESCRIPTION,
+	ORPHUS_GUIDE_COMMAND_NAME,
+} from "./atomic-guide-command.ts";
+import type { SourceInfo } from "./source-info.ts";
+
+export type SlashCommandSource = "extension" | "prompt" | "skill";
+
+export interface SlashCommandInfo {
+	name: string;
+	description?: string;
+	source: SlashCommandSource;
+	sourceInfo: SourceInfo;
+}
+
+export interface BuiltinSlashCommand {
+	name: string;
+	description: string;
+	argumentHint?: string;
+	getArgumentCompletions?: (argumentPrefix: string) => AutocompleteItem[] | null | Promise<AutocompleteItem[] | null>;
+}
+
+type WorkflowInputCompletionMetadata = {
+	description: string;
+	kind?: "boolean" | "number" | "string";
+};
+
+type WorkflowCompletionMetadata = {
+	name: string;
+	description: string;
+	inputs: Record<string, WorkflowInputCompletionMetadata>;
+};
+
+const WORKFLOW_ADMIN_COMPLETIONS: AutocompleteItem[] = [
+	{ value: "connect ", label: "connect", description: "Attach to a run (picker if no id)" },
+	{ value: "attach ", label: "attach", description: "Open the in-place attach pane on a node" },
+	{ value: "list ", label: "list", description: "List registered workflows" },
+	{ value: "status ", label: "status", description: "List current-session active and retained terminal runs" },
+	{ value: "interrupt ", label: "interrupt", description: "Interrupt a run" },
+	{ value: "quit ", label: "quit", description: "Quit a run and keep it resumable" },
+	{ value: "pause ", label: "pause", description: "Pause a run or stage" },
+	{ value: "resume ", label: "resume", description: "Re-open overlay for a run" },
+	{ value: "inputs ", label: "inputs", description: "Show a workflow's input schema" },
+	{ value: "reload ", label: "reload", description: "Reload workflow resources" },
+];
+
+const BUNDLED_WORKFLOW_COMPLETION_METADATA: WorkflowCompletionMetadata[] = [
+	{
+		name: "adversarial-verification",
+		description:
+			"Produce a candidate, challenge it with fresh-context rubric-based verifiers, and reduce their evidence through a bounded repair loop.",
+		inputs: {
+			task: { description: "Task whose candidate result must be independently verified.", kind: "string" },
+			verifier_count: { description: "Number of independent verifiers per review round.", kind: "number" },
+			max_repairs: { description: "Maximum candidate repair rounds before rejection.", kind: "number" },
+		},
+	},
+	{
+		name: "classify-and-act",
+		description:
+			"Classify a task with structured confidence, route deterministically to an isolated category action, and ask for human selection when confidence is low.",
+		inputs: {
+			prompt: { description: "Task to classify and execute.", kind: "string" },
+			categories: { description: "Ordered action categories available to the classifier and fallback chooser." },
+			confidence_threshold: {
+				description: "Minimum structured confidence required to route without human selection.",
+				kind: "number",
+			},
+		},
+	},
+	{
+		name: "fan-out-and-synthesize",
+		description:
+			"Partition a task, run bounded independent artifact branches, then synthesize all evidence at an explicit barrier.",
+		inputs: {
+			prompt: { description: "Task to partition, investigate, and synthesize.", kind: "string" },
+			max_branches: {
+				description: "Maximum number of independent partitions produced and executed.",
+				kind: "number",
+			},
+			max_concurrency: { description: "Maximum number of branch agents running concurrently.", kind: "number" },
+		},
+	},
+	{
+		name: "generate-and-filter",
+		description:
+			"Generate more independent candidates than needed, deduplicate and filter them by rubric, optionally judge them, and return a parent-consumable shortlist.",
+		inputs: {
+			prompt: { description: "Prompt for candidate generation and selection.", kind: "string" },
+			num_candidates: { description: "Number of independent candidates to generate.", kind: "number" },
+			shortlist_size: { description: "Maximum number of candidates in the final shortlist.", kind: "number" },
+			use_judge: { description: "Whether an independent judge reviews the filtered shortlist.", kind: "boolean" },
+			max_concurrency: { description: "Maximum simultaneous generator stages.", kind: "number" },
+		},
+	},
+	{
+		name: "goal",
+		description:
+			"Goal Runner workflow with bounded sub-agent orchestration turns, immutable acceptance criteria, ledger artifacts, parallel reviewers, and reducer-gated completion. When launching follow-up goal runs from review findings, pass the ORIGINAL task text as acceptance_criteria so deltas cannot drift from the literal contract. If the task includes submitting a pull request (or MR/review), remove that final action from the objective text and set create_pr=true instead when preparing the workflow inputs.",
+		inputs: {
+			objective: {
+				description:
+					"The objective or delta for this Goal Runner workflow run. Do not include PR/MR submission instructions here; strip them from the task text and request them via create_pr=true instead.",
+				kind: "string",
+			},
+			acceptance_criteria: {
+				description:
+					"Original immutable task contract this run must remain consistent with. Defaults to objective. Orchestrators launching follow-up runs from reviewer findings should pass the ORIGINAL task text here.",
+				kind: "string",
+			},
+			max_turns: {
+				description: "Maximum orchestrator/review turns before Goal Runner stops as needs_human.",
+				kind: "number",
+			},
+			base_branch: {
+				description: "Optional branch reviewers compare the current code delta against (default origin/main).",
+				kind: "string",
+			},
+			git_worktree_dir: {
+				description:
+					"Optional Git worktree path. Leave at the default unless the user explicitly requested worktree isolation — stages never create git worktrees on their own. Must start inside a Git repo; absolute paths are used as-is, relative paths resolve from the repo root, existing Git worktrees from the invoking repository are reused/shared as-is, and missing paths are created from base_branch.",
+				kind: "string",
+			},
+			create_pr: {
+				description:
+					"Whether to run the final pull-request creation stage after reviewer/reducer approval. Defaults to false; prompt text alone does not opt in. If the task asks to submit a PR/MR/review, remove that from the objective text and set this to true — only the final stage then attempts provider-appropriate PR/MR/review creation after Goal completes.",
+				kind: "boolean",
+			},
+		},
+	},
+	{
+		name: "loop-until-done",
+		description:
+			"Repeat evidence-producing work and independent completion evaluation against a durable ledger until done or an inspectable iteration-limit failure.",
+		inputs: {
+			prompt: {
+				description: "Objective whose explicit completion condition controls the bounded loop.",
+				kind: "string",
+			},
+			max_iterations: {
+				description: "Maximum work/evaluation iterations before returning an inspectable failed status (1-20).",
+				kind: "number",
+			},
+		},
+	},
+	{
+		name: "open-claude-design",
+		description:
+			"AI-powered design workflow: combined discovery/init → design-system/reference research → curated reference discovery → HTML generation → live-driven refinement → rich HTML handoff. The discovery stage asks what to build, the output type, and which references to emulate, then runs impeccable init for PRODUCT.md/DESIGN.md (references take precedence over project context). The user iteratively reviews the generated HTML.",
+		inputs: {
+			prompt: {
+				description:
+					"What to design (for example, a dashboard, page, component, or prototype). The discovery stage refines this into a confirmed brief and asks for the output type and references.",
+				kind: "string",
+			},
+			discover_references: {
+				description:
+					"Discover beautiful, current reference designs from notable design websites (Awwwards, recent.design, Dribbble, Monet, Motionsites) and feed them to generation. Set false to skip the network/browser reference pass.",
+				kind: "boolean",
+			},
+			max_refinements: {
+				description: "Maximum generate/user-feedback loop iterations (default 3).",
+				kind: "number",
+			},
+		},
+	},
+	{
+		name: "ralph",
+		description:
+			"Raw prompt → research-prompt-refinement → research → orchestrate → multi-model parallel review loop with bounded iteration and immutable acceptance criteria. When launching follow-up ralph runs from review findings, pass the ORIGINAL task text as acceptance_criteria so deltas cannot drift from the literal contract. If the task includes submitting a pull request (or MR/review), remove that final action from the prompt text and set create_pr=true instead when preparing the workflow inputs.",
+		inputs: {
+			prompt: {
+				description:
+					"The task or goal to research, execute, and refine. Do not include PR/MR submission instructions here; strip them from the task text and request them via create_pr=true instead.",
+				kind: "string",
+			},
+			acceptance_criteria: {
+				description:
+					"Original immutable task contract this run must remain consistent with. Defaults to prompt. Orchestrators launching follow-up runs from reviewer findings should pass the ORIGINAL task text here.",
+				kind: "string",
+			},
+			max_loops: { description: "Maximum research/orchestrate/review iterations (default 10).", kind: "number" },
+			base_branch: {
+				description: "Branch reviewers compare the current code delta against (default origin/main).",
+				kind: "string",
+			},
+			git_worktree_dir: {
+				description:
+					"Optional Git worktree path. Leave at the default unless the user explicitly requested worktree isolation — stages never create git worktrees on their own. Must start inside a Git repo; absolute paths are used as-is, relative paths resolve from the repo root, existing Git worktrees from the invoking repository are reused/shared as-is, and missing paths are created from base_branch.",
+				kind: "string",
+			},
+			create_pr: {
+				description:
+					"Whether to run the final pull-request creation stage. Defaults to false; prompt text alone does not opt in. If the task asks to submit a PR/MR/review, remove that from the prompt text and set this to true — only the final stage then attempts provider-appropriate PR/MR/review creation.",
+				kind: "boolean",
+			},
+		},
+	},
+	{
+		name: "tournament",
+		description:
+			"Run several independent whole-task attempts through a balanced pairwise judging bracket and return an auditable winner.",
+		inputs: {
+			prompt: { description: "Task every competing agent must attempt independently.", kind: "string" },
+			num_attempts: { description: "Number of independent whole-task attempts (2-8).", kind: "number" },
+			max_concurrency: {
+				description: "Maximum simultaneously active attempts or pairwise judges (1-8).",
+				kind: "number",
+			},
+		},
+	},
+];
+
+function completeWorkflowToken(argumentText: string, candidates: AutocompleteItem[]): AutocompleteItem[] | null {
+	const tokenStart = /\s$/.test(argumentText)
+		? argumentText.length
+		: Math.max(argumentText.lastIndexOf(" "), argumentText.lastIndexOf("\t")) + 1;
+	const head = argumentText.slice(0, tokenStart);
+	const token = argumentText.slice(tokenStart);
+	const normalizedToken = token.trimEnd();
+	const filtered = candidates
+		.filter((candidate) => candidate.value.startsWith(token) && candidate.value.trimEnd() !== normalizedToken)
+		.map((candidate) => ({ ...candidate, value: `${head}${candidate.value}` }));
+	return filtered.length > 0 ? filtered : null;
+}
+
+function bundledWorkflowNameItems(): AutocompleteItem[] {
+	return BUNDLED_WORKFLOW_COMPLETION_METADATA.map((workflow) => ({
+		value: `${workflow.name} `,
+		label: workflow.name,
+		description: `Run workflow: ${workflow.name}`,
+	}));
+}
+
+export function getBundledWorkflowArgumentCompletions(argumentPrefix: string): AutocompleteItem[] | null {
+	const parts = argumentPrefix.trim().split(/\s+/).filter(Boolean);
+	const subcommand = parts[0] ?? "";
+	const workflowItems = bundledWorkflowNameItems();
+	if (!argumentPrefix.includes(" ")) {
+		return completeWorkflowToken(argumentPrefix, [...WORKFLOW_ADMIN_COMPLETIONS, ...workflowItems]);
+	}
+	if (subcommand === "inputs") return completeWorkflowToken(argumentPrefix, workflowItems);
+	if (subcommand === "interrupt") {
+		return completeWorkflowToken(argumentPrefix, [
+			{ value: "--all ", label: "--all", description: "Interrupt all in-flight runs" },
+			{ value: "--yes ", label: "--yes", description: "Skip confirmation" },
+			{ value: "-y ", label: "-y", description: "Skip confirmation" },
+		]);
+	}
+	if (subcommand === "quit") {
+		return completeWorkflowToken(argumentPrefix, [
+			{ value: "--all ", label: "--all", description: "Quit and keep all in-flight runs resumable" },
+		]);
+	}
+	if (!subcommand) return completeWorkflowToken(argumentPrefix, [...WORKFLOW_ADMIN_COMPLETIONS, ...workflowItems]);
+
+	const workflow = BUNDLED_WORKFLOW_COMPLETION_METADATA.find((candidate) => candidate.name === subcommand);
+	if (!workflow) return null;
+	const tokenStart = /\s$/.test(argumentPrefix)
+		? argumentPrefix.length
+		: Math.max(argumentPrefix.lastIndexOf(" "), argumentPrefix.lastIndexOf("\t")) + 1;
+	const token = argumentPrefix.slice(tokenStart);
+	const equalsIndex = token.indexOf("=");
+	if (equalsIndex > 0) {
+		const inputName = token.slice(0, equalsIndex);
+		const input = workflow.inputs[inputName];
+		if (input?.kind !== "boolean") return null;
+		return completeWorkflowToken(argumentPrefix, [
+			{ value: `${inputName}=true `, label: "true", description: inputName },
+			{ value: `${inputName}=false `, label: "false", description: inputName },
+		]);
+	}
+
+	return completeWorkflowToken(argumentPrefix, [
+		{ value: "--no-picker ", label: "--no-picker", description: "Skip interactive input picker" },
+		{ value: "--help ", label: "--help", description: "Show this workflow's input schema" },
+		...Object.entries(workflow.inputs).map(([name, input]) => ({
+			value: `${name}=`,
+			label: name,
+			description: input.description,
+		})),
+	]);
+}
+
+export const BUILTIN_SLASH_COMMANDS: ReadonlyArray<BuiltinSlashCommand> = [
+	{ name: "settings", description: "Open settings menu" },
+	{ name: "model", description: "Select model (opens selector UI)" },
+	{ name: "scoped-models", description: "Enable/disable models for ctrl+p cycling" },
+	{ name: "fast", description: "Configure Codex fast mode for chat and workflows" },
+	{ name: "export", description: "Export session (HTML default, or specify path: .html/.jsonl)" },
+	{ name: "import", description: "Import and resume a session from a JSONL file" },
+	{ name: "share", description: "Share session as a secret GitHub gist" },
+	{ name: "copy", description: "Copy last agent message to clipboard" },
+	{ name: "name", description: "Set session display name" },
+	{ name: "session", description: "Show session info and stats" },
+	{ name: "changelog", description: "Show changelog entries" },
+	{
+		name: ORPHUS_GUIDE_COMMAND_NAME,
+		description: ORPHUS_GUIDE_COMMAND_DESCRIPTION,
+		getArgumentCompletions: getAtomicGuideArgumentCompletions,
+	},
+	{ name: "hotkeys", description: "Show all keyboard shortcuts" },
+	{ name: "fork", description: "Create a new fork from a previous user message" },
+	{ name: "clone", description: "Duplicate the current session at the current position" },
+	{ name: "tree", description: "Navigate session tree (switch branches)" },
+	{ name: "trust", description: "Save project trust decision for future sessions" },
+	{ name: "login", description: "Configure provider authentication", argumentHint: "<provider>" },
+	{ name: "logout", description: "Remove provider authentication" },
+	{ name: "new", description: "Start a new session" },
+	{ name: "compact", description: "Compact older context with verbatim line ranges" },
+	{ name: "resume", description: "Resume a different session" },
+	{ name: "reload", description: "Reload keybindings, extensions, skills, prompts, and themes" },
+	{ name: "exit", description: `Exit ${APP_NAME}` },
+	{ name: "quit", description: `Quit ${APP_NAME}` },
+];
+
+export const BUNDLED_EXTENSION_SLASH_COMMANDS: ReadonlyArray<BuiltinSlashCommand> = [
+	{
+		name: "workflow",
+		description:
+			"Run or inspect Orphus workflows. Usage: /workflow <name> [key=value…] | /workflow [list|status|connect|attach|interrupt|quit|pause|resume|inputs|reload] [args]",
+		getArgumentCompletions: getBundledWorkflowArgumentCompletions,
+	},
+	{ name: "run", description: "Run a subagent directly: /run agent[output=file] [task] [--bg] [--fork]" },
+	{ name: "chain", description: "Run agents in sequence: /chain scout task -> planner [--bg] [--fork]" },
+	{ name: "run-chain", description: "Run a saved chain: /run-chain chainName -- task [--bg] [--fork]" },
+	{ name: "parallel", description: "Run agents in parallel: /parallel scout task1 -> reviewer task2 [--bg] [--fork]" },
+	{ name: "subagents-doctor", description: "Show subagent diagnostics" },
+	{ name: "mcp", description: "Show MCP server status" },
+	{ name: "mcp-auth", description: "Authenticate with an MCP server (OAuth)" },
+	{ name: "curator", description: "Toggle or configure the search curator workflow" },
+	{ name: "google-account", description: "Show the active Google account for Gemini Web" },
+	{ name: "search", description: "Browse stored web search results" },
+	{ name: "websearch", description: "Open web search curator" },
+	{ name: "intercom", description: "Open session intercom overlay" },
+];

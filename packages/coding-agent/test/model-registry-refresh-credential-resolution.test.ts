@@ -1,0 +1,131 @@
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, test } from "vitest";
+import { describeModelRegistry } from "./model-registry-fixtures.ts";
+import { createModelRegistry, getModelRuntime } from "./model-runtime-test-utils.ts";
+
+describeModelRegistry((context) => {
+	describe("extension catalog credential resolution", () => {
+		test("resolves configured environment-backed API keys", async () => {
+			const envVarName = "ORPHUS_EXTENSION_CATALOG_KEY";
+			const original = process.env[envVarName];
+			process.env[envVarName] = "environment-catalog-key";
+			try {
+				const registry = await createModelRegistry(context.authStorage, context.modelsJsonPath);
+				let observedKey: string | undefined;
+				registry.registerProvider("environment-catalog", {
+					apiKey: `$${envVarName}`,
+					refreshModels: async ({ credential }) => {
+						observedKey = credential?.type === "api_key" ? credential.key : undefined;
+						return [];
+					},
+				});
+
+				await registry.refresh();
+				expect(observedKey).toBe("environment-catalog-key");
+			} finally {
+				if (original === undefined) delete process.env[envVarName];
+				else process.env[envVarName] = original;
+			}
+		});
+
+		test("resolves configured command-backed API keys", async () => {
+			const tokenFile = join(context.tempDir, "catalog-token");
+			writeFileSync(tokenFile, "command-catalog-key");
+			const registry = await createModelRegistry(context.authStorage, context.modelsJsonPath);
+			let observedKey: string | undefined;
+			registry.registerProvider("command-catalog", {
+				apiKey: `!sh -c 'cat "${context.toShPath(tokenFile)}"'`,
+				refreshModels: async ({ credential }) => {
+					observedKey = credential?.type === "api_key" ? credential.key : undefined;
+					return [];
+				},
+			});
+
+			await registry.refresh();
+			expect(observedKey).toBe("command-catalog-key");
+		});
+
+		test("resolves stored API-key expressions", async () => {
+			const envVarName = "ORPHUS_STORED_CATALOG_KEY";
+			const original = process.env[envVarName];
+			process.env[envVarName] = "stored-environment-key";
+			const tokenFile = join(context.tempDir, "stored-catalog-token");
+			writeFileSync(tokenFile, "stored-command-key");
+			try {
+				await context.authStorage.modify("stored-environment", async () => ({
+					type: "api_key",
+					key: `$${envVarName}`,
+				}));
+				await context.authStorage.modify("stored-command", async () => ({
+					type: "api_key",
+					key: `!sh -c 'cat "${context.toShPath(tokenFile)}"'`,
+				}));
+				const registry = await createModelRegistry(context.authStorage, context.modelsJsonPath);
+				const observed = new Map<string, string | undefined>();
+				for (const providerId of ["stored-environment", "stored-command"]) {
+					registry.registerProvider(providerId, {
+						refreshModels: async ({ credential }) => {
+							observed.set(providerId, credential?.type === "api_key" ? credential.key : undefined);
+							return [];
+						},
+					});
+				}
+
+				await registry.refresh();
+				expect(observed).toEqual(
+					new Map([
+						["stored-environment", "stored-environment-key"],
+						["stored-command", "stored-command-key"],
+					]),
+				);
+			} finally {
+				if (original === undefined) delete process.env[envVarName];
+				else process.env[envVarName] = original;
+			}
+		});
+
+		test("keeps runtime over stored over configured key precedence", async () => {
+			await context.authStorage.modify("credential-precedence", async () => ({
+				type: "api_key",
+				key: "stored-key",
+			}));
+			const registry = await createModelRegistry(context.authStorage, context.modelsJsonPath);
+			await getModelRuntime(registry).setRuntimeApiKey("credential-precedence", "runtime-key");
+			let observedKey: string | undefined;
+			registry.registerProvider("credential-precedence", {
+				apiKey: "configured-key",
+				refreshModels: async ({ credential }) => {
+					observedKey = credential?.type === "api_key" ? credential.key : undefined;
+					return [];
+				},
+			});
+
+			await registry.refresh();
+			expect(observedKey).toBe("runtime-key");
+			expect(await context.authStorage.read("credential-precedence")).toEqual({
+				type: "api_key",
+				key: "stored-key",
+			});
+		});
+
+		test("does not pass unresolved stored API-key expressions literally", async () => {
+			await context.authStorage.modify("missing-expression", async () => ({
+				type: "api_key",
+				key: "$ORPHUS_MISSING_CATALOG_KEY",
+			}));
+			delete process.env.ORPHUS_MISSING_CATALOG_KEY;
+			const registry = await createModelRegistry(context.authStorage, context.modelsJsonPath);
+			let observedKey: string | undefined;
+			registry.registerProvider("missing-expression", {
+				refreshModels: async ({ credential }) => {
+					observedKey = credential?.type === "api_key" ? credential.key : undefined;
+					return [];
+				},
+			});
+
+			await registry.refresh();
+			expect(observedKey).toBeUndefined();
+		});
+	});
+});

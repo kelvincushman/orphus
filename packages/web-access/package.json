@@ -1,0 +1,51 @@
+{
+  "name": "@bastani/web-access",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Atomic extension for web search, URL fetching, GitHub repo cloning, PDF/video extraction. Fork of: https://github.com/nicobailon/pi-web-access",
+  "contributors": [
+    "Norin Lavaee",
+    "Alex Lavaee"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "bun": ">=1.3.14"
+  },
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "files": [
+    "*.ts",
+    "curator-page-assets/**/*.ts",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@bastani/atomic": "*",
+    "@earendil-works/pi-tui": "^0.83.0"
+  },
+  "peerDependenciesMeta": {
+    "@bastani/atomic": {
+      "optional": true
+    },
+    "@earendil-works/pi-tui": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.6.0",
+    "linkedom": "^0.18.13",
+    "p-limit": "^7.3.0",
+    "turndown": "^7.2.0",
+    "unpdf": "1.7.0"
+  }
+}

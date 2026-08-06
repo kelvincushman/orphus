@@ -1,0 +1,6391 @@
+# Changelog
+
+## [Unreleased]
+
+### Added
+
+- `CreateAgentSessionOptions` and `ExtensionContext` now carry an immutable typed subagent child capability policy for in-process tool registration ([#2188](https://github.com/bastani-inc/atomic/issues/2188)).
+- `CreateAgentSessionOptions` now supports construction-time system-prompt and inherited-context transforms, allowing in-process child sessions to apply typed policy without extension injection ([#2188](https://github.com/bastani-inc/atomic/issues/2188)).
+
+### Changed
+
+- Typed child policy now includes MCP direct-tool selection and admission-issued Intercom identity/capability, allowing in-process extensions to consume child policy without inheritable environment state ([#2188](https://github.com/bastani-inc/atomic/issues/2188)).
+- Bundled subagent launches now use in-process `AgentSession` children with typed admission, canonical identities, and live async continuation; `async: true` work is owned by the parent process and does not survive parent exit ([#2188](https://github.com/bastani-inc/atomic/issues/2188)).
+
+### Fixed
+
+- Workflow runs awaiting human input now use the blue `？` indicator in the BACKGROUND panel, `/workflow connect` picker, and `/workflow status` listing, including prompts raised by hidden nested workflow children; the indicator returns to the run's current state when the prompt resolves.
+- Fixed main-chat model fallback to classify provider failures consistently with workflows, advance rejected credentials and incompatible or unavailable models to the next candidate, and restore the user-selected model at the next turn without overriding an explicit `/model` choice. A failure that requesting the same model again cannot repair now takes that model out of the chain for the rest of the turn at every reasoning level, so a fallback entry differing only by its `:low`/`:high` suffix is skipped instead of retrying the same dead credential; transient rate-limit and transport failures keep those reasoning variants ([#2170](https://github.com/bastani-inc/atomic/issues/2170)).
+- Fixed a context overflow that compaction cannot resolve to advance the configured `fallbackModels` chain instead of ending the turn, so a larger-context candidate can answer. Compaction still runs first, and a compactable overflow spends no fallback candidate ([#2170](https://github.com/bastani-inc/atomic/issues/2170)).
+- Fixed a reasoning-level change during a model fallback stranding the session on the fallback model. Changing reasoning effort is not a model choice, so it no longer cancels the pending restore; the next turn returns to the user-selected primary and keeps the reasoning level that was chosen. Only an explicit `/model` selection or model cycle cancels the restore ([#2170](https://github.com/bastani-inc/atomic/issues/2170)).
+- Fixed gRPC `ResourceExhausted` provider errors, seen from providers such as NVIDIA NIM, bypassing the same-model auto-retry budget. They are now retried like other transient provider failures, matching upstream pi-ai, and still advance a configured fallback chain when the retries are exhausted ([#2170](https://github.com/bastani-inc/atomic/issues/2170)).
+
+## [0.9.12] - 2026-08-04
+
+Cumulative release of the `0.9.12-alpha.1` prerelease. The summary below covers the user-visible outcome of that work; the per-change detail remains in the prerelease section below.
+
+### Added
+
+- Compaction honors `<keepContext>` / `</keepContext>` tags. Wrap any part of a prompt you never want compressed, and every line of the span — tag lines included — is protected verbatim regardless of the compression ratio. The guarantee is mechanical rather than advisory: deletion ranges are split around protected lines after the planner responds. Because the tag lines are protected too, a span is re-detected on each subsequent boundary and stays protected for the life of the session. Detection is bounded on three sides, because the transcript it scans is untrusted: a tag must be the whole line after any role header, a span is scoped to one message so an unclosed tag stops at the end of its own message rather than running to the end of the region, and tags inside tool results are inert — user and assistant messages may both protect, so prompts, steering, and an agent's own pinned information all work, but file, page, or command output an agent reads cannot mark itself unreclaimable or persist through compaction ahead of real content. Protected lines count against the keep target rather than raising it, so the compression ratio stays a real bound on output size and the unprotected remainder compresses harder. Results report force-preserved ranges as `keptRanges` ([#2172](https://github.com/bastani-inc/atomic/issues/2172)).
+
+### Fixed
+
+- The compaction relevance query is no longer truncated to 1,000 characters. Truncation made prompt section order the retention policy: for a long structured prompt only the leading section reached the planner, so a constraint stated later could not influence what was kept, while the objective it qualified survived and was acted on. Long queries are safe — an oversized planner request surfaces as an explicit provider-overflow failure rather than silent truncation ([#2172](https://github.com/bastani-inc/atomic/issues/2172)).
+- Cleared three advisories in the shipped dependency tree. `undici` moves 8.5.0 → 8.9.0, which covers five advisories against 8.0.0–8.8.0 — response desynchronization via the retry interceptor, two cross-user cache-directive disclosures, CRLF injection through a blob body `type`, and cookie-attribute injection — and it is the dispatcher behind `fetch_url` and every agent HTTP request. Transitively under `@modelcontextprotocol/sdk`, `ip-address` is pinned to 10.3.1 for three SSRF and trust-boundary bypasses (octal-decoded leading-zero octets, CIDR suffixes suppressing special-use classification, and misclassified IPv4-mapped/NAT64 addresses), and `hono` to 4.12.34 for a CORS-middleware ReDoS. `npm audit` is clean.
+- Fixed bundled builtin extensions failing to load on Windows when shared modules were evaluated twice, so bundled workflows and tools initialize correctly.
+
+## [0.9.12-alpha.1] - 2026-08-04
+
+### Added
+
+- Compaction honors `<keepContext>` / `</keepContext>` tags. Wrap any part of a prompt you never want compressed, and every line of the span — tag lines included — is protected verbatim regardless of the compression ratio. The guarantee is mechanical rather than advisory: deletion ranges are split around protected lines after the planner responds. Because the tag lines are protected too, a span is re-detected on each subsequent boundary and stays protected for the life of the session. Detection is bounded on three sides, because the transcript it scans is untrusted: a tag must be the whole line after any role header, a span is scoped to one message so an unclosed tag stops at the end of its own message rather than running to the end of the region, and tags inside tool results are inert — user and assistant messages may both protect, so prompts, steering, and an agent's own pinned information all work, but file, page, or command output an agent reads cannot mark itself unreclaimable or persist through compaction ahead of real content. Protected lines count against the keep target rather than raising it, so the compression ratio stays a real bound on output size and the unprotected remainder compresses harder. Results report force-preserved ranges as `keptRanges` ([#2172](https://github.com/bastani-inc/atomic/issues/2172)).
+
+### Fixed
+
+- The compaction relevance query is no longer truncated to 1,000 characters. Truncation made prompt section order the retention policy: for a long structured prompt only the leading section reached the planner, so a constraint stated later could not influence what was kept, while the objective it qualified survived and was acted on. Long queries are safe — an oversized planner request surfaces as an explicit provider-overflow failure rather than silent truncation ([#2172](https://github.com/bastani-inc/atomic/issues/2172)).
+- Cleared three advisories in the shipped dependency tree. `undici` moves 8.5.0 → 8.9.0, which covers five advisories against 8.0.0–8.8.0 — response desynchronization via the retry interceptor, two cross-user cache-directive disclosures, CRLF injection through a blob body `type`, and cookie-attribute injection — and it is the dispatcher behind `fetch_url` and every agent HTTP request. Transitively under `@modelcontextprotocol/sdk`, `ip-address` is pinned to 10.3.1 for three SSRF and trust-boundary bypasses (octal-decoded leading-zero octets, CIDR suffixes suppressing special-use classification, and misclassified IPv4-mapped/NAT64 addresses), and `hono` to 4.12.34 for a CORS-middleware ReDoS. `npm audit` is clean.
+
+- Fixed bundled builtin extensions failing to load on Windows when shared modules were evaluated twice, so bundled workflows and tools initialize correctly.
+
+## [0.9.11] - 2026-08-03
+
+Cumulative release of the `0.9.11-alpha.1` – `0.9.11-alpha.12` prereleases. The summary below covers the user-visible outcome of that work; the per-change detail remains in the prerelease sections below.
+
+### Breaking Changes
+
+- Adopted pi 0.83.0 (`@earendil-works/pi-agent-core`, `pi-ai`, `pi-tui` at `^0.83.0`), which moves the bundled TypeBox to 1.3.7 and **removes seven deprecated APIs**. Atomic inherits the removal exactly as upstream shipped it with no compatibility shim, so an extension, skill, workflow, or MCP schema still calling one of these fails to compile and to run. Atomic's own sources use none of them.
+
+  | Removed API | Replacement |
+  | --- | --- |
+  | `Type.Options(type, options)` | `Type.With(type, options)` — straight rename |
+  | `Type.Base` | `Type.Refine()` + `Type.Unsafe()` |
+  | `Type.Promise(item)` | none — model the resolved value and validate after `await` |
+  | `Type.Awaited(type)` | none — use the resolved type itself |
+  | `Type.Iterator(items)` / `Type.AsyncIterator(items)` | none — drain first, then `Type.Array(items)` |
+  | `Value.Mutate(current, next)` | `Value.Patch(current, Value.Diff(current, next))` — returns a **new** value rather than assigning in place |
+
+- Replaced Atomic's legacy extension OAuth registration bridge with provider-owned authentication from `@earendil-works/pi-ai`, and adopted pi's provider-owned `ModelRuntime` architecture for model composition, credentials, streaming, and catalog refresh. The bridge functions (`registerOAuthProvider`, `getOAuthApiKey`, and the rest) and their credential/status types are gone from the package root; `AuthStorage` now implements pi's asynchronous `CredentialStore` contract, so its synchronous compatibility methods and provider-auth helpers were removed in favour of `read`, `list`, `modify`, `delete`, and `ModelRuntime`; `ModelRegistry` is now the thin synchronous extension-compatibility facade constructed as `new ModelRegistry(runtime)`; and `CreateAgentSessionOptions` takes `modelRuntime` instead of `authStorage`/`modelRegistry`. Extensions must declare OAuth or API-key authentication on their provider registration, and `streamSimple` implementations are now scoped to their registered provider.
+- Model configuration follows pi's single-file `ModelConfig` contract: Atomic reads one `models.json` from the active agent directory and no longer reads project-scoped `.atomic/models.json`, falls back to `~/.pi/agent/models.json`, or merges layered files. Move project-scoped custom providers and models into the agent-directory file. Catalog refreshes also use pi's exact timeout semantics — `modelRefreshTimeoutMs` applies only to the initial runtime creation refresh, and `/model` owns its own 15-second timeout.
+- Removed all Atomic-specific GitHub Copilot handling; `github-copilot` is now an ordinary upstream provider sourced entirely from `pi-ai`. The live CAPI catalog fetch and disk cache, enterprise/GHE base-URL routing, the Gemini tool-schema sanitizer, the Anthropic `message_stop` SSE repair, and Copilot prompt-limit guidance are all gone. Because pi's bundled context windows can exceed what Copilot's API enforces, long sessions on affected models may overrun the server-side cap instead of compacting first ([#1608](https://github.com/bastani-inc/atomic/issues/1608)).
+- Removed the short/long context-window selection feature, which upstream pi does not have: the `contextWindowOptions` / `defaultContextWindow` / `maxInputTokens` model fields, the `/model` picker, `--context-window`, the `defaultContextWindow(s)` settings, the `set_context_window` and `get_available_context_windows` RPC commands, the `context_window_changed` event, the `contextWindow` / `contextWindowStrict` SDK and workflow-stage options, the related root exports, and the `(1m)` / `(long)` token in subagent and workflow model strings. A model's `contextWindow` is now a single catalog value.
+- Isolated interactive `ctx.ui.custom()` components that consume Ctrl+C must declare `{ handlesCtrlC: true }`. Without it the first Ctrl+C is the host escape and closes the focused component, resolving its promise with `undefined`. Bundled workflow and MCP surfaces were migrated; third-party extensions binding Ctrl+C need the one-line addition.
+- Changed the published `runVerbatimCompaction` SDK export to a request object: `runVerbatimCompaction(preparation, model, { resolveAuth, signal, thinkingLevel, urgency, ...options })`. Pre-resolved credentials become a `resolveAuth(model)` callback because a borrowed fallback model needs its own credentials, and `urgency` is required with no default so only a `load_bearing` caller can reach the context-destroying fresh rung. The persisted `CompactionEntry` shape, resume, and the compaction hooks are preserved.
+- Workflow run targets now require the full 36-character run UUID; typed prefixes are no longer resolved by any command or `runId` action, and a malformed target is rejected with a diagnostic distinct from `Run not found:` so a truncated paste is diagnosable. Stage targets are matched exactly, so `build` will not select `build-check`. Every user-facing surface already prints the full id.
+- The RPC `login_provider` response no longer carries the API key it just stored. `RpcLoginProviderResult` dropped its `credential` member; `type` confirms which kind of credential was saved.
+
+### Added
+
+- Added first-class Alpine/musl Linux support for x64 and arm64, including native search and PTY bindings and the `atomic-linux-x64-musl.tar.gz` and `atomic-linux-arm64-musl.tar.gz` archives. The musl archives omit the clipboard binding and glibc-linked `@embedded-postgres/*` binaries, so Atomic falls back to Linux clipboard commands/OSC52 and durable Alpine workflows require external Postgres.
+- Added `atomic auth print-api-key` and `atomic auth print-bearer-token`, which print exactly one named credential to stdout while every warning and diagnostic goes to stderr, so `KEY=$(atomic auth print-api-key --model gpt-5.5)` cannot capture noise. `--model` is required, `--provider` and `--model` are the only accepted options, there is no file or clipboard sink, and `print-bearer-token` refreshes a token with less than `--min-expiry` (default `30m`) remaining. Failures are distinguishable by exit code 1–9, including a partial-write exit that tells you to discard the output. Documented in `docs/usage.md` and `docs/security.md`.
+- Added a compaction rung ladder so a compaction that must succeed always does. The range planner returns typed outcomes instead of ranges-or-throw; a terminal attempt borrows the next `settings.fallbackModels` entry for one planner request resolved with that candidate's own credentials, without changing the session model or history; an overflowing planner request withholds the oldest region lines and retries; and when every model is exhausted, a load-bearing compaction starts a fresh context window — a loud (`✻ Context cleared (compaction degraded)`) and durable (`details.rung: "fresh"`) model-free rung. Manual `/compact` and threshold auto-compaction may borrow a model but can never clear context. **A configured fallback model may now receive the compaction transcript.**
+- Added a built-in, hidden llama.cpp router provider with `/login llama.cpp`, `LLAMA_BASE_URL`/`LLAMA_API_KEY` configuration, loaded-model discovery, and the `/llama` manager for load, unload, reconnect, and Hugging Face GGUF download flows.
+- Added provider-metadata-driven `/login` with direct `/login <provider>` routing and autocomplete, OpenRouter PKCE and Kimi Code device subscription login, API-key login for Qwen Token Plan, Radius, and GitHub Copilot, and immediate post-login model refresh without transporting credentials to the frontend.
+- Added Claude Opus 5 to the Anthropic and Amazon Bedrock catalog paths with adaptive thinking/`xhigh`, Bedrock inference profiles, prompt caching, and strict-tool metadata.
+- Added end-to-end constrained tool sampling to extension/SDK tool definitions and model catalogs: strict JSON Schema `prefer`/`require`, OpenAI grammar tools with Lark/regex variants, and `supportsStrictMode` / `supportsStrictTools` / `supportsOpenAIGrammarTools` flags exposed through additive optional `ModelInfo.compat` ([#1995](https://github.com/bastani-inc/atomic/issues/1995)).
+- Added execution-time session metadata to every bash execution path through `ATOMIC_SESSION_ID`, `ATOMIC_SESSION_FILE`, `ATOMIC_PROVIDER`, `ATOMIC_MODEL`, and `ATOMIC_REASONING_LEVEL` with exact `PI_*` aliases, plus request-correlated `bash_execution_update` RPC events that separate stdout from stderr and support concurrent requests and per-request cancellation ([#1995](https://github.com/bastani-inc/atomic/issues/1995)).
+- Added `ctx.scopedModels` to the extension context: the read-only list of models scoped to the current session, resolving at access time and handing back a fresh copy on every read so an extension cannot widen its own scope. Documented in `docs/extensions.md`.
+- Added durable, searchable companion transcripts for every workflow stage that declares `output:`, run-scoped durable artifact directories under `~/.atomic/workflows/runs/<runId>/` (overridable with `ATOMIC_WORKFLOW_ARTIFACT_DIR`) with state-aware retention, explicit warnings for degenerate stage artifacts, and a real artifact-integrity probe in the shared resume predicate.
+- Added extension lifecycle hooks `before_provider_headers` and `agent_settled`, durable `entry_appended` events with `registerEntryRenderer()`, named/hidden `InlineExtension` descriptors, and the public `ModelRuntime` facade, `readStoredCredential`, and session-context conversion helpers on the SDK surface.
+- Added global `httpProxy`, duration-string and `"disabled"` HTTP idle timeouts, package `autoload: false` project deltas, `oauth: "radius"` custom gateways, global/project scope switching in `atomic config`, and the `get_available_thinking_levels` RPC command.
+- Added Ctrl+X copy-last-message, clipboard text fallback when image paste finds no image, durable cache-miss attribution with waste totals, per-model session usage and cost breakdowns including tool and summary work, and Atomic's first-run theme preview with explicit analytics opt-in (no analytics data is transmitted by this change).
+
+### Changed
+
+- Reworked interactive startup and working motion around Atomic's revision-3 identity: the ∀ banner assembles inward before its identity beat, and main and workflow-stage surfaces keep the one-cell `∀` visible on a theme-aware dark → accent → bright → accent → dark luminance ramp at 88 ms while retaining all 453 randomized working verbs. `NO_COLOR` keeps regular/bold activity without color escapes, and reduced motion keeps a static accent `∀` ([#1883](https://github.com/bastani-inc/atomic/issues/1883)).
+- Made interactive startup dramatically faster on Windows: installed builds ship the builtin workflows extension as a single prebundled ESM file instead of transpiling a ~300-file module graph per launch (~7 s → ~1.1 s on a test VM), and the CLI enables Node's persistent on-disk V8 compile cache so host and engine child reuse compiled bytecode across runs ([#1962](https://github.com/bastani-inc/atomic/issues/1962)).
+- Removed the fixed 1 MiB size limit from RPC and isolated interactive-engine JSONL transport; commands, responses, events, and render frames now pass through in full ([#1985](https://github.com/bastani-inc/atomic/issues/1985)).
+- A stored OAuth token is now refreshed once fewer than five minutes of validity remain, rather than at expiry, so a long turn is not started on a credential that dies mid-request. The refresh runs inside the `auth.json` lock, so concurrent sessions refresh it once between them.
+- The OpenRouter login now accepts a pasted final redirect URL, or the authorization code alone, for remote and headless machines where the browser cannot reach the loopback callback.
+- A provider that ends a turn with an unrecognised terminal reason now surfaces a provider error naming the raw reason instead of reporting an ordinary successful stop, and assistant messages carry a new `pending` stop reason while streaming. Documented in `docs/providers.md`, `docs/custom-provider.md`, `docs/rpc.md`, and `docs/session-format.md`.
+- Workflow run identifiers are shown as full UUIDs across the BACKGROUND widget, status views, run pickers, and control messages; the four-workflow BACKGROUND display cap is gone; and `workflow({ action: "status", format: "json" })` no longer includes `runIdPrefix` — read `runId`.
+- Added Orwell's six writing rules from "Politics and the English Language" to the core default system prompt's `Guidelines` section, and the startup `RESOURCES` disclosure now lists `SYSTEM.md` and `APPEND_SYSTEM.md` alongside the `AGENTS.md`/`CLAUDE.md` context files.
+- Synchronized the bundled `impeccable` skill tree with upstream 4.0.3 (four surface modes, new routing and craft-floor guidance, a `doctor` drift check, documenter and finish-reviewer agents), and verified the `playwright-cli` and `liteparse` trees against their upstream baselines.
+- Updated the bundled user documentation for the current subagent, workflow-stage, reviewer, and `prompt-engineer` prompt contracts, removing response prefilling and private-reasoning requests for GPT-5.6, Claude Opus 5, and Claude Fable 5 compatibility.
+
+### Fixed
+
+- Fixed the isolated interactive engine losing or duplicating your typed input. A submission the engine never accepted now returns to the editor exactly as typed — through every submit route, including `/atomic`, deferred slash commands, streaming steer sends, `!bash`, `/compact`, and Alt+Enter — with its own draft carried end to end so two similar submissions cannot restore each other's text, and without a misleading red transport error beside it. Work the engine *had* started is no longer offered back as unsent: the child announces ownership of every correlated request before its handler can touch the shell, so a silent `!touch marker && sleep 400` is not re-invited for a second run. The interactive-engine protocol version is now `2`.
+- Fixed a total interactive-TUI lockup when the engine generation behind a mounted remote custom UI died, which previously left components mounted forever with input trapped and required killing the process from another terminal. Engine death is now a host-local lifecycle event that closes every remote component from the dead generation, settles its promises, releases widget keys, resets terminal modes, and refocuses the editor without waiting for a replacement.
+- Fixed interrupting a tool call terminating the interactive engine and reporting `Engine terminated; … result unknown`. Escape now simply requests cooperative cancellation and waits for it — interrupting never terminates or restarts the engine and never discards in-flight tool state — and every cooperative-cancellation command (`abort`, `abort_bash`, `abort_compaction`, `abort_retry`, `cancel_login_provider`) is exempt from the generic 30-second RPC deadline.
+- Added recovery from an unexpected interactive-engine exit — one automatic replacement attempt with the calm status `Interactive engine stopped unexpectedly; restarting.` — and kept an explicit Ctrl+C escape hatch for a provably wedged engine. Reopening an inactive session after such an exit now derives explicit error results for unanswered `toolUse` calls without rewriting its append-only JSONL, so the session is usable again instead of permanently pending.
+- Fixed the interactive engine exporting its private control values (`ATOMIC_INTERACTIVE_ENGINE_CHILD`, `_HOST_PID`, `_GUARD_FILE`, `_API_KEY`) to every process it spawned, which made nested `atomic` runs start in engine mode, misdirected process guardians, disabled subagent idle watchdogs, and leaked an `--api-key` credential to every child. Those values now travel in an owner-only bootstrap file read once and unlinked by the child.
+- Fixed OAuth logins being destroyed by an unrelated model-catalog refresh. A timed-out or partially failed post-login refresh used to roll freshly acquired tokens back to the previous credential and — because providers rotate refresh tokens — could permanently strand the account behind repeating `invalid_grant` failures. Freshly persisted credentials now always survive the refresh.
+- Fixed `/model` and `/logout` hanging. The selector's 15-second abort now crosses the engine RPC boundary and covers credential reload, model refreshes run in a concurrent correlated lane so selection stays responsive, and `/logout` publishes credential removal immediately instead of timing out after it had already deleted the credential. Newly authenticated providers also appear without a restart ([#1918](https://github.com/bastani-inc/atomic/issues/1918)).
+- Fixed Anthropic subscription login on Bun-hosted Linux sessions remaining at `Exchanging authorization code for tokens...`, caused by Bun not exposing Undici's CommonJS `install()` helper through its ESM namespace, so the configured transport was silently never used.
+- Fixed RPC `save_provider_credential` writes disappearing after restart (they were stored as non-persistent runtime overrides), `ANTHROPIC_AUTH_TOKEN` header-only bearer authentication being rejected across catalog and request paths, and GitHub Copilot requests failing with `421 Misdirected Request` for `COPILOT_GITHUB_TOKEN` users on business, enterprise, and GHE tenants ([#1995](https://github.com/bastani-inc/atomic/issues/1995)).
+- Fixed a mid-turn compaction leaving the turn unsendable, which the provider rejected with an unrecoverable `400 ... each tool_use must have a single result`. The post-tool preflight returned the agent's live internal message array, so every later turn duplicated assistant messages and tool results; it now returns its own copy, with provider-side deduplication and a descriptive pre-conversion guard as defence in depth ([#2051](https://github.com/bastani-inc/atomic/issues/2051)).
+- Fixed reasoning tokens being able to fail a compaction outright. The planner capped its own request at `0.8 × reserveTokens` — an input-side reserve reused as an output cap — so a high-reasoning session could spend the whole budget thinking and return no deletion records, killing the active turn during a mid-turn preflight. The planner now sends no `max_tokens` at all; branch summarization received the same fix.
+- Fixed compaction rebuilding the retained recent messages as structured blocks after the boundary, which could produce out-of-order provider blocks and a rejected request. The `preserve_recent` tail is now serialized with the same transcript grammar and concatenated onto the boundary, losslessly: retained tool results keep their full text and retained images stay as image blocks.
+- Fixed repeated `/compact` presses starting several overlapping compactions. `AgentSession.compact()` is now single-flight — a second manual request joins the run in flight rather than emitting a duplicate boundary — and messages queued before an automatic compaction no longer stay stuck until Escape ([#1984](https://github.com/bastani-inc/atomic/issues/1984)).
+- Fixed `/reload` re-transpiling and re-evaluating the entire transitive TypeScript graph of every extension on Windows and in compiled builds even when nothing changed. A per-extension SHA256 graph manifest now lets an unchanged graph reuse its evaluated factory; reloading the five builtin packages drops from ~25 s cold / ~16 s warm to ~90 ms ([#2069](https://github.com/bastani-inc/atomic/issues/2069)).
+- Fixed interactive startup crashing with `Interactive engine did not become ready within 5000 ms` on machines with slow cold starts; the fixed deadline is removed while a dead process or broken transport still fails fast ([#1962](https://github.com/bastani-inc/atomic/issues/1962)).
+- Fixed the external editor failing on Windows whenever the editor path, its arguments, or the temporary prompt path contained a space, and fixed the compiled package CLI crashing before TUI startup when invoked from another working directory ([#1995](https://github.com/bastani-inc/atomic/issues/1995)).
+- Fixed physical Escape and Ctrl+C depending on the configurable `app.clear` action, which could send Escape to the engine stop branch and strip Ctrl+C of its host route. Both are now matched by physical key identity, and a single Ctrl+C again dismisses the `/login` popups instead of clearing the hidden editor and risking a double-press exit.
+- Fixed session-tree navigation being accepted while a response was still streaming, which stranded the in-flight turn's tool results on the abandoned branch, and fixed a startup session switch rendering every agent event twice.
+- Fixed inherited `.pi` extensions conflicting with Atomic-bundled resources, extension-contributed skills, prompts, and themes losing their package source metadata after a resource reload, and a nested linked git worktree loading the repository's `AGENTS.md`/`CLAUDE.md` twice ([#1955](https://github.com/bastani-inc/atomic/issues/1955)).
+- Fixed workflow reliability from the parent-session side: stage `output:` no longer lost to an admitted external turn, `reads:` references fail loudly when an artifact is missing instead of handing the model an empty file, the resume picker stops offering stale or non-resumable runs, fast named workflows no longer leave a stale "still running" claim, queued work no longer escapes a controlled pause ([#1983](https://github.com/bastani-inc/atomic/issues/1983)), and tool-only workflows are no longer reported failed after their durable side effects completed ([#1991](https://github.com/bastani-inc/atomic/issues/1991)).
+- Fixed the RPC `bash` command bypassing extension `user_bash` handlers, so sandbox and remote-shell extensions see an RPC request exactly as they see `user_bash`.
+- Fixed a failed `git` package install leaving a half-written checkout that silently suppressed the next repair, and hardened the archive and SQLite path-selector parsers against polynomial-time regex backtracking (CodeQL `js/polynomial-redos`) with no change to accepted selector syntax.
+- Fixed PDF extraction dropping text and streaming `TypeError: Math.sumPrecise is not a function` on Node runtimes without `Math.sumPrecise` by exact-pinning `unpdf` to `1.7.0` instead of letting it float to 1.8.0 ([#2141](https://github.com/bastani-inc/atomic/issues/2141)).
+
+## [0.9.11-alpha.12] - 2026-08-03
+
+### Fixed
+
+- Fixed PDF extraction dropping text and streaming `TypeError: Math.sumPrecise is not a function` warnings on Node runtimes that do not implement `Math.sumPrecise`. The `unpdf` dependency was declared as the floating range `^1.6.2`, which resolves to 1.8.0 in a published or global install; that release's bundled PDF.js v6.1 dropped the guarded fallback and calls the builtin unconditionally, so extraction threw per glyph, emitted font-substitution warnings, and silently returned fewer text items. `unpdf` is now exact-pinned to `1.7.0`, the newest release that still ships the fallback, so no install can float to 1.8.0 ([#2141](https://github.com/bastani-inc/atomic/issues/2141)).
+- Upgraded the pinned `unpdf` from 1.6.2 to 1.7.0, which adds `cMapUrl` CJK font support under Node, destroys internally created document proxies and canvas resources, and preserves line breaks in `extractText` with `mergePages`.
+
+## [0.9.11-alpha.11] - 2026-08-03
+
+### Breaking Changes
+
+- Workflow run targets now require the full 36-character run UUID. Typed prefixes are no longer resolved by any command or workflow-tool action that accepts `runId`, including `status`, `stages`, `stage`, `transcript`, `send`, `pause`, `resume`, `interrupt`, and `quit`, and by `/workflow connect`, `/workflow attach`, and `/workflow resume`. A target that is not a well-formed 8-4-4-4-12 hex UUID — a prefix, a 32-character dashless id, or a same-length non-hex string — is rejected with `Run id must be a full 36-character UUID; got "339e05a4" (8 chars).`, which is deliberately distinct from `Run not found:` so a truncated paste is diagnosable as truncated rather than looking like a stale run. Since every user-facing surface already prints the full id, copy it back verbatim. Because ids are unique and now matched exactly, run-target ambiguity is unreachable and the "Ambiguous run prefix" diagnostic is gone.
+- Stage targets are now matched exactly. A `stageId` resolves by exact stage id — a bare UUID at the root, the full `runId:stageId` composite for a stage inside a nested `ctx.workflow(...)` import, or `tool:<argsHash>` for a `ctx.tool` node — or by exact stage or tool name. Prefixes and partial names no longer resolve, so `build` will not select `build-check`. Stage ids are deliberately **not** held to the 36-character rule, because nested and tool identifiers are legitimately longer or differently shaped; nested-stage and tool-node targeting are unchanged. Two stages sharing an exact name still return the existing ambiguity diagnostic.
+
+### Changed
+
+- Removed the four-workflow display cap from the BACKGROUND widget so every qualifying top-level run is rendered.
+- Moved durable workflow run artifacts—including goal ledgers, Ralph implementation notes, QA evidence video paths, and worktree task outputs—from per-invocation OS temp directories to the run-scoped durable root under the Atomic config directory (`~/.atomic/workflows/runs/<runId>/`, overridable with `ATOMIC_WORKFLOW_ARTIFACT_DIR`), so they survive OS temp purges and follow state-aware retention.
+- Toggling tool-output expansion (`ctrl+o`) no longer prints a `Tool output: expanded` / `Tool output: collapsed` status line. The chat re-renders in the new state, which is the same information without the extra line.
+
+- Workflow run identifiers are now shown as full UUIDs across the BACKGROUND widget, status and detail views, run pickers, control messages, and awaiting-input attribution banners. BACKGROUND cards use a two-line identity layout at 80 columns and wider, while narrow chat surfaces wrap full ids without cutting them or breaking their borders. The public `workflow({ action: "status", format: "json" })` payload no longer includes `runIdPrefix`; read `runId` instead, which now carries the full id. The `/workflow connect` run picker now shows five runs at a time and scrolls to additional retained runs with the arrow keys or mouse wheel. The picker's type-to-filter box still narrows by name substring or id prefix, since that selects a row from a list rather than resolving a typed id.
+
+### Fixed
+
+- Fixed Escape aborts restoring queued steering and follow-up messages to the editor in the main interactive chat and attached workflow-stage chats instead of leaving them stuck in the pending-message queue.
+- Fixed `/model <model_name>` waiting indefinitely when a model-catalog refresh never settles; it now stops after the interactive 15-second deadline and searches cached models.
+- Quit workflow cards now expire from the BACKGROUND widget after the same recent-run window as finished cards while remaining resumable and discoverable through workflow status; the header count now matches the rendered cards after expiry.
+- Fixed detached foreground subagent completion notifications rendering as an unstyled dump of the full child output. They now use the same structured, collapsed notification UI as background completions while preserving the distinct detached-task wording, and persisted notifications with custom labels remain parseable.
+- Fixed workflow-stage re-attach status falling back to `Working...` while context compaction is still active; the active compaction reason now survives host remounts so manual compaction, threshold auto-compaction, and overflow recovery retain their factual status labels.
+- Fixed workflow stage file output being lost when an admitted external turn (for example an async subagent completion) arrived while the stage was still running: the deterministic `output:` write re-derived its content from session state at close time, so a trailing acknowledgement could overwrite the stage's real deliverable. Every stage that declares `output:` now also gets a durable, searchable companion transcript outside the repository tree, and the receipt names both paths with the intended access pattern, so the work remains recoverable regardless of which turn was persisted. The runner does not attempt to infer which turn was the intended deliverable; it writes the stage's final assistant message, and the receipt reports one fact only — an empty artifact.
+- Fixed the workflow resume picker offering stale or non-resumable runs. Picker and command paths now share one resumability predicate and revalidate durable state before displaying a target, while explicit ids retain their explanatory rejection.
+- Fixed workflow `reads:` references to fail loudly when an artifact path no longer exists instead of handing the model an empty, silently missing context file.
+- Fixed relayed terminal subagent results retaining their stable stage-admission identity when delivered through the intercom ordering barrier, so an acknowledgement turn cannot arrive without the admission marker that identifies it in a running stage's companion transcript.
+- Fixed a failed companion-transcript write reporting a bogus `Output file error` for an output artifact that was written correctly, and returning the full stage text under `outputMode: "file-only"` instead of the compact reference. A transcript failure now degrades to a warning naming the transcript path while the saved-output reference is unchanged, and artifact-retention pruning failures no longer propagate into the stage receipt.
+- Fixed `createWorkflowArtifactDirectory()` attributing artifacts to the ambient most-recently-started run rather than the workflow that created them, and returning one shared directory whose fixed artifact filenames could overwrite each other. Every builtin call site now passes its owning run id, and each call receives a unique directory beneath that run.
+- Fixed the workflow resume picker re-offering a live run as a durable row after the shared resumability predicate rejected it for missing artifacts or checkpoints. Rejected non-running snapshots are now suppressed from live and durable resumable rows, while completed inspection rows remain available; active-running snapshots retain their existing durable fallback.
+
+### Added
+- Added first-class Alpine/musl Linux support for x64 and arm64, including native search and PTY bindings and the `atomic-linux-x64-musl.tar.gz` and `atomic-linux-arm64-musl.tar.gz` release archives. The musl archives omit the clipboard native binding and glibc-linked `@embedded-postgres/*` binaries: Atomic falls back to Linux clipboard commands/OSC52, while durable Alpine workflows require external Postgres via `DBOS_SYSTEM_DATABASE_URL` or Docker; otherwise the existing loud non-durable in-memory fallback applies.
+- Added state-aware retention for durable workflow artifact directories: only terminal or unowned runs older than `WORKFLOW_ARTIFACT_RETENTION_MS` are pruned, while running, paused, quit, blocked, and awaiting-input runs keep live resume dependencies. Aging out a terminal run now deletes its durable entry first and removes the artifact directory only when that deletion succeeds, so a surviving durable record can never reference deleted files.
+- Added durable, searchable companion transcripts for every workflow stage that declares `output:`. The caller's receipt names both the artifact and transcript paths and says to search with `rg`, read narrow line ranges, and never read the transcript whole; under `outputMode: "file-only"`, that receipt is the entire handoff.
+- Added explicit warnings for degenerate stage artifacts instead of silently persisting them: an empty write or a write that only points to its own output path directs the reader to the companion transcript.
+- Added a real artifact-integrity probe to the shared resume predicate. A run whose snapshot references a run-scoped artifact path is offered for resume only while that run directory still exists, and durable-checkpoint eligibility is supplied from the authoritative loadable check, so `/workflow resume` matches the documented behaviour instead of relying on flags no caller set.
+
+## [0.9.11-alpha.10] - 2026-08-01
+
+### Fixed
+
+- Fixed an isolated interactive-engine exit after an admitted tool call leaving that session permanently pending and unusable on resume. Reopening an inactive session now derives explicit error results for unanswered `toolUse` calls without rewriting its append-only JSONL, so the transcript can render, compact, and accept another prompt while preserving that the interrupted command's side effects are unknown. Unexpected-restart notices now also retain the bounded exit kind, code, or signal that triggered recovery while excluding child stderr.
+- Fixed Anthropic subscription login on Bun-hosted Linux sessions remaining at `Exchanging authorization code for tokens...`. Atomic's HTTP setup relied on Undici's CommonJS `install()` helper, but Bun does not expose that helper through its ESM namespace, so source-mode and compiled interactive-engine processes silently kept Bun's native `fetch` instead of the configured Undici transport. Atomic now installs the exported Undici web globals explicitly under Bun. Login completion also ends when the provider credential is persisted and publishes that provider against the already-loaded model snapshot immediately; cache restoration, ambient availability checks, and catalog discovery no longer run inside the successful credential transaction, so none can keep the login dialog open after the provider appears in `auth.json`.
+- Fixed existing authenticated users being unable to select a model, or seeing `Refreshing model catalogs…` indefinitely, after an isolated or direct `/model` refresh stalled. The frontend's 15-second abort previously never crossed the engine RPC boundary, the engine started its deadline only after an unbounded credential/availability reload, and the selector assumed refresh work would honor cancellation. The shared deadline now covers credential reload and catalog work inside the engine, the selector races that deadline itself and replaces the progress state on both timeout and rejection, and model refreshes use a concurrent correlated lane so selection remains responsive while catalogs update. Existing `auth.json` credentials remain compatible and no `~/.atomic` reset is required.
+- Fixed `/logout` timing out after it had already deleted the credential, leaving the provider in `/model` until restart and preventing the selector from reopening. Logout now publishes credential removal immediately, skips post-logout catalog refreshes, bounds the local probe for authentication that remains in the environment, and prevents a model refresh started before the mutation from overwriting the newer login or logout snapshot when it eventually settles.
+
+## [0.9.11-alpha.9] - 2026-08-01
+
+### Breaking Changes
+
+- Adopted pi 0.83.0 (`@earendil-works/pi-agent-core`, `@earendil-works/pi-ai`, `@earendil-works/pi-tui` at `^0.83.0`), which moves the bundled TypeBox to 1.3.7. TypeBox 1.3.7 **removes seven deprecated APIs**. Atomic inherits the removal exactly as upstream shipped it and does not provide a compatibility shim, so an extension, skill, workflow, or MCP schema that still calls one of these will now fail to compile and to run. Atomic's own sources use none of them; the migration below is for package authors. TypeBox 1.3.7 also fixes compiled validation of nullable array tool arguments, and — because `typebox` is pinned to a single hoisted `1.3.7` node — an Atomic-defined tool schema and a pi-defined one now validate identically in the same process.
+
+  | Removed API | Replacement | Migration |
+  | --- | --- | --- |
+  | `Type.Options(type, options)` | `Type.With(type, options)` | Straight rename; same arguments, same result. `Options` was already an alias of `With`. |
+  | `Type.Base` | `Type.Refine()` + `Type.Unsafe()` | `class DateType extends Type.Base<Date> { Check(value) { return value instanceof Date } }` becomes `const DateType = Type.Refine(Type.Unsafe<Date>({}), (value) => value instanceof Date)`. Class-instance schemas lost their prototype methods through TypeBox's clone/spread compositor, which is why the class form is gone. |
+  | `Type.Promise(item)` | none | Model the resolved value directly and validate after `await`, or hold the slot with `Type.Unsafe<Promise<T>>({})` when a schema entry is required. A promise was never checkable without settling it. |
+  | `Type.Awaited(type)` | none | Nothing is left to unwrap once `Type.Promise` is gone: use the resolved type itself where `Type.Awaited(Type.Promise(T))` appeared. |
+  | `Type.Iterator(items)` | none | Validate the materialized sequence with `Type.Array(items)` after draining the iterator, or hold the slot with `Type.Unsafe<Iterable<T>>({})`. |
+  | `Type.AsyncIterator(items)` | none | Same as `Type.Iterator`: drain first and validate with `Type.Array(items)`, or use `Type.Unsafe<AsyncIterable<T>>({})`. |
+  | `Value.Mutate(current, next)` | `Value.Patch(current, Value.Diff(current, next))` | `Patch` returns a **new** value rather than assigning into `current` in place, so code that relied on `Mutate` retaining internal references as a redraw signal must now assign the result and re-read the reference. |
+
+- The RPC `login_provider` response no longer carries the API key it just stored. `RpcLoginProviderResult` dropped its `credential` member and now reports `{ provider, cancelled: false, type: "api_key", …catalog }`. The key travelled as plaintext inside a JSON line on the same stdout the credential-export door treats as the single egress, and the host had itself supplied that key through the login input form, so nothing needed it echoed back. A host that read `data.credential` should use the value it submitted; `type` confirms which kind of credential was saved.
+
+### Added
+
+- Added `ctx.scopedModels` to the extension context: the read-only list of models scoped to the current session, resolved from the `--models` flag and the `enabledModels` setting — the same set `/scoped-models` shows. It is empty when no scoping is configured. The value resolves at access time, so it follows session replacement, and under the isolated interactive engine it reflects the engine's catalogue rather than a stale host snapshot. It reports the scope and cannot widen it: `readonly` is a compile-time claim only, so both the extension context and the hand-built context that shortcut handlers receive hand back a fresh copy on every read, and an extension that mutates what it was given changes nothing. Its types are exported too — `ScopedModel` for one entry and `ExtensionScopedModels` for the accessor — from `core/extensions/types.ts` and from the package root, so an extension can name what it reads without importing an internal module. Documented in `docs/extensions.md`.
+- Added `atomic auth print-api-key` and `atomic auth print-bearer-token`, which print one configured credential for an external client. The credential goes to stdout and nothing else — warnings, provider selection, refresh notices, and help all go to stderr — so `KEY=$(atomic auth print-api-key --model gpt-5.5)` cannot capture a diagnostic. `--model` is required, so no ambient "current model" can emit a credential you did not name. `--provider` and `--model` are the only options either subcommand accepts, enforced as an allowlist over the parsed arguments rather than a list of refusals, so a path-naming flag such as `--export` or `--session-dir` is a usage error instead of a flag this path happens to ignore; there is no file or clipboard sink. When `--provider` is omitted, eligibility comes from the runtime's resolved auth type for each provider offering that model, so a credential supplied by an environment variable or a custom resolver — which `auth.json` never sees — is exported like any other, and a provider offering both an API key and OAuth is selected by whichever one a request would actually use rather than by what it supports. `print-bearer-token` refreshes a token with less than `--min-expiry` (default `30m`, accepting `ms`/`s`/`m`/`h`, in both `--min-expiry 30m` and `--min-expiry=30m` spellings) remaining; `--min-expiry` with `print-api-key` is a usage error in either spelling rather than a silent no-op, because an API key has no expiry. Failures are distinguishable by exit code: `1` usage, `2` no credential configured, `3` provider ambiguous, `4` credential kind unsupported for that provider, `5` the OAuth refresh itself failed (the only exit that promises the stored credential is untouched, because that failure happens before anything is persisted), `6` the provider cannot mint a token that lives long enough, `7` any other OAuth failure, which makes no claim about the stored credential, `8` the credential could not be written and nothing was emitted, and `9` only part of it was written and the output should be discarded. Which of those two a failed write gets is read from `process.stdout.bytesWritten` rather than guessed: nothing flushed is `8` with stdout provably empty, the whole payload flushed is exit `0` with the failure on stderr — the caller holds what it asked for — and a partial flush is `9`, the one exit whose stdout is not empty, because those bytes cannot be recalled and reporting success over a truncated secret would be worse than saying so. One function in `src/cli/credential-print.ts` is the only place in the source tree that can read the credential wrapper and write it to stdout; a test enumerates every call in `packages/coding-agent/src` that puts a non-literal value on the real stdout, and carries a negative control that fails if the scanner stops reporting a planted egress. Documented in `docs/usage.md` and `docs/security.md`.
+
+### Changed
+
+- `ChatSessionHostCommands.prompt` now receives the submitting key's mode as a second argument, and the new `ChatSessionSubmitMode` (`"auto" | "followUp"`) type is exported alongside the other chat-session host types. A host whose idle prompt command chooses a delivery queue can now read the mode of the invocation it is serving instead of shared state a concurrent submission may still own. Existing single-argument `prompt` implementations keep working unchanged ([#2074](https://github.com/bastani-inc/atomic/issues/2074)).
+- The `/model` selector now highlights the top row whenever a filter query is typed, so the best match is the one Enter selects. Clearing the query restores the previous position, clamped to the restored list.
+- Toggling tool-output expansion now reports the new state (`Tool output: expanded` / `Tool output: collapsed`) on the status line instead of re-rendering silently.
+- The startup RESOURCES disclosure now lists `SYSTEM.md` and `APPEND_SYSTEM.md` alongside the `AGENTS.md`/`CLAUDE.md` context files, in the order they reach the prompt. Those files shape the system prompt exactly like a context file, so leaving them out of the listing hid them.
+- llama.cpp models now declare streaming usage support, so token usage is reported during a streamed response instead of only at the end.
+- A provider that ends a turn with a terminal reason the mapping does not recognise now surfaces a provider error naming the raw reason, instead of reporting an ordinary successful stop. A truncation or safety signal a provider adds after this release is therefore visible rather than arriving as a turn that looks like it finished normally; every raw reason that already mapped to a successful stop still does. Documented in `docs/providers.md`.
+- Assistant messages carry the new `pending` stop reason while they are still streaming. It is replaced by the terminal reason before the message completes, so it never reaches session JSONL, but an RPC or SDK client that switches on the stop reason of a partial message needs the case, and a custom `streamSimple` provider should start its partial message at `pending` and raise if the stream ends still holding it. Documented in `docs/providers.md`, `docs/custom-provider.md`, `docs/rpc.md`, and `docs/session-format.md`.
+- A stored OAuth token is now refreshed once fewer than five minutes of validity remain, rather than at expiry, so a long turn is no longer started on a credential that dies mid-request. The refresh runs inside the `auth.json` lock and re-checks the stored expiry after taking it, so concurrent sessions sharing one credential file refresh it once between them rather than once each. Documented in `docs/providers.md`.
+- The OpenRouter login now accepts a pasted final redirect URL, or the authorization code on its own, for remote and headless machines where the browser cannot reach the loopback callback. pi 0.83.0 added that fallback to the OpenRouter OAuth flow, which races the callback against a manual-entry prompt; Atomic's terminal only offers the input for providers whose metadata declares a callback server, so inheriting the flow alone left the prompt waiting on an input that was never shown and the login ended at the callback timeout. Documented in `docs/providers.md`.
+
+### Fixed
+
+- Fixed `/reload` re-transpiling and re-evaluating the entire transitive TypeScript graph of every extension on Windows and in single-file (compiled) builds even when nothing changed. Transformed extension evaluations now record a per-extension graph manifest mapping every file jiti reads to a SHA256 content hash, persisted under the versioned transpile cache directory. On reload, an unchanged graph — every recorded file rehashes identically and the stored manifest matches — reuses the previously evaluated factory instead of re-importing; any hash mismatch, missing file, missing or corrupt manifest, or graph-shape change falls back to a full fresh re-evaluation, which rewrites the manifest, so edited extension source is always picked up. Measured on Windows, reloading the five builtin packages drops from ~25 s cold / ~16 s warm (jiti fsCache) to ~90 ms — the cost of rehashing the recorded graph ([#2069](https://github.com/bastani-inc/atomic/issues/2069)).
+- Hardened the archive and SQLite path-selector parsers used by the read, search, and write tools against polynomial-time regex backtracking (CodeQL `js/polynomial-redos`). The ambiguous greedy `(.+\.ext)` prefixes were replaced with linear right-to-left scans; accepted selector syntax and parsing results are unchanged.
+- Fixed a failed `git` package install leaving a half-written checkout behind. Because the next install treats an existing target directory as installed, that partial clone silently suppressed the repair. A clone, checkout, or dependency install that fails now removes the target directory and prunes the host/owner directories it created.
+- Fixed the RPC `bash` command bypassing extension `user_bash` handlers. A sandbox or remote-shell extension that intercepts user shell commands now sees an RPC `bash` request exactly as it sees `user_bash`, with request-scoped ownership, streaming correlation, and result recording unchanged.
+- Fixed a startup session switch rendering every agent event twice. A session replacement that began while the startup rebind was still binding extensions produced two live agent subscriptions; the superseded rebind now returns without subscribing.
+- Fixed session-tree navigation being accepted while a response was still streaming, which stranded the in-flight turn's tool results on the abandoned branch. Navigation now rejects while streaming, the interactive tree selector stops the active response (restoring queued messages to the editor) before navigating, and a session replacement settles its active response before the outgoing session is torn down. The isolated engine's host facade deliberately does not re-enter its cooperative-abort round trip during teardown, so an unresponsive or dead engine still cannot hang a session switch.
+- Fixed a nested linked git worktree loading the repository's `AGENTS.md`/`CLAUDE.md` twice. When a worktree created inside its own main repository has its own copy of the same tracked context file, the main repository's copy is now skipped. Ordinary repositories, sibling worktrees, bare layouts, and submodules keep normal ancestor inheritance.
+- Fixed extension-contributed skills, prompt templates, and themes losing their package source metadata when they were registered after a resource reload. The reload's resolved metadata is now retained on the loader so later `extendResources` passes still resolve it.
+
+## [0.9.11-alpha.8] - 2026-07-29
+
+### Breaking Changes
+
+- Replaced Atomic's legacy extension OAuth registration bridge with provider-owned authentication from `@earendil-works/pi-ai`. Extensions must declare OAuth or API-key authentication on their provider registration. The package root no longer exports the bridge functions `registerOAuthProvider`, `resetOAuthProviders`, `getOAuthApiKey`, `getOAuthProvider`, or `getOAuthProviders`, nor the bridge and credential/status types `LegacyOAuthProvider`, `OAuthProviderDescriptor`, `ApiKeyCredential`, `AuthCredential`, `AuthStatus`, or `OAuthCredential`; import current credential types from `@earendil-works/pi-ai` and use provider-owned authentication instead. The internal legacy registration/refresh machinery and custom API-key login hooks beyond pi's provider contract were also removed.
+- Model configuration now follows pi's single-file `ModelConfig` contract. Atomic reads one `models.json` from the active Atomic agent directory (`~/.atomic/agent/models.json`, or the directory selected by `ATOMIC_CODING_AGENT_DIR`/`PI_CODING_AGENT_DIR`); it no longer reads project-scoped `.atomic/models.json`, falls back to `~/.pi/agent/models.json`, or layers and merges `.pi` and `.atomic` model configuration files. Move project-scoped custom providers and models into the active agent-directory file. The legacy `.pi` read fallback remains only for configuration surfaces that explicitly use layered paths, such as `auth.json`.
+- Model-catalog refreshes now use pi's exact timeout semantics. `modelRefreshTimeoutMs` applies only to the initial runtime creation refresh, and post-login catalog refreshes are unbounded; the interactive `/model` selector owns its 15-second refresh timeout like pi, rendering cached models immediately, aborting a slow refresh, and reporting "Model refresh timed out; showing cached models." Callers of `ModelRuntime.refresh()` that require cancellation must provide their own abort signal.
+- Extension `streamSimple` implementations are now scoped to their registered provider and `ModelRuntime`, matching pi's provider composer. Unregistering a newer provider no longer restores an older global API-owner registration; extensions that replace a provider stream must keep that provider registered for as long as the stream should remain active.
+- Remote model catalogs now publish refreshed models in memory before persisting the catalog, matching pi's ordering. If the catalog-store write fails, refresh reports the storage error but the newly refreshed in-memory catalog remains active for the current process.
+- `AuthStorage` now implements pi's asynchronous `CredentialStore` contract directly. Its synchronous compatibility methods (`get`, `set`, `remove`, `has`, `hasAuth`, `getAll`, `getAuthStatus`, `getLoadError`, `drainErrors`, and synchronous `list`), `asCredentialStore()` adapter, fallback/runtime-key helpers (`setFallbackResolver`, `getRuntimeApiKey`, `setRuntimeApiKey`, and `removeRuntimeApiKey`), and provider-auth methods (`login`, `logout`, `logoutAsync`, `getModelAuth`, `getApiKey`, and `getOAuthProviders`) were removed. Use and `await` `read`, `list`, `modify`, and `delete` for persisted credentials, call `reload` when an existing instance must reread its backing store, and use `ModelRuntime` for authentication resolution, login/logout, and runtime API-key overrides.
+- `ModelRegistry` is now constructed from a `ModelRuntime` and exposes only pi's thin compatibility-facade surface. The `create` and `inMemory` factories, public `authStorage` member, and the `canRestoreUnknownModel`, `checkAuth`, `getAuth`, `getCustomApiKeyAuth`, `getCustomApiKeyAuthProviders`, `getProviders`, `hasProvider`, `hasRegisteredStreamSimpleForApi`, `login`, and `logoutProvider` methods were removed. Instantiate and consume `ModelRuntime` for runtime-owned model/provider discovery and authentication, and pass it to `new ModelRegistry(runtime)` only where the synchronous extension-facing facade is required.
+- `CreateAgentSessionOptions` no longer accepts the public `authStorage` and `modelRegistry` overrides. Construct or supply a `ModelRuntime` through `modelRuntime` instead; when omitted, `createAgentSession()` creates the runtime from the active agent directory's `auth.json` and `models.json`.
+- Isolated interactive `ctx.ui.custom()` components that consume Ctrl+C must now pass `{ handlesCtrlC: true }`. Without that declaration the first Ctrl+C is the host escape and closes the focused component, resolving its promise with `undefined`; a declared component receives the first press and stays host-closable on the next one. This keeps a component that never resolves from trapping the keyboard. The bundled workflow and MCP surfaces were migrated; third-party extensions that bind Ctrl+C for Skip, Close, or cancel need the one-line addition.
+
+### Added
+
+- Added a `handlesCtrlC` option to `ctx.ui.custom()` for components that bind the key themselves. See the migration note under Breaking Changes for the behavior an existing component must declare to keep.
+
+### Changed
+
+- Adopted pi's provider-owned `ModelRuntime` architecture for model composition, credentials, streaming, and catalog refresh. `ModelRegistry` is now the thin synchronous extension-compatibility facade used by pi, while coding-agent, SDK, RPC, isolated-engine, workflow, and MCP internals consume `ModelRuntime` directly.
+
+### Fixed
+- Fixed physical Escape and Ctrl+C depending on the configurable `app.clear` action. With `app.clear` bound to Escape, Escape could reach the engine stop/restart branch while Ctrl+C lost the host route entirely — the opposite of the intended behavior on both keys. Both are now matched by physical key identity through pi-tui's parser (so complete CSI/OSC sequences and bracketed paste are never mistaken for a bare Escape, and Kitty key-release events never act twice), and the configured `app.clear` still governs ordinary editor clearing on whatever key it is bound to. The editor applies the same fixed Escape guard before its configurable action handlers, while keeping Escape as autocomplete cancel when autocomplete is open.
+- Fixed the remote-UI escape hatch replacing a healthy engine, and made it act on the first press. Ctrl+C behind a remote `ctx.ui.custom()` component used to need two presses and then stopped and replaced the whole engine child, discarding everything else that generation was doing. Ownership is now declared per mount: an unresponsive engine is still terminated on the first press (a wedged child cannot run a local handler either), a component that declared `handlesCtrlC` receives the press and keeps working — and is closed if it is still holding input on the next one — and an undeclared component is closed immediately through the ordinary close path, resolving its `ctx.ui.custom()` promise with `undefined` while the engine, and every other component it has mounted, keeps running.
+- Fixed an engine child that exits during the startup window leaving a live TUI bound to a dead engine. A child could report ready, let startup return, and exit before the host finished attaching its listeners; that death had no listener and recovery never ran. The terminal event is now retained and replayed to a listener that attaches afterwards, while a death belonging to an already-replaced generation is never replayed.
+- Fixed frames buffered by a dead engine generation being delivered to the host afterwards. A `ctx.ui.custom()` mount frame queued before its controller subscribed could arrive after that generation died and after teardown ran, remounting exactly the UI the teardown had just closed — and colliding with the replacement child, whose component IDs restart at the same values. Buffered engine messages and extension UI requests are now tagged with their generation, dropped when it dies, and never observed from a replaced generation; frames belonging to the live generation still replay as before.
+- Fixed two submissions whose text differs only in whitespace being able to restore each other's draft. The exact typed buffer travelled in a single shared slot that every Enter overwrote and every finished turn cleared, so a failure could put back the wrong text — or nothing. Each submission now carries its own draft end to end, through the input queue and the prompt turn, and submissions still queued behind a failed one come back with it in the order they were entered rather than being restored later in reverse.
+- Fixed a raw stream write failure still discarding submitted text. `write EPIPE`, `Cannot call write after a stream was destroyed`, and `write after end` are exactly what a dying engine produces, and none of them matched the message fragments the host used to recognize a send that never landed — so those submissions showed a red `Error: write EPIPE` and the typed text was lost. Transport failures are now classified where they happen, with an additive non-enumerable marker that leaves the error's identity and its `code`, `errno`, and `syscall` fields intact, and the queued writer, the child exit/error/stdin handlers, an explicit stop, a malformed transport, a missing writer, and a not-started client all carry it. Request timeouts after a successful write, RPC error responses, provider failures, and anything after `agent_start` are deliberately not classified and still surface as errors.
+- Fixed an idle Alt+Enter submission losing its surrounding whitespace when the send failed. Alt+Enter is an app action, so the editor never takes its own pre-trim snapshot for it and the submit handler's only draft is the value the Alt+Enter path hands over — which was the already-trimmed text. The raw expanded buffer is passed instead, so a failed idle follow-up now returns exactly what was typed while the agent still receives the same normalized prompt.
+- Fixed quiet work that the engine had already started being offered back to the editor as unsent. Ownership was inferred from the first byte of output, so `!touch marker && sleep 400` — which changes the working tree and prints nothing — looked identical to a command the child never received: killing the engine put that `!` line back in the editor, inviting a second run. The child now announces ownership of every correlated request, flushed before its handler can touch the shell, an extension, the queue, or compaction, and the host restores a draft only for a transport failure that arrived without an announcement. An accepted failure is reported as an ordinary failure instead. The interactive-engine protocol version is now `2`; a mismatched host and child do not bind rather than falling back to the old policy.
+- Fixed automatic recovery discarding the ownership of the work it was recovering from. An announcement can still be unparsed in the pipe when the child dies, and recovery — which starts in the same turn as the death event — detached the reader, retired the generation, and re-failed those requests with `Agent process stopped`, so already-running work was reported as never sent and offered back for a second run. A dead generation now gets a bounded settling window: its UI is torn down immediately as before, but its stdout keeps being read, only its ownership frames are honoured, its requests are classified exactly once with the error of whatever ended it, and the replacement starts only afterwards. Every terminal cause — exit, spawn error, stdin error, malformed transport, and explicit stop — goes through that one path, and a descendant that inherited stdout cannot delay recovery beyond the bound. The JSONL reader also reports completion for a stream that ends with nothing buffered, which previously left that wait to time out.
+- Fixed session teardown racing an engine replacement. A recovery attempt sits between its own stop and its spawn with no child attached, so disposal's stop found nothing to do and returned — and the attempt then started a fresh engine, plus its host initialization, after teardown had finished. Disposal now voids the in-flight restart permit and joins the attempt before returning, and a superseded restart fails as cancelled instead of quietly succeeding. Automatic single-shot recovery, the Ctrl+C rescue, and the overdue-replacement rules are unchanged; a cancelled attempt reports no failure and arms nothing.
+- Exempted every cooperative-cancellation command from the generic 30-second RPC deadline, not just `abort`. Cancelling a running `!sleep` still produced `Timeout waiting for response to abort_bash` — a red error about the host's own impatience while the engine was still working. `abort_bash`, `abort_compaction`, `abort_retry`, and `cancel_login_provider` now wait like `abort` does.
+- Fixed engine loss during an active replacement leaving the host with no engine and no way to ask for one. A newer child dying while the automatic attempt was still running was silently ignored, and once that attempt settled nothing armed Ctrl+C. The nested death now latches the escape hatch without starting a second automatic restart, so recovery stays single-shot and user-driven.
+- Fixed engine-owned line widgets surviving the generation that published them. `setWidget` writes plain host state with no component to close, so a dead generation left its lines on screen. Widget keys are now tracked against their latest writing generation and released only when that generation dies; a newer generation that rewrites the same key takes ownership and its content survives stale cleanup.
+- Fixed the restored draft being the already-trimmed submission rather than what was typed. pi-tui expands pastes, trims, and clears the editor before it calls `onSubmit`, so the callback argument could never carry the user's leading or trailing whitespace. The editor now snapshots its expanded buffer for the same input dispatch that submits it, and restoration uses that.
+- Stopped showing a red transport error next to a restored draft. A submission the engine never accepted already reports itself: the draft is back in the editor and the calm recovery status explains why. Errors that were not restored — provider failures, model errors, and any failure after the agent turn started — still surface.
+- Fixed a stream write that failed in its callback leaving its caller's promise pending forever. An EPIPE to a dying engine could hang a prompt or an abort instead of failing it; the in-flight frame is now rejected along with everything still queued.
+- Fixed the heartbeat observer consuming the buffered startup custom-UI messages. Watching heartbeats through the generic engine-message channel drained messages queued before the real controllers subscribed, so a custom UI opened during startup could be lost. Heartbeats now arrive on a dedicated callback that does not participate in that buffering.
+
+- Fixed interrupting a tool call terminating the interactive engine and reporting `Engine terminated; … result unknown; inspect side effects before retrying`. Escape raced the engine's cooperative abort against a 250 ms deadline and killed plus restarted the engine child whenever it lost that race, which any ordinary event-loop stall in the child could cause — a synchronous extension or tool callback, GC, or a large tool-output flush. Escape now simply requests the engine's cooperative cancellation and waits for it: interrupting never terminates the engine, never restarts it, never discards in-flight tool state, and the removed message no longer exists anywhere in Atomic. The wait is genuinely unbounded — `abort` is exempt from the generic 30-second RPC deadline, so a stopped or blocked child no longer turns Escape into a red `Timeout waiting for response to abort` while the engine is still working.
+- Fixed a total interactive-TUI lockup when the engine generation behind a mounted remote custom UI died. A crashed, killed, or replaced engine left the host's `ctx.ui.custom()` components mounted forever: their promises never settled, an inline mount kept the editor detached from its container, an overlay kept input focus, widget keys and terminal modes stayed claimed, and the blocking inline custom-UI depth stayed above zero, so typing, Escape, Ctrl+C, and even Ctrl+C Ctrl+C all did nothing and the process had to be killed from another terminal. Engine death is now a host-local lifecycle event that immediately closes every remote component from the dead generation, settles its promises, releases widget keys, resets terminal modes, remounts and refocuses the editor, and unwinds the inline depth to zero — without waiting for a replacement `engine_ready`, so a crash with no restart, or a hung or failed restart, recovers too. Teardown unwinds newest-first and hides each overlay through its own handle, so a nested overlay never restores focus to a layer that is already gone and never closes an unrelated native overlay, and the editor is refocused only when no surviving native modal owns input. Host `select`, `confirm`, `input`, and `editor` dialogs opened by the dead generation are now owned by it too: they used to stay on screen forever with their promise unsettled and could answer through the replacement child's writer.
+- Added recovery from an unexpected interactive-engine exit. A crashed engine previously left a live TUI bound to a dead child with no way back; Atomic now makes one automatic replacement attempt and shows the calm status `Interactive engine stopped unexpectedly; restarting.`, reports `Interactive engine restart failed: …` when the replacement cannot start, and leaves the editor mounted, focused, and usable in either case.
+- Kept an explicit escape hatch for a wedged engine, matching the watchdog's own `Esc interrupt · Ctrl+C terminate` copy, and made it reachable in every case where the key would otherwise vanish. Ctrl+C is now always handled by the host while an engine-owned `ctx.ui.custom()` component or overlay holds input — even with a healthy engine, because such a component forwards every key to the child and a component that never resolves would trap the escape key too; with a healthy engine the host closes that one component rather than touching the engine. Ctrl+C also still replaces an engine that is provably not answering: watchdog-confirmed unresponsive, a cooperative abort unanswered past the same one-second threshold, a replacement waiting for readiness past it (previously unrecoverable, since such a child emits no heartbeat and no diagnostic), or a replacement that failed outright, which now keeps Ctrl+C armed indefinitely instead of leaving the host permanently engine-less. A repeat press can stop an overdue replacement and start another; a fresh replacement is never stopped by a stray press; and host-native selectors, dialogs, input forms, and session pickers keep Ctrl+C-as-cancel whenever the engine is healthy.
+- Fixed the interactive engine exporting its private control values to every process it spawned. `ATOMIC_INTERACTIVE_ENGINE_CHILD`, `_HOST_PID`, `_GUARD_FILE`, and `_API_KEY` were set on the engine child's environment, so bash tool commands, subagent children, MCP servers, hooks, and nested Atomic runs all inherited them: a nested `atomic` started in engine mode and flooded stdout with heartbeats instead of opening a TUI, parent-process guardians watched an unrelated PID, subagent idle watchdogs never fired, and an `--api-key` credential reached every child. Deleting the variables at startup cannot fix this under Bun, where a child spawned without an explicit `env` inherits the runtime's launch-time environment; the engine is therefore now launched with an environment that never contains the values. They travel in an owner-only bootstrap file whose path is a private CLI argument, read once and unlinked by the child, and every reader uses that frozen snapshot. Legacy variables are still scrubbed from `process.env` and from subagent foreground, background-streaming, and detached-runner spawn environments as defense in depth, and extension `ctx.exec` passes an explicit environment. Bootstrap cleanup is ownership-scoped: the child unlinks exactly the file it was told to read, while recursive removal of the containing directory requires the handle the host received when it created it, so a hostile `--internal-engine-bootstrap` path cannot delete an unrelated directory. A failed publication removes its own temporary file and directory before rethrowing, so a `0600` credential file is never left behind.
+- Fixed typed input being discarded when a submission could not be sent. A prompt that failed because the engine was gone, stopping, or restarting showed only `Error: Agent process stopped` and lost the text. The submission now returns to the editor exactly as the editor handed it over, placed ahead of anything typed while the send was still pending and separated by a blank line, so neither part is lost and neither is trimmed; a pending large paste is expanded rather than reduced to a dead `[paste #1 …]` marker, which `setText` would otherwise discard. Focus returns to the editor unless a modal owns input, and the restored text is treated as a draft rather than replayed as a submission. This covers every submit route, not just Enter: `/atomic`, a deferred slash command, an extension command during compaction, a streaming steer send, `!bash`, `/compact`, and Alt+Enter all dispatch straight to the engine and previously dropped the text on their own. Text that reached a started agent turn stays in the transcript as before.
+- Fixed OAuth logins being destroyed by an unrelated model-catalog refresh, matching upstream pi's behavior. After a successful `/login`, a timed-out (aborted) or partially failed catalog refresh threw `Model refresh aborted after OAuth login` and rolled the freshly acquired tokens back to the previous credential. Because providers rotate refresh tokens, that rollback could permanently strand a server-side-invalidated credential — every send then failed with `invalid_grant` ("Refresh token not found or invalid") and every re-login was rolled back again, typically on machines with slow routes to catalog endpoints. Freshly persisted OAuth credentials now always survive the post-login refresh: per-provider refresh errors and refresh timeouts no longer fail the login in either the direct interactive or isolated-engine path, and models fall back to the cached snapshot.
+- Fixed the `/model` selector reporting `Could not refresh llama.cpp; showing cached models.` for users who never configured a llama.cpp server. The bundled llama.cpp extension now uses pi's provider-owned registration: the provider stays dormant — no refresh attempt, no error — until a server is configured through `LLAMA_BASE_URL` or a stored login, and `/login` prompts for the server URL plus optional API key exactly like pi.
+- Fixed RPC `save_provider_credential` writes disappearing after process restart. Saved API-key and OAuth credentials now persist to `auth.json` through `ModelRuntime.saveCredential()` instead of being stored as non-persistent runtime API-key overrides; the RPC command again accepts the full credential union, awaits a model-catalog refresh, and returns the refreshed catalog.
+- Fixed GitHub Copilot requests failing with `421 Misdirected Request` for users who authenticate with `COPILOT_GITHUB_TOKEN`. Upstream pi pins the `github-copilot` provider to `https://api.individual.githubcopilot.com` and only derives a per-tenant host inside its OAuth loader, so business, enterprise, and GHE tokens supplied through the environment were sent to the individual CAPI host. Atomic now resolves the endpoint for env-token auth again, highest precedence first: `COPILOT_API_TARGET` / `GITHUB_COPILOT_BASE_URL`, the token's embedded `proxy-ep` segment, `GITHUB_SERVER_URL` (`<tenant>.ghe.com` routes to `copilot-api.<tenant>.ghe.com`, other non-`github.com` hosts to `https://api.enterprise.githubcopilot.com`), and finally the public routing hub `https://api.githubcopilot.com`. A `models.json` provider `baseUrl` still overrides all of it, and the OAuth path remains exactly upstream.
+
+## [0.9.11-alpha.7] - 2026-07-28
+
+### Changed
+
+- Synchronized the complete bundled `impeccable` skill tree with pbakaus/impeccable at `14c27e43af190cbed3793d0b76e33feea4a8859a` (previously `630fc2682a5bd39b25a8e61f74b6b3f14f2b1e21`). Impeccable 4.0.3 replaces the brand/product register split with four surface modes (Persuade, Operate, Read, Experience), routes work through new `routing.md`, `new-work.md`, and mandatory `craft-floor.md` guidance in place of the deprecated `craft` ownership model, adds a `doctor` drift check with repair steps, adds documenter and finish-reviewer agents with degraded-mode reference fallbacks, adds surface briefs plus concept/composition catalogs, staleness checks, and image generation, and expands live review with generation preflight, source search and locking, poll lanes, and TanStack support alongside updated detector rules, static-HTML analysis, hooks, and platform guidance. Atomic's divergences are preserved: scanner-based HTML/script/style/comment filtering, argument-separated `git check-ignore`, backslash-safe live-preview selector escaping, the CodeQL CSS-property fix, and no removed-editor hook/provider compatibility.
+- Verified the complete bundled `playwright-cli` skill tree against microsoft/playwright-cli at `eee5a185c98e6b04d88f580d45a854e9692ab50b` (previously `793cfb32572733cbcb401e6f28d05a7a914ce408`). Every bundled file is already byte-identical to that commit, so its browser, session, tracing, and test-generation guidance is unchanged.
+- Verified the complete bundled `liteparse` skill tree against run-llama/llamaparse-agent-skills `main` at `2dcef7c62417bd2ec4671fce4621bb1e8cce48d0`, which is still the previously recorded baseline. Its `SKILL.md` and `scripts/search.py` helper are the only upstream files, the helper is byte-identical, and LiteParse's parse-once workflow, bounded search windows, BM25 fallback search, OCR, and page-screenshot guidance are unchanged. Atomic keeps two deliberate divergences: the public `LiteParse` heading and a package-relative `scripts/search.py` invocation instead of upstream's stale `Effective LiteParse` heading and `.claude/skills/effective-liteparse/` path. The skill still resolves only as `liteparse`.
+
+### Fixed
+
+- Stopped a broad Python packaging ignore rule from excluding `scripts/lib/` files inside bundled upstream skill trees, so a synchronized skill ships its complete set of modules instead of silently losing part of the tree.
+- Fixed the main and workflow-stage chats losing the automatic-compaction activity indicator after a tool result. When a tool call (for example a subagent) expanded the context enough to trigger post-tool compaction, the follow-up turn that Pi opens before compaction finishes replaced the factual `Auto-compacting...` status with a generic Working spinner, and the compaction's own cleanup then removed that spinner too — leaving the main chat with no activity at all for the rest of the continuing stream until the next user message. Compaction now keeps the status surface until its own completion event, ordinary Working resumes automatically when the same stream continues (including a successful compaction that had nothing to compact), and the attached workflow-stage chat paints its compaction status from the start event instead of waiting for an animation frame. Cancelled and failed compactions still stop all activity; the main chat keeps its existing cancellation receipt, while failures retain event-provided error text.
+- Fixed attached workflow-stage chats missing Working during workflow-authored idle follow-ups, including while a saved stage session restores or a chat attaches mid-startup. Working persists through prompt startup and pre-turn compaction; live-turn queueing and factual status precedence remain intact, and late events cannot restart it after the final retained delivery settles.
+
+## [0.9.11-alpha.6] - 2026-07-28
+
+### Added
+
+- Added execution-time session metadata to built-in, SDK/factory, direct, workflow-stage, and isolated bash execution through `ATOMIC_SESSION_ID`, `ATOMIC_SESSION_FILE`, `ATOMIC_PROVIDER`, `ATOMIC_MODEL`, and `ATOMIC_REASONING_LEVEL`, with exact `PI_*` compatibility aliases and safe omission of unsaved session files. Direct RPC bash now emits request-correlated, ordered `bash_execution_update` events that distinguish stdout from stderr, supports concurrent requests and per-request cancellation, and keeps streaming, cancellation, one terminal response, and exactly-once starting-session persistence intact across new/switch/import/fork/clone session replacement and RPC shutdown ([#1995](https://github.com/bastani-inc/atomic/issues/1995)).
+- Added end-to-end constrained tool sampling to public extension/SDK tool definitions, wrappers, inspection, isolated transport, and model catalogs: strict JSON Schema supports `prefer`/`require`, OpenAI grammar tools support Lark/regex variants, omitted versus explicitly present optional properties remain distinguishable, and `supportsStrictMode`, `supportsStrictTools`, canonical `supportsOpenAIGrammarTools`, plus Atomic's `supportsGrammarTools` alias prevent false enforcement claims. Typed RPC model listings expose these flags through additive optional `ModelInfo.compat` ([#1995](https://github.com/bastani-inc/atomic/issues/1995)).
+- Added Claude Opus 5 to Anthropic and Amazon Bedrock catalog paths with catalog-advertised adaptive thinking/`xhigh`, Bedrock inference profiles, prompt caching, strict-tool metadata, and preserved AWS validation errors. Custom message renderers now receive `outputPad` in normal and isolated-engine paths ([#1995](https://github.com/bastani-inc/atomic/issues/1995)).
+- Added a compaction rung ladder so a compaction that must succeed always does. The range planner now returns typed outcomes (`ranked`, `recovered`, `rateLimited`, `unusable`, `overflowed`, `providerError`) instead of ranges-or-throw, and reasoning starvation is a distinct `starved` diagnostic category rather than an untyped empty plan. When a planner attempt ends terminally, Atomic borrows the next entry from `settings.fallbackModels` for one planner request, resolved with that candidate's own API key, headers, and base URL; borrowing is planner-only and never changes the session model, thinking level, model history, or main-chat fallback bookkeeping, and never calls `agent.continue()`. A planner request that itself overflows now withholds the oldest region lines and retries the same model until no strictly smaller view remains, with the withheld head recorded as a deterministic deletion and each trimmed view deriving its own keep target from `compression_ratio`. Silent overflows that arrive as an ordinary `stop` or `length` completion are classified before the response text is parsed, so valid-looking records cannot mask them. When every configured model is exhausted, a load-bearing compaction (overflow recovery, post-tool preflight) starts a fresh context window: a total, model-free rung that discards the compactable region and prior summary, keeps explicit protected spans, and keeps the `preserve_recent` tail unless retaining it would still exceed the provider hard input limit. That rung is loud (`✻ Context cleared (compaction degraded)`) and durable (`details.rung: "fresh"`), and a borrowed planner is recorded in `details.plannerModel` and on `compaction_end`. Manual `/compact` and threshold auto-compaction remain recoverable: they may borrow a model but can never clear context. Diagnostics gain `starved`, `rate_limited`, and `context_overflow` categories plus `rateLimitExhausted`, which separates spent retry backoff from quota/billing exhaustion, and a borrowed planned success writes a `compaction-success` sidecar naming the model that ranked the lines. Every sidecar filename now carries a per-attempt identifier and is created exclusively, so two attempts inside one millisecond keep separate durable evidence instead of overwriting each other. Generic usage-limit wording is classified as quota exhaustion rather than transient throttling, because pi-ai never schedules a backoff for it. Unavailable credentials advance the ladder instead of ending the compaction, so a fallback with its own credentials can still rank the lines and a load-bearing caller still reaches the fresh rung. A compactable region below the planner minimum reaches the fresh rung only when the context is already known not to fit — overflow recovery, or a post-tool preflight over the provider hard input limit — so one oversized tool result can no longer strand a mid-turn preflight while a threshold crossing that still fits stays a safe no-op instead of clearing context. The fallback walk is one monotonic pass over the configured list, so no position is inspected twice and the order cannot rewind. Quota exhaustion is now typed and recorded separately from transient throttling (`PlannerOutcome.rateLimited.category`, and a `quota` diagnostic category), independently of whether a retry was actually scheduled. The fresh rung keeps the `preserve_recent` tail unless the tail alone exceeds the hard input limit. `rateLimited.exhausted` and the `rateLimitExhausted` sidecar field are now derived from observed retry activity rather than assumed, and the whole HTTP `5xx` class is classified as rate limiting. A `fresh` boundary is no longer swallowed by an earlier `planned` boundary with identical text, because rung identity is part of boundary deduplication. **A configured fallback model may now receive the compaction transcript.**
+
+### Breaking Changes
+
+- Removed all Atomic-specific GitHub Copilot handling. `github-copilot` is now an ordinary upstream provider sourced entirely from `@earendil-works/pi-ai`'s `githubCopilotProvider()`, matching pi exactly. Dropped: the live CAPI `GET /models` catalog fetch and its 30-minute disk cache, the bundled static CAPI limit snapshot, dynamic Copilot model synthesis, `COPILOT_API_TARGET` / `GITHUB_COPILOT_BASE_URL` / `GITHUB_SERVER_URL` enterprise and GHE base-URL routing, the `X-GitHub-Api-Version: 2026-06-01` header, the Copilot Gemini tool-schema sanitizer, the Copilot Anthropic `message_stop` SSE repair, the Copilot Gemini reasoning-details interceptor, flattened Copilot Gemini tool-argument normalization, and Copilot prompt-limit error guidance. Model metadata now comes verbatim from the bundled pi catalog, and `COPILOT_GITHUB_TOKEN` is read by upstream's own env-key auth. Because pi's bundled context windows can exceed what Copilot's API enforces, long sessions on affected models may overrun the server-side cap instead of compacting first ([#1608](https://github.com/bastani-inc/atomic/issues/1608)).
+- Removed the short/long context-window selection feature, which upstream pi does not have. Dropped: the `contextWindowOptions` / `defaultContextWindow` / `maxInputTokens` model fields and their `Model<Api>` augmentation, the `/model` context-window picker, the `--context-window` CLI flag, the `defaultContextWindow` and `defaultContextWindows` settings, the `set_context_window` and `get_available_context_windows` RPC commands, the `context_window_changed` event, the `context_window_change` session-journal entry, the `contextWindow` / `contextWindowStrict` SDK and workflow-stage options with their `contextWindowWarning` / `contextWindowError` results, `AgentSession.setContextWindow()` / `getAvailableContextWindows()` / `supportsContextWindowSelection()`, the `parseContextWindowValue` / `formatContextWindow` / `selectContextWindow` / `getSupportedContextWindows` / `getModelDefaultContextWindow` / `withContextWindowOptions` / `normalizeContextWindowOptions` / `validateContextWindowValue` root exports, and the `(1m)` / `(long)` context token in subagent and workflow model strings. A model's `contextWindow` is now a single value taken from its catalog entry.
+- Changed the published `runVerbatimCompaction` SDK export to a request object. Positional `apiKey`, `headers`, `signal`, `thinkingLevel`, and `options` collapse into `runVerbatimCompaction(preparation, model, { resolveAuth, signal, thinkingLevel, urgency, ...options })`. Pre-resolved credentials become a `resolveAuth(model)` callback because a borrowed fallback model needs its own credentials, and `urgency` is required with no default so only a `load_bearing` caller can reach the context-destroying fresh rung. Migrate with `await runVerbatimCompaction(prep, model, { resolveAuth: options.resolvePlannerAuth, signal, urgency: "recoverable", ...options })`. The internal `planDeletedLineRanges` signature and return type also changed; it is not exported from the package root. Compaction settings, `reserveTokens` semantics and defaults, the auto-compaction threshold, `settings.retry` behavior, the persisted `CompactionEntry` shape, resume, and the `session_before_compact`/`session_compact` hooks are all preserved; `details.rung` widens additively to a third value and `details` gains one optional field.
+
+### Changed
+
+- Reworked interactive startup and ordinary working motion around Atomic's revision-3 identity system: the ∀ banner assembles inward in whole-column steps before its identity and manifesto beat land; main and workflow-stage work surfaces keep the exact one-cell `∀` visible while following a pronounced, theme-aware dark → accent → bright/bold → accent → dark luminance ramp at an 88ms cadence and retaining all 453 original randomized whimsical working verbs. Optional partial theme palettes can specify any phase exactly—including the approved Catppuccin Mocha prototype and terminal indices 0–255—while omitted tones derive from semantic selected-surface, accent, and text roles. `NO_COLOR` retains regular/bold activity without foreground-color escapes; reduced motion keeps a static regular accent `∀`; extension indicator frame and interval values remain verbatim while their phase/cadence restarts each turn; and factual status/prompt/receipt surfaces keep precedence. The inline icon and longest message fit tested standard/64-column layouts ([#1883](https://github.com/bastani-inc/atomic/issues/1883)).
+- Removed the fixed 1 MiB size limit from RPC and isolated interactive-engine JSONL transport. Commands, responses, events, queued writes, and render frames now pass through in full instead of being rejected, dropped, or truncated; clients remain responsible for the memory and latency cost of large records ([#1985](https://github.com/bastani-inc/atomic/issues/1985)).
+- Added OpenRouter PKCE and Kimi Code device subscription login to Atomic's provider-metadata-driven `/login` flow, including direct provider routing, isolated engine-owned extension OAuth discovery/acquisition, correlated UI callbacks and cancellation, transactional persistence/rollback, automatic Kimi refresh, logout, and immediate post-login model refresh without transporting credentials or executable provider functions to the frontend ([#1995](https://github.com/bastani-inc/atomic/issues/1995)).
+- Updated all active Pi runtime declarations and resolved artifacts to 0.82.1. Dynamic pi.dev catalogs now revalidate with ETags and retain cached data on empty `304` responses; newer bundled catalogs beat stale overlays; llama.cpp catalogs persist across restarts, remain selectable while a failed first online refresh reports its original error, and use loaded context as their output limit; and `/model` reloads layered `.pi` then `.atomic` model configuration on every open ([#1995](https://github.com/bastani-inc/atomic/issues/1995)).
+- Updated the bundled user documentation for the current subagent, workflow-stage, reviewer, and `prompt-engineer` prompt contracts: outcome-first agent and stage structure, evidence-grounded reporting, query-last artifact ordering, selective delegation, deterministic `stop_review_loop` derivation, explicit output/stop rules, and the removal of response prefilling and private-reasoning requests for current GPT-5.6, Claude Opus 5, and Claude Fable 5 compatibility.
+
+### Fixed
+
+- Fixed a mid-turn compaction leaving the turn unsendable, which the provider rejected with an unrecoverable `400 ... each tool_use must have a single result. Found multiple tool_result blocks with id ...`. The post-tool compaction preflight returned the agent's live internal message array, so the agent loop adopted it as the working context for the rest of the run; from the next turn on, both the loop and the message reducer appended to that one array and duplicated every assistant message and tool result. The preflight now returns its own copy. As defence in depth, provider conversion additionally keeps only the first tool result for each announced `tool_use` id, alongside the existing orphan-result repair, and a structural guard runs immediately before conversion and fails with a descriptive Atomic-side error naming any `tool_use` id that appears in more than one assistant message rather than letting the request 400 ([#2051](https://github.com/bastani-inc/atomic/issues/2051)).
+- Fixed compaction repairs from the rung-ladder review: manual `/compact` now projects only compaction parameters, so no runtime property on a caller-supplied object can raise its urgency to `load_bearing` and reach the context-destroying rung; a committed `fresh` boundary stays visible in main and attached workflow stage chat even when the following provider hard-input-limit gate reports its own error, because `compaction_end` carries `result` and `errorMessage` independently; and a post-tool threshold crossing whose context still fits ends as a successful no-op rather than raising "no compactable transcript entries were available" and killing the active turn.
+- Fixed compaction rebuilding the retained recent messages as structured message blocks after the boundary. The `preserve_recent` tail is now serialized with the same transcript grammar as the compacted region and concatenated onto the end of the boundary string, so a compacted context reaches the provider as one message. A kept tail that started or ended mid-turn — an unpaired tool result, or a trailing tool call whose result was compacted away — can no longer produce out-of-order provider blocks and a rejected request. Tail serialization is lossless: retained tool results keep their full text rather than being truncated at 16k characters, and retained images stay as image blocks on the boundary message instead of collapsing to an `[image]` marker. Applies to manual, automatic, mid-turn post-tool, and extension-supplied compaction, and to sessions resumed from existing boundaries.
+- Fixed shared, main, and workflow-stage Atomic working animation lifecycle safety. Every agent/turn starts from phase zero on a fresh cadence, restoring the ordinary indicator after an extension override resets its phase/cadence, and turn, interrupt/pause, terminal, error, replacement, and disposal cleanup fence both built-in and delegated timer callbacks without leaks or stale repaint. Reduced motion remains a static regular accent `∀` without a timer ([#1883](https://github.com/bastani-inc/atomic/issues/1883)).
+- Fixed Windows and limited-color branding fidelity: caller-supplied workflow palettes now honor the detected terminal color mode, partial ANSI-index palettes derive omitted tones from indices 0–15, and Catppuccin Mocha starts its pulse at readable truecolor and 256-color contrast. Startup now honors `NO_COLOR` across the mark, metadata, and manifesto, remains nonblank below the mark width, and settles through the real input chain before Ctrl+C is consumed. Bundled themes declare and validate against Atomic's rebranded local schema, standalone binaries link to Atomic releases, and reachable startup/crash diagnostics use Atomic branding while legacy `.pi` paths, `PI_*` aliases, migrations, and service integrations remain compatible ([#1883](https://github.com/bastani-inc/atomic/issues/1883)).
+- Fixed inherited `.pi` extensions conflicting with Atomic-bundled resources: exact-name tool, command, prompt, flag, and shortcut overlaps now keep Atomic's bundled registration without disabling unrelated extension features, interactive startup consolidates overlaps into one warning, and isolated TUI discovery again matches print/RPC while preserving explicit `.atomic` overrides and agent-directory isolation ([#1955](https://github.com/bastani-inc/atomic/issues/1955)).
+- Fixed fast named workflows leaving a stale “still running” parent-chat claim when a terminal lifecycle notice arrives before the launch result or during final text. The opt-in lifecycle path now commits one context-excluded display card before send admission, preserves the assistant call → `status=running` result order, and delivers a separate hidden reconciliation at a native safe boundary; queue clearing, ordinary aborts, stage-session transfer, persistence retries, and fail-closed session teardown retain that reconciliation without interrupting unrelated active text, invalidating a session too early, or duplicating the lifecycle card.
+- Fixed the bundled workflow UI and control surfaces after fresh-process nested resume: input-bound child boundaries now retain stable graph identity, ordering, edges, lifecycle state, and true child-owner targets even when parallel dispatch order reverses; malformed or aliased topology and non-atomic boundary histories fail closed before routing. Completed inspection stays available without a retained chat, retained child follow-up remains detached from execution, and colliding child-local ids or names are reported as ambiguous instead of routing to the first stage.
+- Fixed queued steering, follow-up, trigger-turn custom/batched/interrupt messages, async deliveries, and user prompts escaping an interactive or workflow pause. Escape/Ctrl+C and controlled workflow pause now synchronously hold every raw queued item before abort, preserve content, optional data, duplicates, message type, display state, and per-queue order across fallback session transfer, gate late arrivals and continuation, serialize pause/resume with abort settlement, and release exactly once through the existing explicit resume boundary. `AgentSession` now publicly exposes `queuedMessagesPaused`, `pauseQueuedMessages()`, and `resumeQueuedMessages(): Promise<boolean>`; resume reports whether raw held work was released but never starts a turn. Clearing or restoring the final visible item leaves the pause gate closed, rejected abort boundaries block one release attempt before an explicit retry, and transferred interrupt turns serialize on the live owner. Paused protected reconciliation is persisted directly during shutdown without a model turn, while non-paused protocol-sensitive disposal remains fail-closed. Idle Ctrl+C clear/double-press exit and explicit final dequeue remain reachable without silently releasing held work; completed post-mortem stage chat releases its conversation-only hold on the next ordinary submission without changing terminal workflow state ([#1983](https://github.com/bastani-inc/atomic/issues/1983)).
+- Fixed tool-only workflows being reported failed after durable `ctx.tool()` side effects had completed. Root finalization now waits for admitted tools, promotes failures left by a fulfilled body with an explicit selected tool-node origin, and preserves ordinary body rejections without guessing a tool origin from indistinguishable native-promise values; the workflow graph and completed-run inspector show non-attachable tool nodes including cached replay state, and reopening completed history remains lifecycle-silent while preserving live declared outputs and preventing duplicate side effects. Retained `ctx.tool` calls made after any terminal executor path now reject safely before side effects, transient legacy child-topology migration failures no longer fail cached replay or later DBOS flush, nested child tools appear in no-target status with owning-run metadata, and completed retained-session stage chat is again reachable from graph keyboard, mouse, switcher, and hint surfaces without making tools attachable ([#1991](https://github.com/bastani-inc/atomic/issues/1991)).
+- Fixed reusable extension chat hosts to show and animate Atomic's Working indicator immediately when an idle prompt is submitted, preserving it across prompt attachment and agent startup while still stopping cleanly when no agent turn begins. This keeps retained terminal workflow-stage chats visibly active throughout follow-up processing ([#1982](https://github.com/bastani-inc/atomic/issues/1982)).
+- Fixed messages queued before automatic compaction remaining stuck afterward until Escape was pressed; successful compaction now resumes queued input automatically once active work settles ([#1984](https://github.com/bastani-inc/atomic/issues/1984)).
+- Fixed a workflow lifecycle card surviving a crash or a failed prompt start while its hidden reconciliation turn was lost. The durable card now carries its recovery marker in the same atomic session append, a rejected prompt start requeues only the hidden turn, and the next session start replays exactly one unresolved correction without duplicating the visible card. Physical session appends also roll back a partial single-entry or initial-batch write to the exact prior file length, so a later retry cannot inherit a malformed JSONL tail, duplicate id, or phantom parent ([#2021](https://github.com/bastani-inc/atomic/issues/2021)).
+- Fixed compaction status surfaces using the generic braille spinner instead of Atomic's `∀` identity. Main-session auto/manual compaction, summarization retry attempts, and workflow-stage compaction now pulse the one-cell `∀` on the shared 88ms luminance ramp, and the workflow-stage message carries the same `(esc Cancel)` hint as the main session.
+- Fixed Anthropic `ANTHROPIC_AUTH_TOKEN` header-only bearer authentication across catalog availability, direct/default/restored model selection, cycling, RPC/isolated model listings, ordinary requests, custom headers, branch summaries, and Verbatim Compaction without synthesizing an API key or `x-api-key`; also inherited Radius gateway OAuth routing and underlying model-auth cause details ([#1995](https://github.com/bastani-inc/atomic/issues/1995)).
+- Fixed intentional OAuth cancellation surfacing as login failure. Escape/Ctrl+C, native `AbortError`, exact signal reasons, nested abort causes, and the legacy exact cancellation error now restore the interactive editor quietly for built-in and extension OAuth in direct and isolated sessions, while denial, timeout, network/protocol, token exchange, persistence, and refresh failures remain visible ([#1995](https://github.com/bastani-inc/atomic/issues/1995)).
+- Fixed the remaining applicable Pi 0.82.1 coding-agent parity issues: complete literal model IDs win before thinking-suffix or glob parsing, unavailable scoped models remain removable, TUI logs honor the configured Atomic/Pi agent directory, the shared async Ctrl+G/extension editor uses private exact-file storage without temp scans and honors configured/environment/platform editor precedence, sibling package resources display relative paths, explicit self-update bypasses startup skip flags, summaries use fresh routing IDs without prompt-cache writes, Wayland copy falls back after `wl-copy` failure, and context discovery skips directories named like context files ([#1995](https://github.com/bastani-inc/atomic/issues/1995)).
+- Fixed the compiled Atomic package CLI crashing before TUI startup when invoked from another working directory after standalone assets had placed `package.json` in `dist/`. Built-in themes, interactive images, and HTML-export templates now resolve from the actual `src/` or `dist/` module layout without producing a duplicated `dist/dist` path, while package-directory overrides and standalone adjacent assets remain supported ([#1995](https://github.com/bastani-inc/atomic/issues/1995)).
+- Fixed the external editor failing on Windows whenever the editor path, its arguments, or the temporary prompt path contained a space. Node does not quote arguments when spawning through a shell, so `cmd.exe` split values such as `C:\Program Files\Microsoft VS Code\Code.exe` into separate arguments; each token is now quoted with the Windows command-line rules before launch.
+- Fixed repeated `/compact` presses starting several overlapping compactions and the resumed-session prompt showing no progress before the compaction spinner appeared. `AgentSession.compact()` is now single-flight: a second manual request joins the run already in flight and receives its result instead of starting another model call, emitting a duplicate `compaction_start`/`compaction_end` pair, or appending a second compaction boundary; a manual request made while an automatic compaction is running fails fast with a clear message rather than racing it; and only the owning call clears the abort controller and reconnects agent events, so `esc` still cancels the live run for every waiter. In the interactive TUI, `/compact` typed while a compaction is already running now warns instead of starting or queueing another one, a repeated `compaction_start` releases the previous spinner and keeps the original Escape handler, and the working indicator stays visible continuously from prompt submit through deferred extension startup and prompt preflight until the agent turn or compaction indicator takes over.
+- Fixed interactive startup output ordering so the `RESOURCES` disclosure remains above extension notifications and every other startup warning or notice on eager, deferred, and immediate-prompt paths.
+- Fixed reasoning tokens being able to fail a compaction outright. The planner used to cap its own request at `0.8 × reserveTokens` — an input-side reserve reused as an output cap — so a high-reasoning session could spend the entire budget thinking and return no deletion records, producing `Compaction range planning produced no usable deleted ranges`; during a mid-turn post-tool preflight that killed the active turn. The planner now sends no `max_tokens` at all, leaving the provider's own context clamp as the only bound, and `PlannerBudget.maxTokens` is typed `undefined` so the cap cannot be reintroduced without changing the type. The session reasoning level is still inherited and is never modified between attempts. A starved or rate-limited planner response no longer ends compaction: it advances the rung ladder to a configured fallback model and, for a load-bearing compaction, to a fresh context window. Branch summarization received the same budget fix — its `2048` output cap is removed and it now inherits the session thinking level, while its input-side `reserveTokens` behavior is unchanged. Fallback borrowing is now a single ordered pass: a candidate whose credentials are unavailable is consumed rather than re-inspected, so no candidate has its auth resolved twice and the configured order cannot rewind. `startNewContextWindow` returns exactly a `CompactedTranscript`; the tail decision it used to expose is runner bookkeeping and travels on `CompactionRungResult.keptTail`. Zero-usable-ranges output is still rejected: no unvalidated model output ever becomes a compaction boundary, and every retained line stays byte-identical on every rung.
+
+## [0.9.11-alpha.5] - 2026-07-23
+
+### Changed
+
+- Added Orwell's six writing rules from “Politics and the English Language” to the core default system prompt's `Guidelines` section so every standard Atomic session receives them, while removing the bundled workflow guidance's requirement to announce an inline-or-workflow mode before the first tool call.
+
+## [0.9.11-alpha.4] - 2026-07-23
+
+### Changed
+
+- Installed builds now ship the builtin workflows extension as a single prebundled ESM file. Loading it previously resolved and transpiled a ~300-file TypeScript module graph per launch, which dominated interactive-engine startup on Windows (~7 s on a test VM, now ~1.1 s, ~6x faster) ([#1962](https://github.com/bastani-inc/atomic/issues/1962)). Source checkouts still load the raw TypeScript sources.
+- Interactive TUI startup on Windows is dramatically faster: the CLI now enables Node's persistent on-disk V8 compile cache (Node >= 22.8) and flushes it before spawning the isolated interactive engine, so both the host and the engine child reuse compiled module bytecode across runs and within the same launch ([#1962](https://github.com/bastani-inc/atomic/issues/1962)).
+
+### Fixed
+
+- Fixed interactive startup crashing with `Interactive engine did not become ready within 5000 ms` on machines with slow cold starts (commonly Windows PowerShell with npm-global installs). The fixed readiness deadline is removed; the host now waits until the engine reports ready and still fails fast if the engine process exits or the transport breaks ([#1962](https://github.com/bastani-inc/atomic/issues/1962)).
+- Fixed positional prompts beginning with `-`, `--`, or `@` being parsed as options or file arguments by supporting the conventional `--` end-of-options terminator ([#1950](https://github.com/bastani-inc/atomic/issues/1950)).
+- Fixed embedded extension UIs in isolated interactive mode receiving an empty placeholder from `ctx.ui.getFooterDataProvider()`. The engine session now exposes its live extension statuses and cached, watched Git branch so synchronous renderers such as workflow stage chat can match the main footer without RPC calls or per-render Git processes.
+
+## [0.9.11-alpha.3] - 2026-07-21
+
+### Added
+
+- Added a built-in, hidden llama.cpp router provider with `/login llama.cpp`, `LLAMA_BASE_URL`/`LLAMA_API_KEY` configuration, loaded-model discovery, and the `/llama` manager for load, unload, cancellation, reconnect, and Hugging Face GGUF download workflows.
+- Added provider-metadata-driven `/login` choices, direct `/login <provider>` routing and autocomplete, provider-owned login information links, API-key login for Qwen Token Plan, Radius, and GitHub Copilot, plus preferred defaults for Radius, NVIDIA, and ZAI Coding Plan China.
+- Added global `httpProxy`, duration-string and `"disabled"` HTTP idle timeouts, package `autoload: false` project deltas, Kimi deferred-tool compatibility, `oauth: "radius"` custom gateways, and global/project scope switching in `atomic config` (`-l` starts in project scope).
+- Added extension lifecycle hooks `before_provider_headers` and `agent_settled`, durable `entry_appended` events and `registerEntryRenderer()`, complete native `Provider` registration, and named/hidden `InlineExtension` descriptors.
+- Added the public `ModelRuntime` facade and associated option types, `readStoredCredential`, `InlineExtension`, entry-renderer/event types, and session context conversion helpers to the SDK/package-root surface. Atomic intentionally continues to expose Search rather than adding obsolete grep compatibility aliases.
+- Added Ctrl+X copy-last-message, clipboard text fallback when image paste finds no image, restored footer branch/session/experimental/extension-status segments, Output padding and Cache miss notices settings, and clear-on-shrink idle placeholders.
+- Added durable cache-miss attribution and waste totals, complete per-model session usage/cost breakdowns including tool and summary work, and optional live/resumed cache-miss transcript notices.
+- Added Atomic's first-run theme preview and explicit analytics opt-in. Analytics settings and a local tracking identifier are persisted only when selected; this change does not transmit analytics data.
+
+### Changed
+
+- Login provider discovery now follows registered provider authentication capabilities instead of using display names as an allowlist, so newly installed native providers automatically expose their supported OAuth and API-key methods.
+- Dynamic provider catalogs, including Radius `pi-messages`, are restored and refreshed through the provider-owned model store; documentation now distinguishes generic custom-provider APIs from the broader installed native API surface.
+- Package self-update now honors advisory release notes, pins the exact advertised package and version, reports version transitions, and cleans stale Windows native-dependency quarantine data during ordinary startup.
+- Interactive session diagnostics now show cache hit rate, wasted cache cost, and provider/model usage costs; the footer includes usage spent by tool results and summaries.
+
+### Fixed
+
+- Fixed Qwen Token Plan global/China, Radius API-key, and GitHub Copilot token methods being hidden from first-time `/login`, which kept otherwise installed models out of `/model` and `--list-models`.
+- Fixed package-manager self-update helpers rejecting the legacy string target form while retaining exact-version install targets.
+- Fixed `/login` omitting extension-registered custom-auth providers in isolated interactive mode. Provider metadata now synchronizes from the engine child, and provider-owned login prompts, credential persistence, cancellation, and post-login model refresh execute across the existing isolated-engine bridge.
+- Fixed project package overrides being unable to selectively subtract or include resources from a matching global package without replacing the complete declaration.
+- Fixed Ctrl+V reporting an image error when the clipboard contained usable text, and made Ctrl+X invoke the same copy-last-assistant behavior as `/copy`.
+- Fixed a single Ctrl+C not dismissing the `/login` popups (auth-method selector, provider selector, and login dialogs), even though Escape worked and the on-screen hint promised `esc/ctrl+c cancel`. The global Ctrl+C clear/exit handler consumed the key before the focused popup could see it, so the first press silently cleared the hidden editor and a second press within the double-press window exited the entire CLI. The global handler now defers whenever an inline popup owns input (and its overlay/custom-UI guards are evaluated live instead of once at startup), so Ctrl+C reaches the focused component and cancels exactly like Escape while editor clearing and double-press exit continue to work when the editor has focus.
+
+## [0.9.11-alpha.2] - 2026-07-21
+
+### Added
+
+- Added Qwen Token Plan and Qwen Token Plan China to Atomic's built-in provider defaults and credential guidance, inherited from `pi-ai` 0.81.1 ([#6858](https://github.com/earendil-works/pi/pull/6858)).
+- Added the `get_available_thinking_levels` RPC command and `RpcClient.getAvailableThinkingLevels()` so headless clients can discover the active model's exact supported cycle order ([#6865](https://github.com/earendil-works/pi/pull/6865)).
+- Exported message and tool-execution lifecycle event types from the Atomic package root for extension and SDK consumers ([#6772](https://github.com/earendil-works/pi/pull/6772)).
+
+### Changed
+
+- Updated `@earendil-works/pi-agent-core`, `pi-ai`, and `pi-tui` to 0.81.1, inheriting provider, transport, model-catalog, Kimi K3 thinking, OpenAI Responses retry, Codex request-ID, terminal rendering, and queue fixes from Pi 0.81.0–0.81.1 while retaining Atomic's branding, bundled packages, Verbatim Compaction, and versionless release flow.
+- Restored persisted model catalogs without network access during service creation, then moved automatic network refresh into running interactive and RPC modes. Interactive startup computes its first footer provider count from the restored snapshot and starts network refresh only after TUI initialization.
+
+### Fixed
+
+- Fixed transient provider failures aborting Verbatim Compaction planning or branch summarization. Both now honor the configured retry policy and publish `summarization_retry_scheduled`, `summarization_retry_attempt_start`, and `summarization_retry_finished` lifecycle events to interactive, JSON, RPC, and SDK consumers ([#6901](https://github.com/earendil-works/pi/pull/6901)).
+- Fixed persisted remote model catalogs overriding newer bundled catalogs after an upgrade by comparing catalog modification times and treating legacy undated overlays as stale ([upstream commit](https://github.com/earendil-works/pi/commit/54fad505b9d8cbc8922ff55d7e2938f70cbf6a3d)).
+- Fixed steering and follow-up delivery modes being lost when queued messages were flushed as compaction finished ([#6730](https://github.com/earendil-works/pi/pull/6730)).
+- Fixed read-tool errors being syntax-highlighted as though they were successful file contents ([#6731](https://github.com/earendil-works/pi/pull/6731)).
+- Fixed `${@:-default}` and `${ARGUMENTS:-default}` prompt-template defaults, while retaining Atomic's bounded default-value parser ([#6695](https://github.com/earendil-works/pi/issues/6695)).
+- Fixed persisted sessions being read and parsed twice when opened, and adopted the shared UUIDv7 generator for new session IDs ([#6793](https://github.com/earendil-works/pi/pull/6793), [#6834](https://github.com/earendil-works/pi/pull/6834)).
+- Fixed Kimi Coding usage costs being shown without the subscription estimate indicator.
+
+## [0.9.11-alpha.1] - 2026-07-20
+
+### Changed
+
+- Clarified the bundled `deep-research-codebase` discovery guidance so agents reserve the heavy workflow for tasks requiring comprehensive whole-repository context ([#1925](https://github.com/bastani-inc/atomic/issues/1925)).
+
+### Fixed
+
+- Fixed newly authenticated providers remaining unavailable in the model selector until Atomic restarted. API-key and OAuth login now reload the isolated engine's credentials and refresh its authoritative model catalog immediately, including credential-dependent dynamic discovery ([#1918](https://github.com/bastani-inc/atomic/issues/1918)).
+- Added actionable `/logout` and `/login` recovery guidance when OpenAI Codex invalidates or revokes a locally unexpired OAuth token, and prevented an earlier WebSocket-to-SSE transport diagnostic from making the definitive authentication rejection retryable ([#1922](https://github.com/bastani-inc/atomic/issues/1922)).
+
+
+## [0.9.10] - 2026-07-20
+
+### Breaking Changes
+
+- The bundled `workflow` tool no longer accepts direct one-off `task`, `tasks`, or `chain` shapes (or their direct-only top-level options), and the bundled workflow SDK no longer exports `runTask`, `runParallel`, or `runChain`. Launch named workflows with `workflow` + `inputs`, and author custom definitions with the unchanged `ctx.task`, `ctx.chain`, and `ctx.parallel` primitives.
+- Bundled workflow durability now requires DBOS/Postgres and no longer provides local JSON/SQLite persistence, runtime opt-out/backend selection, session-transcript discovery, or conversion of prior durable data.
+- Added a host-native session picker capability, `ctx.ui.hostSessionPicker(request)`, implemented first-class by every interactive host with one identical API: non-isolated interactive mode mounts the real built-in session selector directly in the terminal process (no IPC), and the isolated interactive engine routes the same capability over a new engine session-picker protocol channel (`engine_session_picker_open/update/error/close` messages and `engine_session_picker_select/cancel/delete` commands). The extension ships JSON-safe rows (`HostSessionPickerRow` — `SessionInfo` with `createdAt`/`modifiedAt` epoch millis) and only semantic events ever cross a process boundary; arrow-key navigation and search are zero-IPC and stay responsive even while the extension's event loop is busy, unlike remote-rendered `ctx.ui.custom()` components, which pay one round trip per keypress. Deletion is extension-owned: the host keeps the row until the extension replies with an update (row removed) or an error. Pickers are disposed cleanly on extension-initiated close and on engine crash/restart. The bundled `/workflow resume` picker now REQUIRES this capability — its remote-rendered `ctx.ui.custom()` selector path was removed with no fallback, and hosts without the capability fail the resume command with one actionable error. The member is absent only on non-interactive surfaces (headless RPC, print). See `docs/tui.md` and `docs/extensions.md`.
+
+### Added
+
+- Added private compaction-planner diagnostic sidecars for failed persisted-session planner calls. Malformed output, unusable ranges, provider errors, and stream failures now save the full response text plus stop reason, usage, request output budget, and non-secret model metadata beside the session JSONL with `0600` permissions where supported; the compaction error reports that path. Credentials, headers, and request prompts are excluded, while in-memory sessions and sidecar write failures preserve the original `RangePlanError` unchanged.
+- Replaced the compaction planner output format from JSON `{"d":[[start,end],...]}` with bare `start,end` records (one per line, no brackets/fences/prose). The new format is ~1% more token-efficient at equivalent range counts and enables trivial newline-based length-truncation recovery.
+- Added silent recovery of complete deletion records from length-truncated compaction planner responses. When the model output is cut by `max_tokens` (`stopReason: "length"`), a deterministic line parser recovers newline-terminated `start,end` records, discards the final unterminated fragment (never guesses multi-digit integers), and passes results through normal validation. Recovery is silent: no warning, banner, or special status—UI shows the normal `✻ Context compacted` message. A private `0600` recovery-diagnostic sidecar is written beside persisted sessions for operational observability (never surfaced in UI). The planner prompt now instructs the model to emit ranges in descending deletion confidence so the highest-priority deletions survive truncation.
+- Added six bundled, composable pattern workflow definitions — `classify-and-act`, `fan-out-and-synthesize`, `adversarial-verification`, `generate-and-filter`, `tournament`, and `loop-until-done` — with typed/defaulted inputs, dedicated artifact-aware stage prompts, declared outputs, named discovery, and `@bastani/workflows/builtin` exports for nested `ctx.workflow(...)` composition.
+- Added `ctx.ui.hostInputForm(request)`, a JSON-safe host-native structured-form capability implemented identically by isolated and non-isolated interactive hosts. The terminal host owns inline rendering, focus, validation, configured keybindings, and editing state; under engine isolation only open and submit/cancel semantic events cross the protocol boundary. Headless RPC and print surfaces omit the optional member.
+- Added `/workflows [run-id]` as a retained workflow-run alias for `/workflow resume`, with confirmed backend-aware deletion for inactive durable/completed rows that protects in-flight runs and preserves independent session transcripts.
+- Added supervised interactive-engine isolation: extension tools, hooks, commands, workflow code, and custom UI rendering now run in a child process so a synchronous busy loop cannot freeze terminal input, spinners, or rendering. A 50 ms heartbeat watchdog identifies blocked callbacks after 250 ms, exposes interrupt/termination guidance after one second, and reports terminated results as unknown without automatic retry. JSON-safe `ctx.ui.custom()` components are remotely rendered with asynchronous input forwarding; unsupported synchronous host callback APIs warn instead of falling back in-process.
+- Added a typed, allowlisted host-terminal control channel for isolated `ctx.ui.custom()` components. An overlay factory's `tui.terminal` now exposes `setMouseScrollTracking(enabled)` and `setAutowrap(enabled)` setters that the terminal host applies to the real host TTY over the engine protocol — the engine child (whose stdout is the JSONL transport, not a TTY) can enable SGR mouse-scroll reporting and Windows autowrap without ever forwarding raw child bytes to the terminal. Controls are component/generation scoped and every enabled mode is reset when the overlay hides, closes, is disposed, or the engine child crashes/restarts. See `docs/tui.md`.
+- Added live-updating, semantically colored rows to the bundled `/workflow resume` picker: completed rows render green, paused yellow, and failed/blocked/crashed red (`SessionInfo.messageColor` now also accepts `"error"`). Rows re-list on run-store changes and a bounded cross-session poll while the picker is open, and running workflows are never offered as resume targets — a fresh-heartbeat running row is hidden from every session, and only stale (crashed) ones surface, labeled `crashed`.
+- Added `atomic update --models` to force-refresh authenticated dynamic provider catalogs with bounded, provider-scoped persistence and actionable failures ([#1875](https://github.com/bastani-inc/atomic/issues/1875)).
+
+### Changed
+
+- Promoted the DBOS SDK and `embedded-postgres` to mandatory dependencies. Atomic configures and launches DBOS lazily on the first workflow action, awaits readiness before every workflow lifecycle path, and surfaces initialization or persistence failures for that action instead of continuing on another backend. Without `DBOS_SYSTEM_DATABASE_URL`, workflow durability runs on an embedded Postgres from npm-distributed binaries (detached daemon under `~/.atomic/postgres`, shared across sessions; Docker `dbos-db` container only as a platform fallback). Concurrent Atomic sessions sharing one database use per-process executor identities, owner/heartbeat metadata, and first-writer-wins resume claims so one session's live workflow cannot be double-dispatched from another.
+- Documented and enforced `/resume`-equivalent workflow-history retention: eligible runs are not filtered or garbage-collected by age/count, and the selector viewport does not limit search/navigation.
+- Kept the interactive-engine watchdog's early 250 ms blocking signal internal instead of rendering repetitive "has not yielded" warnings during ordinary slow extension/tool loading. One-second unresponsive heartbeat-watchdog diagnostics are likewise always kept internal, whether or not they attribute a callback (for example, `extension.hook tool_execution_end`); the isolated host remains responsive and still provides Escape/Ctrl+C recovery controls. Concrete engine failures such as termination and RPC errors continue to surface as chat errors.
+- Changed verbatim compaction to classify the complete active transcript except for exactly the newest `preserve_recent` context-visible messages (default `2`). The protected tail is no longer widened to a user-turn boundary, `preserve_recent: 0` now retains no ordinary message, and repeated compaction includes the prior durable verbatim summary while preserving resumable session boundaries.
+- Redesigned the `/workflow <name>` input form (shown when a named workflow is launched with required inputs missing). The form now renders inside a rounded, theme-aware panel titled `WORKFLOW INPUTS` with the workflow name and field count, matching the workflow catalogue's visual language: each field shows a focus chevron, an accent field name when active, and a right-aligned `required`/`optional` badge (required in the warning color); descriptions use the readable muted tone, validation errors render as a `✗ reason` row, the submit control is a `[ Run workflow ]` button pill (filled accent when focused), and the footer uses accent key chips. Multi-line text inputs blend their inset rules into the panel border, the panel scales to the full terminal width like the other chat surfaces, and the embedded editor cursor stays correctly positioned.
+- Migrated model authentication and refresh to Pi's provider-owned APIs while preserving Atomic's public `AuthStorage`, `ModelRegistry`, SDK options, legacy extension OAuth registration, complete request headers, and credential-specific enterprise endpoints. The model picker now shows cached models immediately and reports concise success, partial-error, and timeout status ([#1875](https://github.com/bastani-inc/atomic/issues/1875)).
+
+### Fixed
+
+- Fixed `/logout` leaving GitHub Copilot and other providers authenticated in the isolated interactive engine until restart. Logout now invalidates the authoritative child immediately, refreshes the host model projection, prevents provider transport with the removed credential, and deletes effective legacy auth-file entries so credentials do not reappear after restart ([#1919](https://github.com/bastani-inc/atomic/issues/1919)).
+- Fixed custom project, user, and package-provided workflow names being omitted from `/workflow <name>` and `/workflow inputs <name>` argument completion under the isolated interactive engine. The host now evaluates completion callbacks in the engine child against the live workflow registry, so `/workflow reload` updates the completion popup immediately while retaining bundled administrative-command fallback completion ([#1921](https://github.com/bastani-inc/atomic/issues/1921)).
+
+- Fixed the repository `publish-release` workflow to reconcile an exact release PR merged externally while required checks are pending. It preserves identity/refs/SHA; correlates workflow-qualified Actions reruns by name plus workflow; and supports empty-workflow `StatusContext` and GitHub App `CheckRun` evidence. Linked reruns group by inferred kind/name across URL changes; linkless rows inspect both external kinds, accept all-passing candidates, block any pending/failure, and exclude nonempty-workflow Actions. Duplicate aliases reuse exact passing evidence. It rechecks after merge and validates merge/branch evidence. Tag recovery proves `verified merge → tag parent → current base`; exhaustive history avoids GitHub's 1,000-result ceiling; protected coordination retains its lock through ambiguous dispatch visibility; and recovered success requires exact-SHA integrity evidence.
+- Fixed shared extension chat compaction rendering so manual, threshold, and overflow compaction use the animated working spinner with reason-aware copy instead of a duplicate plain status row plus generic `Working...`; successful compaction now falls back to the existing typed `✻ Context compacted` message when a refreshed live session snapshot is unavailable, while preserving durable session reconstruction and avoiding duplicate boundaries.
+- Fixed workflow stage-chat `/compact` cancellation and planner/provider failures from escaping their fire-and-forget editor submission promise and terminating the CLI. The authoritative `compaction_end` event now owns the visible status, animation cleanup, and diagnostic path while the same stage remains usable for retry or follow-up.
+- Fixed OpenAI Responses, Codex Responses, and OpenAI Completions context accounting to sum their normalized uncached and cached input partitions even when the values are nearly equal. Anthropic Messages retains its mirrored-cache guard, preventing missed auto-compaction thresholds, understated footer usage, and negative persisted reduction percentages on Codex sessions.
+- Fixed workflow-stage message admission races by adding a linearizable AgentSession generation boundary. Intercom traffic and async bash/subagent completions received before close now use native queued steering/follow-up delivery and drain before terminal stage publication; close-winning detached results route once to the main chat without reopening or mutating the completed stage. Detached producers remain non-blocking, stable producer identities prevent duplicate delivery, and explicit `StageContext.sendUserMessage` plus post-mortem stage chat remain available.
+- Fixed asynchronous extension custom-message admission to return its delivery promise through `pi.sendMessage()` and `pi.sendMessages()`, allowing workflow late-message routers to propagate main-chat failures and release stable producer keys for retry instead of treating rejected routes as successful.
+- Fixed bundled workflow stages freezing when an active foreground subagent used Intercom or blocking `contact_supervisor`. Busy stages give the exact child owner's acknowledged detach handshake first refusal before model-visible stage-session queue insertion; owner loss between probe/commit falls back instead of dropping the broker message. In parallel foreground groups, one accepted commit releases aggregate supervision for all active siblings while their child processes and eventual result/status recovery remain owned; run-owned worktrees are retained until every detached child closes and their diffs are captured.
+- Fixed bundled workflow-stage `intercom.ask` delivery when the target sibling is mid-turn in an in-flight tool call. The open generation now owns the ask before asynchronous foreground-owner coordination begins, waits for its native queue insertion, and drains it before terminal publication; genuinely failed destination admission returns a correlated actionable error rather than consuming the full reply timeout.
+- Fixed `/workflow <name>` input forms becoming non-responsive under interactive-engine isolation. The RPC extension surface advertised `setEditorComponent` as a callable compatibility stub even though it could not install a host editor, so the workflow command waited on an editor that was never mounted while Tab and Escape stayed routed to the ordinary prompt. Named workflow forms now prefer the host-native input-form channel, keeping Tab/Shift+Tab, arrows, editing, configured keybindings, Enter, Escape, and Ctrl+C local and responsive in both interactive modes; cancellation does not dispatch the workflow, inline bottom-editor geometry is preserved, and legacy custom-editor/`ctx.ui.custom()` fallbacks remain available for older hosts.
+- Fixed Ctrl+O (`app.tools.expand`) being consumed without expanding tool and workflow-node detail in attached workflow stage chats under interactive-engine isolation. The child RPC UI facade retains one expansion state shared by its getter and chat render settings, and the remote custom-UI bridge now filters Kitty key-release events unless the child component explicitly opts into them, preventing one physical Ctrl+O press from immediately toggling expansion back off. Repeated expand/collapse toggles match main chat across active and completed runs, single/parallel/chain views, and narrow terminals without changing prompt, custom-UI, or unrelated key ownership.
+- Fixed bundled workflow-stage `intercom.ask` calls hanging when the addressed sibling stage had already completed. Atomic now schedules a post-mortem turn in the completed target's retained conversation, preserves the exact child-to-child reply thread, prevents parent or unrelated sessions from satisfying it, and returns bounded actionable errors for unavailable or non-resumable retained targets. Production workflow and Intercom late-message listeners preserve the first owner's completion promise regardless of registration order, so later or duplicate listeners cannot turn revival failures into silent no-ops ([#1854](https://github.com/bastani-inc/atomic/issues/1854)).
+- Fixed tool results being able to push the active Pi loop past Atomic's buffered compaction threshold before its next provider request. Atomic now performs one ordinary verbatim compaction preflight after tool results enter the prospective next-turn context, returns the rebuilt protocol-valid context to the same loop without scheduling `agent.continue()`, leaves below-threshold turns unchanged, surfaces compaction cancellation/failure, and blocks a follow-up request that remains known to exceed the provider hard input limit.
+- Fixed the interactive TUI dropping its working spinner after successful post-tool autocompaction while the same agent stream continued. The normal working indicator is now restored immediately at the mid-turn compaction boundary, without waiting for the user's next interaction.
+- Fixed bundled workflow stage messaging to distinguish idle sessions from active streams: idle `followUp`/eligible `auto` sends now start a real prompt and report `prompt`, streaming follow-ups queue and steering stays in-turn, paused idle-chat `resume(message)` starts exactly one recorded turn, and interrupted-turn resume, abort/exit guards, and at-most-once continuation behavior remain intact ([#1850](https://github.com/bastani-inc/atomic/issues/1850)).
+- Fixed Escape during isolated-engine compaction timing out with `Timeout waiting for response to abort_compaction`. RPC input now keeps ordinary commands FIFO while validated cancellation and host-response control frames use an independent lane, so `abort_compaction` reaches the active engine session before the pending `compact` request settles; duplicate and late aborts remain harmless, and ordinary command ordering is preserved.
+- Fixed interactive non-schema workflow stages treating typed/freeform `ask_user_question` chat answers as an invisible implicit “stay”. The conversational acknowledgement now completes first, then a real brokered readiness gate exposes `awaiting_input`/`inputRequest.kind: "readiness_gate"`; in that chat flow, Not ready permits another stage-chat turn and re-prompts, while Ready releases dependents. Structured-option behavior remains unchanged, and successful schema finalization stays terminal. ([#1849](https://github.com/bastani-inc/atomic/issues/1849))
+- Fixed the bundled workflow `BACKGROUND` panel's elapsed timer remaining at `0s` until the user switched to the orchestrator. Visible running cards now repaint their existing mounted component on exact one-second boundaries from workflow start, without panel navigation or widget remounting; paused timers remain frozen and ended cards retain their one-shot expiry lifecycle.
+- Fixed the interactive TUI crashing with `Rendered line N exceeds terminal width` (uncaught exception in pi-tui `doRender`) when the terminal was resized — most visibly when shrinking an active session with chat history (e.g. 112 → 83 columns) or fuzz-resizing mid-turn. Under the isolated interactive engine, tool cards and custom messages render out-of-process and asynchronously: after a resize they kept replaying the previous frame wrapped for the old width until the engine child delivered a re-wrapped one, so pi-tui's differential renderer could see lines wider than the terminal and abort the whole session. Remote frames are now defensively clamped to the current render width while the engine catches up, so grow/shrink resizing (including rapid adversarial flapping) never emits an overflowing line; properly re-wrapped frames still replace the clamped ones as soon as they arrive.
+- Fixed the startup banner logo wrapping and shredding into misaligned art on narrow terminals: the identity header is now width-aware, keeping the side-by-side logo/meta layout only when every combined row fits, stacking the identity text (version, provider/model, cwd) under the logo when the meta column would wrap, and dropping the logo art entirely when the terminal is narrower than the logo itself. The layout re-adapts on every terminal resize.
+- Fixed adjacent assistant thinking blocks rendering as separate sections, Windows package checks leaving npm's terminal title behind, standalone Bun binaries omitting interactive OAuth adapters, and clone/fork attempts before the first assistant response returning an unhelpful failure ([#1875](https://github.com/bastani-inc/atomic/issues/1875)).
+- Stopped the isolated interactive engine's extension-level `requestRender()` from invalidating hidden remote overlay components ([#1856](https://github.com/bastani-inc/atomic/issues/1856)). The broadcast now skips components whose remote OverlayHandle is hidden (`setHidden(true)`/`hide()`), so widget-local updates do not trigger host render work for hidden graph/stage frames; shown-again components rejoin the broadcast immediately.
+- Reduced keypress latency for all remotely rendered extension custom UI (workflow inputs forms, graph overlays, and other `ctx.ui.custom()` components) under the isolated interactive engine. The host now pipelines a fresh frame request directly behind every forwarded keypress — engine commands are delivered in order, so the returned frame always reflects the applied input. This cuts the previous input → child-invalidate → render-request → frame path to a single round trip and repaints components that change state on input without self-invalidating.
+- Fixed the mouse wheel scrolling native/main-chat scrollback instead of the workflow graph when a durable workflow overlay was resumed under the isolated interactive engine. The overlay adapter runs inside the engine child, whose stdout is the JSONL transport rather than a TTY, so its `process.stdout` mouse-tracking escape sequences never put the real host terminal into mouse-reporting mode. The overlay now enables host mouse-scroll reporting (and Windows autowrap) through the new typed host-terminal control channel, so wheel gestures reach the remote `GraphView` and change graph scroll offsets while a visible overlay captures the mouse; keyboard navigation, stage-chat wheel capture, and Ctrl+T copy mode are unchanged. Resume selection deterministically disposes the inline picker before the fullscreen overlay mounts and takes focus, so a late picker cleanup can no longer steal focus or leave the graph as an inline/bottom component. Non-isolated hosts keep their local `process.stdout` behavior.
+- Fixed `/resume` and `/workflow resume` intermittently failing with `Timeout waiting for response to prompt` when the picker (or any long-lived interactive prompt) stayed open past 30 seconds. The isolated-engine RPC client now exempts long-lived interactive commands — prompts and custom-UI pickers, queued `steer`/`follow-up` sends, long shell and compaction work, `fork`/`clone`, session `switch`/`new`/`import`, tree navigation, and shortcut invocation — from the generic 30-second request deadline. Process exit, transport violations, abort, and generation replacement still reject pending requests immediately, and bounded metadata/control requests keep a (now injectable) deadline, so real failure detection is unchanged.
+- Made the `/resume` session selector mount and paint its header, search, and loading state on the very first frame, then discover and parse sessions off the host UI loop. Directory scans run in bounded cooperative batches and a single very large transcript is parsed in yielding chunks, so input, search, and cancel stay responsive and one large session can no longer visibly freeze the picker. Closing the selector now cancels in-flight loads and ignores stale results, preventing late list updates after close, scope switch, or a newer load.
+- Fixed a startup input race where typing a command-like draft such as a bare `/` before the header finished loading was reclassified as a submitted cooked-mode command and sent automatically. Raw startup capture now remains authoritative: only Enter-terminated submissions replay, while unfinished slash/bash drafts stay in the editor.
+- Fixed startup changelog and first-run onboarding notices being gated behind the deferred extension reload — and, when a prompt was typed immediately at launch, behind the entire first agent turn. They now render right after the input handler is ready (milliseconds after first paint), matching pi's behavior; the RESOURCES disclosure still waits for the actual extension load it reports on.
+- Reduced deferred extension-load stalls by yielding to the event loop between extension loads only when the current turn has actually run long (≥16 ms) instead of unconditionally — the previous unconditional yields cost a full macrotask turn (~100 ms each while the TUI is live) per bundled extension (~0.5 s of the deferred load).
+- Hardened the isolated interactive engine's runtime and transport. Best-effort RPC rejections are now centrally contained so a fire-and-forget path can no longer crash the host; Escape/cancel recovery is generation-fenced so a cancelled turn survives, the host stays alive, and the engine child is cleanly restarted. The child is the sole authoritative writer of transcript/settings state (host snapshots are side-effect-free, and model/thinking/name operations persist exactly once), and a guardian tracks the full process tree so forced host death leaves no orphaned engine or detached grandchild.
+- Hardened the interactive-engine JSONL transport against unbounded growth and frame loss. Framing is UTF-8 byte-bounded (not UTF-16 char counts), writers in both directions are byte-accounted with backpressure, update coalescing happens before serialization, and terminal/correlated frames are either delivered or fail immediately with an explicit protocol error and same-id rejection instead of a 30-second timeout.
+- Fixed the isolated interactive engine omitting extension slash commands (`/workflow`, its `/workflows` alias, `/run`, `/mcp`, and others) from autocomplete. Because the host session loads no extensions in the interactive-engine child model, those commands live only in the engine child; the host now fetches the child's command catalog asynchronously after engine bind (never delaying first paint or input), merges it into autocomplete with built-in names reserved and locally-present prompts/skills deduped, and re-fetches after engine restart, reload, and new/resume/fork. Command execution continues to route through the child with no duplicate host handling.
+- Fixed expandable skill, resource, built-in tool, MCP, and subagent headers losing their effective keybinding in the isolated interactive engine (for example, `[skill] tmux ( Expand)`). Child rendering and injected custom UI now share one reloadable Atomic keybinding manager, so the default displays `ctrl+o`, remaps display the configured key, and intentionally unbound expansion omits the unavailable shortcut affordance without malformed punctuation.
+- Fixed the TUI flickering with rapid full repaints (~58 Hz, plus idle CPU burn on both processes) whenever a tool card rendered under the isolated interactive engine during a streaming turn — most visibly when the `workflow` tool's `quit`/`pause` action ran while a workflow stage was streaming, though any tool call (e.g. a plain `bash` echo) reproduced it. The engine child's remote tool-card renderer disposed and recreated the `ToolExecutionComponent` on every `engine_tool_render` request, and re-seeding the fresh component unconditionally scheduled a render on its off-screen TUI whose terminal write emitted `engine_custom_invalidate` back to the host, which marked the card dirty and re-sent the render request — forever. The engine render service now reuses the cached component per remote component id (applying args/result/expansion/image-option updates in place) and the seeding setters (`markExecutionStarted`/`setArgsComplete`) are idempotent, so the loop converges after at most one invalidate round trip while legitimate async invalidations (such as image format conversion) still repaint.
+
+## [0.9.10-alpha.1] - 2026-07-19
+
+### Breaking Changes
+
+- The bundled `workflow` tool no longer accepts direct one-off `task`, `tasks`, or `chain` shapes (or their direct-only top-level options), and the bundled workflow SDK no longer exports `runTask`, `runParallel`, or `runChain`. Launch named workflows with `workflow` + `inputs`, and author custom definitions with the unchanged `ctx.task`, `ctx.chain`, and `ctx.parallel` primitives.
+- Bundled workflow durability now requires DBOS/Postgres and no longer provides local JSON/SQLite persistence, runtime opt-out/backend selection, session-transcript discovery, or conversion of prior durable data.
+- Added a host-native session picker capability, `ctx.ui.hostSessionPicker(request)`, implemented first-class by every interactive host with one identical API: non-isolated interactive mode mounts the real built-in session selector directly in the terminal process (no IPC), and the isolated interactive engine routes the same capability over a new engine session-picker protocol channel (`engine_session_picker_open/update/error/close` messages and `engine_session_picker_select/cancel/delete` commands). The extension ships JSON-safe rows (`HostSessionPickerRow` — `SessionInfo` with `createdAt`/`modifiedAt` epoch millis) and only semantic events ever cross a process boundary; arrow-key navigation and search are zero-IPC and stay responsive even while the extension's event loop is busy, unlike remote-rendered `ctx.ui.custom()` components, which pay one round trip per keypress. Deletion is extension-owned: the host keeps the row until the extension replies with an update (row removed) or an error. Pickers are disposed cleanly on extension-initiated close and on engine crash/restart. The bundled `/workflow resume` picker now REQUIRES this capability — its remote-rendered `ctx.ui.custom()` selector path was removed with no fallback, and hosts without the capability fail the resume command with one actionable error. The member is absent only on non-interactive surfaces (headless RPC, print). See `docs/tui.md` and `docs/extensions.md`.
+
+### Added
+
+- Added private compaction-planner diagnostic sidecars for failed persisted-session planner calls. Malformed output, unusable ranges, provider errors, and stream failures now save the full response text plus stop reason, usage, request output budget, and non-secret model metadata beside the session JSONL with `0600` permissions where supported; the compaction error reports that path. Credentials, headers, and request prompts are excluded, while in-memory sessions and sidecar write failures preserve the original `RangePlanError` unchanged.
+- Replaced the compaction planner output format from JSON `{"d":[[start,end],...]}` with bare `start,end` records (one per line, no brackets/fences/prose). The new format is ~1% more token-efficient at equivalent range counts and enables trivial newline-based length-truncation recovery.
+- Added silent recovery of complete deletion records from length-truncated compaction planner responses. When the model output is cut by `max_tokens` (`stopReason: "length"`), a deterministic line parser recovers newline-terminated `start,end` records, discards the final unterminated fragment (never guesses multi-digit integers), and passes results through normal validation. Recovery is silent: no warning, banner, or special status—UI shows the normal `✻ Context compacted` message. A private `0600` recovery-diagnostic sidecar is written beside persisted sessions for operational observability (never surfaced in UI). The planner prompt now instructs the model to emit ranges in descending deletion confidence so the highest-priority deletions survive truncation.
+- Added six bundled, composable pattern workflow definitions — `classify-and-act`, `fan-out-and-synthesize`, `adversarial-verification`, `generate-and-filter`, `tournament`, and `loop-until-done` — with typed/defaulted inputs, dedicated artifact-aware stage prompts, declared outputs, named discovery, and `@bastani/workflows/builtin` exports for nested `ctx.workflow(...)` composition.
+- Added `ctx.ui.hostInputForm(request)`, a JSON-safe host-native structured-form capability implemented identically by isolated and non-isolated interactive hosts. The terminal host owns inline rendering, focus, validation, configured keybindings, and editing state; under engine isolation only open and submit/cancel semantic events cross the protocol boundary. Headless RPC and print surfaces omit the optional member.
+- Added `/workflows [run-id]` as a retained workflow-run alias for `/workflow resume`, with confirmed backend-aware deletion for inactive durable/completed rows that protects in-flight runs and preserves independent session transcripts.
+- Added supervised interactive-engine isolation: extension tools, hooks, commands, workflow code, and custom UI rendering now run in a child process so a synchronous busy loop cannot freeze terminal input, spinners, or rendering. A 50 ms heartbeat watchdog identifies blocked callbacks after 250 ms, exposes interrupt/termination guidance after one second, and reports terminated results as unknown without automatic retry. JSON-safe `ctx.ui.custom()` components are remotely rendered with asynchronous input forwarding; unsupported synchronous host callback APIs warn instead of falling back in-process.
+- Added a typed, allowlisted host-terminal control channel for isolated `ctx.ui.custom()` components. An overlay factory's `tui.terminal` now exposes `setMouseScrollTracking(enabled)` and `setAutowrap(enabled)` setters that the terminal host applies to the real host TTY over the engine protocol — the engine child (whose stdout is the JSONL transport, not a TTY) can enable SGR mouse-scroll reporting and Windows autowrap without ever forwarding raw child bytes to the terminal. Controls are component/generation scoped and every enabled mode is reset when the overlay hides, closes, is disposed, or the engine child crashes/restarts. See `docs/tui.md`.
+- Added live-updating, semantically colored rows to the bundled `/workflow resume` picker: completed rows render green, paused yellow, and failed/blocked/crashed red (`SessionInfo.messageColor` now also accepts `"error"`). Rows re-list on run-store changes and a bounded cross-session poll while the picker is open, and running workflows are never offered as resume targets — a fresh-heartbeat running row is hidden from every session, and only stale (crashed) ones surface, labeled `crashed`.
+- Added `atomic update --models` to force-refresh authenticated dynamic provider catalogs with bounded, provider-scoped persistence and actionable failures ([#1875](https://github.com/bastani-inc/atomic/issues/1875)).
+
+### Changed
+
+- Promoted the DBOS SDK and `embedded-postgres` to mandatory dependencies. Atomic configures and launches DBOS lazily on the first workflow action, awaits readiness before every workflow lifecycle path, and surfaces initialization or persistence failures for that action instead of continuing on another backend. Without `DBOS_SYSTEM_DATABASE_URL`, workflow durability runs on an embedded Postgres from npm-distributed binaries (detached daemon under `~/.atomic/postgres`, shared across sessions; Docker `dbos-db` container only as a platform fallback). Concurrent Atomic sessions sharing one database use per-process executor identities, owner/heartbeat metadata, and first-writer-wins resume claims so one session's live workflow cannot be double-dispatched from another.
+- Documented and enforced `/resume`-equivalent workflow-history retention: eligible runs are not filtered or garbage-collected by age/count, and the selector viewport does not limit search/navigation.
+- Kept the interactive-engine watchdog's early 250 ms blocking signal internal instead of rendering repetitive "has not yielded" warnings during ordinary slow extension/tool loading. One-second unresponsive heartbeat-watchdog diagnostics are likewise always kept internal, whether or not they attribute a callback (for example, `extension.hook tool_execution_end`); the isolated host remains responsive and still provides Escape/Ctrl+C recovery controls. Concrete engine failures such as termination and RPC errors continue to surface as chat errors.
+- Changed verbatim compaction to classify the complete active transcript except for exactly the newest `preserve_recent` context-visible messages (default `2`). The protected tail is no longer widened to a user-turn boundary, `preserve_recent: 0` now retains no ordinary message, and repeated compaction includes the prior durable verbatim summary while preserving resumable session boundaries.
+- Redesigned the `/workflow <name>` input form (shown when a named workflow is launched with required inputs missing). The form now renders inside a rounded, theme-aware panel titled `WORKFLOW INPUTS` with the workflow name and field count, matching the workflow catalogue's visual language: each field shows a focus chevron, an accent field name when active, and a right-aligned `required`/`optional` badge (required in the warning color); descriptions use the readable muted tone, validation errors render as a `✗ reason` row, the submit control is a `[ Run workflow ]` button pill (filled accent when focused), and the footer uses accent key chips. Multi-line text inputs blend their inset rules into the panel border, the panel scales to the full terminal width like the other chat surfaces, and the embedded editor cursor stays correctly positioned.
+- Migrated model authentication and refresh to Pi's provider-owned APIs while preserving Atomic's public `AuthStorage`, `ModelRegistry`, SDK options, legacy extension OAuth registration, complete request headers, and credential-specific enterprise endpoints. The model picker now shows cached models immediately and reports concise success, partial-error, and timeout status ([#1875](https://github.com/bastani-inc/atomic/issues/1875)).
+
+### Fixed
+
+- Fixed the repository `publish-release` workflow to reconcile an exact release PR merged externally while required checks are pending. It preserves identity/refs/SHA; correlates workflow-qualified Actions reruns by name plus workflow; and supports empty-workflow `StatusContext` and GitHub App `CheckRun` evidence. Linked reruns group by inferred kind/name across URL changes; linkless rows inspect both external kinds, accept all-passing candidates, block any pending/failure, and exclude nonempty-workflow Actions. Duplicate aliases reuse exact passing evidence. It rechecks after merge and validates merge/branch evidence. Tag recovery proves `verified merge → tag parent → current base`; exhaustive history avoids GitHub's 1,000-result ceiling; protected coordination retains its lock through ambiguous dispatch visibility; and recovered success requires exact-SHA integrity evidence.
+- Fixed shared extension chat compaction rendering so manual, threshold, and overflow compaction use the animated working spinner with reason-aware copy instead of a duplicate plain status row plus generic `Working...`; successful compaction now falls back to the existing typed `✻ Context compacted` message when a refreshed live session snapshot is unavailable, while preserving durable session reconstruction and avoiding duplicate boundaries.
+- Fixed workflow stage-chat `/compact` cancellation and planner/provider failures from escaping their fire-and-forget editor submission promise and terminating the CLI. The authoritative `compaction_end` event now owns the visible status, animation cleanup, and diagnostic path while the same stage remains usable for retry or follow-up.
+- Fixed OpenAI Responses, Codex Responses, and OpenAI Completions context accounting to sum their normalized uncached and cached input partitions even when the values are nearly equal. Anthropic Messages retains its mirrored-cache guard, preventing missed auto-compaction thresholds, understated footer usage, and negative persisted reduction percentages on Codex sessions.
+- Fixed workflow-stage message admission races by adding a linearizable AgentSession generation boundary. Intercom traffic and async bash/subagent completions received before close now use native queued steering/follow-up delivery and drain before terminal stage publication; close-winning detached results route once to the main chat without reopening or mutating the completed stage. Detached producers remain non-blocking, stable producer identities prevent duplicate delivery, and explicit `StageContext.sendUserMessage` plus post-mortem stage chat remain available.
+- Fixed asynchronous extension custom-message admission to return its delivery promise through `pi.sendMessage()` and `pi.sendMessages()`, allowing workflow late-message routers to propagate main-chat failures and release stable producer keys for retry instead of treating rejected routes as successful.
+- Fixed bundled workflow stages freezing when an active foreground subagent used Intercom or blocking `contact_supervisor`. Busy stages give the exact child owner's acknowledged detach handshake first refusal before model-visible stage-session queue insertion; owner loss between probe/commit falls back instead of dropping the broker message. In parallel foreground groups, one accepted commit releases aggregate supervision for all active siblings while their child processes and eventual result/status recovery remain owned; run-owned worktrees are retained until every detached child closes and their diffs are captured.
+- Fixed bundled workflow-stage `intercom.ask` delivery when the target sibling is mid-turn in an in-flight tool call. The open generation now owns the ask before asynchronous foreground-owner coordination begins, waits for its native queue insertion, and drains it before terminal publication; genuinely failed destination admission returns a correlated actionable error rather than consuming the full reply timeout.
+- Fixed `/workflow <name>` input forms becoming non-responsive under interactive-engine isolation. The RPC extension surface advertised `setEditorComponent` as a callable compatibility stub even though it could not install a host editor, so the workflow command waited on an editor that was never mounted while Tab and Escape stayed routed to the ordinary prompt. Named workflow forms now prefer the host-native input-form channel, keeping Tab/Shift+Tab, arrows, editing, configured keybindings, Enter, Escape, and Ctrl+C local and responsive in both interactive modes; cancellation does not dispatch the workflow, inline bottom-editor geometry is preserved, and legacy custom-editor/`ctx.ui.custom()` fallbacks remain available for older hosts.
+- Fixed Ctrl+O (`app.tools.expand`) being consumed without expanding tool and workflow-node detail in attached workflow stage chats under interactive-engine isolation. The child RPC UI facade retains one expansion state shared by its getter and chat render settings, and the remote custom-UI bridge now filters Kitty key-release events unless the child component explicitly opts into them, preventing one physical Ctrl+O press from immediately toggling expansion back off. Repeated expand/collapse toggles match main chat across active and completed runs, single/parallel/chain views, and narrow terminals without changing prompt, custom-UI, or unrelated key ownership.
+- Fixed bundled workflow-stage `intercom.ask` calls hanging when the addressed sibling stage had already completed. Atomic now schedules a post-mortem turn in the completed target's retained conversation, preserves the exact child-to-child reply thread, prevents parent or unrelated sessions from satisfying it, and returns bounded actionable errors for unavailable or non-resumable retained targets. Production workflow and Intercom late-message listeners preserve the first owner's completion promise regardless of registration order, so later or duplicate listeners cannot turn revival failures into silent no-ops ([#1854](https://github.com/bastani-inc/atomic/issues/1854)).
+- Fixed tool results being able to push the active Pi loop past Atomic's buffered compaction threshold before its next provider request. Atomic now performs one ordinary verbatim compaction preflight after tool results enter the prospective next-turn context, returns the rebuilt protocol-valid context to the same loop without scheduling `agent.continue()`, leaves below-threshold turns unchanged, surfaces compaction cancellation/failure, and blocks a follow-up request that remains known to exceed the provider hard input limit.
+- Fixed the interactive TUI dropping its working spinner after successful post-tool autocompaction while the same agent stream continued. The normal working indicator is now restored immediately at the mid-turn compaction boundary, without waiting for the user's next interaction.
+- Fixed bundled workflow stage messaging to distinguish idle sessions from active streams: idle `followUp`/eligible `auto` sends now start a real prompt and report `prompt`, streaming follow-ups queue and steering stays in-turn, paused idle-chat `resume(message)` starts exactly one recorded turn, and interrupted-turn resume, abort/exit guards, and at-most-once continuation behavior remain intact ([#1850](https://github.com/bastani-inc/atomic/issues/1850)).
+- Fixed Escape during isolated-engine compaction timing out with `Timeout waiting for response to abort_compaction`. RPC input now keeps ordinary commands FIFO while validated cancellation and host-response control frames use an independent lane, so `abort_compaction` reaches the active engine session before the pending `compact` request settles; duplicate and late aborts remain harmless, and ordinary command ordering is preserved.
+- Fixed interactive non-schema workflow stages treating typed/freeform `ask_user_question` chat answers as an invisible implicit “stay”. The conversational acknowledgement now completes first, then a real brokered readiness gate exposes `awaiting_input`/`inputRequest.kind: "readiness_gate"`; in that chat flow, Not ready permits another stage-chat turn and re-prompts, while Ready releases dependents. Structured-option behavior remains unchanged, and successful schema finalization stays terminal. ([#1849](https://github.com/bastani-inc/atomic/issues/1849))
+- Fixed the bundled workflow `BACKGROUND` panel's elapsed timer remaining at `0s` until the user switched to the orchestrator. Visible running cards now repaint their existing mounted component on exact one-second boundaries from workflow start, without panel navigation or widget remounting; paused timers remain frozen and ended cards retain their one-shot expiry lifecycle.
+- Fixed the interactive TUI crashing with `Rendered line N exceeds terminal width` (uncaught exception in pi-tui `doRender`) when the terminal was resized — most visibly when shrinking an active session with chat history (e.g. 112 → 83 columns) or fuzz-resizing mid-turn. Under the isolated interactive engine, tool cards and custom messages render out-of-process and asynchronously: after a resize they kept replaying the previous frame wrapped for the old width until the engine child delivered a re-wrapped one, so pi-tui's differential renderer could see lines wider than the terminal and abort the whole session. Remote frames are now defensively clamped to the current render width while the engine catches up, so grow/shrink resizing (including rapid adversarial flapping) never emits an overflowing line; properly re-wrapped frames still replace the clamped ones as soon as they arrive.
+- Fixed the startup banner logo wrapping and shredding into misaligned art on narrow terminals: the identity header is now width-aware, keeping the side-by-side logo/meta layout only when every combined row fits, stacking the identity text (version, provider/model, cwd) under the logo when the meta column would wrap, and dropping the logo art entirely when the terminal is narrower than the logo itself. The layout re-adapts on every terminal resize.
+- Fixed adjacent assistant thinking blocks rendering as separate sections, Windows package checks leaving npm's terminal title behind, standalone Bun binaries omitting interactive OAuth adapters, and clone/fork attempts before the first assistant response returning an unhelpful failure ([#1875](https://github.com/bastani-inc/atomic/issues/1875)).
+- Stopped the isolated interactive engine's extension-level `requestRender()` from invalidating hidden remote overlay components ([#1856](https://github.com/bastani-inc/atomic/issues/1856)). The broadcast now skips components whose remote OverlayHandle is hidden (`setHidden(true)`/`hide()`), so widget-local updates do not trigger host render work for hidden graph/stage frames; shown-again components rejoin the broadcast immediately.
+- Reduced keypress latency for all remotely rendered extension custom UI (workflow inputs forms, graph overlays, and other `ctx.ui.custom()` components) under the isolated interactive engine. The host now pipelines a fresh frame request directly behind every forwarded keypress — engine commands are delivered in order, so the returned frame always reflects the applied input. This cuts the previous input → child-invalidate → render-request → frame path to a single round trip and repaints components that change state on input without self-invalidating.
+- Fixed the mouse wheel scrolling native/main-chat scrollback instead of the workflow graph when a durable workflow overlay was resumed under the isolated interactive engine. The overlay adapter runs inside the engine child, whose stdout is the JSONL transport rather than a TTY, so its `process.stdout` mouse-tracking escape sequences never put the real host terminal into mouse-reporting mode. The overlay now enables host mouse-scroll reporting (and Windows autowrap) through the new typed host-terminal control channel, so wheel gestures reach the remote `GraphView` and change graph scroll offsets while a visible overlay captures the mouse; keyboard navigation, stage-chat wheel capture, and Ctrl+T copy mode are unchanged. Resume selection deterministically disposes the inline picker before the fullscreen overlay mounts and takes focus, so a late picker cleanup can no longer steal focus or leave the graph as an inline/bottom component. Non-isolated hosts keep their local `process.stdout` behavior.
+- Fixed `/resume` and `/workflow resume` intermittently failing with `Timeout waiting for response to prompt` when the picker (or any long-lived interactive prompt) stayed open past 30 seconds. The isolated-engine RPC client now exempts long-lived interactive commands — prompts and custom-UI pickers, queued `steer`/`follow-up` sends, long shell and compaction work, `fork`/`clone`, session `switch`/`new`/`import`, tree navigation, and shortcut invocation — from the generic 30-second request deadline. Process exit, transport violations, abort, and generation replacement still reject pending requests immediately, and bounded metadata/control requests keep a (now injectable) deadline, so real failure detection is unchanged.
+- Made the `/resume` session selector mount and paint its header, search, and loading state on the very first frame, then discover and parse sessions off the host UI loop. Directory scans run in bounded cooperative batches and a single very large transcript is parsed in yielding chunks, so input, search, and cancel stay responsive and one large session can no longer visibly freeze the picker. Closing the selector now cancels in-flight loads and ignores stale results, preventing late list updates after close, scope switch, or a newer load.
+- Fixed a startup input race where typing a command-like draft such as a bare `/` before the header finished loading was reclassified as a submitted cooked-mode command and sent automatically. Raw startup capture now remains authoritative: only Enter-terminated submissions replay, while unfinished slash/bash drafts stay in the editor.
+- Fixed startup changelog and first-run onboarding notices being gated behind the deferred extension reload — and, when a prompt was typed immediately at launch, behind the entire first agent turn. They now render right after the input handler is ready (milliseconds after first paint), matching pi's behavior; the RESOURCES disclosure still waits for the actual extension load it reports on.
+- Reduced deferred extension-load stalls by yielding to the event loop between extension loads only when the current turn has actually run long (≥16 ms) instead of unconditionally — the previous unconditional yields cost a full macrotask turn (~100 ms each while the TUI is live) per bundled extension (~0.5 s of the deferred load).
+- Hardened the isolated interactive engine's runtime and transport. Best-effort RPC rejections are now centrally contained so a fire-and-forget path can no longer crash the host; Escape/cancel recovery is generation-fenced so a cancelled turn survives, the host stays alive, and the engine child is cleanly restarted. The child is the sole authoritative writer of transcript/settings state (host snapshots are side-effect-free, and model/thinking/name operations persist exactly once), and a guardian tracks the full process tree so forced host death leaves no orphaned engine or detached grandchild.
+- Hardened the interactive-engine JSONL transport against unbounded growth and frame loss. Framing is UTF-8 byte-bounded (not UTF-16 char counts), writers in both directions are byte-accounted with backpressure, update coalescing happens before serialization, and terminal/correlated frames are either delivered or fail immediately with an explicit protocol error and same-id rejection instead of a 30-second timeout.
+- Fixed the isolated interactive engine omitting extension slash commands (`/workflow`, its `/workflows` alias, `/run`, `/mcp`, and others) from autocomplete. Because the host session loads no extensions in the interactive-engine child model, those commands live only in the engine child; the host now fetches the child's command catalog asynchronously after engine bind (never delaying first paint or input), merges it into autocomplete with built-in names reserved and locally-present prompts/skills deduped, and re-fetches after engine restart, reload, and new/resume/fork. Command execution continues to route through the child with no duplicate host handling.
+- Fixed expandable skill, resource, built-in tool, MCP, and subagent headers losing their effective keybinding in the isolated interactive engine (for example, `[skill] tmux ( Expand)`). Child rendering and injected custom UI now share one reloadable Atomic keybinding manager, so the default displays `ctrl+o`, remaps display the configured key, and intentionally unbound expansion omits the unavailable shortcut affordance without malformed punctuation.
+- Fixed the TUI flickering with rapid full repaints (~58 Hz, plus idle CPU burn on both processes) whenever a tool card rendered under the isolated interactive engine during a streaming turn — most visibly when the `workflow` tool's `quit`/`pause` action ran while a workflow stage was streaming, though any tool call (e.g. a plain `bash` echo) reproduced it. The engine child's remote tool-card renderer disposed and recreated the `ToolExecutionComponent` on every `engine_tool_render` request, and re-seeding the fresh component unconditionally scheduled a render on its off-screen TUI whose terminal write emitted `engine_custom_invalidate` back to the host, which marked the card dirty and re-sent the render request — forever. The engine render service now reuses the cached component per remote component id (applying args/result/expansion/image-option updates in place) and the seeding setters (`markExecutionStarted`/`setArgsComplete`) are idempotent, so the loop converges after at most one invalidate round trip while legitimate async invalidations (such as image format conversion) still repaint.
+
+## [0.9.9] - 2026-07-15
+
+### Breaking Changes
+
+- Replaced deletion-target context compaction with durable verbatim line compaction. Legacy `context_compaction` entries are now inert archival records, so content they previously hid may re-enter context when old sessions resume; start a new conversation or compact again to establish a new boundary.
+- Removed the deprecated `contextCompact()` SDK method, `context_compact` RPC command, and `context_compaction_start`/`context_compaction_end` events. Use `compact()` and `compaction_start`/`compaction_end`.
+- Changed extension compaction hooks: `session_before_compact` now accepts `cancel` or a complete non-empty `compactedText` override instead of `deletionRequest`; `session_compact` exposes `VerbatimCompactionResult` and the saved `compactionEntry`.
+
+### Added
+
+- Added one-pass contextual line-ranking compaction: Atomic asks the active session model at its active reasoning level, through the normal session stream/provider wrapper, for one whole-region compact `{"d":[[start,end],...]}` deletion plan, then safety-normalizes ranges and mechanically reconstructs verbatim text with cumulative `(filtered N lines)` markers.
+- Added strict pi-style compaction failure semantics: oversized prompts, provider/API errors or overflow, aborts, malformed JSON, and empty/unusable ranges fail without persistence or continuation and without semantic retries, chunking, critical replans, deterministic fallback, or deterministic target correction.
+- Added durable pi-style `CompactionEntry` boundaries discriminated by `details.strategy: "verbatim-lines"`, plus resumable custom-role boundary messages and a collapsible TUI card showing retained-line and token-reduction statistics.
+- Added `pi.sendMessages()` for atomic, array-ordered custom-message admission without waiting for the resulting model turn, allowing companion extensions to keep related preludes and terminal notices contiguous without globally serializing unrelated work.
+
+### Changed
+
+- Changed `compression_ratio` to explicitly represent the fraction of compactable lines to keep. `preserve_recent` is enforced client-side, widens the tail to a user-turn start, and always protects the final logical turn. Role headers are now ordinary ranked lines; only explicit protected spans are split out of model-selected deletion ranges.
+- Simplified resume reconstruction to load the persisted compacted string followed by original messages from `firstKeptEntryId`; no deletion filters, signed-thinking repair pass, or tool dependency repair is re-derived.
+- Retuned the one-pass compaction classifier's retention guidance to surgically thin long tool results, preserve compact diagnostic/code/state anchors, prune repeated retry and superseded bodies, and treat formatting, stack position, markers, and query matches as contextual rather than hard categories.
+- Updated the Pi runtime dependency set (`@earendil-works/pi-agent-core`, `pi-ai`, and `pi-tui`) from `^0.80.6` to `^0.80.7` across Atomic and its bundled packages, with matching Bun and npm lock metadata. This inherits the upstream provider authentication, session-affinity, reasoning replay, tool-choice, model-catalog, terminal input, and prompt-cache fixes from [Pi v0.80.7](https://github.com/earendil-works/pi/releases/tag/v0.80.7) while preserving versionless `0.0.0` workspace manifests.
+- Consolidated ten closed Dependabot updates into the Pi v0.80.7 branch: `linkedom` 0.18.13, npm `ignore` 7.0.6, `@typescript/native-preview` 7.0.0-dev.20260707.2, `typebox` 1.3.6, TypeScript 7.0.2, and the native dependency refreshes documented in `@bastani/atomic-natives`; regenerated the Bun, npm, and publish shrinkwrap dependency graphs without changing workspace package versions.
+- Added an Atomic `StringEnum` export that preserves Pi's Google-compatible enum schema while bridging Pi 0.80.7's TypeBox identity to the direct TypeBox 1.3.6 types; updated bundled extension examples and documentation to use the portable export, and updated TypeScript fixture configs for TypeScript 7's removal of `baseUrl`.
+
+### Fixed
+
+- Fixed resumed sessions resurrecting records hidden by earlier Verbatim Compaction entries after later compactions changed signed-thinking turn or tool-call/result dependencies. Persisted logical deletions are now an authoritative lower bound during every context rebuild: Atomic closes unsafe replay structures by adding transient omissions instead of restoring compacted calls/results, pairs each result with its concrete call occurrence so independent exchanges may reuse an opaque call ID, leaves unrelated retained history unchanged, and keeps the append-only session file intact.
+- Fixed successful manual and automatic compaction UI refreshes to render the compacted transcript with exactly one visible `✻ Context compacted` boundary, while aborted and failed compactions remain unchanged.
+- Fixed the bundled workflows `/workflow resume` experience to mix successful completed workflows into the existing globally newest-first, deduplicated picker with green completed styling, resolve full IDs and prefixes across live, durable, and completed targets, and reopen retained stage chats for follow-up without re-running workflow code or replaying side effects. Completed durable state is retained for authoritative inspection; rows need checkpoints and at least one strictly valid retained conversation, invalid per-stage transcript paths cannot open chat, repeated inspection refreshes changed authoritative chat handles, and selector mount failures close safely. ([#1532](https://github.com/bastani-inc/atomic/issues/1532))
+- Fixed workflow-owned transcripts leaking into normal `/resume`, `-r`, `-c`, and `--continue` history by requiring complete workflow ownership markers, persisting classification in initial fork headers, inheriting it across branches, and keeping malformed legacy markers and ordinary user forks visible.
+- Preserved accepted async-child Intercom chronology across lazily activated companion extensions by atomically admitting same-child ordinary messages before pause, completion, and failure notices; unrelated children remain independent and ask/reply behavior is unchanged ([#1802](https://github.com/bastani-inc/atomic/issues/1802)).
+- Fixed in-process workflow reload to atomically publish freshly rescanned project, user, legacy, configured, and package workflow resources across list/get/inputs/help/completion/invocation surfaces. Overlapping requests are serialized and coalesced, stale session generations cannot overwrite current state, fatal refresh failures retain the prior registry, and reload no longer blocks or changes workflows already in flight. `/workflow reload` and the workflow tool now include actionable per-resource diagnostics instead of reporting bare success when malformed or missing resources were skipped.
+
+## [0.9.9-alpha.4] - 2026-07-15
+
+### Fixed
+
+- Fixed in-process workflow reload to atomically publish freshly rescanned project, user, legacy, configured, and package workflow resources across list/get/inputs/help/completion/invocation surfaces. Overlapping requests are serialized and coalesced, stale session generations cannot overwrite current state, fatal refresh failures retain the prior registry, and reload no longer blocks or changes workflows already in flight. `/workflow reload` and the workflow tool now include actionable per-resource diagnostics instead of reporting bare success when malformed or missing resources were skipped.
+
+## [0.9.9-alpha.3] - 2026-07-14
+
+### Added
+
+- Added `pi.sendMessages()` for atomic, array-ordered custom-message admission without waiting for the resulting model turn, allowing companion extensions to keep related preludes and terminal notices contiguous without globally serializing unrelated work.
+
+### Fixed
+
+- Preserved accepted async-child Intercom chronology across lazily activated companion extensions by atomically admitting same-child ordinary messages before pause, completion, and failure notices; unrelated children remain independent and ask/reply behavior is unchanged ([#1802](https://github.com/bastani-inc/atomic/issues/1802)).
+
+## [0.9.9-alpha.2] - 2026-07-14
+
+### Changed
+
+- Updated the Pi runtime dependency set (`@earendil-works/pi-agent-core`, `pi-ai`, and `pi-tui`) from `^0.80.6` to `^0.80.7` across Atomic and its bundled packages, with matching Bun and npm lock metadata. This inherits the upstream provider authentication, session-affinity, reasoning replay, tool-choice, model-catalog, terminal input, and prompt-cache fixes from [Pi v0.80.7](https://github.com/earendil-works/pi/releases/tag/v0.80.7) while preserving versionless `0.0.0` workspace manifests.
+- Consolidated ten closed Dependabot updates into the Pi v0.80.7 branch: `linkedom` 0.18.13, npm `ignore` 7.0.6, `@typescript/native-preview` 7.0.0-dev.20260707.2, `typebox` 1.3.6, TypeScript 7.0.2, and the native dependency refreshes documented in `@bastani/atomic-natives`; regenerated the Bun, npm, and publish shrinkwrap dependency graphs without changing workspace package versions.
+- Added an Atomic `StringEnum` export that preserves Pi's Google-compatible enum schema while bridging Pi 0.80.7's TypeBox identity to the direct TypeBox 1.3.6 types; updated bundled extension examples and documentation to use the portable export, and updated TypeScript fixture configs for TypeScript 7's removal of `baseUrl`.
+
+## [0.9.9-alpha.1] - 2026-07-14
+
+### Breaking Changes
+
+- Replaced deletion-target context compaction with durable verbatim line compaction. Legacy `context_compaction` entries are now inert archival records, so content they previously hid may re-enter context when old sessions resume; start a new conversation or compact again to establish a new boundary.
+- Removed the deprecated `contextCompact()` SDK method, `context_compact` RPC command, and `context_compaction_start`/`context_compaction_end` events. Use `compact()` and `compaction_start`/`compaction_end`.
+- Changed extension compaction hooks: `session_before_compact` now accepts `cancel` or a complete non-empty `compactedText` override instead of `deletionRequest`; `session_compact` exposes `VerbatimCompactionResult` and the saved `compactionEntry`.
+
+### Added
+
+- Added one-pass contextual line-ranking compaction: Atomic asks the active session model at its active reasoning level, through the normal session stream/provider wrapper, for one whole-region compact `{"d":[[start,end],...]}` deletion plan, then safety-normalizes ranges and mechanically reconstructs verbatim text with cumulative `(filtered N lines)` markers.
+- Added strict pi-style compaction failure semantics: oversized prompts, provider/API errors or overflow, aborts, malformed JSON, and empty/unusable ranges fail without persistence or continuation and without semantic retries, chunking, critical replans, deterministic fallback, or deterministic target correction.
+- Added durable pi-style `CompactionEntry` boundaries discriminated by `details.strategy: "verbatim-lines"`, plus resumable custom-role boundary messages and a collapsible TUI card showing retained-line and token-reduction statistics.
+
+### Changed
+
+- Changed `compression_ratio` to explicitly represent the fraction of compactable lines to keep. `preserve_recent` is enforced client-side, widens the tail to a user-turn start, and always protects the final logical turn. Role headers are now ordinary ranked lines; only explicit protected spans are split out of model-selected deletion ranges.
+- Simplified resume reconstruction to load the persisted compacted string followed by original messages from `firstKeptEntryId`; no deletion filters, signed-thinking repair pass, or tool dependency repair is re-derived.
+- Retuned the one-pass compaction classifier's retention guidance to surgically thin long tool results, preserve compact diagnostic/code/state anchors, prune repeated retry and superseded bodies, and treat formatting, stack position, markers, and query matches as contextual rather than hard categories.
+
+
+### Fixed
+
+- Fixed resumed sessions resurrecting records hidden by earlier Verbatim Compaction entries after later compactions changed signed-thinking turn or tool-call/result dependencies. Persisted logical deletions are now an authoritative lower bound during every context rebuild: Atomic closes unsafe replay structures by adding transient omissions instead of restoring compacted calls/results, pairs each result with its concrete call occurrence so independent exchanges may reuse an opaque call ID, leaves unrelated retained history unchanged, and keeps the append-only session file intact.
+- Fixed successful manual and automatic compaction UI refreshes to render the compacted transcript with exactly one visible `✻ Context compacted` boundary, while aborted and failed compactions remain unchanged.
+- Fixed the bundled workflows `/workflow resume` experience to mix successful completed workflows into the existing globally newest-first, deduplicated picker with green completed styling, resolve full IDs and prefixes across live, durable, and completed targets, and reopen retained stage chats for follow-up without re-running workflow code or replaying side effects. Completed durable state is retained for authoritative inspection; rows need checkpoints and at least one strictly valid retained conversation, invalid per-stage transcript paths cannot open chat, repeated inspection refreshes changed authoritative chat handles, and selector mount failures close safely. ([#1532](https://github.com/bastani-inc/atomic/issues/1532))
+- Fixed workflow-owned transcripts leaking into normal `/resume`, `-r`, `-c`, and `--continue` history by requiring complete workflow ownership markers, persisting classification in initial fork headers, inheriting it across branches, and keeping malformed legacy markers and ordinary user forks visible.
+
+## [0.9.8] - 2026-07-12
+
+### Changed
+
+- Changed builtin `goal` and `ralph` reviewer approval to be deterministic on the reviewer's self-reported `stop_review_loop` boolean: a reviewer approves exactly when it returns `stop_review_loop=true` with no `reviewer_error`, parse failures still count as non-approval, and Goal's reducer completes on quorum of those booleans without recomputing approval from findings arrays, priorities, or `requirements_traceability` statuses. Recomputing approval from those arrays could deadlock runs whose acceptance criteria referenced the review process itself (for example "three reviewers approve" or "an unmerged PR is created"): no individual reviewer can prove such clauses, so traceability never became fully `proven` even when every reviewer explicitly approved, and the loop burned worker/review turns until `needs_human`. Reviewer prompts now state that the boolean is the single authoritative convergence signal, spell out how to derive it (blocking P0/P1/P2 findings and `required_by_objective` findings at any priority mean `false`; in-scope P3 nice-to-haves, `beyond_objective`/`contradicts_objective` observations, the reviewer-quorum process itself, and the authorized post-approval PR/MR/review final action must never hold it at `false`), and keep findings/traceability as required audit evidence.
+- Synchronized the builtin `playwright-cli` skill with microsoft/playwright-cli at `793cfb32572733cbcb401e6f28d05a7a914ce408`, including current installation, snapshot search, mobile emulation, and test generation guidance.
+- Renamed the builtin `effective-liteparse` skill to `liteparse` and synchronized it with run-llama/llamaparse-agent-skills at `2dcef7c62417bd2ec4671fce4621bb1e8cce48d0`; existing `/skill:effective-liteparse` references must migrate to `/skill:liteparse`.
+- Synchronized the complete builtin `impeccable` skill tree with pbakaus/impeccable at `630fc2682a5bd39b25a8e61f74b6b3f14f2b1e21`, including its latest references, detector libraries, live-review scripts, and provider integrations.
+
+### Fixed
+
+- Disabled terminal autowrap while the fullscreen workflow graph overlay is visible on Windows and restored the previous terminal mode when the overlay closes, preventing wrapped graph rows and stale terminal state ([#1760](https://github.com/bastani-inc/atomic/issues/1760)).
+- Hardened synced Impeccable HTML filtering and preview selector escaping against nested sanitizer inputs, permissive script/style closing tags, HTML comment end-bang syntax, and backslash-containing session identifiers; also removed an ineffective CSS property replacement flagged by CodeQL.
+
+## [0.9.8-alpha.1] - 2026-07-12
+
+### Changed
+
+- Changed builtin `goal` and `ralph` reviewer approval to be deterministic on the reviewer's self-reported `stop_review_loop` boolean: a reviewer approves exactly when it returns `stop_review_loop=true` with no `reviewer_error`, parse failures still count as non-approval, and Goal's reducer completes on quorum of those booleans without recomputing approval from findings arrays, priorities, or `requirements_traceability` statuses. Recomputing approval from those arrays could deadlock runs whose acceptance criteria referenced the review process itself (for example "three reviewers approve" or "an unmerged PR is created"): no individual reviewer can prove such clauses, so traceability never became fully `proven` even when every reviewer explicitly approved, and the loop burned worker/review turns until `needs_human`. Reviewer prompts now state that the boolean is the single authoritative convergence signal, spell out how to derive it (blocking P0/P1/P2 findings and `required_by_objective` findings at any priority mean `false`; in-scope P3 nice-to-haves, `beyond_objective`/`contradicts_objective` observations, the reviewer-quorum process itself, and the authorized post-approval PR/MR/review final action must never hold it at `false`), and keep findings/traceability as required audit evidence.
+- Synchronized the builtin `playwright-cli` skill with microsoft/playwright-cli at `793cfb32572733cbcb401e6f28d05a7a914ce408`, including current installation, snapshot search, mobile emulation, and test generation guidance.
+- Renamed the builtin `effective-liteparse` skill to `liteparse` and synchronized it with run-llama/llamaparse-agent-skills at `2dcef7c62417bd2ec4671fce4621bb1e8cce48d0`; existing `/skill:effective-liteparse` references must migrate to `/skill:liteparse`.
+- Synchronized the complete builtin `impeccable` skill tree with pbakaus/impeccable at `630fc2682a5bd39b25a8e61f74b6b3f14f2b1e21`, including its latest references, detector libraries, live-review scripts, and provider integrations.
+
+### Fixed
+
+- Disabled terminal autowrap while the fullscreen workflow graph overlay is visible on Windows and restored the previous terminal mode when the overlay closes, preventing wrapped graph rows and stale terminal state ([#1760](https://github.com/bastani-inc/atomic/issues/1760)).
+- Hardened synced Impeccable HTML filtering and preview selector escaping against nested sanitizer inputs, permissive script/style closing tags, HTML comment end-bang syntax, and backslash-containing session identifiers; also removed an ineffective CSS property replacement flagged by CodeQL.
+
+## [0.9.7] - 2026-07-12
+
+### Added
+
+- Added a shared convergence contract to the bundled `goal` and `ralph` workflows: implementation starts from an observable acceptance/contract matrix derived from the literal objective/acceptance criteria (with explicit state/transition/invariant modeling for stateful work), reviewers independently derive adversarial checks from the literal contract before relying on worker receipts or worker-authored tests, reproduced findings require durable regression evidence before they count as resolved, and each review round persists a deduplicated cross-reviewer `consolidated_findings` batch that the next worker turn repairs together instead of one finding per turn. Literal-contract scope controls are preserved throughout, so nothing beyond the user's requirements is forced.
+- Added a "Choosing an Execution Shape" section to `docs/workflows.md`: an agent-facing decision ladder covering inline work, inline subagent delegation, direct one-off `task`/`tasks`/`chain` shapes, named/builtin workflows, custom TypeScript workflows, and composed/nested workflows; a six-dimension scoring rubric (structure, verifiability, iteration, risk, duration, isolation) with hard-signal overrides; a "Task queues and software factories" playbook for fire-and-forget requests like "address all open issues" (enumerate and dependency-classify first, fan out independent items as separate per-item workflow runs in bounded waves with per-item worktrees/PRs, compose dependent items into one parent graph that nests proven children, and mix both for clustered queues); and a "Prompting the choice" guide listing the user prompt levers (naming the shape, acceptance criteria, loop wording, evidence requests, scope boundaries, and queue policy) that steer the agent's execution-shape decision.
+- Added a "Context-Mode-Aware Prompt Text" section to `docs/workflows.md` documenting that stage prompts must not describe their own context mode, fresh stages must not reference invisible context (prior conversation, sibling stages, graph topology), and forked continuation prompts should send only the delta with a pointer back to guidance already established in the forked history.
+
+### Changed
+
+- Accelerated PR/main CI by running platform-independent validation once on Linux while retaining installed-package Node integration and release-archive smoke coverage on Linux and Windows, and by reusing caller-installed dependencies and package builds during binary assembly. Test suites now have one bounded, observable flake-recovery attempt with preserved logs, environment/resource diagnostics, CI annotations, and no retries for deterministic workflow/release/package/publish gates. Release publication no longer reruns the full PR suite: a protected-default-branch integrity gate proves the release commit is generated from a parent already integrated into `main`, contains exactly the expected version and shrinkwrap material, and pins that immutable SHA across release jobs before preserving all release-specific metadata, docs, native, binary, package, and npm provenance checks.
+- Changed bundled `goal` completion to evidence closure rather than reviewer agreement alone: reviewer quorum can only complete the run when no objective-relevant blocking finding from any reviewer in the current round remains unresolved, unresolved findings are recorded in the inspectable reducer decision reason, and the bounded loop still stops at `max_turns` as `needs_human`. Severity labels alone no longer dismiss objective-relevant findings in Goal or Ralph: `required_by_objective` findings block at any priority (P3 included), while `consistent_with_objective` P3 nice-to-haves stay non-blocking.
+
+### Fixed
+
+- Fixed retryable-failure classification across main-chat retry/fallback, workflow stage fallback, and subagent fallback to treat provider usage-limit exhaustion (for example `Codex error: The usage limit has been reached`, plus `usage_limit_reached`/`insufficient_quota`-style codes) as a retryable quota/rate-limit failure, so configured `fallbackModels` advance to the next candidate provider/model instead of dead-ending the turn, stage, or run. Provider messages that flatten the token into free text (for example `usage_limit_reached` or `usage-limit`, matched with space/underscore/hyphen/joined separators) classify the same as the structured codes across all three paths. Nested cause/diagnostic and session-shaped error payloads classify the same way; cancellations, safety refusals, task/tool failures, and unrelated errors remain non-retryable.
+
+## [0.9.7-alpha.1] - 2026-07-12
+
+### Added
+
+- Added a shared convergence contract to the bundled `goal` and `ralph` workflows: implementation starts from an observable acceptance/contract matrix derived from the literal objective/acceptance criteria (with explicit state/transition/invariant modeling for stateful work), reviewers independently derive adversarial checks from the literal contract before relying on worker receipts or worker-authored tests, reproduced findings require durable regression evidence before they count as resolved, and each review round persists a deduplicated cross-reviewer `consolidated_findings` batch that the next worker turn repairs together instead of one finding per turn. Literal-contract scope controls are preserved throughout, so nothing beyond the user's requirements is forced.
+- Added a "Choosing an Execution Shape" section to `docs/workflows.md`: an agent-facing decision ladder covering inline work, inline subagent delegation, direct one-off `task`/`tasks`/`chain` shapes, named/builtin workflows, custom TypeScript workflows, and composed/nested workflows; a six-dimension scoring rubric (structure, verifiability, iteration, risk, duration, isolation) with hard-signal overrides; a "Task queues and software factories" playbook for fire-and-forget requests like "address all open issues" (enumerate and dependency-classify first, fan out independent items as separate per-item workflow runs in bounded waves with per-item worktrees/PRs, compose dependent items into one parent graph that nests proven children, and mix both for clustered queues); and a "Prompting the choice" guide listing the user prompt levers (naming the shape, acceptance criteria, loop wording, evidence requests, scope boundaries, and queue policy) that steer the agent's execution-shape decision.
+- Added a "Context-Mode-Aware Prompt Text" section to `docs/workflows.md` documenting that stage prompts must not describe their own context mode, fresh stages must not reference invisible context (prior conversation, sibling stages, graph topology), and forked continuation prompts should send only the delta with a pointer back to guidance already established in the forked history.
+
+### Changed
+
+- Changed bundled `goal` completion to evidence closure rather than reviewer agreement alone: reviewer quorum can only complete the run when no objective-relevant blocking finding from any reviewer in the current round remains unresolved, unresolved findings are recorded in the inspectable reducer decision reason, and the bounded loop still stops at `max_turns` as `needs_human`. Severity labels alone no longer dismiss objective-relevant findings in Goal or Ralph: `required_by_objective` findings block at any priority (P3 included), while `consistent_with_objective` P3 nice-to-haves stay non-blocking.
+
+### Fixed
+
+- Fixed retryable-failure classification across main-chat retry/fallback, workflow stage fallback, and subagent fallback to treat provider usage-limit exhaustion (for example `Codex error: The usage limit has been reached`, plus `usage_limit_reached`/`insufficient_quota`-style codes) as a retryable quota/rate-limit failure, so configured `fallbackModels` advance to the next candidate provider/model instead of dead-ending the turn, stage, or run. Provider messages that flatten the token into free text (for example `usage_limit_reached` or `usage-limit`, matched with space/underscore/hyphen/joined separators) classify the same as the structured codes across all three paths. Nested cause/diagnostic and session-shaped error payloads classify the same way; cancellations, safety refusals, task/tool failures, and unrelated errors remain non-retryable.
+
+## [0.9.6] - 2026-07-12
+
+### Changed
+
+- Restored workflow-first Atomic guidance for non-trivial work with verifiable objectives and synchronized help/docs around rich inline TypeScript workflow authoring, including dynamic branching, fan-out, verification, candidate-selection, human-gate, child-workflow, and bounded-loop patterns.
+- Documented compositional workflow authoring in model prompts and onboarding/help surfaces, including importing bundled workflows from `@bastani/workflows/builtin`, nesting definitions with `ctx.workflow(...)`, and building deeper reusable workflow graphs within `maxDepth`.
+- Restored tool-driven bundled Intercom startup so foreground subagent launches and bridged child session startup no longer connect either session automatically; the model or user must invoke Intercom when coordination is needed.
+
+## [0.9.6-alpha.1] - 2026-07-12
+
+### Changed
+
+- Restored workflow-first Atomic guidance for non-trivial work with verifiable objectives and synchronized help/docs around rich inline TypeScript workflow authoring, including dynamic branching, fan-out, verification, candidate-selection, human-gate, child-workflow, and bounded-loop patterns.
+- Documented compositional workflow authoring in model prompts and onboarding/help surfaces, including importing bundled workflows from `@bastani/workflows/builtin`, nesting definitions with `ctx.workflow(...)`, and building deeper reusable workflow graphs within `maxDepth`.
+- Restored tool-driven bundled Intercom startup so foreground subagent launches and bridged child session startup no longer connect either session automatically; the model or user must invoke Intercom when coordination is needed.
+
+## [0.9.5] - 2026-07-11
+
+### Breaking Changes
+
+- Hardened the builtin `goal` and `ralph` review contracts against objective-drift failures: review findings now require `objective_alignment`, Goal and Ralph review decisions require `requirements_traceability`, and reviewer approval rejects empty or non-proven traceability. Consumers that parse or synthesize these structured reviewer outputs must emit the new required fields.
+
+### Added
+
+- Added model-capability-aware `max` thinking support across the CLI, settings, SDK/RPC/extension surfaces, Cursor model mapping, workflow stages, and bundled subagents; models still expose only the levels in their own capability maps ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+- Added request-wide `cost.tiers` support for custom `models.json` models, partial `modelOverrides`, and extension-registered providers, including complete tier validation, aggregate-input threshold selection, inherited-tier preservation for scalar overrides, and explicit tier-array replacement/clearing ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+- Added main-chat `fallbackModels` support for retryable provider/model failures ([#1418](https://github.com/bastani-inc/atomic/issues/1418)). Users can configure an ordered fallback chain in settings or SDK session options with per-candidate reasoning suffixes such as `:high` and `:xhigh`; normal same-model retry remains first when enabled, fallback switches are recorded as session model changes, and the UI reports fallback progress.
+- Added an internal tiered fallback ladder for automatic Verbatim Compaction when the strict `compression_ratio` target is not achievable: threshold and overflow auto-compaction now keep the standard strict planner pass as tier 1, tier 2 can accept a validated below-target result with at least one deletion when projected `tokensAfter` clears the relevant budget (`effectiveInputBudget - reserveTokens` for threshold, effective input budget for overflow), overflow commits from Atomic's internal ladder are gated on fitting the effective input budget even when the strict target is met, overflow-only tier 3 reruns the planner with critical LRU-style protected-entry eligibility for stale task-bearing user/custom/branch-summary context and an effective recent floor of `max(preserve_recent, 5)` across all compactable entries, and overflow-only tier 4 performs deterministic code-level LRU eviction without a model call or API credentials while enforcing the same effective last-5 recent floor until the effective input budget fits or no more safe deletion remains. The fallback tiers remain internal: extension hooks keep their existing shapes, extension-provided deletion requests still bypass the ladder including the overflow budget gate, and no public compaction mode API is exposed.
+- Added hard iteration caps to compaction recovery loops: planner provider turns are capped at 50 per planner run (including tool-call turns), planner nudge follow-ups are capped at 50 per planner run, and deterministic overflow eviction is capped at 50 passes, so compaction cannot spin indefinitely and terminal failures report the achieved reduction, deletion count, projected `tokensAfter`, and budget.
+- Added immutable `acceptance_criteria` to the builtin `goal` and `ralph` workflows. Goal persists it in the ledger/model-visible projection and final reports; Ralph threads it through research, orchestrator, and reviewer prompts next to the literal objective contract. Orchestrators should pass the original task text when launching follow-up Goal or Ralph runs from reviewer findings.
+- Added literal-contract prompt language shared by `goal` and `ralph`, objective-alignment arbitration for reviewer findings, non-blocking treatment for `beyond_objective`/`contradicts_objective` findings, and clause-by-clause requirements traceability so reviewer evidence must map directly back to the objective/acceptance criteria.
+- Added attempt-first E2E guidance for `goal` and `ralph`: workers/reviewers must not skip playwright-cli/tmux validation because credentials or auth are merely assumed missing, and skipped E2E must cite the exact attempted commands and observed failure output.
+
+### Changed
+
+- Synced the upstream Pi runtime dependencies (`@earendil-works/pi-agent-core`, `pi-ai`, and `pi-tui`) through `^0.80.6` across Atomic and bundled extensions, retained the same consolidated refresh's `lru-cache`, optional `@dbos-inc/dbos-sdk`, `napi`, `napi-derive`, and `tree-sitter` updates, regenerated Bun/Cargo/npm shrinkwrap metadata with mutually consistent 0.80.6 registry integrity, and kept versionless `0.0.0` Atomic manifests. This inherits signed empty Anthropic thinking preservation, request-wide GPT-5.4/5.5 long-context pricing, corrected GPT-5.6 catalogs/backend windows, and upstream retry/provider fixes while preserving Atomic's Copilot/Gemini behavior ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+- Replaced universal workflow/subagent routing with an intent-first least-orchestration policy across model guidance, help, and documentation. Interactive exploration stays inline, bounded specialist work may use single/chain/parallel subagents, and clearly delegated long-running autonomous work uses named, direct-shape, or custom inline TypeScript workflows when durable execution features add value. Explicit loop and stop-condition requests remain key workflow signals when the user delegates execution, so retries, evidence, and convergence are tracked.
+- Explicit bash timeouts now fail before execution when non-finite, non-positive, or greater than Atomic's 3600-second ceiling; omitting the field still uses 300 seconds, and valid fractional values retain Atomic's floor behavior instead of being silently clamped into range ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+- Changed the bundled `ralph` workflow review fan-out from three reviewers to two (`reviewer-a` and `reviewer-b`), removing `reviewer-c` and its GLM-led model chain while keeping unanimous approval across the remaining reviewers.
+- Improved interactive startup responsiveness by keeping footer git watcher setup out of first paint and deferring it until the first input handler is ready, while preserving lazy footer branch reads and post-frame branch-change re-rendering. Deferred extension/resource loading no longer starts on a blind post-paint timer that can freeze live typing; instead, Atomic starts it in the background once input is ready and uses a readiness gate before the first normal prompt/model turn if the background load has not settled. This keeps first-paint/typeahead responsive while ensuring the first interactive prompt sees extension tools, skills, prompt templates, resources, and extension-registered provider/model updates. Built-in slash commands stay available immediately, and bundled extension slash commands expose lightweight metadata for autocomplete before their heavy implementations load; explicitly submitted extension slash commands load the implementation on demand and then route the same command. Explicit provider/model selections stay on the synchronous startup path because they must resolve against extension-registered providers before the session is created. Changelog and first-run notice materialization now happen after the first frame, and startup/input timing probes cover raw-mode enablement, first captured raw key, first frame, input-handler callback installation, and first submit for benchmark/probe runs.
+- Documented the built-in extension lazy-startup model: lightweight tools/commands register immediately while MCP connection warmup, workflow discovery, subagent maintenance, and web-access heavy provider loading run in the background or on explicit use.
+- Changed interactive Ctrl+C to interrupt the agent when it is busy: a single Ctrl+C now aborts the running agent turn (restoring queued messages to the editor), a running bash command, an active context compaction, or an auto-retry countdown — matching Escape and common CLI muscle memory. When idle, Ctrl+C keeps its previous behavior (first press clears the editor, a quick double-press exits), and the Ctrl+C immediately following an interrupt clears rather than exits. Escape remains the primary interrupt key.
+- Simplified first-run onboarding to a one-time verifiable-coding-agent-runtime explanation shown after any What's New notes and directly above the normal input box; Atomic no longer intercepts pasted tasks, saves pre-login seeds, routes first-run input to `goal`/`ralph`, raises reasoning for onboarding, or requires `/chat` to continue normally. The notice now reminds unauthenticated users to run `/login` first, and starting a new session with `/new` clears any rendered first-run notice state from the previous session canvas.
+- Hardened the bundled workflows extension's workflow-tool prompt guidance against inline analysis-paralysis drift: the agent must now decide and state the inline-vs-workflow execution mode before its first tool call (reconnaissance explicitly counts as inline execution), budget pre-workflow scoping to a few quick reads that only sharpen the objective and validation criteria, course-correct after roughly ten deliverable-free exploration tool calls (or repeated "let me verify one more thing" loops) by writing findings to a context file and handing off to the best-fit workflow via `reads` (named or user-defined workflows discovered with `action: "list"` first, builtin `goal`/`ralph` as fallbacks when nothing more specific fits), and treat sunk inline research as transferable via files rather than a reason to stay inline. The same "Decide before you explore" and "Course-correct instead of drifting" guidance is mirrored in `docs/workflows.md` under "When to Use Workflows".
+- Refreshed the July 2026 builtin workflow and subagent frontier model rosters bundled with Atomic: high-capacity synthesis, planning, debugging, and review paths now lead or fall back through Claude Fable 5 `:xhigh`, GPT-5.5 `:xhigh`, Opus 4.8 long-context `:xhigh`, GLM-5.2, and the valid OpenRouter Fugu Ultra mirror while keeping dominated or unsupported model IDs out of shipped chains.
+
+### Fixed
+
+- Fixed CLI resolution of unknown/custom model IDs with a recognized `:<thinking>` suffix so the suffix is applied as the thinking level instead of leaking into the synthesized model ID, while preserving registered and unrecognized colon-bearing model IDs.
+- Fixed bundled MCP readiness so failed background initialization is retryable and single-flight within the active session, stale retries cannot publish after shutdown, replacement startup waits for retired initializer/state/OAuth cleanup, and proxy/direct readiness plus lazy-connection and OAuth waits use caller-local cancellation without stopping shared producers. Direct executors reject old-state work on success and failure paths after replacement and close stale newly opened Apps views, SDK resource/tool requests receive the invocation signal, and UI-backed MCP Apps calls emit one terminal cancellation before teardown while preserving the exact host reason over SDK/notification failures.
+- Fixed bundled web-access and Intercom lazy wrappers to retire session-scoped candidates on shutdown, reject calls spanning teardown, and initialize fresh state after restart; host cancellation after web provider/curator execution now preserves its exact abort reason while explicit curator user cancellation remains a normal result.
+- Fixed bundled web-access lazy tools failing during native Bun heavy-module loading by resolving compatibility helpers from the canonical installed `@earendil-works/pi-ai/compat` package ([#1728](https://github.com/bastani-inc/atomic/issues/1728)).
+- Fixed stale pre-compaction usage estimates after a newer inserted prefix, normalized lax null or omitted content at extension, custom-message, and restored-session boundaries, and kept Atomic's Verbatim Compaction custom-message budgeting semantics intact ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+- Fixed `models.json` `modelOverrides` so matching extension-registered provider models receive configured names, thinking maps, compatibility fields, context settings, and merged headers without replacing Atomic's dynamic Copilot/context-window behavior; normal CLI startup now loads layered legacy `.pi` and primary `.atomic` files, disjoint provider/model entries survive, and an exact primary entry replaces the complete legacy override with source-correct header precedence and `{}` restoration of built-in values ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+- Fixed project context traversal at Windows drive roots, surfaced credential persistence failures without mutating in-memory auth first, skipped unauthenticated saved defaults, preserved missing saved IDs for authenticated custom OpenAI-compatible providers, prevented removed static catalog model IDs from being synthesized during session restore, and cleared cached label timestamps when starting a new session ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+- Fixed missing exact `--session-id` handling to warn before creating the requested session, ignored rapid duplicate fork-menu selections, and kept visible custom messages emitted during streaming ordered before the live assistant row ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+- Fixed standalone clipboard image support by falling back to xclip after an empty native result and packaging each matching 0.3.9 native binding beside the wrapper in Atomic's split binary archives; caller-relative `TMPDIR` values are canonicalized before directory changes, and `--skip-deps` tolerates an absent optional clipboard wrapper while strict release builds remain loud ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+- Fixed Anthropic/GitHub Copilot signed-thinking replay after Verbatim Compaction by validating provider-visible logical assistant tool-use turns instead of isolated messages: the current final turn retains every `thinking`/`redacted_thinking` entry, completed historical turns retain all or omit all signed entries, complete grep batches and deterministic overflow eviction use the same invariant, and unsafe persisted plans heal in memory with exact retained blocks, signatures, and paired tool results restored without rewriting session JSONL. Provider-visible user/custom inputs, included bash executions, and non-empty branch summaries establish boundaries, task anchors, recent windows, and finite transcript token totals; provider-omitted empty or whitespace-only user/custom inputs and empty or malformed branch summaries do not, while whitespace-only branch summaries remain visible through their wrapper. Raw block visibility is retained separately from transcript display projections, future unknown typed blocks fail visible with a conservative token estimate, malformed siblings are transiently filtered before provider calls, and stale user-image deletion cannot remove the final provider-visible task. Raw `redacted_thinking` blocks are normalized in the transient, non-mutating LLM-compatible messages returned by `convertToLlm`, so retained opaque data serializes exactly without mutating durable history.
+- Fixed bundled foreground subagent coordination so `intercom.ask` and `contact_supervisor need_decision` surface while the parent tool is active, detach only their exact child, resume through threaded replies, and expose the retained detached-to-terminal child status and actual output through public status queries; progress/send and background execution remain nonblocking and unchanged ([#1727](https://github.com/bastani-inc/atomic/issues/1727)).
+- Register bridged foreground/background children with bundled Intercom before agent work and lazily gate interactive foreground launches on parent broker readiness, while disabled, unavailable, unused-parent, and management-only paths remain lazy and broker-free.
+- Fixed Windows native filesystem watchers to canonicalize watched paths before calling `fs.watch`, reject unresolved 8.3 short-name paths, and fall back to polling for unsafe watcher paths. This prevents libuv fs-event assertion crashes when temp, session, footer, or theme paths contain short-name components such as `USERNA~1`.
+- Fixed responses truncated at the output-token cap (`stopReason: "length"`) dead-ending the model's work with a "maximum output token limit" error when the context was still below the auto-compaction threshold. Previously auto-continuation only happened as a side effect of threshold compaction, so a length truncation with input room to spare left the task half-finished. Length-truncated turns now continue directly without compacting: the incomplete assistant is removed from retry context and the generation resumes automatically so the model finishes where it left off, bounded by a small consecutive-continuation cap so a turn that keeps exceeding the per-turn output cap still terminates. Compaction-driven `willRetry: true` continuations are now consistently tracked through the normal prompt lifecycle, so `AgentSession.prompt()` waits for threshold length-stop continuation before resolving instead of treating it as fire-and-forget.
+- Fixed auto-compaction after OpenAI Responses output-budget underflow errors such as `Invalid 'max_output_tokens': integer below minimum value. Expected a value >= 16, but got 1 instead.` Atomic now classifies that specific context-pressure failure as retry-worthy when the live context crosses the compaction threshold, removes the empty error assistant from retry context after compaction, and automatically continues from the preceding work anchor instead of waiting for the user to type `Continue`. Generic `invalid_request_body` errors such as malformed tool schemas are still not auto-retried, OpenAI Responses payload sanitization now prevents `max_output_tokens` values below the provider minimum of 16 from being sent, and repeated output-budget underflow continuation is capped at one compact-and-retry attempt so an unrecoverable context terminates visibly instead of looping or stalling.
+- Fixed bundled workflow durable resume for reusable `git_worktree_dir` worktrees so resumed runs reuse the original invocation repository/cwd and report slow Git subprocess timeouts as Git timeouts instead of repository-detection failures.
+- Removed the queued-message restore success status from the interactive UI so restoring queued messages silently returns them to the editor without showing transient restore copy.
+- Fixed bundled MCP proxy metadata paths so explicit cold-cache `search`, `describe`, and server-list requests hydrate lazy server metadata on demand without reconnecting all lazy servers during startup.
+- Fixed provider context-window overflow recovery so an exhausted overflow auto-compaction attempt emits an explicit unresolved-overflow signal instead of silently leaving callers to retry the same model, and planner calls that themselves overflow now degrade through the deterministic overflow-eviction ladder rather than throwing before non-model reduction can run. Planner overflow is now recognized whether it is returned as an assistant error message or thrown by the provider stream before `agent.prompt()` completes, so overflow recovery skips the critical planner retry and goes directly to deterministic non-model reduction in both forms.
+- Fixed overflow auto-compaction retry reliability so `AgentSession.prompt()` now waits for the `willRetry: true` post-compaction continuation before resolving. Late unresolved-overflow signals from that continuation are observed by workflow callers before they can mark the original prompt successful.
+- Fixed normal interactive TTY startup so typing before the prompt box is fully mounted is captured instead of being invisibly blocked by deferred resource initialization. Atomic now starts a short-lived raw input buffer only on the existing deferred-startup fast path, keeps it active until the TUI input handler is mounted, replays draft text into the editor, queues only ordinary Enter-submitted prompts for the prompt loop, and preserves command-like early submissions such as `/settings` or `!pwd` as standalone editor submissions so normal command routing handles them after mount. Once a command-like startup submission is captured, later captured submissions wait behind it and replay in original input order after that command is routed, preventing a later ordinary prompt from leapfrogging the earlier command without merging commands and following prompts into one draft. The capture now restores terminal raw mode across early startup exits/signals and ignores split escape sequences so partial arrow-key/protocol bytes never become draft text. Trust prompts, explicit resource flags, metadata commands, non-TTY modes, and explicit provider/model selection stay on the synchronous startup path.
+- Fixed the bundled intercom extension to keep broker runtime files under the active Atomic agent directory, including custom `ATOMIC_CODING_AGENT_DIR` values and the legacy `PI_CODING_AGENT_DIR` alias, while documenting the `~/.atomic/agent/intercom/` primary path and `~/.pi/agent/intercom/` fallback. The default pi-compatible `npx --no-install tsx` broker sentinel is now hardened to launch through the current runtime (`process.execPath`): Node-based installs use a resolved `tsx` CLI with a bundled `jiti` fallback, Bun source-checkout runs use the current Bun executable directly, and standalone Atomic Bun binaries use a narrow internal split-launcher broker handoff, so default startup does not depend on `npx`, `tsx`, or `bun` being on `PATH`; explicit custom broker configs remain supported.
+- Fixed GitHub Copilot Claude/Anthropic Messages streams that cleanly report a terminal stop reason but omit the required `message_stop` SSE event. Atomic now adds that single terminal event only for closed, non-error Copilot `/v1/messages` event streams before provider parsing, including complete final SSE frames that reach EOF without a trailing blank-line separator and GitHub Enterprise/GHE tenant routing hosts such as `copilot-api.<enterprise>.ghe.com`, while leaving malformed, truncated, already well-formed, non-Copilot, look-alike host, non-SSE, Gemini, and OpenAI-style streams to the normal parser/retry behavior.
+- Fixed bundled workflow durable resume hydration so replayed parallel reviewer fanout preserves branch structure and completed workflow stages restore persisted summaries, durations, session/model metadata, and checkpoint contents in status and graph views.
+- Fixed a noticeable delay before the working spinner appeared after submitting a prompt: the interactive input loop now mounts the spinner immediately on submit (respecting extension `workingVisible` suppression) and yields once so it paints before prompt preflight — extension input hooks, template/skill expansion, auth and compaction checks, and deferred startup completion — runs. Previously the spinner was created only when the agent emitted `agent_start`, so the status row stayed empty during preflight, making Ctrl+C feel unresponsive until the spinner finally appeared. Submissions that resolve without starting an agent turn (e.g. extension slash-commands) clear the pre-shown spinner when idle so it never lingers.
+- Fixed post-context-compaction provider requests so retained pre-compaction assistant usage is scrubbed from the provider-bound context clone. This keeps durable billing history intact while preventing stale high token counts from shrinking `max_output_tokens` to an invalid one-token budget on the first turn after compaction.
+- Fixed auto-compaction continuation for OpenAI Responses providers by normalizing replayed `function_call.id` values to valid `fc_*` item identifiers while preserving `call_id` pairing. This prevents the opaque `400 {"code":"invalid_request_body"}` failure that could appear immediately after compaction even though a manual `Continue` message succeeded.
+- Fixed auto-compaction stalling after a response reaches the maximum output-token limit: length-stopped assistant turns now compact as incomplete work, remove the truncated assistant from retry context, and automatically continue without requiring the user to type `Continue` ([#1662](https://github.com/bastani-inc/atomic/issues/1662)).
+- Reduced Windows compiled-binary interactive cold-start latency by shipping release archives with a small launcher plus a sidecar app bundle instead of one monolithic executable, and by extending the deferred TUI fast path beyond extension module imports. Normal interactive TTY startup now paints and installs the input loop before bundled package/resource discovery scans skills, prompts, themes, context files, and system-prompt files. Deferred loading now uses async filesystem discovery and async file reads for package resources, skills, prompts, themes, and extension-discovered resources, with cooperative yields so Enter, Ctrl+C, rendering, and the normal prompt spinner remain responsive when a submitted prompt needs resources. Startup no longer shows a resource-loading spinner before the user submits a prompt; explicit resource flags, system-prompt inputs, unknown extension flags, model/provider selection, metadata commands, non-TTY modes, and unresolved project-trust prompts stay on the synchronous path.
+- Fixed Windows compiled-binary keyboard responsiveness by avoiding invisible typeahead buffering in normal interactive startup, keeping terminal input attached to the visible editor, handling Ctrl+C globally with a SIGINT fallback, bounding Ctrl+C shutdown input draining to 250ms, and packaging the Windows console-mode helper used by the TUI for virtual-terminal input.
+- Fixed the Anthropic subscription extra-usage warning racing ahead of the startup `RESOURCES` disclosure on the deferred TUI fast path: the warning is now held until after the resource summary line renders (at deferred-startup completion, agent-end disclosure flushes, or the post-prompt flush), so the `RESOURCES` line always appears first.
+- Fixed deferred-startup TUI chat ordering so `RESOURCES`, changelog, update/package/tmux/subscription startup notices, and queued user prompts render in request order instead of completion order. Startup notices now use a stable block above session messages, queued inputs wait for their later `message_start`, and failed pre-prompt echoes are removed from the chat.
+- Fixed Windows release archives to avoid Bun's `--bytecode` standalone executable startup crash and every runtime path that decodes the split-launcher sidecar's macOS build-machine `import.meta.url` on Windows. Windows binaries remain compiled standalone launchers but now ship the source payload instead of embedded bytecode until Bun's Windows bytecode-alignment fix is available. A centralized split-launcher helper (`ATOMIC_CODING_AGENT` + executable path detection) now resolves package assets, built-in package discovery, and — critically — the jiti resolution base next to `atomic.exe`, so the bundled built-in extensions (`mcp`, `web-access`, `intercom`, `cursor`, `workflows`, `subagents`) all load on Windows instead of failing with `File URL path must be an absolute path`.
+- Fixed deferred TUI extension loading so the editor keeps accepting and echoing keystrokes after first paint: startup now yields cooperatively between extension/resource-loading chunks, preserves text typed during completion, and safely queues Enter submissions made before the main prompt loop is ready.
+- Fixed a warm-start TUI first-paint regression where persisted `enabledModels` or `--models` patterns forced all extensions to load synchronously before the first frame. Interactive startup now keeps the deferred-extension fast path and reapplies the model scope after extensions finish loading, preserving extension-registered provider matches and unmatched-pattern warnings without blocking paint.
+- Fixed project trust prompts for bare projects that only create inert `.atomic/` or `.pi/` state: state-only directories such as `todos/` and `sessions/` no longer count as trust inputs or disable deferred extension startup, while trust-requiring config continues to prompt until the user makes an explicit persistent decision and implicit trust is persisted only by the `/reload` path.
+- Fixed a security regression that could silently persist project trust at shutdown or deferred-startup completion after trust-requiring config appeared mid-session; Atomic now preserves the startup trust prompt unless the user explicitly saves a decision or the existing `/reload` implicit-trust flow applies.
+- Fixed BOM-prefixed JSON state files being treated as parse failures: settings and project trust JSON readers now strip a leading UTF-8 BOM before parsing, so Windows-authored `settings.json` and `trust.json` files load the same as BOM-less files instead of silently ignoring user settings.
+- Fixed the bundled workflows documentation to reflect that attached workflow stage chats render live `subagent` widgets for single, parallel, and chain calls, keep them live across attach/re-attach cycles, and let Ctrl+O expand live detail for every child. ([#1643](https://github.com/bastani-inc/atomic/issues/1643))
+- Fixed a Windows `waitForChildProcess` exit-code race where the process-alive poll could report a fast-dying child as gone before Node emitted the real `exit` event, causing bash commands such as `exit 1` to be reported as successful with a fabricated exit code 0 ([#1647](https://github.com/bastani-inc/atomic/issues/1647)).
+- Fixed overflow auto-compaction silently no-oping when planner authentication was unavailable or when the current branch has no preparable compactable transcript: overflow recovery now either skips model tiers and runs deterministic no-auth LRU eviction directly through the existing validation pipeline, or surfaces a terminal error that nothing more was safely deletable.
+- Fixed feasible partial compaction results being discarded solely because they missed the strict ratio target: automatic threshold and overflow compaction now commit validated below-target deletions when their projected `tokensAfter` clears the trigger/budget boundary, including partial deletion state salvaged after a provider context-overflow error.
+
+## [0.9.5-alpha.10] - 2026-07-11
+
+### Added
+
+- Added model-capability-aware `max` thinking support across the CLI, settings, SDK/RPC/extension surfaces, Cursor model mapping, workflow stages, and bundled subagents; models still expose only the levels in their own capability maps ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+- Added request-wide `cost.tiers` support for custom `models.json` models, partial `modelOverrides`, and extension-registered providers, including complete tier validation, aggregate-input threshold selection, inherited-tier preservation for scalar overrides, and explicit tier-array replacement/clearing ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+
+### Changed
+
+- Synced the upstream Pi runtime dependencies (`@earendil-works/pi-agent-core`, `pi-ai`, and `pi-tui`) through `^0.80.6` across Atomic and bundled extensions, retained the same consolidated refresh's `lru-cache`, optional `@dbos-inc/dbos-sdk`, `napi`, `napi-derive`, and `tree-sitter` updates, regenerated Bun/Cargo/npm shrinkwrap metadata with mutually consistent 0.80.6 registry integrity, and kept versionless `0.0.0` Atomic manifests. This inherits signed empty Anthropic thinking preservation, request-wide GPT-5.4/5.5 long-context pricing, corrected GPT-5.6 catalogs/backend windows, and upstream retry/provider fixes while preserving Atomic's Copilot/Gemini behavior ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+- Replaced universal workflow/subagent routing with an intent-first least-orchestration policy across model guidance, help, and documentation. Interactive exploration stays inline, bounded specialist work may use single/chain/parallel subagents, and clearly delegated long-running autonomous work uses named, direct-shape, or custom inline TypeScript workflows when durable execution features add value. Explicit loop and stop-condition requests remain key workflow signals when the user delegates execution, so retries, evidence, and convergence are tracked.
+
+- Explicit bash timeouts now fail before execution when non-finite, non-positive, or greater than Atomic's 3600-second ceiling; omitting the field still uses 300 seconds, and valid fractional values retain Atomic's floor behavior instead of being silently clamped into range ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+
+- Changed the bundled `ralph` workflow review fan-out from three reviewers to two (`reviewer-a` and `reviewer-b`), removing `reviewer-c` and its GLM-led model chain while keeping unanimous approval across the remaining reviewers.
+
+### Fixed
+
+- Fixed CLI resolution of unknown/custom model IDs with a recognized `:<thinking>` suffix so the suffix is applied as the thinking level instead of leaking into the synthesized model ID, while preserving registered and unrecognized colon-bearing model IDs.
+- Fixed bundled MCP readiness so failed background initialization is retryable and single-flight within the active session, stale retries cannot publish after shutdown, replacement startup waits for retired initializer/state/OAuth cleanup, and proxy/direct readiness plus lazy-connection and OAuth waits use caller-local cancellation without stopping shared producers. Direct executors reject old-state work on success and failure paths after replacement and close stale newly opened Apps views, SDK resource/tool requests receive the invocation signal, and UI-backed MCP Apps calls emit one terminal cancellation before teardown while preserving the exact host reason over SDK/notification failures.
+- Fixed bundled web-access and Intercom lazy wrappers to retire session-scoped candidates on shutdown, reject calls spanning teardown, and initialize fresh state after restart; host cancellation after web provider/curator execution now preserves its exact abort reason while explicit curator user cancellation remains a normal result.
+- Fixed bundled web-access lazy tools failing during native Bun heavy-module loading by resolving compatibility helpers from the canonical installed `@earendil-works/pi-ai/compat` package ([#1728](https://github.com/bastani-inc/atomic/issues/1728)).
+- Fixed stale pre-compaction usage estimates after a newer inserted prefix, normalized lax null or omitted content at extension, custom-message, and restored-session boundaries, and kept Atomic's Verbatim Compaction custom-message budgeting semantics intact ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+- Fixed `models.json` `modelOverrides` so matching extension-registered provider models receive configured names, thinking maps, compatibility fields, context settings, and merged headers without replacing Atomic's dynamic Copilot/context-window behavior; normal CLI startup now loads layered legacy `.pi` and primary `.atomic` files, disjoint provider/model entries survive, and an exact primary entry replaces the complete legacy override with source-correct header precedence and `{}` restoration of built-in values ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+- Fixed project context traversal at Windows drive roots, surfaced credential persistence failures without mutating in-memory auth first, skipped unauthenticated saved defaults, preserved missing saved IDs for authenticated custom OpenAI-compatible providers, prevented removed static catalog model IDs from being synthesized during session restore, and cleared cached label timestamps when starting a new session ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+- Fixed missing exact `--session-id` handling to warn before creating the requested session, ignored rapid duplicate fork-menu selections, and kept visible custom messages emitted during streaming ordered before the live assistant row ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+- Fixed standalone clipboard image support by falling back to xclip after an empty native result and packaging each matching 0.3.9 native binding beside the wrapper in Atomic's split binary archives; caller-relative `TMPDIR` values are canonicalized before directory changes, and `--skip-deps` tolerates an absent optional clipboard wrapper while strict release builds remain loud ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+- Fixed Anthropic/GitHub Copilot signed-thinking replay after Verbatim Compaction by validating provider-visible logical assistant tool-use turns instead of isolated messages: the current final turn retains every `thinking`/`redacted_thinking` entry, completed historical turns retain all or omit all signed entries, complete grep batches and deterministic overflow eviction use the same invariant, and unsafe persisted plans heal in memory with exact retained blocks, signatures, and paired tool results restored without rewriting session JSONL. Provider-visible user/custom inputs, included bash executions, and non-empty branch summaries establish boundaries, task anchors, recent windows, and finite transcript token totals; provider-omitted empty or whitespace-only user/custom inputs and empty or malformed branch summaries do not, while whitespace-only branch summaries remain visible through their wrapper. Raw block visibility is retained separately from transcript display projections, future unknown typed blocks fail visible with a conservative token estimate, malformed siblings are transiently filtered before provider calls, and stale user-image deletion cannot remove the final provider-visible task. Raw `redacted_thinking` blocks are normalized in the transient, non-mutating LLM-compatible messages returned by `convertToLlm`, so retained opaque data serializes exactly without mutating durable history.
+- Fixed bundled foreground subagent coordination so `intercom.ask` and `contact_supervisor need_decision` surface while the parent tool is active, detach only their exact child, resume through threaded replies, and expose the retained detached-to-terminal child status and actual output through public status queries; progress/send and background execution remain nonblocking and unchanged ([#1727](https://github.com/bastani-inc/atomic/issues/1727)).
+- Register bridged foreground/background children with bundled Intercom before agent work and lazily gate interactive foreground launches on parent broker readiness, while disabled, unavailable, unused-parent, and management-only paths remain lazy and broker-free.
+
+## [0.9.5-alpha.9] - 2026-07-09
+
+### Changed
+
+- Improved interactive startup responsiveness by keeping footer git watcher setup out of first paint and deferring it until the first input handler is ready, while preserving lazy footer branch reads and post-frame branch-change re-rendering. Deferred extension/resource loading no longer starts on a blind post-paint timer that can freeze live typing; instead, Atomic starts it in the background once input is ready and uses a readiness gate before the first normal prompt/model turn if the background load has not settled. This keeps first-paint/typeahead responsive while ensuring the first interactive prompt sees extension tools, skills, prompt templates, resources, and extension-registered provider/model updates. Built-in slash commands stay available immediately, and bundled extension slash commands expose lightweight metadata for autocomplete before their heavy implementations load; explicitly submitted extension slash commands load the implementation on demand and then route the same command. Explicit provider/model selections stay on the synchronous startup path because they must resolve against extension-registered providers before the session is created. Changelog and first-run notice materialization now happen after the first frame, and startup/input timing probes cover raw-mode enablement, first captured raw key, first frame, input-handler callback installation, and first submit for benchmark/probe runs.
+- Documented the built-in extension lazy-startup model: lightweight tools/commands register immediately while MCP connection warmup, workflow discovery, subagent maintenance, and web-access heavy provider loading run in the background or on explicit use.
+
+### Fixed
+
+- Fixed Windows native filesystem watchers to canonicalize watched paths before calling `fs.watch`, reject unresolved 8.3 short-name paths, and fall back to polling for unsafe watcher paths. This prevents libuv fs-event assertion crashes when temp, session, footer, or theme paths contain short-name components such as `USERNA~1`.
+- Fixed responses truncated at the output-token cap (`stopReason: "length"`) dead-ending the model's work with a "maximum output token limit" error when the context was still below the auto-compaction threshold. Previously auto-continuation only happened as a side effect of threshold compaction, so a length truncation with input room to spare left the task half-finished. Length-truncated turns now continue directly without compacting: the incomplete assistant is removed from retry context and the generation resumes automatically so the model finishes where it left off, bounded by a small consecutive-continuation cap so a turn that keeps exceeding the per-turn output cap still terminates. Compaction-driven `willRetry: true` continuations are now consistently tracked through the normal prompt lifecycle, so `AgentSession.prompt()` waits for threshold length-stop continuation before resolving instead of treating it as fire-and-forget.
+- Fixed auto-compaction after OpenAI Responses output-budget underflow errors such as `Invalid 'max_output_tokens': integer below minimum value. Expected a value >= 16, but got 1 instead.` Atomic now classifies that specific context-pressure failure as retry-worthy when the live context crosses the compaction threshold, removes the empty error assistant from retry context after compaction, and automatically continues from the preceding work anchor instead of waiting for the user to type `Continue`. Generic `invalid_request_body` errors such as malformed tool schemas are still not auto-retried, OpenAI Responses payload sanitization now prevents `max_output_tokens` values below the provider minimum of 16 from being sent, and repeated output-budget underflow continuation is capped at one compact-and-retry attempt so an unrecoverable context terminates visibly instead of looping or stalling.
+- Fixed bundled workflow durable resume for reusable `git_worktree_dir` worktrees so resumed runs reuse the original invocation repository/cwd and report slow Git subprocess timeouts as Git timeouts instead of repository-detection failures.
+- Removed the queued-message restore success status from the interactive UI so restoring queued messages silently returns them to the editor without showing transient restore copy.
+- Fixed bundled MCP proxy metadata paths so explicit cold-cache `search`, `describe`, and server-list requests hydrate lazy server metadata on demand without reconnecting all lazy servers during startup.
+
+## [0.9.5-alpha.8] - 2026-07-08
+
+### Added
+
+- Added main-chat `fallbackModels` support for retryable provider/model failures ([#1418](https://github.com/bastani-inc/atomic/issues/1418)). Users can configure an ordered fallback chain in settings or SDK session options with per-candidate reasoning suffixes such as `:high` and `:xhigh`; normal same-model retry remains first when enabled, fallback switches are recorded as session model changes, and the UI reports fallback progress.
+
+### Fixed
+
+- Fixed provider context-window overflow recovery so an exhausted overflow auto-compaction attempt emits an explicit unresolved-overflow signal instead of silently leaving callers to retry the same model, and planner calls that themselves overflow now degrade through the deterministic overflow-eviction ladder rather than throwing before non-model reduction can run. Planner overflow is now recognized whether it is returned as an assistant error message or thrown by the provider stream before `agent.prompt()` completes, so overflow recovery skips the critical planner retry and goes directly to deterministic non-model reduction in both forms.
+- Fixed overflow auto-compaction retry reliability so `AgentSession.prompt()` now waits for the `willRetry: true` post-compaction continuation before resolving. Late unresolved-overflow signals from that continuation are observed by workflow callers before they can mark the original prompt successful.
+- Fixed normal interactive TTY startup so typing before the prompt box is fully mounted is captured instead of being invisibly blocked by deferred resource initialization. Atomic now starts a short-lived raw input buffer only on the existing deferred-startup fast path, keeps it active until the TUI input handler is mounted, replays draft text into the editor, queues only ordinary Enter-submitted prompts for the prompt loop, and preserves command-like early submissions such as `/settings` or `!pwd` as standalone editor submissions so normal command routing handles them after mount. Once a command-like startup submission is captured, later captured submissions wait behind it and replay in original input order after that command is routed, preventing a later ordinary prompt from leapfrogging the earlier command without merging commands and following prompts into one draft. The capture now restores terminal raw mode across early startup exits/signals and ignores split escape sequences so partial arrow-key/protocol bytes never become draft text. Trust prompts, explicit resource flags, metadata commands, non-TTY modes, and explicit provider/model selection stay on the synchronous startup path.
+- Fixed the bundled intercom extension to keep broker runtime files under the active Atomic agent directory, including custom `ATOMIC_CODING_AGENT_DIR` values and the legacy `PI_CODING_AGENT_DIR` alias, while documenting the `~/.atomic/agent/intercom/` primary path and `~/.pi/agent/intercom/` fallback. The default pi-compatible `npx --no-install tsx` broker sentinel is now hardened to launch through the current runtime (`process.execPath`): Node-based installs use a resolved `tsx` CLI with a bundled `jiti` fallback, Bun source-checkout runs use the current Bun executable directly, and standalone Atomic Bun binaries use a narrow internal split-launcher broker handoff, so default startup does not depend on `npx`, `tsx`, or `bun` being on `PATH`; explicit custom broker configs remain supported.
+- Fixed GitHub Copilot Claude/Anthropic Messages streams that cleanly report a terminal stop reason but omit the required `message_stop` SSE event. Atomic now adds that single terminal event only for closed, non-error Copilot `/v1/messages` event streams before provider parsing, including complete final SSE frames that reach EOF without a trailing blank-line separator and GitHub Enterprise/GHE tenant routing hosts such as `copilot-api.<enterprise>.ghe.com`, while leaving malformed, truncated, already well-formed, non-Copilot, look-alike host, non-SSE, Gemini, and OpenAI-style streams to the normal parser/retry behavior.
+- Fixed bundled workflow durable resume hydration so replayed parallel reviewer fanout preserves branch structure and completed workflow stages restore persisted summaries, durations, session/model metadata, and checkpoint contents in status and graph views.
+
+## [0.9.5-alpha.7] - 2026-07-07
+
+### Changed
+
+- Changed interactive Ctrl+C to interrupt the agent when it is busy: a single Ctrl+C now aborts the running agent turn (restoring queued messages to the editor), a running bash command, an active context compaction, or an auto-retry countdown — matching Escape and common CLI muscle memory. When idle, Ctrl+C keeps its previous behavior (first press clears the editor, a quick double-press exits), and the Ctrl+C immediately following an interrupt clears rather than exits. Escape remains the primary interrupt key.
+
+### Fixed
+
+- Fixed a noticeable delay before the working spinner appeared after submitting a prompt: the interactive input loop now mounts the spinner immediately on submit (respecting extension `workingVisible` suppression) and yields once so it paints before prompt preflight — extension input hooks, template/skill expansion, auth and compaction checks, and deferred startup completion — runs. Previously the spinner was created only when the agent emitted `agent_start`, so the status row stayed empty during preflight, making Ctrl+C feel unresponsive until the spinner finally appeared. Submissions that resolve without starting an agent turn (e.g. extension slash-commands) clear the pre-shown spinner when idle so it never lingers.
+- Fixed post-context-compaction provider requests so retained pre-compaction assistant usage is scrubbed from the provider-bound context clone. This keeps durable billing history intact while preventing stale high token counts from shrinking `max_output_tokens` to an invalid one-token budget on the first turn after compaction.
+- Fixed auto-compaction continuation for OpenAI Responses providers by normalizing replayed `function_call.id` values to valid `fc_*` item identifiers while preserving `call_id` pairing. This prevents the opaque `400 {"code":"invalid_request_body"}` failure that could appear immediately after compaction even though a manual `Continue` message succeeded.
+- Fixed auto-compaction stalling after a response reaches the maximum output-token limit: length-stopped assistant turns now compact as incomplete work, remove the truncated assistant from retry context, and automatically continue without requiring the user to type `Continue` ([#1662](https://github.com/bastani-inc/atomic/issues/1662)).
+- Reduced Windows compiled-binary interactive cold-start latency by shipping release archives with a small launcher plus a sidecar app bundle instead of one monolithic executable, and by extending the deferred TUI fast path beyond extension module imports. Normal interactive TTY startup now paints and installs the input loop before bundled package/resource discovery scans skills, prompts, themes, context files, and system-prompt files. Deferred loading now uses async filesystem discovery and async file reads for package resources, skills, prompts, themes, and extension-discovered resources, with cooperative yields so Enter, Ctrl+C, rendering, and the normal prompt spinner remain responsive when a submitted prompt needs resources. Startup no longer shows a resource-loading spinner before the user submits a prompt; explicit resource flags, system-prompt inputs, unknown extension flags, model/provider selection, metadata commands, non-TTY modes, and unresolved project-trust prompts stay on the synchronous path.
+- Fixed Windows compiled-binary keyboard responsiveness by avoiding invisible typeahead buffering in normal interactive startup, keeping terminal input attached to the visible editor, handling Ctrl+C globally with a SIGINT fallback, bounding Ctrl+C shutdown input draining to 250ms, and packaging the Windows console-mode helper used by the TUI for virtual-terminal input.
+- Fixed the Anthropic subscription extra-usage warning racing ahead of the startup `RESOURCES` disclosure on the deferred TUI fast path: the warning is now held until after the resource summary line renders (at deferred-startup completion, agent-end disclosure flushes, or the post-prompt flush), so the `RESOURCES` line always appears first.
+- Fixed deferred-startup TUI chat ordering so `RESOURCES`, changelog, update/package/tmux/subscription startup notices, and queued user prompts render in request order instead of completion order. Startup notices now use a stable block above session messages, queued inputs wait for their later `message_start`, and failed pre-prompt echoes are removed from the chat.
+- Fixed Windows release archives to avoid Bun's `--bytecode` standalone executable startup crash and every runtime path that decodes the split-launcher sidecar's macOS build-machine `import.meta.url` on Windows. Windows binaries remain compiled standalone launchers but now ship the source payload instead of embedded bytecode until Bun's Windows bytecode-alignment fix is available. A centralized split-launcher helper (`ATOMIC_CODING_AGENT` + executable path detection) now resolves package assets, built-in package discovery, and — critically — the jiti resolution base next to `atomic.exe`, so the bundled built-in extensions (`mcp`, `web-access`, `intercom`, `cursor`, `workflows`, `subagents`) all load on Windows instead of failing with `File URL path must be an absolute path`.
+
+## [0.9.5-alpha.6] - 2026-07-06
+
+### Fixed
+
+- Fixed deferred TUI extension loading so the editor keeps accepting and echoing keystrokes after first paint: startup now yields cooperatively between extension/resource-loading chunks, preserves text typed during completion, and safely queues Enter submissions made before the main prompt loop is ready.
+- Fixed a warm-start TUI first-paint regression where persisted `enabledModels` or `--models` patterns forced all extensions to load synchronously before the first frame. Interactive startup now keeps the deferred-extension fast path and reapplies the model scope after extensions finish loading, preserving extension-registered provider matches and unmatched-pattern warnings without blocking paint.
+- Fixed project trust prompts for bare projects that only create inert `.atomic/` or `.pi/` state: state-only directories such as `todos/` and `sessions/` no longer count as trust inputs or disable deferred extension startup, while trust-requiring config continues to prompt until the user makes an explicit persistent decision and implicit trust is persisted only by the `/reload` path.
+- Fixed a security regression that could silently persist project trust at shutdown or deferred-startup completion after trust-requiring config appeared mid-session; Atomic now preserves the startup trust prompt unless the user explicitly saves a decision or the existing `/reload` implicit-trust flow applies.
+- Fixed BOM-prefixed JSON state files being treated as parse failures: settings and project trust JSON readers now strip a leading UTF-8 BOM before parsing, so Windows-authored `settings.json` and `trust.json` files load the same as BOM-less files instead of silently ignoring user settings.
+- Fixed the bundled workflows documentation to reflect that attached workflow stage chats render live `subagent` widgets for single, parallel, and chain calls, keep them live across attach/re-attach cycles, and let Ctrl+O expand live detail for every child. ([#1643](https://github.com/bastani-inc/atomic/issues/1643))
+- Fixed a Windows `waitForChildProcess` exit-code race where the process-alive poll could report a fast-dying child as gone before Node emitted the real `exit` event, causing bash commands such as `exit 1` to be reported as successful with a fabricated exit code 0 ([#1647](https://github.com/bastani-inc/atomic/issues/1647)).
+
+## [0.9.5-alpha.5] - 2026-07-06
+
+### Added
+
+- Added an internal tiered fallback ladder for automatic Verbatim Compaction when the strict `compression_ratio` target is not achievable: threshold and overflow auto-compaction now keep the standard strict planner pass as tier 1, tier 2 can accept a validated below-target result with at least one deletion when projected `tokensAfter` clears the relevant budget (`effectiveInputBudget - reserveTokens` for threshold, effective input budget for overflow), overflow commits from Atomic's internal ladder are gated on fitting the effective input budget even when the strict target is met, overflow-only tier 3 reruns the planner with critical LRU-style protected-entry eligibility for stale task-bearing user/custom/branch-summary context and an effective recent floor of `max(preserve_recent, 5)` across all compactable entries, and overflow-only tier 4 performs deterministic code-level LRU eviction without a model call or API credentials while enforcing the same effective last-5 recent floor until the effective input budget fits or no more safe deletion remains. The fallback tiers remain internal: extension hooks keep their existing shapes, extension-provided deletion requests still bypass the ladder including the overflow budget gate, and no public compaction mode API is exposed.
+- Added hard iteration caps to compaction recovery loops: planner provider turns are capped at 50 per planner run (including tool-call turns), planner nudge follow-ups are capped at 50 per planner run, and deterministic overflow eviction is capped at 50 passes, so compaction cannot spin indefinitely and terminal failures report the achieved reduction, deletion count, projected `tokensAfter`, and budget.
+
+### Fixed
+
+- Fixed overflow auto-compaction silently no-oping when planner authentication was unavailable or when the current branch has no preparable compactable transcript: overflow recovery now either skips model tiers and runs deterministic no-auth LRU eviction directly through the existing validation pipeline, or surfaces a terminal error that nothing more was safely deletable.
+- Fixed feasible partial compaction results being discarded solely because they missed the strict ratio target: automatic threshold and overflow compaction now commit validated below-target deletions when their projected `tokensAfter` clears the trigger/budget boundary, including partial deletion state salvaged after a provider context-overflow error.
+
+## [0.9.5-alpha.4] - 2026-07-05
+
+### Changed
+
+- Simplified first-run onboarding to a one-time verifiable-coding-agent-runtime explanation shown after any What's New notes and directly above the normal input box; Atomic no longer intercepts pasted tasks, saves pre-login seeds, routes first-run input to `goal`/`ralph`, raises reasoning for onboarding, or requires `/chat` to continue normally. The notice now reminds unauthenticated users to run `/login` first, and starting a new session with `/new` clears any rendered first-run notice state from the previous session canvas.
+
+## [0.9.5-alpha.3] - 2026-07-04
+
+### Changed
+
+- Hardened the bundled workflows extension's workflow-tool prompt guidance against inline analysis-paralysis drift: the agent must now decide and state the inline-vs-workflow execution mode before its first tool call (reconnaissance explicitly counts as inline execution), budget pre-workflow scoping to a few quick reads that only sharpen the objective and validation criteria, course-correct after roughly ten deliverable-free exploration tool calls (or repeated "let me verify one more thing" loops) by writing findings to a context file and handing off to the best-fit workflow via `reads` (named or user-defined workflows discovered with `action: "list"` first, builtin `goal`/`ralph` as fallbacks when nothing more specific fits), and treat sunk inline research as transferable via files rather than a reason to stay inline. The same "Decide before you explore" and "Course-correct instead of drifting" guidance is mirrored in `docs/workflows.md` under "When to Use Workflows".
+
+## [0.9.5-alpha.2] - 2026-07-04
+
+### Changed
+
+- Refreshed the July 2026 builtin workflow and subagent frontier model rosters bundled with Atomic: high-capacity synthesis, planning, debugging, and review paths now lead or fall back through Claude Fable 5 `:xhigh`, GPT-5.5 `:xhigh`, Opus 4.8 long-context `:xhigh`, GLM-5.2, and the valid OpenRouter Fugu Ultra mirror while keeping dominated or unsupported model IDs out of shipped chains.
+
+## [0.9.5-alpha.1] - 2026-07-04
+
+### Breaking Changes
+
+- Hardened the builtin `goal` and `ralph` review contracts against objective-drift failures: review findings now require `objective_alignment`, Goal and Ralph review decisions require `requirements_traceability`, and reviewer approval rejects empty or non-proven traceability. Consumers that parse or synthesize these structured reviewer outputs must emit the new required fields.
+
+### Added
+
+- Added immutable `acceptance_criteria` to the builtin `goal` and `ralph` workflows. Goal persists it in the ledger/model-visible projection and final reports; Ralph threads it through research, orchestrator, and reviewer prompts next to the literal objective contract. Orchestrators should pass the original task text when launching follow-up Goal or Ralph runs from reviewer findings.
+- Added literal-contract prompt language shared by `goal` and `ralph`, objective-alignment arbitration for reviewer findings, non-blocking treatment for `beyond_objective`/`contradicts_objective` findings, and clause-by-clause requirements traceability so reviewer evidence must map directly back to the objective/acceptance criteria.
+- Added attempt-first E2E guidance for `goal` and `ralph`: workers/reviewers must not skip playwright-cli/tmux validation because credentials or auth are merely assumed missing, and skipped E2E must cite the exact attempted commands and observed failure output.
+
+## [0.9.4] - 2026-07-03
+
+### Added
+
+- Added dynamic GitHub Copilot model population from the live CAPI `/models` catalog — picker-enabled chat ids are synthesized from catalog metadata while built-in `pi-ai` definitions still win — plus catalog-driven thinking-level gating so synthesized and bundled Copilot models only offer the reasoning levels CAPI's `capabilities.supports.reasoning_effort` arrays advertise.
+- Added `get_entries`/`get_tree` RPC commands with `RpcClient.getEntries`/`getTree` helpers, a package `./rpc-entry` export for launching Atomic directly in RPC mode, a `session_info_changed` extension event, an `externalEditor` settings.json override for Ctrl+G, an `outputPad` setting controlling message padding, BMP image detection with PNG normalization, and separate extension-load timing namespaces (inherited from upstream Pi 0.80.3).
+- Added subagent watchdog escape hatches: setting `ATOMIC_SUBAGENT_ATTEMPT_IDLE_TIMEOUT_MS` or `ATOMIC_SUBAGENT_ATTEMPT_TIMEOUT_MS` to `0` (or negative) disables the corresponding per-attempt timeout, while the `ATOMIC_SUBAGENT_ATTEMPT_KILL_GRACE_MS` SIGTERM→SIGKILL grace period always stays bounded ([#1581](https://github.com/bastani-inc/atomic/pull/1581)).
+
+### Changed
+
+- Sped up startup substantially: compiled binaries now use Bun bytecode compilation (`--bytecode --format=cjs`, TUI first paint ~450ms → ~200ms), builtin extensions transpile through a persistent on-disk jiti cache at `~/.atomic/agent/cache/jiti/<version>` (~2.8x faster warm TUI starts), the interactive TUI shell paints immediately while extensions load in the background, `--version`/`-v` is a fast path (~380ms → ~25ms), and the HTML session export module loads lazily on first use.
+- Synced `@earendil-works/pi-agent-core`, `pi-ai`, and `pi-tui` runtime dependencies from `^0.80.2` to `^0.80.3` across `@bastani/atomic` and all bundled first-party extensions, and changed the default OpenAI model to `gpt-5.5` (the Atomic-specific `github-copilot` default remains `gpt-5.4`).
+- Restored upstream Pi's provider retry default by leaving `retry.provider.maxRetries` unset/zero unless users configure it explicitly, so Atomic's agent-level retry observes provider transport failures directly instead of the SDK retrying them first.
+
+### Fixed
+
+- Fixed async `bash({ async: true })` jobs finishing silently: completed or failed session-managed background jobs now enqueue an `async-job-result` follow-up message into the originating session with duplicate suppression, retention-bounded delivery bookkeeping, full-output-path persistence for truncated previews, and lifecycle tracking that survives owner-session disposal; also fixed a leak where a failed async-manager registration left a never-executed job permanently reported as `running`.
+- Fixed every builtin extension (workflows, subagents, mcp, web-access, intercom, cursor) failing to load with `Package subpath './package.json' is not defined by "exports"` on npm/bun package installs (0.9.4-alpha.9 regression): the loader now locates package roots by scanning the `node_modules` resolution chain instead of exports-encapsulated `require.resolve`, guarded by installed-layout CI smoke tests under Node on Linux and Windows.
+- Fixed intercepted provider safety refusals dead-ending agent turns: canned zero-usage refusals are detected and auto-retried, structured safety-trigger errors (Anthropic `refusal` stops, OpenAI-style `finish_reason: content_filter`) are now retryable for all providers, and a static CAPI-derived limit snapshot (2026-07-02) keeps bundled GitHub Copilot models within real server-enforced context/output limits — including branded long-context tiers with hard input caps — whenever the live catalog is unavailable ([#1608](https://github.com/bastani-inc/atomic/issues/1608)).
+- Fixed GitHub Copilot metadata handling: models use the live `max_output_tokens` from the catalog ([#1582](https://github.com/bastani-inc/atomic/issues/1582)), active sessions adopt live catalog metadata without a restart, and `COPILOT_GITHUB_TOKEN` env auth routes through an endpoint resolver honoring explicit base URL overrides, GitHub Enterprise server URLs, and the public Copilot routing hub, avoiding `421 Misdirected Request` failures ([#1569](https://github.com/bastani-inc/atomic/issues/1569)).
+- Fixed workflow and subagent model fallback chains so request/context incompatibility failures (HTTP 400/413/422, unsupported tool/parameter, context-window overflow, `invalid_request`/`bad_request`/`too_large`) advance to the next candidate and ultimately fall back to the current user-selected model; bounded foreground and background subagent attempts with an idle watchdog and wall-clock cap where in-flight tool executions count as activity; skipped known unauthenticated providers before spawning; aligned the subagents and workflows model-failure classifiers with a cross-package conformance suite; and made the background runner spawn one default-model attempt when no candidates were ever configured ([#1580](https://github.com/bastani-inc/atomic/issues/1580), [#1581](https://github.com/bastani-inc/atomic/pull/1581)).
+- Fixed the `read` tool to parse colon-delimited `file:START:END` (and grep-style `file:LINE:COL`) path selectors as line ranges instead of producing a bogus `ENOENT` ([#1585](https://github.com/bastani-inc/atomic/issues/1585)).
+- Fixed post-compaction queued work to resume through the full agent continuation lifecycle with surfaced continuation failures ([#1570](https://github.com/bastani-inc/atomic/issues/1570)), removed the fixed 10-second connect-phase timeout from the global proxy-aware HTTP dispatcher so slow provider CONNECT establishment behind policy proxies no longer fails spuriously, and made headless JSON print mode exit nonzero when the final assistant turn ends with `stopReason: "error"` or `"aborted"`.
+- Fixed release packaging determinism: declared `lru-cache` as a direct runtime dependency, added publish-time `npm-shrinkwrap.json` generation matching upstream Pi, and made shrinkwrap preparation hermetic by deriving `@bastani/atomic-natives` and generated platform optional package entries from local stamped metadata with deterministic registry tarball URLs.
+- Fixed issues inherited from upstream Pi 0.80.3, including mid-run extension `setActiveTools` changes applying before the next provider request, `before_agent_start` system prompt overrides surviving mid-run tool changes, clean red errors (not stack traces) for invalid session files without overwriting them, `outputPad`-aware transcript rendering, visible backslashes in Markdown escape sequences, a visible incomplete-response error on output-length stops, `--no-session --session-id` for deterministic provider cache affinity, disk BMP attachment support, and a crash when undici emits an internal client error mid-stream.
+
+## [0.9.4-alpha.11] - 2026-07-03
+
+### Fixed
+
+- Fixed async `bash({ async: true })` jobs finishing silently: completed or failed session-managed background bash jobs now enqueue an `async-job-result` follow-up message into the originating chat session automatically, while explicit completed-job polling, explicit cancellation, and parent aborts acknowledge the job and suppress duplicate or unwanted idle turns. Suppression is checked again at the streaming boundary so a completed job polled while its automatic follow-up is staged does not later deliver a duplicate. Async delivery bookkeeping is now bounded by the existing background-job retention defaults, suppressions stay tied to retained jobs so disposed-session running jobs cannot later fall back into the owner session, 12KB–50KB follow-up outputs persist their full output path before inline preview truncation, just-under-threshold raw outputs remain fully inline instead of being preview-truncated without a `fullOutputPath`, shared-manager lifecycle tracking prevents owner-session disposal from dropping later-session jobs while cleaning stale handlers from disposed fork/subagent sessions, and non-blocking delivery attempts keep one live streaming session from delaying unrelated async job completions.
+- Fixed a background bash job leak where a failed async-manager registration (disposed manager/session or a capacity race mid-flight) left a never-executed job permanently reported as `running` to `__atomic_bash_job` polls; the managed job entry is now discarded when registration fails and the tool call error is surfaced unchanged.
+
+## [0.9.4-alpha.10] - 2026-07-03
+
+### Fixed
+
+- Fixed every builtin extension (workflows, subagents, mcp, web-access, intercom, cursor) failing to load with `Package subpath './package.json' is not defined by "exports"` for npm/bun package installs of Atomic (regression in 0.9.4-alpha.9): the extension loader's installed-package alias fallback resolved host packages via `require.resolve("<pkg>/package.json")`, which Node's strict exports-map encapsulation rejects for packages like `@earendil-works/pi-ai` that do not export `./package.json` (the compiled binary and Bun-run dev paths were unaffected, which is why it slipped through). The loader now locates package roots by scanning the `node_modules` resolution chain directly, bypassing exports maps entirely while staying `import.meta.resolve()`-free to keep bytecode compilation intact. CI now guards this path with an installed-layout smoke test that runs the built package under the Node runtime on both Linux and Windows.
+
+## [0.9.4-alpha.9] - 2026-07-02
+
+### Changed
+
+- Sped up TUI startup for the compiled Bun binary (and Windows) by ~2.8x on warm starts: builtin extensions transpiled at runtime through jiti now use a persistent on-disk cache at `~/.atomic/agent/cache/jiti/<version>` instead of re-transpiling ~280 TypeScript files on every launch (extension loading drops from ~4.1s to ~1.4s on Linux). Cache entries self-invalidate via jiti's source-content hashing, and stale version directories are pruned in the background.
+- Made `--version`/`-v` a fast path that prints the version before loading the full CLI module graph, dropping `atomic --version` from ~380ms to ~25ms. The CLI entrypoint now loads the main module graph dynamically so metadata fast paths skip it entirely.
+- Decoupled the TUI first paint from extension loading: in interactive mode the shell (header, editor, footer) now renders immediately with a "Loading extensions, skills, prompts, themes..." indicator while extension code loads in the background, dropping perceived compiled-binary startup from ~2s (warm) / ~5s (cold) to ~0.5s regardless of extension count. Deferred loading only engages when nothing before first paint needs extensions (no pending trust prompt, `-e` paths, extension flags, or CLI/settings model selection); resources, startup notices, and any saved-model restore that depends on extension-registered providers are applied once the background load completes.
+- Deferred loading of the HTML session export module (including its large generated template) until `--export` or `/export` is actually used.
+- Compiled binaries are now built with Bun bytecode compilation (`--bytecode --format=cjs`), skipping JavaScript parsing at launch: TUI first paint drops from ~450ms to ~200ms and `--version` from ~285ms to ~85ms. To support the CJS bundle (where `import.meta.url` no longer points into Bun's virtual filesystem), binary detection also checks `process.argv[1]`, native-module `require`s are anchored to the executable path, and the extension loader's dev-mode alias fallback resolves packages via their `package.json` export instead of `import.meta.resolve()`.
+
+### Fixed
+
+- Fixed intercepted provider safety refusals dead-ending agent turns: a canned "I'm sorry, but I cannot assist with that request." completion arriving with zero token usage and a spurious `stopReason` of `length` (or `stop`) — observed on `github-copilot` GPT models under very large contexts — was accepted as the final answer, silently ending the turn (and, inside workflows, poisoning worker receipts). Such canned refusals are now detected (single short refusal text, no tool calls or thinking, zero billed output) and auto-retried like other transient failures, bounded by `maxRetries`; genuine model-authored refusals that bill output tokens are never retried ([#1608](https://github.com/bastani-inc/atomic/issues/1608)).
+- Fixed the root cause of GitHub Copilot sessions overrunning server-enforced limits when the live CAPI `/models` catalog is unavailable (cold start without cache, catalog fetch failure, or network-restricted environments): several bundled `pi-ai` Copilot model definitions disagree with what CAPI actually enforces — the `gpt-5.x` family claims a 400k context window vs CAPI's 272k default tier, `claude-opus-4.6`/`claude-sonnet-4.6` claim the branded 1M window as their base tier vs CAPI's 200k, and `claude-opus-4.6`/`4.7` ship a 32k output cap vs CAPI's real 64k. Because auto-compaction thresholds are driven by `model.contextWindow`, an overstated window meant sessions never compacted, sailed past the real server cap, and were intercepted by CAPI with the canned refusals above; understated output caps truncated long responses at half the real limit. Atomic now applies a static CAPI-derived limit snapshot (snapshotted 2026-07-02) for every bundled Copilot model present in the CAPI catalog whenever the active catalog has no entry for it, carrying the full tier structure — default-tier context window, `max_output_tokens`, and the branded long-context tier with its hard input cap where CAPI advertises one (e.g. 272k/1.05M with a 922k input cap for `gpt-5.5`, 200k/1M with a 936k input cap for `claude-opus-4.8`) — so persisted long-context selections stay valid offline; the live catalog (or its disk cache) always wins when available ([#1608](https://github.com/bastani-inc/atomic/issues/1608)).
+- Changed structured safety-trigger errors to be auto-retried for all providers, not just GitHub Copilot Gemini: pi-ai maps Anthropic `refusal` stops to a canned "The model refused to complete the request" error and OpenAI-style APIs surface `finish_reason: content_filter`; both are now classified as retryable (bounded by `maxRetries`) so spurious safety triggers re-request the model call instead of dead-ending the task ([#1608](https://github.com/bastani-inc/atomic/issues/1608)).
+
+## [0.9.4-alpha.7] - 2026-07-02
+
+### Added
+
+- Added dynamic GitHub Copilot model population from the live CAPI `/models` catalog: picker-enabled, non-disabled plain chat ids are synthesized from catalog metadata (endpoints, capabilities, limits, and display names) while built-in `pi-ai` definitions still win, namespaced enterprise deployments such as `org/deployment/model` are skipped, and cached catalog metadata enables the same models on cold start.
+- Added catalog-driven thinking-level gating for GitHub Copilot models so dynamically synthesized entries and bundled `pi-ai` Copilot models only offer the reasoning levels advertised by CAPI's `capabilities.supports.reasoning_effort` arrays, while models without an effort array keep their existing thinking behavior.
+- Added a subagent watchdog escape hatch: setting `ATOMIC_SUBAGENT_ATTEMPT_IDLE_TIMEOUT_MS` or `ATOMIC_SUBAGENT_ATTEMPT_TIMEOUT_MS` to `0` (or a negative value) now disables the corresponding per-attempt timeout entirely; non-numeric values are ignored and the defaults apply. The `ATOMIC_SUBAGENT_ATTEMPT_KILL_GRACE_MS` SIGTERM→SIGKILL grace period intentionally cannot be disabled — `0`, negative, or non-numeric values fall back to its default so escalation always stays bounded ([#1581](https://github.com/bastani-inc/atomic/pull/1581)).
+
+### Fixed
+
+- Reverted the `@types/node` devDependency from `26.0.1` back to `24.12.4` to match the deliberate root `overrides` pin that aligns with upstream Pi's resolved lockfile (see [#1489](https://github.com/bastani-inc/atomic/pull/1489)); the dependabot bump in [#1548](https://github.com/bastani-inc/atomic/pull/1548) was a semantic no-op because the override forced resolution to `24.12.4`. Dependabot now ignores `@types/node` so it stops proposing inert bumps.
+- Fixed the `read` tool to parse colon-delimited `file:START:END` (and grep-style `file:LINE:COL`) path selectors as a line range instead of leaving the leading number glued to the path (`file:395`), which produced a bogus `ENOENT` and pushed models (e.g. Opus) to fall back to `sed` ([#1585](https://github.com/bastani-inc/atomic/issues/1585)).
+- Fixed GitHub Copilot models to use the live `max_output_tokens` value from the Copilot model catalog, preventing `github-copilot/claude-opus-4.8` from being capped by Atomic's stale built-in output-token limit after compaction ([#1582](https://github.com/bastani-inc/atomic/issues/1582)).
+- Fixed active GitHub Copilot sessions to adopt live catalog model metadata as soon as the catalog loads, so fallback models refresh their supported reasoning levels without requiring a restart.
+- Fixed workflow and subagent model fallback chains so request/context incompatibility failures (HTTP 400/413/422 bad/unprocessable/payload-too-large request, unsupported tool/parameter, context-length/context-window overflow, `invalid_request`/`bad_request`/`too_large` errors) advance to the next candidate instead of stopping. This ensures that when none of the configured fallback candidates can serve the current request, Atomic falls back to the currently selected user model rather than failing outright. Refusals, content-filter/safety blocks, cancellations, and task failures still stop the chain and are never retried on another model ([#1580](https://github.com/bastani-inc/atomic/issues/1580)).
+- Fixed foreground and background subagent model attempts that produced no child activity from hanging indefinitely. Atomic now bounds each candidate with an idle watchdog and wall-clock cap, records retryable timeout attempts so fallback continues, and skips known unauthenticated providers before spawning while preserving unknown/custom providers and the current-model last resort ([#1580](https://github.com/bastani-inc/atomic/issues/1580)).
+- Fixed the subagent per-attempt idle watchdog so an in-flight tool execution counts as activity: a slow, quiet tool call (long build or test run with no interim output) is no longer killed as a stalled attempt; the wall-clock cap still bounds such attempts ([#1581](https://github.com/bastani-inc/atomic/pull/1581)).
+- Aligned the subagents and workflows model-failure classifiers' direct-message precedence and added a cross-package conformance test suite so the two classifier copies cannot silently drift ([#1581](https://github.com/bastani-inc/atomic/pull/1581)).
+- Fixed the background subagent runner to spawn one default-model attempt when no model candidates were ever configured (no primary model, no fallbacks, and no current model), mirroring the foreground path instead of silently exiting 1 with no error and no spawn; an explicitly empty candidate list produced by pre-spawn auth filtering is still respected and surfaced as an error ([#1581](https://github.com/bastani-inc/atomic/pull/1581)).
+
+## [0.9.4-alpha.6] - 2026-07-01
+
+### Added
+
+- Added `get_entries` and `get_tree` RPC commands for reading session entries and tree snapshots over RPC, with corresponding `RpcClient.getEntries`/`getTree` helpers and response types (inherited from upstream Pi [#6078](https://github.com/earendil-works/pi/pull/6078)).
+- Added a package `./rpc-entry` export and `src/rpc-entry.ts` entrypoint for launching Atomic directly in RPC mode (inherited from upstream Pi).
+- Added `session_info_changed` as an extension event so extensions can observe session name changes, wired through `AgentSession.setSessionName` to the extension runner (inherited from upstream Pi [#6175](https://github.com/earendil-works/pi/pull/6175)).
+- Added an `externalEditor` settings.json override for Ctrl+G external editor commands, with default fallbacks to Notepad on Windows and `nano` elsewhere (inherited from upstream Pi [#6122](https://github.com/earendil-works/pi/issues/6122)).
+- Added an `outputPad` setting (`0 | 1`, default `1`) controlling horizontal padding for user messages, assistant messages, and thinking blocks (inherited from upstream Pi [#6168](https://github.com/earendil-works/pi/issues/6168)).
+- Added BMP image detection and shared `processImage`/`convertImageBytesToPng` helpers so unsupported image formats are normalized (converted to PNG) before inlining (inherited from upstream Pi [#6047](https://github.com/earendil-works/pi/issues/6047)).
+- Added `resetTimings`/`time` timing namespaces so extension load timings are recorded and reset separately from main startup timings (inherited from upstream Pi [#6030](https://github.com/earendil-works/pi/pull/6030), [#6063](https://github.com/earendil-works/pi/pull/6063)).
+
+### Changed
+
+- Synced Atomic's `@earendil-works/pi-agent-core`, `pi-ai`, and `pi-tui` runtime dependencies from `^0.80.2` to `^0.80.3` and ported the relevant coding-agent changes while preserving Atomic branding, package names, the versionless-`main` release convention, bundled first-party extensions, and user-facing Atomic docs.
+- Bumped `@earendil-works/pi-agent-core`, `pi-ai`, and `pi-tui` from `^0.80.2` to `^0.80.3` across `@bastani/atomic` and all bundled first-party extensions, and regenerated `bun.lock`, `package-lock.json`, and `npm-shrinkwrap.json`.
+- Changed the default OpenAI model to `gpt-5.5` (inherited from upstream Pi). The Atomic-specific `github-copilot` default remains `gpt-5.4`.
+- Deferred the shared `isRetryableAssistantError` retry classifier because Atomic's `_isRetryableError` carries Atomic-specific Copilot Gemini handling (`content_filter`/`finish_reason: error` for CAPI-mapped MALFORMED_FUNCTION_CALL); adopting it safely requires merging Atomic's extra patterns back in during a follow-up sync.
+- Deferred the interactive status-indicator stabilization refactor (Loader → StatusIndicator classes) because it is a large TUI refactor that needs visual QA.
+
+### Fixed
+
+- Fixed extension `setActiveTools` changes to apply before the next provider request in the same run, by installing a `prepareNextTurnWithContext` hook that refreshes system prompt and tools (inherited from upstream Pi [#6162](https://github.com/earendil-works/pi/issues/6162)).
+- Fixed `before_agent_start` system prompt overrides to survive when extension tool changes occur mid-run (inherited from upstream Pi [#6162](https://github.com/earendil-works/pi/issues/6162)).
+- Fixed invalid session file errors at CLI entry to print a clean red error message instead of a stack trace, via `openSessionOrExit` wrappers around `SessionManager.open` call sites (inherited from upstream Pi [#6002](https://github.com/earendil-works/pi/issues/6002)).
+- Fixed resumed/transcript chat rendering to respect the `outputPad` setting for user and assistant messages rendered through `renderChatMessageEntry` and the chat-session-host render path (inherited from upstream Pi [#6168](https://github.com/earendil-works/pi/issues/6168)).
+- Fixed the dedicated `rpc-entry` to use Atomic's APP_NAME-based env marker (`ATOMIC_CODING_AGENT`) instead of the upstream `PI_CODING_AGENT`, and to force `--mode rpc` as the last CLI argument so a caller-supplied `--mode` cannot override it.
+- Fixed pre-prompt compaction to stop after compaction instead of continuing immediately (already present in Atomic; documented for parity with upstream Pi [#6074](https://github.com/earendil-works/pi/pull/6074)).
+- Fixed `--session` and `SessionManager` to reject non-empty invalid session files without overwriting them (inherited from upstream Pi [#6002](https://github.com/earendil-works/pi/issues/6002)).
+- Fixed user-message transcript rendering to keep visible backslashes in Markdown escape sequences such as `\"` (inherited from upstream Pi [#6105](https://github.com/earendil-works/pi/issues/6105)).
+- Fixed assistant messages stopped by output length to show a visible incomplete-response error (inherited from upstream Pi [#4290](https://github.com/earendil-works/pi/issues/4290)).
+- Fixed `--no-session --session-id` so ephemeral CLI runs can use deterministic session IDs for provider cache affinity (inherited from upstream Pi [#6070](https://github.com/earendil-works/pi/issues/6070)).
+- Fixed disk BMP image files to be detected, converted to PNG, and attached through `read` and CLI `@file` inputs (inherited from upstream Pi [#6047](https://github.com/earendil-works/pi/issues/6047)).
+- Fixed a crash when undici emits an internal client error while terminating a mid-stream HTTP response, by attaching error-suppressing listeners to the global dispatcher and per-origin pools (inherited from upstream Pi [#6133](https://github.com/earendil-works/pi/issues/6133)).
+
+## [0.9.4-alpha.5] - 2026-07-01
+
+### Fixed
+
+- Routed `COPILOT_GITHUB_TOKEN` env auth through an endpoint resolver that honors explicit Copilot base URL overrides, GitHub Enterprise server URLs, and the public Copilot routing hub so env-token users avoid account-specific endpoint `421 Misdirected Request` failures ([#1569](https://github.com/bastani-inc/atomic/issues/1569)).
+
+## [0.9.4-alpha.4] - 2026-06-30
+
+### Fixed
+
+- Disabled Undici's default 10-second connect timeout in Atomic's global proxy-aware HTTP dispatcher so headless or sandboxed runs behind policy proxies can wait for slow provider CONNECT establishment instead of surfacing spurious `Connection error.` failures.
+- Resumed post-compaction queued work through the full agent continuation lifecycle and surfaced continuation failures, preventing sessions from appearing dead after auto-compaction or failed tool-call recovery ([#1570](https://github.com/bastani-inc/atomic/issues/1570)).
+
+## [0.9.4-alpha.3] - 2026-06-30
+
+### Fixed
+
+- Made release shrinkwrap preparation hermetic by deriving `@bastani/atomic-natives` and generated platform optional package entries from local stamped package metadata with deterministic registry tarball URLs, removing post-native-publish npm metadata lookups that could race registry propagation.
+
+## [0.9.4-alpha.2] - 2026-06-29
+
+### Fixed
+
+- Hardened the coding-agent npm shrinkwrap generator so release publishes resolve the already-published `@bastani/atomic-natives` registry metadata and generated platform optional packages before packing `@bastani/atomic`, while versionless main keeps deterministic placeholder native package entries for shrinkwrap checks.
+
+## [0.9.4-alpha.1] - 2026-06-29
+
+### Changed
+
+- Restored upstream Pi's provider retry default by leaving `retry.provider.maxRetries` unset/zero unless users configure it explicitly, so Atomic's agent-level retry observes provider transport failures directly instead of the SDK retrying them first.
+
+### Fixed
+
+- Aligned Atomic's global HTTP dispatcher with upstream Pi by removing the fixed 10-second connect-phase timeout and installing undici's fetch implementation alongside the configured proxy dispatcher, avoiding spurious provider `Connection error` failures behind policy/proxy egress layers.
+- Made headless JSON print mode return a nonzero exit code when the final assistant turn ends with `stopReason: "error"` or `"aborted"`, so Pier and other harnesses can mark provider failures as agent errors.
+- Declared `lru-cache` as a direct runtime dependency and added publish-time `npm-shrinkwrap.json` generation, matching upstream Pi's deterministic npm installs and fixing strict pnpm global installs that could not resolve Atomic's hashline and fetch-tool cache imports.
+- Updated user-facing workflow documentation for the blocked lifecycle notice state, the default `workflowNotifications.notifyOn` set, and the reserved top-level workflow output `status` convention for returned `failed`/`blocked` run statuses.
+
+## [0.9.3] - 2026-06-29
+
+### Breaking Changes
+
+- Replaced the legacy exact-replacement `edit` tool API with the hashline-only `input` script schema; callers must use snapshot tags from `read`/`search`/`write`/`edit` instead of `path` + `edits[]` or `oldText`/`newText`.
+- Tightened the model-facing `read`, `find`, and `search` schemas to the new builtin contracts (`read` path selectors, required `find.paths`, and the narrowed `search` option set).
+
+### Added
+
+- Added first-run onboarding that routes pasted tickets, specs, and tasks into normal Atomic sessions with scope-estimation guidance and workflow handoff next steps.
+- Added internal workflow-stage session marking so workflow-created sessions stay out of ordinary `/resume`, `atomic -r`, and `--continue` history while remaining accessible through workflow resume/status surfaces.
+- Added first-class `find`/`search` builtins, hashline snapshot anchors, hashline edit scripts with stale-tag safety, a disabled-by-default Bash Interceptor toggle, Rust-backed `pty:true` bash execution, and native glob/grep/search bindings for oh-my-pi parity.
+
+### Changed
+
+- Synced bundled upstream Pi runtime packages to `^0.80.2` and routed legacy pi-ai imports through the temporary `/compat` entrypoint, including virtual-module and Jiti aliases for first-party and user-installed extensions.
+- Enabled provider/SDK retries by default, raised the standard HTTP idle timeout to 10 minutes, and added a 10-second connect-phase timeout so transient socket drops retry while unreachable hosts fail fast.
+- Accounted for image content blocks in context-window estimates and compaction budgets, raised delegated workflow/subagent nesting to the shared five-level maximum, and exported the canonical schema-aware flattened-argument helper used by host and MCP tool execution.
+- Updated workflow and user-facing documentation so structured, validation-heavy, implementation, debugging, migration, and loop-shaped requests are routed to workflows by default.
+
+### Fixed
+
+- Fixed custom tool renderer cleanup, persisted-context replay after context compaction, and multiple first-run onboarding edge cases around placeholders, file references, isolated config discovery, saved tasks, `/import`, `/model`, and `/new`.
+- Completed the oh-my-pi builtin parity pass across `read`, `write`, `find`, `search`, `edit`, `bash`, archive, document, URL, internal-resource, conflict, and SQLite selectors, including pagination, truncation metadata, native cache invalidation, copied-hashline stripping, async/PTY behavior, and cross-platform path handling.
+- Hardened generated-file, URL, `local://`, SQLite, archive, native PTY/search, and bash-interceptor paths against traversal, SSRF, unsafe raw SQL/archive cases, stale cache writes, native panics, leaked async output, and provider-hostile argument shapes.
+- Fixed compiled release binary packaging and cross-platform package tests by externalizing `mupdf`, preparing native bindings and fixtures in CI, running the coding-agent Vitest suite under Bun, and hardening Windows path, color, and process-spawn coverage.
+
+## [0.9.3-alpha.6] - 2026-06-29
+
+### Changed
+
+- Enabled provider/SDK retries by default (`retry.provider.maxRetries` `0` → `5`) so transient socket drops retry instead of surfacing as fatal `"Connection error"`. Connection failures (status-undefined) back off briefly while the existing `retry.provider.maxRetryDelayMs` cap still fails fast on long quota/rate-limit waits.
+- Removed the hard-coded `httpIdleTimeoutMs:0` override from the eval harness adapters (`atomic_pier.py`, `atomic_harbor.py`); they now inherit the standard 10-minute idle timeout default.
+
+## [0.9.3-alpha.5] - 2026-06-28
+
+### Changed
+
+- Synced bundled upstream Pi runtime packages to `^0.80.2` (`@earendil-works/pi-agent-core`, `@earendil-works/pi-ai`, and `@earendil-works/pi-tui`) across the coding-agent direct/peer dependency pins, aligning Atomic with upstream Pi's 0.80.x "Models runtime migration" where the `@earendil-works/pi-ai` root entrypoint became core-only and the legacy global provider/model API moved to the temporary `@earendil-works/pi-ai/compat` entrypoint.
+- Retargeted Atomic's first-party `@earendil-works/pi-ai` imports to the `/compat` entrypoint across the coding-agent runtime, tools, tests, examples, and SDK (both value and type imports), preserving the public extension and SDK surface downstream users depend on. The `/oauth` and `/bedrock-provider` subpaths were left untouched.
+- Updated the extension loader's virtual-module and jiti alias paths to alias the `@earendil-works/pi-ai` root specifiers to the `/compat` entrypoint, so first-party bundled extensions and user-installed extensions that import from the root keep resolving transparently with no source changes required.
+- Widened `ProviderHeaders` handling in `provider-attribution.ts` to the upstream 0.80.2 `Record<string, string | null>` shape, preserving `null` values verbatim through the merged attribution output so they reach pi-ai as the documented suppression signal for default provider/API headers (rather than collapsing them to `undefined`, which would let pi-ai re-add its own defaults).
+- Consolidated open Dependabot updates onto this branch: bumped `actions/checkout` to 7.0.0 (release workflow), `@j178/prek` to 0.4.5 (root devDependency), `@napi-rs/cli` to 3.7.2 (natives devDependency), and refreshed transitive Cargo crates `rustls` to 0.23.41, `napi` to 3.9.4, `bytes` to 1.12.0, and `webpki-roots` to 1.0.8 (the latter removing the Mozilla-deprecated `SecureSign Root CA12` root).
+
+- Raised the default HTTP idle timeout from 5 to 10 minutes (`httpIdleTimeoutMs` 300000 → 600000) and added a fixed 10-second connect-phase timeout, so slow long-context turns finish instead of failing as "Connection error." while unreachable or firewall-blocked hosts fail fast instead of hanging.
+
+### Fixed
+
+- Debounced duplicate reftable watcher notifications by de-duplicating unchanged `.git/reftable/tables.list` states, avoiding extra Windows footer branch refreshes while preserving real reftable branch updates.
+
+## [0.9.3-alpha.4] - 2026-06-28
+
+### Changed
+
+- Updated workflow, quickstart, Atomic guide, and workflow-playbook documentation to present workflows as the default path for non-trivial or structured requests with verifiable objectives, explicitly including implementation, build, debugging, bug-fix, migration, new-feature, scoped multi-file, and validation-heavy docs/code prompts alongside loop-shaped prompts such as `do X until Y`, `repeat until`, `iterate until`, and review/fix/test-until-passing.
+
+## [0.9.3-alpha.3] - 2026-06-27
+
+### Changed
+
+- Published the Atomic 0.9.3-alpha.3 prerelease from the same code as 0.9.3-alpha.2; no coding-agent changes were made after the previous prerelease.
+
+## [0.9.3-alpha.2] - 2026-06-27
+
+### Fixed
+
+- Fixed custom tool renderer disposal to honor renderer-owned cleanup callbacks, preventing stale animation registry entries after terminal workflow tool rows are finalized ([#1518](https://github.com/bastani-inc/atomic/issues/1518)).
+- Hardened session replay and LLM conversion so persisted context-compaction filters cannot leave orphaned `toolResult` messages after deleting their paired assistant `toolCall`, preventing GitHub Copilot Claude/Anthropic replay failures after repeated subagent runs ([#1527](https://github.com/bastani-inc/atomic/issues/1527)).
+
+## [0.9.3-alpha.1] - 2026-06-25
+
+### Breaking Changes
+
+- Replaced the previous exact-replacement `edit` input shape with the hashline-only `input` script schema; `path` + `edits[]` and top-level `oldText`/`newText` edit calls are no longer accepted ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Tightened the model-facing `read`, `find`, and `search` schemas to the new builtin contracts: `read` uses path selectors instead of `offset`/`limit`, `find` requires `paths`, and `search` accepts only `pattern`, `paths`, `i`, `case`, `gitignore`, and `skip` ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+
+### Added
+
+- Added one-time first-run onboarding that explains Atomic workflows, uses an onboarding editor placeholder, lets users opt into normal chat with `/chat`, preserves other slash commands, saves a pre-login pasted task in memory only, and hands the first ready ticket/spec/task to the normal coding-agent session with `goal`/`ralph` workflow-routing guidance.
+- Added first-run onboarding routing guidance that raises the parent session to high reasoning when supported, asks the coding agent to first make a text-only scope estimate from tickets/GitHub issues/specs, routes directly when the task is clearly tiny or small with high confidence, and only uses targeted read-only `codebase-locator`/`codebase-analyzer`/`codebase-pattern-finder` probing when referenced context must be read or scope is medium, large, unclear, risky, or not obviously tiny before choosing `goal` or `ralph`.
+- Excluded workflow-created (internal) sessions from the standard `/resume`, `atomic -r`, and `--continue` history by marking their `SessionHeader` with `internal: true` and optional `workflow: { runId, stageId, stageName }` linkage, while keeping them resumable via `/workflow resume`/`workflow({ action: "resume" })` and direct `--session <path>` access; added `includeInternal` opt-ins to `SessionManager.list`/`listAll`/`continueRecent`, a `markSessionInternal` method, robust full-line `readSessionHeader`, and regression tests ([#1504](https://github.com/bastani-inc/atomic/issues/1504)).
+- Added a first-class `search` built-in and exposed `find`/`search` in normal coding sessions ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Added hashline snapshot anchors across `read`, `search`, `write`, and successful `edit` results, plus hashline line-range/block/multi-section edit scripts with stale-tag safety checks and snapshot-based recovery for non-overlapping file drift, empty-replace validation, and fresh post-mutation tags for follow-up edits ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Added disabled-by-default `bashInterceptor.enabled` settings support with built-in shell anti-pattern rules, a `/settings` **Bash Interceptor** toggle, and optional `user_bash` extension routing, without changing the default local-execution behavior ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Added Rust-backed native PTY execution for `bash({ "pty": true })`, so local PTY calls run through `@bastani/atomic-natives` `PtySession` with real terminal semantics, streaming output, timeout, abort/kill, cwd, shell, and environment support ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Added native `glob`/`grep` bindings copied from oh-my-pi and wired `find`/`search` to use them when available, matching upstream hidden-file, `.gitignore`, node_modules, result-limit, context, truncation, and timeout behavior without shelling out to host tools ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+
+### Changed
+
+- Updated first-run `goal`/`ralph` workflow handoff guidance so new users see `/workflow status <id>` and `/workflow connect <id>` next steps with the run id, understand connect is where they can watch, attach, and steer, and know they can ask the current chat for status or steering at any point.
+- Removed the unused first-run onboarding scope-probe/routing-assessment subsystem and dead probe-only tests after normal-session prompt handoff became the active onboarding path.
+- Accounted for image content blocks in context-window token accounting and compaction thresholds: image tokens are now estimated through a single shared conservative estimate (1200 tokens per image) used consistently by both the heuristic context-estimate path and the transcript planner, so image-heavy conversations trigger compaction at the correct time. The deletion planner now reports image token share (`remainingImageTokens`, `imageBlockCount`, `imageTokenPercent`) via `context_compaction_budget` and is instructed to prefer deleting stale, superseded, or unrelated image content blocks when images dominate, while preserving task-relevant recent images and user text. Because Verbatim Compaction is deletion-only, compaction never reintroduces image payloads or generates image-bearing summaries ([#1500](https://github.com/bastani-inc/atomic/issues/1500)).
+- Made `context_compaction_budget` image statistics deletion-aware: the `remainingImageTokens`/`imageBlockCount`/`imageTokenPercent` fields are now recomputed from the live deletion-target set on every budget tool call, so they immediately reflect image blocks already deleted within the current compaction run instead of reporting frozen pre-deletion totals ([#1500](https://github.com/bastani-inc/atomic/issues/1500)).
+- Raised the bundled subagent and workflow-stage nesting budget to a hard maximum of five delegated levels, and documented the `0`-to-`5` recursion-guard range.
+- Extracted the schema-aware flattened-argument disambiguation into a shared canonical `unflattenArgumentsWithSchema` helper in `core/flattened-tool-arguments.ts` (exported from `@bastani/atomic`), now reused by both the GitHub Copilot Gemini per-tool normalization and the MCP `callTool` boundary so literal dotted argument keys are preserved unless the tool schema proves they are nested paths. A literal dotted top-level property (e.g. `filter.name`) is preserved verbatim even when the schema also defines a same-head container property (e.g. `filter`) (issue [#1496](https://github.com/bastani-inc/atomic/issues/1496)).
+
+### Fixed
+
+- Fixed extension loading in Windows package tests by lazy-initializing compiled-binary virtual modules, avoiding eager source-barrel resolution before Jiti aliases are installed.
+- Fixed the first-run onboarding input placeholder so it uses muted TUI text and still renders a visible cursor while empty, making the startup composer read as an editable field instead of static copy.
+- Fixed `@` file-reference autocomplete in the first-run onboarding editor before the asynchronous `fd` readiness check completes by falling back to the built-in synchronous path completer while preserving `@` prefixes and quoted paths.
+- Fixed workflow config/discovery isolation so `ATOMIC_CODING_AGENT_DIR` prevents home-global workflows from shadowing the bundled first-run onboarding `goal` and `ralph` targets.
+- Fixed first-run onboarding returning-user detection so existing Atomic users with prior changelog state are marked onboarded and do not see the first-run CTA/placeholder when upgrading to a build that includes onboarding, while auth-only fresh installs and unfinished onboarding sessions still see the first-run flow.
+- Fixed first-run onboarding so multiline absolute path seeds with `:line[:column]` plus notes are saved or handed off with the full original text instead of being mistaken for slash commands.
+- Fixed successful `/import <jsonl>` during first-run onboarding so the imported session exits onboarding UI/interception state instead of treating the next normal message as a fresh onboarding seed.
+- Fixed first-run onboarding so a task saved before the session is ready resumes after successful `/model` selection, including the context-window follow-up step when required.
+- Fixed `/new` during first-run onboarding so the replacement session remains in onboarding but drops any previously saved in-memory task seed instead of resuming stale work later.
+- Fixed `context_compaction_budget` `imageTokenPercent` denominator so image share is computed against the remaining (post-deletion) context total rather than the original pre-deletion total. The budget text said “of remaining context” but the value used the original transcript size; deleting non-image text now correctly increases the reported image share while deleting image blocks decreases it ([#1500](https://github.com/bastani-inc/atomic/issues/1500)).
+- Fixed delete-context pruning for old user-pasted image attachments: stale, non-recent user `image` content blocks can now be deleted while preserving user text, old image-only user entries can be deleted when another task-bearing entry remains, multi-image-only user matches are canonicalized to a safe entry deletion during `[image]` grep-delete batches, and recent user images remain protected ([#1500](https://github.com/bastani-inc/atomic/issues/1500)).
+- Fixed `find` and `search` glob entries in `paths`, restored `search.skip` file-page pagination for filesystem and resource-backed matches (including SQLite text primary keys with spaces), surfaced skip pagination hints across multiple pages when filesystem, archive, SQLite, internal, explicit-path, and ranged-selector search pages are full, avoided false continuation hints when later explicit targets do not match, kept `search` line-selector context inside the requested ranges for native and non-native fallback search, searched ranged single-file selectors without dropping matches beyond the internal raw grep cap while preserving backend regex semantics such as inline `(?i)`/`(?m)`/`(?x)`, normalized copied quoted/empty path inputs including `paths: []`, split delimiter-joined glob search/find/resource paths only after preserving exact filesystem paths with spaces or delimiter characters, awaited async internal-resource find resolvers and continued to fallback resolvers when earlier async resolvers returned `undefined`, resolved `local://`/router-backed find paths before filesystem normalization, preserved trailing slashes for directory find matches, stopped exact-file and exact-limit glob find hits from reporting false limit truncation while reporting real truncation when exact files fill the page before later targets, enforced custom find backend result limits without fabricating empty directory matches, made `find.timeout` return a partial timed-out result instead of accepting an ignored option, ensured custom find backends receive/enforce `hidden:false`, and ensured `gitignore:false` plus explicit `node_modules` globs include `node_modules` in native find/search scans ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Fixed copied hashline output passed to `write` by stripping `[PATH#TAG]` headers, directory banners, continuation/truncation footers, and `LINE:` prefixes only for known current-session snapshots, including bounded/truncated read and search snippets, while preserving literal hashline-looking user content and rejecting unknown/stale tags from other snapshot stores; successful hashline edits now return compact refreshed-anchor metadata instead of the full post-edit file, `insert tail` now appends exactly once for trailing-newline, no-final-newline, and empty files, line-anchored edits on empty hashline snapshots no longer silently no-op, and multi-file hashline edits preflight all stale tags before writing any file ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Fixed additional builtin parity gaps by removing the archive selector dependency on host `python3`, bounding oversized archive/internal/URL/SQLite/local-document reads like file reads while preserving oversized-read details for collapsed renderers, truncating resource-backed and SQLite search lines, aligning archive/internal/SQLite resource search regex semantics with filesystem search, avoiding inflation of unrelated zip members for selected reads/searches/writes, routing internal-resource selectors through a session router when available, preserving custom read/find backends that do not map to local files, filtering direct MCP tool allowlists that collide with the new builtin `search`, and expanding supported internal URLs in bash command/cwd/env inputs before execution ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Fixed read/write parity for URL/internal-resource line selectors, `:raw` URL bypasses, archive members named `raw`, `conflicts`, numeric/L-prefixed names, suffix-looking paths such as `raw:notes.txt`, and archive member `:raw`/`:conflicts` suffixes with or without line ranges, reference-context bounded ranges, raw multi-range sorting/merging, invalid open-ended `+` selectors, no-conflict sentinel output, read-registered `conflict://<id>` plus `conflict://*` splicing with `@ours`/`@theirs`/`@base` and fresh resolved-file snapshot headers, read-only conflict side scopes, generated-file overwrite protection, archive directory-write rejection, reader-style HTML/notebook extraction plus `markit-ai` document conversion for PDF/Office/RTF/EPUB formats, SQLite row/search/pagination/schema selectors, SQLite table `{}` default-value inserts, SQLite JSON5 object validation and query-param rejection for writes, JSON5 writes that preserve quoted hex-like strings, non-SQLite `.db` fallback, and conflict-only hashline line numbers; async bash job polling now surfaces stored execution errors, async and headless `pty:true` requests get a real PTY, PTY execution preserves configured shell argv/stdin transport and live writes instead of forcing a login shell, the bash interceptor now checks commands before configured prefixes are prepended, exact absolute `find` targets outside the workspace render as valid relative paths, native grep file searches emit callbacks, and native `find` bypasses stale scan caches after shell/external mutations ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Completed remaining oh-my-pi builtin parity for source-backed `local://` reads/searches/writes with filesystem hashline labels, richer `find`/`search` result details, streaming `find` progress updates, oh-my-pi-shaped `bash` async metadata, write `resolvedPath`/`madeExecutable`/SQLite source metadata, native in-memory resource search usage, expanded direct `grep` native options, reference-shaped edit success headers, `bash` leading-`cd` rewrite/interceptor ordering, and implicit `find` `**/*` directory patterns ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Aligned oh-my-pi SQLite/notebook/metadata parity: SQLite query default limit is 20 with a 500 cap, raw `?q=` rows cap at 1000, table lists cap at 500 and exclude `sqlite_%` system tables; `.ipynb` cells use 0-based `cell:N` IDs; resource-backed search honors `search.contextBefore`/`search.contextAfter` settings; and successful `read` results across filesystem, URL, SQLite, archive, internal-resource, document, and directory paths consistently return `details.meta.source`/`sourcePath` (plus truncation/limits where applicable), matching the referenced `details.meta` contract ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Tightened the final oh-my-pi builtin parity pass by restoring upstream output caps (3,000 shared read lines, 512-character search lines, 64 MiB archive members), preserving plain URL-read truncation metadata from the fetch pipeline, and aligning the oversized URL test expectation with oh-my-pi's truncating URL behavior ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Hardened oh-my-pi parity code paths flagged by GitHub code-quality and advanced-security review by replacing ambiguous regex parsing in `bash`, `edit`, `find`, read selectors, and HTML document extraction with linear parsers and by removing stale local analysis warnings ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Fixed compiled release binary builds by externalizing `mupdf` during Bun compilation so the `markit-ai` document reader can keep its runtime dependency with top-level await in copied `node_modules` instead of being inlined into the executable ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Hardened URL and `local://` resource reads/writes by blocking private/metadata URL fetch targets by default, revalidating manual redirects, and rejecting `local://` paths that escape the workspace root ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Addressed the PR review hardening pass for oh-my-pi parity: built-in bash interception now checks raw, expanded, prefix, and leading-`cd`-normalized commands; hashline edit batches route writes through the vendored patcher with duplicate canonical-path rejection and partial-write reporting; URL reads pin DNS-validated addresses and cap streamed bodies; async bash jobs support cancellation/eviction; native PTY cleanup joins reader threads; native worker panics and poisoned locks are converted to errors; and find/search/native cache paths received additional caps and nonblocking safeguards ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Closed the remaining oh-my-pi parity and PR review gaps for builtin tools: directory reads now use recency-sorted capped trees, comma/semicolon find/search path lists split when at least one path resolves, search pagination exposes `fileLimitReached` details, line-range search renders context around in-range matches, plain writes return compact fresh headers and note copied-hashline stripping, generated-file guards scan a larger header window, notebooks preserve unknown top-level fields, SQLite raw reads match oh-my-pi's readonly raw-query behavior, `bash` leading-`cd` handles `~`, async bash job timeouts render human-readable errors, native/fallback grep count and multiline behavior are aligned, macOS variant-resolved read snapshots can be edited, native Rust grep tests compile through an `rlib`, and selector/URL security hardening now rejects numeric private-IP URL forms plus archive/SQLite/skill/local symlink escapes ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Followed up on the post-push oh-my-pi audit by matching additional SQLite and discovery semantics: SQLite table listings now avoid full table-count scans with bounded row-count probes, raw `?q=` reads stop after 1000 rows while iterating, structured `where=` validation ignores quoted keywords but rejects control clauses such as `INTERSECT`, SQLite writes validate table columns and scalar values before binding, directory reads prune `.git`/`node_modules`, and broad `find` scans keep `node_modules` pruned even with `gitignore:false` unless explicitly requested ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Addressed the follow-up PR review by validating raw SQLite `?q=` selectors as single safe `SELECT` statements, rejecting raw access to `sqlite_%` internals and dangerous statements such as `ATTACH`, bounds-checking zip central-directory/local-entry offsets before reads or inflates, extending URL SSRF guards to NAT64/6to4 private-address forms and documenting `ATOMIC_ALLOW_PRIVATE_URL_READS` as dev-only, wrapping native block/PTY/Cursor HTTP2 entrypoints in panic guards, ensuring PTY error paths still clean up readers/children, documenting generated Rust split wrappers, bounding uncached native grep streaming accumulation, and correcting the direct-`grep` native-cache docs to match the fresh-by-default implementation ([#1483](https://github.com/bastani-inc/atomic/issues/1483)).
+- Fixed cross-platform package test execution by preparing native bindings and LFS fixtures in CI, running the coding-agent Vitest suite under Bun, making self-update/home-directory detection respect live Bun environments, and hardening Windows path/color/process-spawn test coverage ([#1490](https://github.com/bastani-inc/atomic/pull/1490)).
+- Addressed follow-up PR review findings by making hashline snapshot collision handling compare full snapshot text before treating 4-hex tags as identities, extending URL SSRF detection to the full IPv6 link-local `fe80::/10` range plus IPv4-compatible IPv6 forms, re-checking bash interceptor rules after `spawnHook` rewrites, surfacing search pagination collection caps without duplicate continuation banners, preserving truncated async bash output in a recoverable `fullOutputPath`, and passing per-path native search-cache invalidations through to the native binding ([#1490](https://github.com/bastani-inc/atomic/pull/1490)).
+- Addressed the latest PR review hardening pass by counting multi-file search per-file caps by match lines instead of context lines, making native filesystem scan cache insertion generation-aware so in-flight scans cannot repopulate after invalidation, rejecting SQLite raw-query `pragma_*` table-valued functions and double-quoted internal-name splices, and bounds-checking zip central-directory offsets during selective archive writes ([#1490](https://github.com/bastani-inc/atomic/pull/1490)).
+- Addressed the final PR review hardening pass by restoring header-only copied-hashline writes to their snapshot content instead of emptying files, decoding and sanitizing async bash output with a streaming UTF-8 decoder, cleaning up async bash temp output files on eviction/TTL, invalidating native search caches after bash commands, keeping URL protocol validation outside the private-read escape hatch, documenting single-file search skip handling, preserving CR-only hashline edit line endings, rejecting selective zip writes that would drop data descriptors, and exposing `search` in extension `tool_call`/`tool_result` type guards like other builtins ([#1490](https://github.com/bastani-inc/atomic/pull/1490)).
+
+## [0.9.2] - 2026-06-23
+
+### Changed
+
+- Removed the initial `prompt-refinement` stage and shared prompt-refinement helper from the bundled `goal` and `ralph` workflows so both now use the raw objective/prompt as the operative task text for their first downstream stages; the now-obsolete refined/original trace outputs were also removed.
+- Updated bundled `goal` and `ralph` reviewer prompts to inspect referenced QA end-to-end video evidence before treating it as proof of user-visible behavior.
+- Synced bundled upstream Pi package dependencies to `^0.79.10` across Atomic's CLI and extension peer manifests, and aligned shared coding-agent direct runtime/dev dependency pins with upstream Pi v0.79.10.
+- Raised the published Node.js engine floor to `>=22.19.0` to match direct runtime dependency requirements, including `undici@8.5.0`.
+
+### Fixed
+
+- Fixed GitHub Copilot Gemini tool-call normalization to synthesize omitted required empty array properties before validation, preventing Ralph reviewer structured output such as `findings: []` from failing when CAPI drops the empty array from the tool call.
+
+## [0.9.2-alpha.1] - 2026-06-23
+
+### Changed
+
+- Removed the initial `prompt-refinement` stage and shared prompt-refinement helper from the bundled `goal` and `ralph` workflows so both now use the raw objective/prompt as the operative task text for their first downstream stages; the now-obsolete refined/original trace outputs were also removed.
+- Updated bundled `goal` and `ralph` reviewer prompts to inspect referenced QA end-to-end video evidence before treating it as proof of user-visible behavior.
+- Synced bundled upstream Pi package dependencies to `^0.79.10` across Atomic's CLI and extension peer manifests, and aligned shared coding-agent direct runtime/dev dependency pins with upstream Pi v0.79.10.
+- Raised the published Node.js engine floor to `>=22.19.0` to match direct runtime dependency requirements, including `undici@8.5.0`.
+
+### Fixed
+
+- Fixed GitHub Copilot Gemini tool-call normalization to synthesize omitted required empty array properties before validation, preventing Ralph reviewer structured output such as `findings: []` from failing when CAPI drops the empty array from the tool call.
+
+## [0.9.1] - 2026-06-23
+
+### Changed
+
+- Changed the bundled `goal`/`ralph` workflow prompt-refinement stage to use a workflow-neutral, model-only rubric prompt that returns only the refined objective instead of invoking the `prompt-engineer` skill directly.
+
+### Fixed
+
+- Fixed the bundled `ralph` workflow reviewer-c model configuration to use Gemini 3.1 Pro as the third reviewer with Gemini 3.1 provider fallbacks, removing Gemini 3.5 Flash from that slot's fallback chain ([#1484](https://github.com/bastani-inc/atomic/issues/1484)).
+
+## [0.9.1-alpha.1] - 2026-06-22
+
+### Changed
+
+- Changed the bundled `goal`/`ralph` workflow prompt-refinement stage to use a workflow-neutral, model-only rubric prompt that returns only the refined objective instead of invoking the `prompt-engineer` skill directly.
+
+### Fixed
+
+- Fixed the bundled `ralph` workflow reviewer-c model configuration to use Gemini 3.1 Pro as the third reviewer with Gemini 3.1 provider fallbacks, removing Gemini 3.5 Flash from that slot's fallback chain ([#1484](https://github.com/bastani-inc/atomic/issues/1484)).
+
+## [0.9.0] - 2026-06-22
+
+### Breaking Changes
+
+- Changed the bundled `open-claude-design` workflow input contract by removing `reference`, `output_type`, and `design_system`; discovery now gathers output type, design-system context, and references during the run.
+- Removed the Atomic-specific `bashPolicy` command allow/deny API from the SDK/session surface and built-in `bash` tool; use `tools`/`excludedTools`/`noTools`, custom tools, or an external sandbox for command scoping.
+
+### Added
+
+- Added configurable context-window selection for models with multiple context tiers, including GitHub Copilot live-catalog support, CLI/settings/RPC controls, SDK helpers and exported types, per-session persistence, model picker UI, and long-context workflow model tokens.
+- Added upstream Pi 0.79.7/0.79.9 capabilities including automatic light/dark themes, chat-template thinking compatibility for custom OpenAI-compatible providers, expanded SDK exports, updated model/provider metadata, and Markdown streaming stability.
+- Replaced browser automation with the bundled `playwright-cli` skill/command and added the `effective-liteparse` document-extraction skill for local PDF/DOCX/PPTX/XLSX/image extraction.
+- Added the builtin `goal` workflow's safe-by-default `create_pr` toggle and final PR/MR/review handoff stage.
+- Restructured the builtin `open-claude-design` workflow around `impeccable` discovery/init, design-system/reference gathering, forked generation plus user-feedback loops, and a minimal export/display phase.
+
+### Changed
+
+- Aligned Atomic's bundled upstream Pi runtime packages through `^0.79.9`, carrying provider catalog updates, GitHub Copilot model filtering, GLM-5.2 metadata, Mistral prompt-cache accounting, OpenRouter Fusion, and shared TUI/runtime fixes.
+- Changed GitHub Copilot context-window handling to derive tiers from the live CAPI model catalog, display full long-context windows while tracking effective prompt budgets internally, seed cached tiers at startup, and keep per-model persisted selections isolated.
+- Synced the Atomic CLI with upstream behavior such as self-only `atomic update` by default, improved model search/autocomplete, generated model catalog updates, theme mode support, and extension documentation/API clarifications.
+- Updated bundled workflows, subagents, docs, and verification guidance to use `playwright-cli` instead of the removed `browser` skill / `browse` CLI.
+- Changed repository validation to include the monorepo-wide Bun/prek/CI file-length gate for tracked TS/JS/Rust files with only documented generated/vendored exclusions.
+- Switched the repository to versionless `main`: package manifests stay at `0.0.0`, release notes land as CHANGELOG-only PRs, and real versions are stamped only on off-main tag commits via `scripts/cut-release.ts`.
+
+### Fixed
+
+- Fixed GitHub Copilot Gemini request/stream failures by sanitizing Gemini-incompatible tool schemas, reconstructing flattened and dotted tool arguments for execution and replay, preserving Gemini thought signatures through `reasoning_opaque`, retrying degenerate empty/error completions appropriately, and hardening reconstruction against prototype pollution.
+- Fixed context-window startup, session-switch, settings, RPC, picker, SDK, and GitHub Copilot restart edge cases so selected windows are validated and persisted consistently without leaking unsupported defaults across providers.
+- Fixed credential-store load failures and concurrent session creation by surfacing real auth-store read errors, avoiding throwaway `AuthStorage` instances when a registry is supplied, and making credential reads lock-free while retaining atomic locked writes.
+- Fixed workflow and extension resource/session behavior, including default session-dir visibility for extensions, same-directory resource reload reuse, workflow stage inheritance from non-default session dirs, and custom resource snapshots for `atomic -e` workflows.
+- Fixed model and runtime polish including RPC unknown-command ids, `/model` query ranking, WSL bash stdin execution, fuzzy `edit` patch generation, overflow compaction after oversized successful responses, source-CLI Bun subprocess tests, and stale update banners on `0.0.0` dev builds.
+- Fixed release and workflow reliability issues including the `publish-release` Publish-run verifier, `open-claude-design` feedback threading/artifact safety/browser handling, and successful overflow-sized assistant response compaction.
+
+## [0.9.0-alpha.4] - 2026-06-22
+
+### Breaking Changes
+
+- Changed the bundled builtin `open-claude-design` workflow's inputs: removed `reference`, `output_type`, and `design_system` in favor of a new `discovery` interview stage that asks for the output type and references. Inputs are now `prompt`, `discover_references`, and `max_refinements`. Drop those removed arguments from existing invocations and let discovery ask (or describe them in `prompt`).
+
+### Added
+
+- Restructured the bundled builtin `open-claude-design` workflow around the accessible `impeccable` skill. It now opens with one combined `discovery` stage that runs `/skill:impeccable shape` and `/skill:impeccable init` so PRODUCT.md/DESIGN.md are detected, created, or reconciled without a separate init stage, gathers context with `ds-locator` / `ds-analyzer` / `ds-patterns` (which directly capture/parse user-provided URL/file references), then runs optional gallery `reference-discovery` using that ds-* context and asks which curated direction the user prefers (or asks for a reference image/screenshot/URL/path if none fit), then runs a forked `generate-*` / `user-feedback-*` loop. `generate-1` is the first loop iteration, later generate stages fork from the previous generate session, and user-feedback stages fork from the previous feedback session while driving `/skill:impeccable live`. Export is now deliberately only `exporter` plus `final-display`; the separate `web-capture-*`, `file-parser-*`, `design-system-builder`, `pre-export-scan`, and `forced-fix` stages were removed. Updated the bundled workflow docs to describe the trimmed input set, combined discovery/init stage, context/reference phase, reference precedence, forked generate/user-feedback loop, and minimal export phase.
+- Added the bundled builtin `goal` workflow's safe-by-default `create_pr` toggle and final `pull-request` stage. Goal now mirrors Ralph's PR handoff behavior: omitted or `false` skips PR/MR/review creation and omits `pr_report`, while strict `create_pr=true` authorizes only the final stage after reviewer quorum plus reducer approval to inspect the goal ledger, worker receipts, reviewer artifacts, final report, repository state, and provider credentials before attempting a provider-appropriate PR/MR/review request. Intermediate Goal worker/reviewer prompts now tell stages to ignore PR-creation requests so PR handoff stays confined to the final stage. Updated the bundled workflow docs, quickstart, README, and `/atomic` guide copy to describe the opt-in behavior.
+
+### Fixed
+
+- Fixed the bundled builtin `open-claude-design` feedback path so live annotations from `user-feedback-*` are parsed, persisted, and required to thread into the next `generate-*` prompt before another revision runs. Also kept final display read-only, constrained annotation snapshot artifact copies to the project/artifact dir, and preserved the browser-centric clean early exit when `playwright-cli` is unavailable (skipped under the test harness).
+
+## [0.9.0-alpha.3] - 2026-06-21
+
+### Fixed
+
+- Fixed the repository `publish-release` workflow's final Publish-run verifier to poll GitHub Actions run JSON until a terminal state instead of treating a still-`in_progress` publish run as a failed prerelease.
+
+## [0.9.0-alpha.2] - 2026-06-21
+
+### Breaking Changes
+
+- Removed the Atomic-specific `bashPolicy` command-level allow/deny API from `createAgentSession()`, `AgentSession` internals, SDK exports, and the built-in `bash` tool so shell execution matches upstream pi behavior. Use `tools`/`excludedTools`/`noTools` to expose or hide `bash`, and use a sandbox or custom tool for command allowlisting.
+
+### Added
+
+- Added upstream Pi v0.79.9 chat-template thinking compatibility to Atomic custom-model/provider configuration, including `compat.thinkingFormat: "chat-template"` and `compat.chatTemplateKwargs` schema/merge support for OpenAI-compatible vLLM/Hugging Face chat templates.
+
+### Changed
+
+- Aligned Atomic's bundled upstream Pi runtime libraries (`@earendil-works/pi-agent-core`, `@earendil-works/pi-ai`, and `@earendil-works/pi-tui`) with `^0.79.9`, picking up dependency-covered GLM-5.2 provider metadata, GitHub Copilot model-availability filtering, Mistral prompt caching, selective base entry points, OpenRouter Fusion, Markdown streaming code-fence stability, and runtime dependency fixes.
+
+### Fixed
+
+- Fixed same-directory session/resource reloads to reuse imported extension modules while still creating fresh extension instances and lifecycle events, reducing avoidable reload work without making extension contexts stale.
+- Fixed deep session branch path/context traversal to build paths linearly instead of using repeated front-insertion on long branches.
+- Fixed fuzzy `edit` replacements to preserve untouched original line blocks and produce patches that apply to the original file instead of rewriting the entire file through normalized text.
+- Fixed legacy WSL `C:\Windows\System32\bash.exe`/`Sysnative\bash.exe` command execution to send scripts over stdin with `bash -s`, preserving shell-variable expansion in the target bash.
+- Fixed `/model` selector search ranking so exact provider-prefixed queries (for example `openai/gpt`) rank ahead of proxy-provider model IDs such as `openrouter/openai/gpt-*`, while autocomplete keeps the broader inherited search behavior.
+- Fixed successful overflow-sized assistant responses to trigger compaction without retrying or dropping the completed assistant message.
+
+## [0.9.0-alpha.1] - 2026-06-20
+
+### Added
+
+- Added configurable context-window support for models that declare `contextWindowOptions`, including explicit `--context-window` CLI/settings control, a GitHub Copilot CLI-style `/model`-flow picker (numbered `Default`/`Long context` tiers with token counts), session replay, SDK/runtime/RPC APIs, and docs while preserving each model's scalar default context window. For GitHub Copilot, context windows are measured in **input (prompt) tokens** (consistent with every other provider) and derived **dynamically from GitHub's live CAPI model catalog** (`GET /models`) instead of a hardcoded model list: Atomic resolves each model's input budget as `max_prompt_tokens || max_context_window_tokens || 128_000` and, for tiered models, exposes a selectable default window (`token_prices.default.context_max`) plus a long window set to the model's full `max_context_window_tokens` (retaining `max_prompt_tokens` as the internal effective compaction/overflow budget) — gated on the user actually having the GitHub Copilot provider and cached on disk for 30 minutes (for example `github-copilot/gpt-5.5` exposes `272k` default / `1.05m` long, and the Claude/Gemini long-context models `200k` default / `1m` long). Atomic raises the local budget and sends `X-GitHub-Api-Version: 2026-06-01`, while GitHub applies the long-context billing tier server-side by prompt token count. Long-context Copilot requests consume more AI credits and require Copilot long-context/usage-based billing entitlement; offline, unauthenticated, or non-Copilot sessions leave the built-in window untouched and show no picker; custom providers and explicit model overrides can still expose their own selectable windows ([#1409](https://github.com/bastani-inc/atomic/issues/1409)).
+- Exported context-window helper functions and types from the package root, including parser/formatter/normalizer/selection utilities and the `Model<Api>` augmentation for `contextWindowOptions`/`defaultContextWindow`, so SDK consumers can use the public API without importing internal source paths ([#1409](https://github.com/bastani-inc/atomic/issues/1409)).
+- Added RPC mode runtime context-window commands so headless clients can read supported token budgets with `get_available_context_windows` and select the active runtime budget with `set_context_window` without persisting context-window settings ([#1409](https://github.com/bastani-inc/atomic/issues/1409)).
+- Added upstream pi v0.79.7 automatic theme mode support so `/settings` can choose separate light and dark themes and follow terminal color-scheme changes.
+- Exported the upstream `CONFIG_DIR_NAME` constant and edit diff helpers (`generateDiffString`, `generateUnifiedPatch`, and `EditDiffResult`) from the public SDK entrypoint so extensions can avoid hardcoded project config paths and reuse edit-style diff rendering.
+
+### Changed
+
+- Changed the GitHub Copilot **long-context tier to advertise the model's full context window** (`max_context_window_tokens`, for example `github-copilot/gpt-5.5` `1.05m`, and `github-copilot/claude-opus-4.8`/`github-copilot/gemini-3.1-pro-preview` `1m`) instead of GitHub's prompt-token cap, so Copilot models report and display the same window as the native `openai/*` and `anthropic/*` providers (the chat footer denominator now shows the full window). GitHub's lower server-side input cap (`max_prompt_tokens`, e.g. `922k`/`936k`, which equals `max_context_window_tokens − max_output_tokens`) is now parsed and carried as an internal effective input budget (`Model.maxInputTokens`, exposed via the new `getEffectiveInputBudget()` helper): auto-compaction thresholds and the Copilot overflow-recovery guard run against that budget while the picker/footer show the full window. As a result, a prompt that reaches the real prompt cap is now compacted-and-retried automatically (previously the long window equalled the cap), and the friendly “enable long-context/usage-based billing / server-cap” hint fires only when GitHub rejects a prompt *below* the cap (a genuine entitlement/tier drop) rather than at the cap. Sparse catalog payloads without `max_context_window_tokens` still fall back to the long-context prompt threshold, and the on-disk Copilot catalog cache schema version was bumped so existing caches refetch the new windows ([#1409](https://github.com/bastani-inc/atomic/issues/1409)).
+- Changed built-in GitHub Copilot context windows to be measured in **input (prompt) tokens** (matching every other provider) and derived from GitHub's live CAPI model catalog (`GET /models`, cached 30 minutes, gated on the Copilot provider) instead of a hardcoded long-context model list, so newly added/removed Copilot models and retiered windows are reflected automatically without shipping a stale snapshot. Each model's window now resolves to `max_prompt_tokens || max_context_window_tokens || 128_000`, and tiered models expose a selectable default window (`token_prices.default.context_max`) plus a long window set to the model's full `max_context_window_tokens` (e.g. `gpt-5.5` 272k/1.05m, Claude/Gemini 200k/1m), with `max_prompt_tokens` retained as the internal effective compaction/overflow budget — while preserving custom provider entries and explicit `models.json` overrides and relying on GitHub's API-version header and server-side tier selection rather than payload fields or model-id variants ([#1409](https://github.com/bastani-inc/atomic/issues/1409)).
+- Bumped the bundled upstream pi runtime libraries `@earendil-works/pi-agent-core`, `@earendil-works/pi-ai`, and `@earendil-works/pi-tui` from `^0.79.4` to `^0.79.6` so Atomic's installed pi runtime packages pick up upstream v0.79.5/v0.79.6 provider, model, thinking-payload, and shared TUI compatibility fixes; no Atomic coding-agent source changes were made for upstream coding-agent-only marked export or fetch-override behavior in this dependency sync ([#1413](https://github.com/bastani-inc/atomic/issues/1413)).
+- Synced Atomic's coding-agent fork with upstream pi v0.79.7, including the new self-only default for bare `atomic update` (`atomic update --all` restores the previous all-packages behavior), automatic light/dark theme settings, configured project config directory labels, extension example updates, model-search parity, tree navigator horizontal panning, and the latest user-facing docs.
+- Bumped the bundled upstream pi runtime libraries `@earendil-works/pi-agent-core`, `@earendil-works/pi-ai`, and `@earendil-works/pi-tui` from `^0.79.6` to `^0.79.7` so Atomic inherits upstream v0.79.7 TUI color-scheme, Warp image, generated model catalog, and agent-core fixes.
+- Reserved `/` in theme names for automatic light/dark theme settings.
+- Replaced the bundled `browser` skill / `browse` CLI with the `playwright-cli` skill and `playwright-cli` command across `@bastani/atomic`, and bundled the new `effective-liteparse` document-extraction skill. The builtin `ralph`, `goal`, and `open-claude-design` workflows and the `debugger`/`codebase-online-researcher` subagents now drive browsers via `playwright-cli`; `open-claude-design`'s deterministic setup step ensures `playwright-cli` (`npm install -g @playwright/cli@latest`) and renames its `browse_cli_status` output to `playwright_cli_status`; and `ralph` now records a `playwright-cli` QA end-to-end proof video (`qa_video_path`) for UI-applicable/full-stack changes, references it in the implementation notes, and attaches or links it to the final pull request when `create_pr=true`. Updated the user-facing docs (workflows, SDK bash-policy examples, quickstart skills, README) to match.
+- Changed contributor validation to include a monorepo-wide file-length gate in Bun scripts, local `prek` hooks, and PR CI, covering tracked TS/JS/Rust files with the documented generated/vendored exclusions and no grandfathered baseline allowlist ([#1445](https://github.com/bastani-inc/atomic/issues/1445)).
+- Switched the repository to a **versionless `main`** release model (modeled on openai/codex): every `packages/*/package.json` on `main` now stays at the `0.0.0` placeholder, and the real version is materialized only on a throwaway, off-`main` `Release <version>` commit created and tagged by the new top-level `scripts/cut-release.ts` (which stamps the version inside a detached git worktree via `scripts/bump-version.ts` and pushes only the tag — `main` is never bumped). This lets a stable release and an ahead-of-stable prerelease line be cut from the same trunk without release branches, mirroring how the npm `@latest`/`@next` dist-tags are derived from the tag shape. `publish.yml` still builds and publishes from the tagged (real-version) commit and now additionally refuses to publish the `0.0.0` placeholder, and the `publish-release` Atomic workflow now lands a CHANGELOG-only release-notes PR on `main` and then stamps/tags the release off-`main` via `cut-release.ts` instead of merging a version bump into `main`, accepts an optional `base_ref` input (default `main`) so a release can be cut from a maintenance/integration branch, and accepts an optional `from_ref` input that cuts an ephemeral release from any commit/tag/branch (auto-creating a CI-gated `release/<version>`/`prerelease/<version>` branch, cutting the tag off it, then deleting it — the changelog lives on the tag only). CI `test.yml` now also runs on `release/**`/`prerelease/**` pushes so those ephemeral branches are gated. End users installing from npm are unaffected; only local/`main` dev builds report `0.0.0` for `--version`.
+
+### Fixed
+
+- Exposed `SessionManager.usesDefaultSessionDir()` through the read-only extension session-manager surface so bundled extensions can distinguish default global session storage from non-default `--session-dir`, `ATOMIC_CODING_AGENT_SESSION_DIR`, or settings-backed session directories without path guessing ([#1444](https://github.com/bastani-inc/atomic/issues/1444)).
+- Fixed `github-copilot/*` Gemini models (for example `github-copilot/gemini-3.1-pro-preview` and `github-copilot/gemini-3.5-flash`) failing **every** chat turn with `Error: 400 invalid request body`. These models are served through GitHub's Copilot API (CAPI), which translates the OpenAI chat-completions request into a Google GenAI `GenerateContent` request and forwards tool/function JSON Schema `anyOf`/`oneOf` verbatim into Gemini's `FunctionDeclaration` schema. Gemini rejects a union whose branch is a complex **object** schema, so Google returned HTTP 400 and CAPI relabelled it `{"error":{"code":"invalid_request_body"}}`. Because Atomic's bundled `workflow` tool — and any tool using the TypeBox `Type.Union([Type.Object(...), Type.String()])` pattern for fields such as `task`, `chain`, and `parallel` — is present in normal chat turns, the request failed before the model ever ran (it was previously masked only when a fallback model existed). Atomic now sanitizes outbound tool JSON Schemas for GitHub Copilot Gemini models into the subset CAPI/Gemini honors: it resolves object/array-bearing `anyOf`/`oneOf` to their most expressive branch, converts `const`/literal unions to `enum`, collapses nullable unions to `nullable`, prunes `required` to existing properties, and drops non-portable keywords (`additionalProperties`, `patternProperties`, `$schema`, `format`, `pattern`, numeric/length bounds, `default`, `title`, etc.). The transform is gated to `github-copilot` Gemini `openai-completions` models and runs last in the provider-payload pipeline (so it also covers extension/SDK-injected tools), leaving every other provider/model payload unchanged.
+- Fixed `github-copilot/*` Gemini models getting stuck in an infinite tool-call retry loop (most visibly on the workflow `structured_output` tool). Capturing the raw CAPI stream confirmed that Gemini serializes array/object function-call arguments as **flattened indexed keys** on the wire — for example `{ keywords: ["a", "b"] }` arrives as `{ "keywords[0]": "a", "keywords[1]": "b" }` — so schema validation failed (`keywords: must have required properties keywords` and `root: must not have additional properties`) and the model re-emitted the same shape forever. Atomic now reconstructs flattened tool-call arguments (`name[i]`, `name[i].sub`, `parent.child`) back into proper arrays/objects in each tool's `prepareArguments` step, before validation runs. Gated to GitHub Copilot Gemini models at call time and a no-op for well-formed arguments, so it covers built-in, extension, SDK, and MCP tools without affecting any other provider/model.
+- Fixed `github-copilot/*` Gemini models (for example `github-copilot/gemini-3.1-pro-preview`) silently dying mid-task instead of continuing the turn. Inspecting the affected sessions and confirming against GitHub's Copilot API (CAPI) source showed two distinct degenerate stream endings that Atomic was not recovering from: (1) CAPI's `getAzureFinishReason` maps several Gemini finish reasons — `MALFORMED_FUNCTION_CALL`, `OTHER`, `LANGUAGE`, and `UNEXPECTED_TOOL_CALL` — to a bare OpenAI `finish_reason: "error"`, which `pi-ai` surfaces as `"Provider finish_reason: error"`; the auto-retry classifier's regex did not match it, so the turn ended with an empty assistant message and no retry; and (2) Gemini intermittently ends the stream with `finish_reason: "stop"`, an **empty content array**, and **0 output tokens**, which Atomic treated as a successful (if empty) turn and stopped. Atomic now treats bare `finish_reason: error`/`content_filter` as retryable and detects degenerate empty completions (no text/tool-call/thinking content **and** zero output tokens on a `stop`/`toolUse` turn) as retryable, re-issuing the request with the existing exponential-backoff path. Empty `stop` completions also no longer reset the auto-retry counter, so repeated empties stay bounded by `maxRetries` instead of retrying forever.
+- Fixed the **root cause** behind `github-copilot/*` Gemini (for example `github-copilot/gemini-3.1-pro-preview`) returning repeated empty completions and "stopping to respond" after its first tool call. Gemini is a thinking model: each function/tool call it emits comes with an opaque **thought signature** that must be replayed, verbatim, on the next request or Gemini refuses to continue the reasoning chain. Confirmed against GitHub's Copilot API (CAPI) source, CAPI carries that signature in a non-standard `reasoning_opaque` field on the assistant message / streamed delta and reads the same `reasoning_opaque` back off the assistant message on replay to re-attach the signature to each Gemini function-call part (keyed by `tool_call.id`). The bundled `pi-ai` OpenAI-completions client never captured or replayed `reasoning_opaque` (it only round-trips the OpenRouter-style `reasoning_details: [{ type: "reasoning.encrypted", id, data }]` shape, which CAPI does not emit), so the real Gemini thought signature was dropped inbound and never sent back. With it missing, CAPI substitutes the sentinel `skip_thought_signature_validator` on the first replayed function call and Gemini responds with an empty candidate / `finish_reason: "stop"` and zero output tokens — which the empty-completion retry above then re-issued against the same signature-less history until `maxRetries` was exhausted. Atomic now bridges `reasoning_opaque` to the mechanism the client already round-trips: a `globalThis.fetch` interceptor scoped to `*.githubcopilot.com` event streams rewrites each CAPI Gemini SSE delta that carries both `reasoning_opaque` and a `tool_calls[].id` to add a matching `reasoning_details` entry (captured by the client as the tool call's `thoughtSignature`), and a provider-payload (`onPayload`) transform converts the `reasoning_details` the client re-emits on replayed assistant messages back into the single `reasoning_opaque` field CAPI reads. Both transforms are gated to GitHub Copilot Gemini `openai-completions` models and are no-ops for every other provider/model and for Gemini turns that carry no thought signature; the thinking text round-trips inside the same opaque blob, so combined think-then-tool-call turns keep their signatures across session save/load.
+- Fixed a second `github-copilot/*` Gemini multi-turn failure that surfaced once thought signatures were preserved: a turn after any **array/object tool call** (most visibly `edit`) ended with a bare `finish_reason: "error"` and then retried to exhaustion. CAPI delivers Gemini's array/object function-call arguments as **flattened indexed keys** (for example an `edit` call arrives as `{ "edits[0].newText": "...", "edits[0].oldText": "...", "path": "..." }`), and Atomic only reconstructed them at tool **execution** time — the persisted assistant message kept the raw flattened keys. On the next turn that message was replayed verbatim, CAPI parsed those literal keys straight into the Gemini `FunctionCall.Args`, and the resulting call no longer matched the tool's declared schema (nor the structure Gemini originally signed), so Gemini ended the turn with `MALFORMED_FUNCTION_CALL` / `UNEXPECTED_TOOL_CALL` / `OTHER` — all of which CAPI maps to a bare OpenAI `finish_reason: "error"`. Atomic now also reconstructs flattened tool-call arguments on the **outbound replay payload** for GitHub Copilot Gemini: each replayed assistant `tool_calls[].function.arguments` is unflattened (reusing the same `unflattenGeminiToolArguments` logic with the tool's own parameter schema, looked up from the request `tools`) back into the nested arrays/objects Gemini produced, before the request reaches CAPI. This runs in the provider-payload pipeline after schema sanitization and alongside the `reasoning_opaque` restore, is gated to GitHub Copilot Gemini `openai-completions` models, fails open on non-JSON arguments, and is a no-op for already well-formed arguments — healing both new sessions and already-persisted transcripts that contain flattened Gemini tool calls.
+- Reduced `github-copilot/*` Gemini `MALFORMED_FUNCTION_CALL` failures (surfaced as `finish_reason: "error"`) by emitting tool/function JSON Schemas in the shape Gemini resolves most reliably. The Gemini schema sanitizer now infers an explicit `type` on container nodes that omit one (`properties`/`required` ⇒ `object`, `items` ⇒ `array`) and collapses a tuple-form `items` array — which Gemini's single-`items` function-declaration schema rejects — into a single (most expressive object/array) schema. Gated to `github-copilot` Gemini `openai-completions` models and applied last in the provider-payload pipeline, so every other provider/model payload is unchanged.
+- Fixed `github-copilot/*` Gemini tool calls with **nested object arguments but no arrays** still failing validation and looping. CAPI flattens such arguments to purely dotted keys (for example `{ "metadata.confidence": 0.5 }` with no bracket index anywhere), which the previous reconstruction — gated on the presence of a `name[<digit>]` bracket key — skipped, so the nested-object call never validated. Atomic now also reconstructs purely dotted keys, disambiguated by the tool's own parameter schema: a dotted key is split into a nested path only when its head segment names an object/array container property (including container branches of an `anyOf`/`oneOf` union), so legitimate argument keys that happen to contain a dot are left intact. Bracket-indexed reconstruction is unchanged, and the transform remains gated to GitHub Copilot Gemini models and a no-op for well-formed arguments.
+- Hardened the GitHub Copilot Gemini tool-argument reconstruction against prototype pollution. `unflattenGeminiToolArguments` previously walked model-emitted key paths into a fresh object without guarding `__proto__`/`constructor`/`prototype`, so a steered Gemini tool call mixing a bracket key with e.g. `__proto__.polluted` could reach and mutate `Object.prototype` process-wide. Reconstruction now drops any key whose parsed path contains one of those segments (at any position, including the final segment and a literal plain key). The parse/assign/compact reconstruction (and this single guard) lives in one canonical module shared with the `@bastani/mcp` `callTool` normalizer, so the two implementations can no longer diverge on the fix.
+- Scoped the GitHub Copilot Gemini `content_filter` retry. The earlier finish-reason retry change treated `finish_reason: "content_filter"` as retryable for **every** provider/model; a genuine `content_filter` safety block on a non-Gemini provider would therefore be re-issued up to `maxRetries` times before its inevitable failure. `content_filter` is now retried only for GitHub Copilot Gemini models (where CAPI maps spurious Gemini RECITATION/safety blocks to it); a bare `finish_reason: "error"` remains retryable for all providers as a generic transient failure.
+- Fixed RPC unknown-command errors to include the request id so RPC clients do not hang waiting for a response.
+- Fixed `/model` autocomplete and model-selection searches to match provider/model queries regardless of whether the provider or model token is typed first.
+- Fixed the tree navigator to horizontally pan deep entries so the selected item remains readable.
+- Fixed long-context selection for GitHub Copilot's rounded 1M model names: requesting `1m` now selects the advertised full context window when the catalog exposes it, and otherwise resolves to the largest advertised long-context window at or below the request (for example `936k` for sparse catalog payloads) instead of falling back to the short `200k` tier. Interactive/context-picker persistence now writes the effective selected budget to per-model `defaultContextWindows["provider/modelId"]` settings instead of the global `defaultContextWindow` fallback, so Copilot-specific prompt caps such as `936k`/`922k` do not leak into Anthropic, Cursor, or other providers on restart. Legacy/stale global `defaultContextWindow` values from earlier builds are now treated as optional fallbacks and ignored without warning when unsupported by the active model.
+- Suppressed the stale-update nag on versionless dev/source-tree builds. Because `main` (and direct runs like `bun packages/coding-agent/src/cli.ts`) reads the `0.0.0` placeholder from `package.json`, the startup version check always saw `0.0.0` as older than every published release and popped an "update available" banner on every dev run. The automatic startup check now treats `0.0.0` as a dev build and skips both the comparison and the npm registry call; the explicit `atomic update` command is unchanged.
+- Fixed a GitHub Copilot context-window warning on restart: after selecting a long-context window (e.g. `claude-opus-4.8` → `936k`) and reopening Atomic, startup validated the persisted selection before the (async, auth-gated) Copilot catalog loaded, so the model still looked limited to its default window and Atomic warned “Context window 936k is not supported… Supported values: 200k” and reset the choice. The model registry now seeds the Copilot context-window catalog synchronously from its on-disk cache at construction (ignoring the refresh TTL, gated on a `github-copilot` credential), so a returning user's selection is recognized immediately while the live refresh still runs in the background ([#1409](https://github.com/bastani-inc/atomic/issues/1409)).
+- Fixed context-window startup, session-switch, settings, and RPC edge cases: unknown provider fallback models no longer inherit selectable context-window options from provider defaults, fatal startup diagnostics no longer persist context-window settings, `AgentSession.setModel()` preserves an incoming target model's explicit selected context window, model-switch paths that change effective context windows now notify listeners via `context_window_changed`, the interactive context-window picker keys selection on raw token counts so colliding formatted labels never change which window is selected, RPC `set_model` returns the effective post-switch session model, and explicit startup `contextWindow` selections are journaled even when they equal the model scalar default ([#1409](https://github.com/bastani-inc/atomic/issues/1409)).
+- Fixed `AgentSession.setContextWindow()` so bare SDK/runtime calls update the active session, append `context_window_change`, and emit `context_window_changed` without persisting settings; callers must pass `{ persistDefault: true }` to update the active model's `defaultContextWindows["provider/modelId"]` setting ([#1409](https://github.com/bastani-inc/atomic/issues/1409)).
+- Fixed `packages/coding-agent` source-CLI subprocess tests (`session-id-readonly`, `startup-session-name`, `stdout-cleanliness`) crashing with `ERR_MODULE_NOT_FOUND` (for example `src/core/tools/oversized-tool-result.js`) when the Vitest worker pool runs under Node. They now launch the TypeScript source CLI with Bun explicitly via a `bunExecutable()` helper (matching `context-window-cli`/`rpc-context-window`) instead of assuming `process.execPath` is Bun, so the package test suite is portable across environments. The repo-wide `.js`->`.ts` source-import convention and shipped `dist/` are unchanged ([#1419](https://github.com/bastani-inc/atomic/issues/1419)).
+- Fixed a credential-store **load failure being misreported as `No API key found`**. When a fresh `AuthStorage` could not read `auth.json` (for example it was briefly locked by a concurrent process, surfacing an `ELOCKED` error), `reload()` recorded the error but left an empty in-memory credential set, and the prompt preflight then threw `No API key found for <provider>` — even though the credentials existed on disk. `AuthStorage` now exposes `getLoadError()`, and the prompt preflight surfaces the real load failure (`Could not load stored credentials for <provider>: …`, with the original error attached as `cause`) instead of claiming the key is absent, so a transient store-read failure is no longer indistinguishable from genuinely missing credentials. The message intentionally still reads as a recoverable auth failure so model fallback keeps retrying ([#1431](https://github.com/bastani-inc/atomic/issues/1431)).
+- Fixed `createAgentSession()` constructing a throwaway `AuthStorage` even when a `modelRegistry` was supplied. Because `AuthStorage` eagerly calls `reload()` in its constructor — taking the `auth.json` file lock — building one only to discard it added redundant lock contention on every session creation. `createAgentSession()` now only creates an `AuthStorage` when neither a `modelRegistry` nor an `authStorage` is provided, so callers that reuse one registry across sessions (such as workflow stage model fallback) no longer trigger an extra contended credential reload per session ([#1431](https://github.com/bastani-inc/atomic/issues/1431)).
+- Fixed the remaining `auth.json` **lock-contention hard failure** under many concurrent sessions (for example a workflow that fans out parallel stages through model fallback). `AuthStorage.reload()` previously acquired the exclusive `proper-lockfile` write lock just to *read* `auth.json`, and its sync acquisition (`acquireLockSyncWithRetry`) used a 200 ms **event-loop-blocking busy-wait**; when one stage held the lock across an async OAuth token refresh, sibling stages busy-waited (starving the very event loop the holder needed to release), gave up with `ELOCKED`, and recorded a credential load failure. With the #1431 message fix in place this no longer misreported as `No API key found`, but it could still burn a stage's configured fallback candidates (each skipped as a recoverable auth error) until the chain exhausted and the stage hard-failed. Pure reads are now **lock-free**: `AuthStorageBackend` gains an optional `read()` method (built-in backends implement it; custom backends that omit it fall back to the previous locked read, so the released interface stays compatible) and `reload()` uses it without taking any lock, while writers persist `auth.json` **atomically** (sibling temp file + `rename`) so a lock-free reader always observes a complete previous-or-next snapshot, never a torn one. The exclusive lock is retained only for read-modify-write paths (credential `set`/`remove` and locked OAuth refresh), and file permissions stay `0600`. Concurrent session creation no longer contends on or is starved by the credential store ([#1431](https://github.com/bastani-inc/atomic/issues/1431)).
+
+## [0.8.30] - 2026-06-17
+
+### Changed
+
+- Bumped the bundled upstream pi runtime libraries `@earendil-works/pi-agent-core`, `@earendil-works/pi-ai`, and `@earendil-works/pi-tui` from `^0.79.3` to `^0.79.4`, added `semver` as an explicit runtime dependency for package/version checks, and aligned companion extension peer ranges so Atomic inherits upstream provider/model metadata updates, agent-core fixes, the new terminal background-color query used by first-run theme detection, and shared TUI wrapping/keyboard compatibility fixes.
+- Clarified `models.json` value-resolution docs for Atomic's intentional divergence from upstream pi v0.79.4: legacy uppercase env-var-like provider values are still migrated to explicit `$VAR` syntax on startup when the same-named environment variable is present, while new configs should use `$VAR`/`${VAR}` explicitly and non-migrated values remain literals.
+- Changed package install/update handling to respect npm semver ranges instead of forcing ranged package specs to `latest`, preserve configured npm specs during batch updates, locate pnpm global package roots when `pnpm root -g` is unavailable, and exit immediately after package commands complete.
+- Updated extension docs and examples for the upstream v0.79.4 API clarifications: `pi.getActiveTools()` returns active tool names while `pi.getAllTools()` returns metadata including `promptGuidelines`, long-lived resources should be opened from session-scoped hooks and cleaned up in `session_shutdown`, and question/questionnaire example UIs wrap long prompts and option descriptions without truncation.
+- Removed the bundled subagent acceptance and no-mutation completion-gate behavior from the CLI-visible subagent extension: no acceptance field, inferred gate, acceptance-report prompt injection/parsing, completionGuard config, or acceptance/completion-guard status display remains. Migration guidance now directs users to remove stale acceptance fields from subagent calls/chains/parallel items and move validation requirements into task text; JSON chain rewrites drop legacy acceptance entries ([#1398](https://github.com/bastani-inc/atomic/issues/1398)).
+- Replaced the verbatim context-compaction planner's fixed turn cap and mode split with a deterministic strict reduction loop driven by configurable compaction parameters: `compression_ratio` (fraction to keep, default `0.5`), `preserve_recent` (default `2`), and `query` (explicit or auto-detected). The prompt substitutes the effective ratio-derived target as a hard completion requirement, hooks receive the parameters through `event.parameters`/`preparation.parameters`/`result.parameters`, extension `ctx.compact()` can override them per run, the runtime exits only once validated deletion stats meet the target, and premature plain-text exits receive an automatic nudge to keep removing message entries/content blocks. The planner still balances early search/read exploration with quick exploitation of high-confidence low-value deletion targets, the `context_compaction_budget` progress tool reports context-window fullness and remaining reduction work while inheriting the session's current model thinking level, and legacy parsing of deletion JSON from final assistant prose has been removed so only validated tool state can drive compaction.
+
+### Fixed
+
+- Fixed Anthropic/GitHub Copilot extended-thinking replay by repairing provider payloads so same-model `thinking` and `redacted_thinking` blocks are restored byte-for-byte after provider conversion and extension `before_provider_request` hooks, and by making compaction treat retained thinking-bearing assistant messages as all-or-nothing so sibling tool calls/text cannot be partially removed. This covers signed empty thinking blocks, sanitized thinking text, and compacted sessions that previously triggered 400 `thinking blocks ... cannot be modified` failures.
+- Fixed post-compaction context usage accounting so the footer no longer trusts provider `totalTokens` when normalized usage components are available and avoids double-counting Anthropic-compatible cache buckets that mirror `input` tokens, preventing compacted sessions from displaying roughly doubled context-window percentages such as ~117% when the active prompt is closer to ~58%.
+- Fixed package commands to drain stdout/stderr before the forced post-command exit so piped `atomic list`, help, progress, and self-update fallback output is not truncated under Node while still terminating leaked extension handles.
+- Fixed custom `models.json` providers whose `apiKey` references an unset explicit environment variable so their models are omitted from `/model`, `--list-models`, available-model RPC responses, and automatic fallback candidates until the environment variable is configured.
+- Fixed bash/child-process output draining so late stdout/stderr arriving after process exit continues draining while active, quiet inherited pipes release promptly, endlessly noisy detached descendants are bounded by a longer active-drain cap, and the built-in `bash` tool ignores output after its result accumulator has been finalized.
+- Fixed npm package source resolution to re-resolve and re-validate the managed install path after installing a configured semver range, preventing stale legacy global package copies from being loaded.
+- Fixed explicit npm dist-tag package sources such as `npm:pkg@beta` and `npm:pkg@latest` so online resolution verifies installed copies against the resolved registry target before accepting them, while offline resolution keeps already-installed tag-based resources usable without attempting registry or install work.
+- Fixed interactive shutdown ordering so SIGTERM/SIGHUP-triggered exits keep signal handlers installed until terminal cleanup and extension `session_shutdown` disposal finish, preventing terminal restoration from being skipped during signal-exit handling.
+- Fixed first-run theme selection to query the terminal OSC 11 background color before falling back to `COLORFGBG`, persist high-confidence auto-detected dark/light themes, and wrap `/tree` help rows by semantic chunks instead of truncating keybinding hints.
+- Fixed release publishing to generate and upload a `SHA256SUMS` asset alongside the six Atomic binary archives.
+- Fixed workflow stages launched from workflows discovered through `atomic -e` to inherit the parent chat's custom resource-loading snapshot (extensions/tools, subagents and agent definitions, skills, prompt templates, themes, workflows, packages, and trusted borrowed project-local resources) without sharing the parent resource-loader instance.
+- Fixed context compaction recent-entry and id-only deletion guards so `context_delete` attempts against disallowed context entries now return explicit non-terminating correction errors, exact deletion payloads with transcript text or replacement content are rejected instead of ignored, `context_grep_delete` silently ignores rejected matches while deleting allowed matches without counting rejected blocks as removals, and `context_grep_delete` keeps `maxMatches` scoped to one tool call without adding any cumulative deletion cap.
+- Fixed bundled workflow and subagent structured-output gates to recover from missing or invalid `structured_output` final answers by issuing up to three corrective retries that echo the actual contract or schema-validation error before failing.
+- Fixed bundled workflow failed-stage metadata so error-stage transcripts remain discoverable and follow-up messaging resumes from the failed conversation instead of resetting to an empty session.
+- Fixed context compaction so older assistant `thinking` and `redacted_thinking` blocks can be removed like other stale blocks, while `thinking` or `redacted_thinking` blocks in the latest assistant message remain rejected by validation and paired tool-result restoration still preserves active context integrity ([#1386](https://github.com/bastani-inc/atomic/issues/1386)).
+- Fixed bundled workflow graph rendering/runtime state for limited-concurrency `ctx.parallel` fan-outs so queued branches now keep sibling parentage after earlier branch failures.
+- Fixed context compaction to universally protect every content block in the latest retained assistant message when that message contains `thinking` or `redacted_thinking`, so `context_delete` and `context_grep_delete` cannot remove visible sibling blocks or make an older partially-filtered thinking-bearing assistant become the latest retained assistant ([#1405](https://github.com/bastani-inc/atomic/issues/1405)).
+
+## [0.8.29] - 2026-06-15
+
+### Added
+
+- Added support for local `-e <dir>` extension sources to borrow project-local Atomic resources from `<dir>/.atomic`, legacy `<dir>/.pi`, and `<dir>/.agents/skills` after resolving trust for that extension source, preserving package-manager provenance and explicit-path workflow forwarding while avoiding untrusted borrowed resources ([#1354](https://github.com/bastani-inc/atomic/issues/1354)).
+- Added a prototype Rust/N-API Cursor HTTP/2 native transport binding through the generated `@bastani/atomic-natives` NAPI-RS package, so Atomic can use an in-process native HTTP/2 client without requiring Node.js on `PATH`.
+- Added the experimental bundled `@bastani/cursor` provider scaffold so `/login` can offer Cursor OAuth, estimated fallback exposes `cursor/composer-2`, and Cursor model mapping/streaming hooks are available behind an isolated HTTP/2 Connect transport boundary with production-default protobuf decoding, buffered Connect frames, write-before-headers Run streaming, stable Cursor conversation ids, schema-correct Cursor MCP tool advertisement, Cursor MCP tool-call decoding with protobuf `Value` or raw UTF-8/JSON arguments and exec-id metadata, same-stream MCP tool-result resume, abort/idle cleanup for paused tool streams, Connect end-stream error classification, exact live model id fidelity without static default injection, fast/thinking catalog grouping, and usage-delta accumulation.
+- Added the opt-in `createStructuredOutputTool({ schema, capture, output, name })` factory for terminating machine-readable final answers with direct schema-as-parameters capture, flat `details`, in-process capture, configurable private file capture via `output.outputPath`, and the concise two-line `structured_output` prompt guidance from `pi-dynamic-workflows` without registering `structured_output` in normal agent sessions by default ([#1350](https://github.com/bastani-inc/atomic/issues/1350)).
+
+### Changed
+
+- Changed the bundled builtin `ralph` workflow to run `/skill:prompt-engineer` prompt-engineering and `/skill:research-codebase` research before orchestration instead of starting with an RFC/planner stage, pass the research artifact as primary implementation context, reuse prior research session data on follow-up loops, and feed unresolved reviewer findings into later research passes ([#1371](https://github.com/bastani-inc/atomic/issues/1371)).
+- Changed bundled `goal`, `ralph`, and `open-claude-design` decision gates to use schema-backed workflow `structured_output` stages instead of registering bespoke terminating custom tools.
+- Changed bundled `goal` worker/reviewer prompts and `ralph` orchestrator/reviewer prompts to request end-to-end verification when practical, using browser-skilled subagents for web/frontend flows that may depend on backend/API behavior and tmux-skilled subagents for TUI or terminal-app scenarios.
+- Bumped the bundled upstream pi runtime libraries `@earendil-works/pi-agent-core`, `@earendil-works/pi-ai`, and `@earendil-works/pi-tui` from `^0.79.1` to `^0.79.3`, bringing the latest upstream provider, model, agent-core, and TUI compatibility fixes into `@bastani/atomic`.
+- Updated the structured-output extension example and SDK/workflow/extension docs to use the canonical factory instead of hand-rolled `terminate: true` wrappers, and documented that Atomic passes the supplied schema directly to the tool without additional structured-output parsing, object-root restrictions, or sidecar validation ([#1350](https://github.com/bastani-inc/atomic/issues/1350)).
+- Made custom-named factory tools advertise the configured name in concise prompt metadata, and documented that text print mode recognizes factory-created custom structured-output tools without treating every terminating tool as printable ([#1350](https://github.com/bastani-inc/atomic/issues/1350)).
+- Changed factory-created structured-output tool descriptions and prompt guidance to use context-neutral final-result wording for SDK, extension, workflow, and subagent registrations ([#1350](https://github.com/bastani-inc/atomic/issues/1350)).
+- Clarified SDK, extension, and workflow guidance that structured-output tools are opt-in custom tools, with workflow stages/tasks/chains/parallel items receiving `structured_output` only when they declare a `schema` and subagent children receiving it only when `outputSchema` is enabled ([#1350](https://github.com/bastani-inc/atomic/issues/1350)).
+
+### Fixed
+
+- Fixed the root `@bastani/atomic` package export to include a `default` condition alongside the ESM import target, improving compatibility with loaders that select default export conditions.
+- Fixed extension custom UI focus deferral so full-screen overlays can keep keyboard focus while a parent/main-chat inline custom UI is pending, then focus that pending UI when the overlay is hidden; already-aborted custom UI calls no longer invoke factories or emit host custom-UI state changes ([#1353](https://github.com/bastani-inc/atomic/issues/1353)).
+- Fixed text print mode to emit trailing terminating JSON from factory-created structured-output tools, including custom tool names such as `final_decision`, instead of only recognizing the canonical `structured_output` name; the same structured value remains available through `details`, capture sinks, and workflow/subagent structured result fields ([#1350](https://github.com/bastani-inc/atomic/issues/1350)).
+- Fixed terminating `structured_output` results to opt out of oversized-result persistence ([#1350](https://github.com/bastani-inc/atomic/issues/1350)).
+- Fixed cross-process structured-output file capture to preserve flat tool arguments in `output.json` without sidecar metadata or transcript-finality parsing ([#1350](https://github.com/bastani-inc/atomic/issues/1350)).
+- Fixed bundled subagent handling so explicit empty `tools: []` plus `outputSchema` grants only the schema-backed `structured_output` runtime tool instead of restoring default tools ([#1350](https://github.com/bastani-inc/atomic/issues/1350)).
+- Fixed prerelease publishing for native Atomic artifacts by allowing the `@bastani/atomic-natives` package metadata in release-preparation verification, running native artifact builds on architecture-matched Blacksmith and macOS runners, and documenting the two-package publish flow while keeping npm provenance publishing on GitHub-hosted Ubuntu.
+- Fixed the bundled experimental Cursor provider to honor per-request stream deadlines across open/read/resume writes, reset timed-out or aborted streams, clean up replaced paused turns safely, catch cleanup cancellation failures, tolerate non-MCP Cursor exec protocol messages without ending assistant turns, and align Run requests with Cursor's private CLI protocol by using blob/KV conversation state plus request-context tool-definition responses without the unsupported custom system-prompt field ([#1286](https://github.com/bastani-inc/atomic/issues/1286)).
+- Fixed release archive startup for the bundled experimental Cursor provider by declaring `@bufbuild/protobuf` as an `@bastani/atomic` runtime dependency, covering Cursor in the bundled-package dependency metadata guard, and smoke-checking Cursor/protobuf assets in native archives ([#1286](https://github.com/bastani-inc/atomic/issues/1286)).
+- Fixed bundled `ralph` skill-prompt stages to invoke bundled skills through `/skill:<name>` expansion so prompt engineering and research stages receive the intended skill instructions.
+- Fixed concurrent bundled workflow stage resource reloads to serialize temporary subagent child environment isolation so parallel stage startup cannot leave parent process child flags accidentally cleared.
+- Fixed bundled workflow stage sessions to keep workflow package skills (`create-spec`, `impeccable`, `prompt-engineer`, `research-codebase`, and `skill-creator`) available while disabling only the recursive workflows extension in child sessions.
+- Fixed bundled workflow stage resource discovery so bundled subagent definitions stay available, `subagent` is active by default with the same two-hop nesting budget as main chat, and explicitly allowlisted bundled extension tools such as `subagent`, `web_search`, `fetch_content`, and `intercom` remain visible even when a workflow is launched from a subagent child process.
+
+### Security
+
+- Kept Cursor credentials OAuth-only with token/header and PKCE poll-secret redaction and no localhost proxy, while moving Cursor HTTP/2 to a bundled Rust/N-API native binding and no longer sending the current working directory as `previousWorkspaceUris` by default.
+
+## [0.8.28] - 2026-06-11
+
+### Added
+
+- Added optional inline free-form text entry to the `ask_user_question` TUI's **Chat about this** footer row. Non-empty typed chat text now returns as a `kind: "chat"` answer surfaced to the agent without the legacy stop/wait termination envelope, while empty submissions keep the existing sentinel behavior.
+- Added session-scoped `bashPolicy` support for the built-in `bash` tool, with exact/prefix/command-string-glob/regex rules, deny-over-allow precedence, segment-aware parsing by default, fail-closed validation of invalid policies, and conservative rejection of compound heads, redirections, assignments, and non-literal command heads before shell execution.
+- Ported the upstream project-trust store and resolver foundation: project trust decisions are remembered, `--approve`/`--no-approve` affect runtime trust state, untrusted sessions skip project-local extensions/resources/context/system-prompt discovery and refuse project-setting writes, startup migrations and project config reads are trust-gated, and a new `/trust` slash command with the upstream `TrustSelectorComponent` lets saved project-trust decisions be reviewed and changed in-session.
+- Added upstream pi 0.76.0-0.79.1 coding-agent compatibility exports for package asset path helpers, CLI argument parsing (`Args`, `parseArgs`), `SettingsManagerCreateOptions`, image conversion (`convertToPng`), and RPC extension UI request/response types, plus the shared JSON comment/trailing-comma stripping utility used by model configuration migrations.
+- Added the upstream `project-trust`, `git-merge-and-resolve`, `input-transform-streaming`, and Gondolin tool-routing example extensions adapted to Atomic package identity, shared `warnDeprecation`/`openBrowser` utilities, upstream `docs/security.md` and `docs/containerization.md` rebranded for Atomic, and extensive upstream regression coverage.
+
+### Changed
+
+- Changed Atomic compaction to be verbatim-only across manual `/compact`, automatic threshold/overflow compaction, SDK/RPC compaction, and extension-triggered compaction. All compaction now records validated `context_compaction` deletion targets and rebuilds active context with retained transcript content verbatim and unchanged; retained file paths, exact commands, error strings, and line numbers are never paraphrased.
+- Changed compaction extension hooks (`session_before_compact`, `session_compact`) to receive verbatim context-compaction preparations/results and allow cancellation or locally validated deletion requests instead of custom generated summaries.
+- Changed the verbatim compaction critical-overflow recovery prompt to evict in an explicit priority order (removable reasoning traces first, then removable user/custom/summary context) while preserving existing safety/retention rules ([#1308](https://github.com/bastani-inc/atomic/issues/1308)).
+- Changed the bundled builtin `deep-research-codebase`, `goal`, `ralph`, and `open-claude-design` workflows to use `anthropic/claude-fable-5:xhigh` as the primary planner/reviewer/design model, demoting each previous primary to the head of the fallback chain ([#1345](https://github.com/bastani-inc/atomic/pull/1345)).
+- Bumped the bundled upstream pi libraries `@earendil-works/pi-agent-core`, `@earendil-works/pi-ai`, and `@earendil-works/pi-tui` from `^0.78.1` to `^0.79.1`, bringing in Claude Fable 5 and Azure metadata updates, GPT-5 token/context metadata fixes, provider thinking-payload compatibility updates, autocomplete/CJK prompt rendering fixes, and keyboard-protocol fallback improvements.
+- Ported upstream prompt-template argument default handling and added `${N:-default}` positional default support in prompt templates, matching upstream slash-template substitution behavior without recursively expanding argument/default values.
+
+### Fixed
+
+- Fixed oversized tool-call results flooding model context by persisting large results to disk (`<sessionDir>/tool-results/<toolCallId>.txt`) and returning a compact `<persisted-output>` message with the file path and a 2KB head preview when a result exceeds the 50,000-character system cap or a lower per-tool cap; tools can opt out via `maxResultSizeChars: Infinity`, and persistence degrades gracefully for images or write failures ([#1322](https://github.com/bastani-inc/atomic/issues/1322)).
+- Fixed the Read tool to block text file-read results above 50,000 characters and return incremental-read guidance, including byte-slice guidance for oversized single-line selections ([#1323](https://github.com/bastani-inc/atomic/issues/1323)).
+- Fixed `AgentSession.prompt` surfacing the confusing `No API key found for undefined` error when a model never resolved to a real provider; the prompt path now fails fast with a clear `Unknown model: "<id>" did not resolve to an available provider` message.
+- Hardened prompt-template argument substitution against polynomial-time regex backtracking (ReDoS) by length-bounding the `${N:-default}` default-value capture.
+- Fixed provider auth-status reporting for explicit `$ENV_VAR` config values, preserved uppercase literal credentials during config-value migrations (including legacy `~/.pi/agent` roots), preserved `models.json` JSONC comments/formatting during migration, and accepted the upstream `supportsDeveloperRole` flag for custom OpenAI Responses models.
+- Fixed RPC client requests to reject promptly when the child agent process exits or its stdio fails, completed the RPC-mode output/backpressure and `excludeFromContext` bash-command port, and preserved steering/follow-up queue modes across extension-triggered RPC session reloads.
+- Fixed SDK provider stream options so HTTP idle timeouts and WebSocket connect timeouts from settings are forwarded to provider streams while preserving per-request overrides.
+- Fixed interactive startup input handling so prompts submitted before the main input loop is installed are queued instead of dropped, captured command-like and ordinary startup submissions replay in original input order without later prompts leapfrogging earlier commands, prompts typed behind an active startup command stay behind that command even while a prior prompt is streaming, and pre-session selectors or confirmations such as `--resume` and cross-project `--session` no longer leak typed text into chat input.
+- Fixed the initial `--resume` session picker and all-sessions pane to honor a custom `--session-dir`, and fixed signal-triggered shutdown ordering so extension `session_shutdown` cleanup runs before terminal restore writes.
+- Fixed plain metadata commands (`--version`, `--help`, `--list-models`) to keep their output on stdout for scripts/completions while keeping auto-install/startup chatter off stdout.
+- Fixed OAuth login dialog prompt/manual input rendering so submitted values remain stable, auth storage writes to consistently use `0600` file mode, and self-update command generation to bypass package-manager minimum-release-age delays.
+- Fixed changelog link normalization to produce Atomic repository/tag-pinned links from local package links and legacy pi-mono URLs, wired into startup and `/changelog` output.
+- Fixed WSL repositories on Windows-mounted paths to poll Git `HEAD` changes so the footer branch display updates reliably, plus footer cache-hit-rate display, settings selector default project-trust editing, tool self-render image rendering, and collapsed tool-output hint styling.
+- Rebranded provider attribution headers (OpenRouter, NVIDIA NIM) and the Gondolin VM session label to Atomic identity, matched OpenRouter-compatible custom endpoints by exact hostname, and corrected README/RPC/session-format/SDK/example docs to use `atomic`, `ATOMIC_*`, and `.atomic` as primary with legacy `PI_*`/`.pi` labeled as such.
+- Fixed extension command contexts to expose live base system-prompt options, hid `streamingBehavior` from idle input handlers, continued agent turns for follow-ups queued during `agent_end` handlers, and ported upstream tool path rendering with terminal hyperlink support for edit tool output.
+
+### Removed
+
+- Removed the legacy summary-compaction runtime path, summary prompts, `CompactionEntry` active-context injection, `CompactionSummaryMessage` active message type, custom compaction instructions (`CompactOptions.customInstructions`, RPC `compact.customInstructions`, `/compact [instructions]`), `compaction.keepRecentTokens` setting, summary-compaction public exports, and summary-compaction docs and examples. Historical `type:"compaction"` JSONL lines on disk are inert and are not injected into active LLM context.
+
+### Security
+
+- Bumped the transitive `shell-quote` dependency from `1.8.3` to `1.8.4` in the `examples/extensions/sandbox` lockfile, resolving the critical advisory [GHSA-w7jw-789q-3m8p](https://github.com/advisories/GHSA-w7jw-789q-3m8p).
+
+## [0.8.28-alpha.4] - 2026-06-11
+
+### Changed
+
+- Changed the bundled builtin `deep-research-codebase`, `goal`, `ralph`, and `open-claude-design` workflows to use `anthropic/claude-fable-5:xhigh` as the primary planner/reviewer/design model, demoting each previous primary (`openai-codex/gpt-5.5:xhigh` or `github-copilot/claude-opus-4.8:xhigh`) to the head of the fallback chain ([#1345](https://github.com/bastani-inc/atomic/pull/1345)).
+
+## [0.8.28-alpha.3] - 2026-06-11
+
+### Added
+
+- Added optional inline free-form text entry to the `ask_user_question` TUI's **Chat about this** footer row. Non-empty typed chat text now returns as a `kind: "chat"` answer and is surfaced to the agent without the legacy stop/wait termination envelope, while empty submissions keep the existing sentinel behavior.
+- Added session-scoped `bashPolicy` support for the built-in `bash` tool, with exact/prefix/command-string-glob/regex rules, deny-over-allow precedence, segment-aware parsing by default, newline command separators, conservative reserved/compound-head, leading-redirection, attached command-head redirection, assignment, and non-literal command-head rejection, escaped glob bracket-class literal preservation, invalid glob range handling through `invalid-policy`, non-leading `>|` noclobber redirection handling, unknown top-level policy key rejection, runtime invalid-policy fail-closed validation, default-allow no-rule compatibility, and enforcement before shell execution.
+
+## [0.8.28-alpha.2] - 2026-06-10
+
+### Security
+
+- Bumped the transitive `shell-quote` dependency from `1.8.3` to `1.8.4` in the `examples/extensions/sandbox` lockfile, resolving the critical advisory [GHSA-w7jw-789q-3m8p](https://github.com/advisories/GHSA-w7jw-789q-3m8p) (`shell-quote` `quote()` does not escape newlines in object `.op` values). The bump stays within `@anthropic-ai/sandbox-runtime`'s existing `^1.8.3` range.
+
+### Added
+
+- Added upstream pi 0.76.0-0.79.1 coding-agent compatibility exports for package asset path helpers (`getPackageDir`, bundled asset/documentation/example paths), CLI argument parsing (`Args`, `parseArgs`), `SettingsManagerCreateOptions`, image conversion (`convertToPng`), and RPC extension UI request/response types so extensions can reference the same public APIs as upstream while retaining Atomic package identity.
+- Added the shared JSON comment/trailing-comma stripping utility used by model configuration migrations, aligning Atomic with upstream's safer config-value migration path.
+- Added the upstream project-trust selector UI (`/trust` slash command and `TrustSelectorComponent`) so saved project-trust decisions can be reviewed and changed inside an interactive session, plus the corresponding upstream component test.
+- Added the upstream `project-trust`, `git-merge-and-resolve`, and `input-transform-streaming` example extensions, adapted to Atomic package identity and config directory conventions.
+- Added upstream `docs/security.md` and `docs/containerization.md`, rebranded to Atomic naming, config directories, environment variables, and package identity, and wired them into the docs navigation.
+- Added the upstream Gondolin tool-routing example extension under `examples/extensions/gondolin`, rebranded for Atomic usage/imports so the new containerization guide points at a shipped example, and kept host shell environment secrets out of guest VM tool execution.
+- Added shared `warnDeprecation` and `openBrowser` utilities from upstream and routed `registerProvider` legacy env-var migration and OAuth browser-launch through them.
+- Added upstream regression coverage for experimental feature gating, config-value env-var syntax migration (`auth.json`/`models.json` and `registerProvider`), the ported example extensions, startup input buffering, resume-command formatting, changelog link normalization, RPC child-process exits, SDK stream options, read-only session-id handling, startup session naming, exclude-tools behavior, signal shutdown cleanup, and extension OAuth prompt input stability.
+
+### Changed
+
+- Bumped the bundled upstream pi libraries `@earendil-works/pi-agent-core`, `@earendil-works/pi-ai`, and `@earendil-works/pi-tui` from `^0.78.1` to `^0.79.1`, bringing in upstream AI/model and TUI fixes such as Claude Fable 5 and Azure metadata updates, GPT-5 token/context metadata fixes, provider thinking-payload compatibility updates, autocomplete/CJK prompt rendering fixes, and keyboard-protocol fallback improvements.
+- Ported upstream prompt-template argument default handling so programmatic callers can omit explicit prompt paths and default-inclusion options while existing Atomic resource-loading behavior remains explicit and unchanged.
+- Added `${N:-default}` positional default support in prompt templates, matching upstream slash-template substitution behavior without recursively expanding argument/default values.
+
+### Fixed
+
+- Fixed oversized tool-call results flooding model context by persisting large results to disk instead of returning them inline. Following the Claude Code tool-result storage convention, when a tool result's text content exceeds the system-wide cap of 50,000 characters (`DEFAULT_MAX_RESULT_SIZE_CHARS`) or a lower per-tool character cap, the full output is written to a session-scoped file (`<sessionDir>/tool-results/<toolCallId>.txt`) and the model receives a compact `<persisted-output>` message containing the file path plus a 2KB preview of the head of the output instead of the full payload. Tools can declare `maxResultSizeChars: Infinity` to opt out when they already self-bound model-visible output and provide their own full-output file; the built-in `bash` and `read` tools use that opt-out. Writes use the `wx` flag so repeated/replayed calls reuse the existing file (idempotent), size labels are reported in UTF-8 bytes while the threshold remains character-based, and persistence degrades gracefully — image results and any result that cannot be written to disk are returned unchanged. Tool `details` metadata is passed through untouched ([#1322](https://github.com/bastani-inc/atomic/issues/1322)).
+- Fixed the Read tool to block text file-read results above 50,000 characters (matching the mehmoodosman/claude-code `DEFAULT_MAX_RESULT_SIZE_CHARS` limit) and return incremental-read guidance, including byte-slice guidance for oversized single-line selections, instead of inserting oversized file contents into model context ([#1323](https://github.com/bastani-inc/atomic/issues/1323)).
+- Hardened the prompt-template argument substitution against polynomial-time regex backtracking (ReDoS) by length-bounding the `${N:-default}` default-value capture when scanning template content read from disk (an Atomic divergence from upstream; the bound far exceeds any realistic default value).
+- Fixed the containerization guide to link the Gondolin example extension via an absolute repository URL instead of a relative `../examples/...` path so docs link validation passes.
+- Fixed custom OpenAI Responses model validation to accept the upstream `supportsDeveloperRole` compatibility flag in `models.json`.
+- Fixed provider auth-status reporting for explicit `$ENV_VAR` config values so missing environment variables are reported as unconfigured instead of as literal `models.json` API keys.
+- Rebranded provider attribution headers for OpenRouter and NVIDIA NIM so Atomic sends Atomic identity rather than upstream Pi identity when install telemetry is enabled, matched OpenRouter-compatible custom endpoints by exact hostname rather than substring, and rebranded the Gondolin VM session label.
+- Fixed config-value migrations to cover legacy `~/.pi/agent` config roots that Atomic still reads as compatibility fallbacks while preserving uppercase literal credentials when no matching environment variable exists and preserving `models.json` JSONC comments/formatting while rewriting only the intended `apiKey`/header fields.
+- Fixed the initial `--resume` session picker so its all-sessions pane honors a custom `--session-dir`.
+- Fixed interactive startup input handling so prompts submitted before the main input loop is installed are queued instead of dropped.
+- Fixed RPC client requests to reject promptly when the child agent process exits or its stdio fails, and completed the RPC-mode output/backpressure and `excludeFromContext` bash-command port so high-volume JSONL output is flushed before continuation/shutdown.
+- Fixed SDK provider stream options so HTTP idle timeouts and WebSocket connect timeouts from settings are forwarded to provider streams, while preserving per-request overrides.
+- Fixed self-update command generation to bypass npm/pnpm/Bun minimum-release-age delays when reinstalling Atomic globally and documented the newly ported session, tool exclusion, and project-trust CLI flags in public usage docs/README.
+- Fixed auth storage writes to consistently create/update `auth.json` with `0600` file mode.
+- Fixed WSL repositories on Windows-mounted paths to poll Git `HEAD` changes so the footer branch display updates reliably.
+- Fixed branch summarization to use the session stream function for provider request behavior parity and to count image content during token estimation.
+- Fixed footer cache-hit-rate display, settings selector default project-trust editing, tool self-render image rendering, and collapsed tool-output hint styling.
+- Fixed extension command contexts to expose live base system-prompt options, hid `streamingBehavior` from idle input handlers, and continued agent turns for follow-ups queued during `agent_end` extension handlers.
+- Fixed signal-triggered interactive shutdown ordering so extension `session_shutdown` cleanup runs before terminal restore writes, and interactive quits print a resume command for persisted sessions.
+- Fixed OAuth login dialog prompt/manual input rendering so submitted values remain stable after later prompts reuse the input component.
+- Fixed changelog link normalization to produce Atomic repository/tag-pinned links from local package links and legacy pi-mono repository URLs using Atomic's unprefixed release tags, and wired normalization into startup and `/changelog` display output.
+- Fixed custom model/provider/extension docs and API comments to use explicit `$ENV_VAR` config-value syntax now that bare uppercase strings are treated as literals, clarified that legacy uppercase env-like auth values are migrated only when the referenced environment variable is present during migration, restored real provider authentication environment variable names such as `ANTHROPIC_API_KEY`/`AZURE_OPENAI_API_VERSION`, corrected README/RPC/session-format/SDK/example path branding to use `atomic`, `ATOMIC_*`, and `.atomic` as primary with `PI_*`/`.pi` labeled legacy, removed the nonexistent `ATOMIC_CACHE_RETENTION` README entry in favor of the real provider-specific `PI_CACHE_RETENTION` knob, fixed README Atomic package anchors and package CLI examples, updated preset/sandbox/subagent examples to load project config from `.atomic` before legacy `.pi` and only after `ctx.isProjectTrusted()` approves project-local resources where applicable, documented context files as project-trust inputs in the security guide, documented the new `project_trust` extension event, `ctx.isProjectTrusted()`, and shipped project-trust/Gondolin/streaming-input examples, and updated README philosophy/example comments so Atomic's bundled workflows, subagents, MCP, web access, intercom, and todo capabilities are documented as shipped first-party features rather than absent upstream-Pi capabilities.
+- Fixed extension-triggered RPC session reloads to preserve the current steering and follow-up queue modes across reload.
+- Fixed plain metadata commands (`--version`, `--help`, and `--list-models`) to keep their output on stdout for scripts/completions, while package auto-install/startup chatter is kept off stdout and explicit non-interactive modes such as `-p --help` and `--mode json --help` continue routing all output away from stdout.
+- Fixed the resume session picker so all-session listing respects a custom `--session-dir` instead of falling back to the default global session directory.
+- Ported upstream tool path rendering support for edit tool output, including terminal hyperlink support when available, and accompanying upstream regression coverage for argument parsing, extension input events, session file operations, syntax highlighting, and related helpers.
+- Fixed the ported coding-agent package tests by adding upstream CLI parsing and runtime wiring for named sessions, exact session ids, project trust approval overrides, and tool exclusion; extension runner context mode/project-trust APIs and input streaming behavior; prompt-guideline exposure in tool metadata; safer export-HTML markdown URL sanitization; Ant Ling default model selection; syntax highlight mappings for regex/diff scopes; custom session-id validation and propagation; cwd-scoped flat session listing; and streaming session-file reads for very large transcripts.
+- Ported the upstream project-trust store and resolver foundation so project trust decisions can be remembered, `--approve`/`--no-approve` affects runtime trust state, extension `ctx.isProjectTrusted()` reflects the active decision instead of always reporting trusted, startup settings and project-local migrations are gated before project config is read, first-run interactive or extension project-trust approval immediately reruns trusted project migrations for the current startup, `defaultProjectTrust: "always"` is honored before startup project migrations/session lookup, untrusted sessions bootstrap without loading project-local extensions/resources, project-setting writes are refused while untrusted, trust-store lock acquisition retries transient contention, untrusted sessions skip project-local context/system prompt discovery, context-only projects with `AGENTS.md`/`CLAUDE.md` are trust-gated instead of implicitly trusted, reload-created project config can persist implicit startup trust for future sessions, `/trust` saves decisions through the active runtime agent directory, legacy `.pi` project config roots are gated behind trust alongside `.atomic`, user-global `~/.agents/skills` no longer makes every child project require project approval, read-only help/model-list commands avoid interactive trust prompts, session-only trust decisions persist across runtime reloads in the current process, stored trust decisions can still be reviewed by pre-trust extension handlers, pre-trust extensions are reused for the final extension set instead of initialized twice, interactive session switches use the active TUI context for trust prompts, package/config commands now resolve project trust before reading or writing project package settings, and manager-level project package install/remove operations refuse to touch project package storage while untrusted.
+## [0.8.28-alpha.1] - 2026-06-09
+
+### Changed
+
+- Changed Atomic compaction to be verbatim-only across manual `/compact`, automatic threshold/overflow compaction, SDK/RPC compaction, and extension-triggered compaction. All compaction now records validated `context_compaction` deletion targets and rebuilds active context with retained transcript content verbatim and unchanged. Retained file paths, exact commands, error strings, and line numbers are never paraphrased or rewritten.
+- Changed compaction extension hooks (`session_before_compact`, `session_compact`) to receive verbatim context-compaction preparations/results and allow cancellation or locally validated deletion requests instead of custom generated summaries. The before-compact hook now yields `ContextCompactionPreparation` and accepts `{ cancel: true }` or `{ deletionRequest }` returns; the after-compact hook now receives `ContextCompactionResult` and `contextCompactionEntry`.
+- Changed the verbatim compaction critical-overflow recovery prompt to evict in an explicit priority order when context still exceeds the token budget after compaction: removable reasoning traces are evicted first, then removable user/custom/summary context. Existing safety/retention rules (recent entries, unresolved errors, failed commands, and at least one task-bearing entry) are preserved ([#1308](https://github.com/bastani-inc/atomic/issues/1308)).
+
+### Fixed
+
+- Fixed `AgentSession.prompt` surfacing the confusing `No API key found for undefined` error when a model never resolved to a real provider (for example an unknown/unresolved model id reaching the prompt path as a bare string). The prompt path now fails fast with a clear `Unknown model: "<id>" did not resolve to an available provider` message, and `No API key found` guidance no longer renders a literal `undefined` provider.
+
+### Removed
+
+- Removed the legacy summary-compaction runtime path, summary prompts, `CompactionEntry` active-context injection, `CompactionSummaryMessage` active message type, custom compaction instructions (`CompactOptions.customInstructions`, RPC `compact.customInstructions`, `/compact [instructions]`), `compaction.keepRecentTokens` setting, summary-compaction public exports (`CompactionResult`, `CompactionPreparation`, `appendCompaction()`, `prepareCompaction()`, `generateSummary()`, summary `compact()`), and summary-compaction docs and examples. Historical `type:"compaction"` JSONL lines on disk are inert and are not injected into active LLM context.
+
+## [0.8.27] - 2026-06-08
+
+### Fixed
+
+- Fixed `/compact` and auto-compaction regressions by removing the native `better-sqlite3` dependency from transcript-bound deletion tools and preserving the currently selected reasoning level for the compaction planner ([#1310](https://github.com/bastani-inc/atomic/issues/1310)).
+
+## [0.8.27-alpha.1] - 2026-06-08
+
+### Fixed
+
+- Fixed `/compact` and auto-compaction regressions by removing the native `better-sqlite3` dependency from transcript-bound deletion tools and preserving the currently selected reasoning level for the compaction planner ([#1310](https://github.com/bastani-inc/atomic/issues/1310)).
+
+## [0.8.26] - 2026-06-08
+
+### Added
+
+- Added deletion-only transcript compaction as the default `/compact` behavior, preserving retained transcript content verbatim while validating model-proposed logical deletion targets.
+- Added session entries and expandable summary-card rendering for completed context compaction results.
+
+### Changed
+
+- Improved Windows cold startup by lazily loading bundled web-access, intercom, and MCP implementation modules, deferring readiness checks until after the first interactive frame, and adding detailed startup timing spans ([#1223](https://github.com/bastani-inc/atomic/issues/1223)).
+- Updated automatic compaction and manual `/compact` documentation to describe transcript-bound Verbatim Compaction, validated logical deletion targets, critical overflow behavior, and legacy summary-compaction settings.
+- Documented npm and pnpm installation options in Atomic docs and limited Mintlify validation to pull requests ([#1294](https://github.com/bastani-inc/atomic/pull/1294)).
+- Updated builtin `ralph` workflow docs to describe the safe default for PR creation, `create_pr=true` opt-in examples, omitted disabled `pr_report`, and final-stage-only provider-aware PR/MR/review creation instructions ([#1255](https://github.com/bastani-inc/atomic/issues/1255)).
+- Updated maintainer release guidance so prerelease and stable changelog entries summarize concrete user-facing changes instead of placeholder version-bump notes.
+- Bumped the `@earendil-works/pi-agent-core`, `@earendil-works/pi-ai`, and `@earendil-works/pi-tui` dependencies to 0.78.1.
+
+### Fixed
+
+- Fixed an uncaught `TypeError: child.render is not a function` crash on `/resume` when an extension custom-message renderer returned a non-`Component` value, and allowed custom-message renderers to return `null` to render nothing ([#1236](https://github.com/bastani-inc/atomic/issues/1236)).
+- Fixed auto-compaction so queued in-progress work resumes without requiring a manual follow-up prompt ([#1280](https://github.com/bastani-inc/atomic/issues/1280)).
+- Clarified overflow auto-compaction warnings in the TUI footer so automatic transcript compaction is reported distinctly from user-triggered compaction ([#1250](https://github.com/bastani-inc/atomic/issues/1250)).
+- Fixed internal Git subprocesses to strip ambient repository-local Git environment variables before package-manager and footer branch lookups inspect a targeted working tree.
+- Fixed Mintlify MDX autolinks in package docs so documentation validation passes ([#1293](https://github.com/bastani-inc/atomic/pull/1293)).
+
+### Removed
+
+- Removed the `/context-compact` interactive and workflow-stage slash command; use `/compact` instead.
+- Removed the temporary manual `@earendil-works/pi-tui` patch, patched-dependency configuration, and bundled patched TUI packaging fallback.
+
+## [0.8.26-alpha.11] - 2026-06-08
+
+### Changed
+
+- Updated maintainer release guidance to require prerelease and stable changelog entries to summarize concrete user-facing changes instead of placeholder version-bump notes.
+
+## [0.8.26-alpha.10] - 2026-06-08
+
+### Changed
+
+- Updated compaction documentation to explain transcript-bound Verbatim Compaction, validated logical deletion targets, critical overflow behavior, and legacy summary-compaction settings.
+
+## [0.8.26-alpha.9] - 2026-06-07
+
+### Changed
+
+- Documented npm/pnpm installation options in Atomic docs and limited Mintlify validation to pull requests ([#1294](https://github.com/bastani-inc/atomic/pull/1294)).
+- Fixed Mintlify MDX autolinks in package docs so documentation validation passes ([#1293](https://github.com/bastani-inc/atomic/pull/1293)).
+
+## [0.8.26-alpha.8] - 2026-06-07
+
+### Changed
+
+- Changed manual `/compact` and auto-compaction to use deletion-only context compaction by default, preserving retained transcript content verbatim.
+- Restyled completed context compaction results with the same expandable summary-card treatment as summary compaction.
+
+### Removed
+
+- Removed the `/context-compact` interactive and workflow-stage slash command; use `/compact` instead.
+
+## [0.8.26-alpha.7] - 2026-06-07
+
+### Added
+
+- Added `/context-compact`, a fixed no-argument deletion-only compaction command that validates model-proposed logical deletion targets, preserves retained transcript content verbatim, and records `context_compaction` session entries.
+
+### Changed
+
+- Bumped the `@earendil-works/pi-agent-core`, `@earendil-works/pi-ai`, and `@earendil-works/pi-tui` dependencies to 0.78.1.
+
+### Fixed
+
+- Fixed auto-compaction so queued in-progress work resumes without requiring a manual follow-up prompt ([#1280](https://github.com/bastani-inc/atomic/issues/1280)).
+
+### Removed
+
+- Removed the temporary manual `@earendil-works/pi-tui` patch, patched-dependency configuration, and bundled patched TUI packaging fallback.
+
+## [0.8.26-alpha.6] - 2026-06-06
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.26-alpha.6 prerelease.
+
+## [0.8.26-alpha.5] - 2026-06-06
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.26-alpha.5 prerelease.
+
+## [0.8.26-alpha.4] - 2026-06-05
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.26-alpha.4 prerelease.
+
+## [0.8.26-alpha.3] - 2026-06-05
+
+### Changed
+
+- Documented the builtin `ralph` workflow's safe default for PR creation, `create_pr=true` opt-in examples, omitted disabled `pr_report`, and final-stage-only provider-aware PR/MR/review creation instructions ([#1255](https://github.com/bastani-inc/atomic/issues/1255)).
+
+## [0.8.26-alpha.2] - 2026-06-05
+
+### Fixed
+
+- Clarified overflow auto-compaction warnings in the TUI footer so automatic transcript compaction is reported distinctly from user-triggered compaction ([#1250](https://github.com/bastani-inc/atomic/issues/1250)).
+- Fixed internal Git subprocesses to strip ambient repository-local Git environment variables before package-manager and footer branch lookups inspect a targeted working tree.
+
+## [0.8.26-alpha.1] - 2026-06-05
+
+### Fixed
+
+- Fixed an uncaught `TypeError: child.render is not a function` that crashed the TUI on `/resume` when an extension's custom-message renderer returned a non-`Component` value (such as a string). `CustomMessageComponent` now validates the renderer result exposes a `render()` method and falls back to the default boxed rendering otherwise ([#1236](https://github.com/bastani-inc/atomic/issues/1236)).
+- Custom-message renderers can now return `null` to render nothing: `CustomMessageComponent` skips its default box and the leading spacer for a `null` result so the entry occupies zero rows. This lets extensions suppress a rehydrated entry whose backing state is gone (e.g. the workflows input form on `/resume`) without leaving a blank line.
+
+### Changed
+
+- Improved Windows cold startup by lazily loading heavy bundled web-access/intercom/MCP implementation modules, moving fd/rg readiness checks after the first interactive frame, and adding detailed startup timing spans ([#1223](https://github.com/bastani-inc/atomic/issues/1223)).
+
+## [0.8.25] - 2026-06-04
+
+### Changed
+
+- Promoted the 0.8.25 prerelease package version to a stable release.
+
+## [0.8.25-alpha.1] - 2026-06-04
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.25-alpha.1 prerelease.
+
+## [0.8.24] - 2026-06-04
+
+### Changed
+
+- Promoted the 0.8.24 prerelease package version to a stable release.
+
+## [0.8.24-alpha.4] - 2026-06-04
+
+### Fixed
+
+- Fixed TUI flicker and scrollback wipes while scrolling during active streaming in short terminals by adding a strict no-write off-viewport renderer skip and preserving scrollback for content-driven full redraws ([#1222](https://github.com/bastani-inc/atomic/issues/1222)).
+
+## [0.8.24-alpha.3] - 2026-06-03
+
+### Added
+
+- Added `/exit` as a built-in interactive slash command alias for graceful app shutdown from the main chat.
+
+## [0.8.24-alpha.2] - 2026-06-03
+
+### Added
+
+- Shipped externally-resolvable TypeScript types for the `@bastani/workflows` SDK through `@bastani/atomic`. New `./workflows`, `./workflows/builtin`, `./workflows/builtin/*`, and `./workflows/ambient` package exports resolve to declarations emitted from the lean authoring surface during the build, and a generated ambient bridge maps the documented bare `@bastani/workflows` specifier (and its `builtin/*` submodules) onto those exports. Installed packages now type-check `import { defineWorkflow, Type } from "@bastani/workflows"` and `@bastani/workflows/builtin/*` composition imports under `tsc` (`moduleResolution: NodeNext`) with no hand-authored `.d.ts`, no `declare module` shim, and no `paths` alias: packages that import `@bastani/atomic` pick the types up automatically, while pure workflow-only packages add one `compilerOptions.types: ["@bastani/atomic/workflows/ambient"]` (or `/// <reference types="@bastani/atomic/workflows/ambient" />`) opt-in. The runtime workflow loader, jiti virtual modules, and `atomic.workflows` discovery are unchanged ([#1208](https://github.com/bastani-inc/atomic/issues/1208)).
+- Added a `verify:workflow-types` script that packs `@bastani/atomic` and type-checks throwaway external consumer fixtures (workflow-only opt-in, reference directive, auto-include, and a negative control) so the issue #1208 acceptance test is repeatable ([#1208](https://github.com/bastani-inc/atomic/issues/1208)).
+
+### Changed
+
+- Documented the workflow SDK typing model in `docs/packages.md` and `docs/workflows.md`: the single ambient opt-in for pure workflow-only packages, automatic pickup for packages that import `@bastani/atomic`, and the requirement to list `@bastani/atomic` and `typebox` as peer dependencies ([#1208](https://github.com/bastani-inc/atomic/issues/1208)).
+
+## [0.8.24-alpha.1] - 2026-06-02
+
+### Breaking Changes
+
+- Removed the bundled workflows package's imperative `runWorkflow` object-form API; workflow packages must export branded `defineWorkflow(...).compile()` definitions while direct `workflow` tool task/tasks/chain modes remain available.
+
+### Changed
+
+- Adopted the new `-alpha.N` prerelease version convention (revision starting at 1), replacing the legacy numeric `-N` prerelease suffix in the release tooling (bump script, CI publish validation, and changelog parsing).
+- Dropped the leading `v` from release git tags and `release/`/`prerelease/` branch names; the Publish CI now triggers on and validates bare version tags such as `0.8.24` or `0.8.24-alpha.1`.
+
+### Fixed
+
+- Fixed workflow node chat rendering a bare tool-name marker (e.g. `read …`) instead of tool output for parallel tool calls; `LiveChatEntriesController` now pairs concurrent same-named tool calls strictly by `toolCallId` ([#1198](https://github.com/bastani-inc/atomic/issues/1198)).
+
+## [0.8.23] - 2026-06-02
+
+### Changed
+
+- Promoted the 0.8.23 prerelease package version to a stable release.
+
+## [0.8.23-0] - 2026-06-02
+
+### Changed
+
+- Documented workflow artifact-path handoffs and `Read the file at <path>...` downstream prompts as the preferred alternative to injecting large `previous` payloads, review histories, or session tails.
+- Updated the Ralph workflow docs to reflect the simplified plan/orchestrate/simplify/review loop without separate `infra-*` discovery stages.
+- Updated the default workflow system-prompt guidance to prefer file/artifact handoffs with explicit downstream read instructions for large stage-to-stage context.
+
+### Fixed
+
+- Fixed severe flickering in the `ask_user_question` dialog on short terminals by suspending the animated working loader while the blocking question UI is open; the inline dialog no longer pushes the ticking loader above the viewport, which had forced a full-screen clear+replay on every spinner frame.
+
+## [0.8.22] - 2026-06-01
+
+### Breaking Changes
+
+- Migrated bundled workflow authoring to explicit TypeBox input/output schemas and explicit workflow outputs, so composed workflows now validate contracts with `Type`/`Static` and no longer support legacy descriptors, implicit `result`, `rawOutput`, `.import(...)`, or declaration-time `.humanInTheLoop(...)`.
+
+### Added
+
+- Added Codex `/fast` mode toggles for chat and workflow-stage sessions with visible `fast` model markers on eligible OpenAI/OpenAI Codex models.
+- Added reactive extension UI rendering via `ExtensionUIContext.requestRender()` so long-lived widgets can repaint without remount flicker.
+- Added interrupt-delivered extension custom messages with optional abort messages, letting workflow and other first-party extensions surface urgent events immediately.
+
+### Changed
+
+- Expanded bundled workflow authoring docs and agent guidance for direct `ctx.workflow(compiledWorkflow, options)` composition, reusable builtin workflow modules, explicit child outputs, and safer long-running workflow monitoring.
+- Refined the `/fast` selector copy, layout, toggle states, and keyboard support for clearer chat/workflow scoping.
+- Improved workflow graph/status rendering for nested child workflows, compact lifecycle/HIL cards, and reference-first transcript inspection.
+
+### Fixed
+
+- Fixed workflow reloads so package-manifest workflow entries refresh in-process without a full Atomic restart.
+- Fixed Codex fast-mode propagation, persistence, request payloads, workflow footer markers, subagent launch metadata, and fallback marker synchronization across chat, workflow, and subagent surfaces.
+- Fixed headless `/workflow` automation and print-mode output so successful commands emit displayable summaries, terminal failures surface correctly, completed stage handles dispose on exit, and command-originated extension errors are the only non-zero extension-error exits.
+- Hardened workflow human-in-the-loop prompts and answers so brokered prompts remain focusable/scrollable, avoid stale Enter submissions, stay out of model context where appropriate, and resolve duplicate or raced tool answers deterministically.
+- Stabilized long-lived workflow and subagent widgets with coalesced repaint paths, durable async-run hydration, and spinner ticks that avoid remount or scrollback flicker.
+
+## [0.8.22-0] - 2026-06-01
+
+### Added
+
+- Added `ExtensionUIContext.requestRender()` and a shared reactive widget installer for extensions to mount widgets once, repaint via coalesced render requests, and own timer-based refreshes without remount flicker ([#1150](https://github.com/bastani-inc/atomic/issues/1150)).
+- Added `/fast` Codex fast mode toggles for chat and workflow-stage sessions, applying OpenAI priority service tier to supported `openai/*` and `openai-codex/*` models only; active supported models now show a visible `fast` indicator after the model name ([#1134](https://github.com/bastani-inc/atomic/issues/1134)).
+- Added extension custom-message `deliverAs: "interrupt"` delivery so first-party extensions can abort a stale streaming turn and start an immediate custom-message turn ([#1137](https://github.com/bastani-inc/atomic/issues/1137)).
+- Added an `interruptAbortMessage` option for interrupt-delivered extension messages so meaningful external events can replace generic `Operation aborted` tool output ([#1137](https://github.com/bastani-inc/atomic/issues/1137)).
+
+### Changed
+
+- Documented direct `ctx.workflow(compiledWorkflow, options)` composition, TypeScript module-style child workflow calls, reusable builtin workflow modules, and child workflow output contracts in the bundled workflow authoring guide.
+- Refined the `/fast` selector into a conventional toggle UI with on/off states, clearer scope descriptions, and space/enter toggle support ([#1134](https://github.com/bastani-inc/atomic/issues/1134)).
+- Compressed the `/fast` selector copy, row layout, and per-change status message so the summary, toggles, scopes, and keyboard hints stay readable without duplicate off/standard-tier messaging ([#1134](https://github.com/bastani-inc/atomic/issues/1134)).
+- Clarified workflow-creation guidance so Atomic asks clarifying questions and writes first-time workflows directly, reserving `/goal` for explicitly chosen long-running reviewer-gated implementation.
+- Tightened workflow tool guidance so Atomic monitors long-running workflow runs periodically without micro-managing stages, steers only when appropriate, and inspects transcript paths surgically instead of reading whole session logs.
+- Expanded the workflow authoring docs for composing user-defined workflows and builtin child workflows such as `deep-research-codebase`, `goal`, and `ralph`, including explicit output contracts and the `.run()` return-object convention for the implicit string `result` output.
+- Documented the current workflow tool action surface, lifecycle notices, human-in-the-loop answer notifications, workflow notification config, `/workflow` slash-command discovery, and workflow Codex fast-mode behavior ([#1151](https://github.com/bastani-inc/atomic/issues/1151)).
+
+### Fixed
+
+- Added a host workflow-resource refresh path so workflow reloads can re-read package manifests without a full Atomic reload ([#1155](https://github.com/bastani-inc/atomic/issues/1155)).
+- Preserved custom registered provider streamers when Codex fast mode is enabled for native OpenAI response APIs ([#1134](https://github.com/bastani-inc/atomic/issues/1134)).
+- Fixed `/fast` changes so the banner/footer and current session update immediately, and inherited chat fast-mode state now reaches subagent child sessions without waiting for a restart ([#1134](https://github.com/bastani-inc/atomic/issues/1134)).
+- Fixed `/fast` persistence so existing project-level fast-mode overrides are updated alongside global settings for the changed scope without clobbering untouched global chat or workflow fast-mode preferences ([#1134](https://github.com/bastani-inc/atomic/issues/1134)).
+- Made Codex fast-mode request helpers require an explicit enabled flag and treat `service_tier: undefined` as unset when preparing OpenAI payloads ([#1134](https://github.com/bastani-inc/atomic/issues/1134)).
+- Fixed attached workflow-stage chat footers to resolve the `fast` model indicator against workflow fast-mode settings instead of chat settings ([#1134](https://github.com/bastani-inc/atomic/issues/1134)).
+- Scoped print-mode non-zero extension-error exits to command-originated failures so non-fatal lifecycle extension errors do not fail otherwise successful headless output ([#1123](https://github.com/bastani-inc/atomic/issues/1123)).
+- Fixed `ask_user_question` custom UI abort handling so interrupt-delivered workflow HiL answer notices are not stuck behind a blocking question modal ([#1137](https://github.com/bastani-inc/atomic/issues/1137)).
+- Fixed print-mode slash-command output for headless `/workflow` automation by printing final displayable custom messages and treating command-originated extension errors as non-zero while suppressing stale final output ([#1156](https://github.com/bastani-inc/atomic/issues/1156)).
+
+## [0.8.21] - 2026-05-30
+
+### Changed
+
+- Promoted the 0.8.21 prerelease changes to a stable release.
+
+## [0.8.21-0] - 2026-05-30
+
+### Changed
+
+- Upgraded the pi runtime packages (`@earendil-works/pi-agent-core`, `@earendil-works/pi-ai`, `@earendil-works/pi-tui`) to 0.78.0 and aligned skill name validation with upstream pi so frontmatter names no longer need to match parent directory names ([#1124](https://github.com/bastani-inc/atomic/issues/1124)).
+
+## [0.8.20] - 2026-05-29
+
+### Changed
+
+- Promoted the 0.8.20 prerelease changes to a stable release.
+
+## [0.8.20-0] - 2026-05-29
+
+### Added
+
+- Added session-scoped `orchestrationContext` support to SDK agent sessions and extension contexts for workflow-stage policy enforcement.
+- Added support for the Claude Opus 4.8 model across model configuration, selection, and validation via the `@earendil-works/pi-ai` 0.77.0 upgrade ([#1097](https://github.com/bastani-inc/atomic/issues/1097)).
+
+### Changed
+
+- Upgraded the pi runtime packages (`@earendil-works/pi-agent-core`, `@earendil-works/pi-ai`, `@earendil-works/pi-tui`) from 0.75.5 to 0.77.0 and bumped `@modelcontextprotocol/ext-apps` to 1.7.2, `highlight.js` to 11.x, `linkedom` to 0.18.x, `undici` to 8.x, and `vitest` (dev) to 4.x.
+- Switched the `highlight.js` import to the package-root default export and replaced the Node stream pipeline in the tools downloader with `Bun.write()` to align with the upgraded dependencies.
+- Pinned the footer (model + cwd identity) directly under the editor and moved below-editor widgets beneath it (separated by a blank line), so transient run status such as the workflow companion counter renders at the very bottom instead of separating the footer from the input. Stacked below-editor widgets (e.g. the async-subagent widget and the workflow run counter) are also separated from each other by a blank line. Rendering below-editor widgets last keeps a live widget at the bottom of the buffer (within the viewport), preserving the widget resize-flicker fix. Extension-provided custom footers are now swapped in place (rather than appended), so installing a custom footer keeps the below-editor widget container as the last UI child and does not regress this ordering ([#1109](https://github.com/bastani-inc/atomic/issues/1109)).
+
+## [0.8.19] - 2026-05-27
+
+### Changed
+
+- Renamed the SDK tool exclusion option from `excludeTools` to `excludedTools` for consistency with internal system prompt terminology, while preserving backward-compatible handling for existing SDK callers.
+
+## [0.8.19-0] - 2026-05-27
+
+### Changed
+
+- Renamed the SDK tool exclusion option from `excludeTools` to `excludedTools` for consistency with internal system prompt terminology, while preserving backward-compatible handling for existing SDK callers.
+
+## [0.8.18] - 2026-05-27
+
+### Changed
+
+- Promoted the 0.8.18 prerelease changes to a stable release.
+
+## [0.8.18-0] - 2026-05-27
+
+### Added
+
+- Added SDK `excludeTools` support for omitting named built-in, extension, and custom tools from `createAgentSession()` sessions while preserving existing `tools` and `noTools` behavior ([#1070](https://github.com/bastani-inc/atomic/issues/1070)).
+
+### Changed
+
+- Clarified bundled workflow docs and `/atomic` onboarding copy for using `goal` on smaller scoped changes with explicit outcomes, testing instructions, and done criteria, while positioning `ralph` for larger migrations, broad refactors, and PR-prep workflows.
+
+## [0.8.17] - 2026-05-26
+
+### Changed
+
+- Promoted the 0.8.17 prerelease changes to a stable release.
+
+## [0.8.17-0] - 2026-05-26
+
+### Breaking Changes
+
+- Removed bundled Ralph's configurable `review_quorum` and `blocker_threshold` inputs; `max_turns` remains configurable alongside `objective` and optional `base_branch` ([#1061](https://github.com/bastani-inc/atomic/issues/1061)).
+
+### Changed
+
+- Updated bundled Ralph docs and prompts to more closely match Codex `/goal` continuation guidance while retaining deterministic reviewer-gated completion ([#1061](https://github.com/bastani-inc/atomic/issues/1061)).
+- Restored bundled Ralph's stronger historical review gate prompt and `review_decision` schema with findings, oracle satisfaction, receipt assessment, verification remaining, and reviewer-error guard fields.
+
+## [0.8.16] - 2026-05-26
+
+### Changed
+
+- Promoted the 0.8.16 prerelease changes to a stable release.
+
+## [0.8.16-0] - 2026-05-26
+
+### Breaking Changes
+
+- Removed Ralph's `prompt` and `max_loops` compatibility inputs from the bundled workflow; use `objective` and `max_turns` instead ([#1061](https://github.com/bastani-inc/atomic/issues/1061)).
+
+### Changed
+
+- Updated bundled Ralph docs and guide examples for the Goal Runner workflow with goal-ledger receipts, reviewer quorum, repeated-blocker gating, and `max_turns`/`objective` inputs ([#1061](https://github.com/bastani-inc/atomic/issues/1061)).
+
+### Fixed
+
+- Clarified bundled Ralph's bounded `blocker_threshold` behavior ([#1061](https://github.com/bastani-inc/atomic/issues/1061)).
+
+## [0.8.15] - 2026-05-26
+
+### Changed
+
+- Promoted the 0.8.15 prerelease changes to a stable release.
+
+## [0.8.15-0] - 2026-05-25
+
+### Breaking Changes
+
+- Changed workflow `ctx.ui.*` prompts to render as synthetic graph stage nodes with `awaiting_input` status, including new `StageSnapshot.promptAnswerState` metadata.
+- Changed `ctx.ui.select(..., [])` to throw before creating a prompt node instead of returning an empty string.
+
+### Added
+
+- Added live-memory prompt answer replay for workflow continuations.
+- Added workflow control and subagents documentation updates, plus bundled docs link validation.
+
+### Changed
+
+- Updated Ralph around an autonomous goal contract so stages infer verifiable criteria, require receipts, and judge completion against the verification oracle.
+- Updated Ralph to discover project initialization needs from repository evidence before implementation work proceeds.
+
+### Fixed
+
+- Returned the workflow overlay to the graph orchestrator after answering or skipping a `ctx.ui` prompt node.
+- Stopped eagerly starting MCP OAuth callback handling during session startup.
+- Carried forward bundled subagent fixes for nested fanout state, child allowlists, async runner config permissions, fallback models, read-only guard overrides, Windows child process spawning, stable running glyphs, and recovered intermediate child errors.
+
+## [0.8.14] - 2026-05-25
+
+### Changed
+
+- Promoted the 0.8.14 prerelease changes to a stable release.
+- Synced Atomic's coding-agent fork with upstream Pi patches since v0.75.4 and updated bundled Pi libraries to 0.75.5.
+
+### Fixed
+
+- Carried forward upstream fixes for managed extension installs, git package ref reconciliation, async file tools, export HTML escaping, OpenCode session headers, OAuth device-code login, footer path abbreviation, clipboard native loading, and collapsed read output rendering.
+- Refreshed the built-in header model label whenever the active model changes, matching the footer below the chat box.
+
+## [0.8.14-0] - 2026-05-25
+
+### Changed
+
+- Synced Atomic's coding-agent fork with upstream Pi patches since v0.75.4 and updated bundled Pi libraries to 0.75.5.
+
+### Fixed
+
+- Carried forward upstream fixes for managed extension installs, git package ref reconciliation, async file tools, export HTML escaping, OpenCode session headers, OAuth device-code login, footer path abbreviation, clipboard native loading, and collapsed read output rendering.
+- Refreshed the built-in header model label whenever the active model changes, matching the footer below the chat box.
+
+## [0.8.13] - 2026-05-21
+
+### Changed
+
+- Promoted the 0.8.13 prerelease changes to a stable release.
+- Updated Atomic agent guidance.
+
+### Fixed
+
+- Fixed packaged workflow discovery so package-authored workflow resources load through `jiti` with the same `@bastani/workflows` SDK imports used by project and user workflows.
+- Preserved workflow discovery diagnostics for invalid default exports and supported SDK imports when running from the Bun binary.
+- Preserved spacing for async subagent widgets before the prompt box.
+
+## [0.8.13-0] - 2026-05-21
+
+### Fixed
+
+- Fixed packaged workflow discovery so package-authored workflow resources load through `jiti` with the same `@bastani/workflows` SDK imports used by project and user workflows.
+- Preserved workflow discovery diagnostics for invalid default exports and supported SDK imports when running from the Bun binary.
+- Preserved spacing for async subagent widgets before the prompt box.
+
+## [0.8.12] - 2026-05-20
+
+### Added
+
+- Added a configurable HTTP idle timeout for long-running model and web requests, with selectable presets from 30 seconds through 30 minutes and an option to disable the timeout.
+- Added the Atomic workflows documentation page and navigation so users can discover workflow authoring and execution guidance from the Atomic docs.
+
+### Changed
+
+- Promoted the 0.8.12 prerelease changes to a stable release.
+- Updated the bundled Pi libraries to 0.75.4.
+- Migrated internal runtime, tool, TUI, tests, and extension example imports to explicit `.ts` specifiers to improve raw-TypeScript extension compatibility.
+- Refreshed Atomic documentation for package usage, customization, workflows, and release guidance.
+- Included selected model reasoning level metadata in generated system prompts and project context markup.
+
+### Fixed
+
+- Improved Windows self-update behavior for package-manager installs, including native dependency cleanup, quarantine handling, and clearer messaging when updates are unavailable.
+- Stabilized subagent live result rendering, async render updates, transient child-error recovery, and live widget animations.
+- Detached settled workflow stages from run-control tracking and centered the empty workflow graph waiting state.
+- Normalized negative and fractional duration displays across bash, subagent, and workflow UI renderers.
+
+## [0.8.12-0] - 2026-05-20
+
+### Added
+
+- Added a configurable HTTP idle timeout for long-running model and web requests, with presets from 30 seconds through 30 minutes plus a disabled option.
+- Added the Atomic workflows documentation page and navigation so `/atomic` and project guidance can point users to workflow authoring and execution details.
+
+### Changed
+
+- Updated the bundled Pi libraries to 0.75.4.
+- Migrated internal runtime, tool, TUI, tests, and extension example imports to explicit `.ts` specifiers for better raw-TypeScript extension compatibility.
+- Rebranded and refreshed the coding-agent documentation for Atomic, including package, customization, and workflow guidance.
+- Included the selected model reasoning level in generated system prompts and project context markup.
+
+### Fixed
+
+- Improved Windows self-update handling for package-manager installs, including native dependency cleanup/quarantine and clearer unavailable-update messaging.
+- Stabilized subagent live result rendering, async render updates, transient child-error recovery, and live widget animations.
+- Detached settled workflow stages from run-control tracking and centered the empty graph waiting state.
+- Normalized negative and fractional duration displays across bash, subagent, and workflow UI renderers.
+
+## [0.8.11] - 2026-05-20
+
+### Changed
+
+- Updated the What's New release notes to highlight the new `/atomic` onboarding guide, including overview, examples, workflows, and release notes from inside the CLI.
+
+## [0.8.10] - 2026-05-20
+
+### Added
+
+- Added the `/atomic` onboarding guide, with built-in overview, examples, workflows, and release notes to help users discover Atomic from inside the CLI.
+
+## [0.8.10-0] - 2026-05-20
+
+### Added
+
+- Reintroduced `/atomic` as an interactive guide with options for overview, examples, workflows, and release notes.
+
+### Changed
+
+- Prepared the 0.8.10-0 prerelease.
+
+## [0.8.9] - 2026-05-19
+
+### Changed
+
+- Prepared the 0.8.9 release.
+
+## [0.8.9-0] - 2026-05-19
+
+### Changed
+
+- Prepared the 0.8.9-0 prerelease.
+
+## [0.8.8] - 2026-05-19
+
+### Changed
+
+- Prepared the 0.8.8 release.
+
+## [0.8.8-0] - 2026-05-19
+
+### Changed
+
+- Prepared the 0.8.8-0 prerelease.
+
+## [0.8.7] - 2026-05-19
+
+### Changed
+
+- Prepared the 0.8.7 release.
+
+## [0.8.7-0] - 2026-05-19
+
+### Changed
+
+- Prepared the 0.8.7-0 prerelease.
+
+## [0.8.6] - 2026-05-18
+
+### Changed
+
+- Prepared the 0.8.6 release.
+
+## [0.8.6-0] - 2026-05-18
+
+### Changed
+
+- Prepared the 0.8.6-0 prerelease.
+
+## [0.8.5] - 2026-05-18
+
+### Changed
+
+- Prepared the 0.8.5 release.
+
+## [0.8.5-0] - 2026-05-18
+
+### Changed
+
+- Prepared the 0.8.5-0 prerelease.
+
+## [0.8.4] - 2026-05-17
+
+### Added
+
+- Added selected model details to the system prompt for assistant model attribution.
+
+### Changed
+
+- Aligned package references with Atomic branding.
+
+## [0.8.4-0] - 2026-05-17
+
+### Added
+
+- Added selected model details to the system prompt for assistant model attribution.
+
+### Changed
+
+- Aligned package references with Atomic branding.
+
+## [0.8.3] - 2026-05-17
+
+### Changed
+
+- Pinned `@j178/prek` to 0.3.13 to keep hook installation stable.
+
+## [0.8.3-0] - 2026-05-17
+
+### Changed
+
+- Pinned `@j178/prek` to 0.3.13 to keep hook installation stable.
+
+## [0.8.2] - 2026-05-16
+
+### Changed
+
+- Reduced the Atomic startup banner to a compact three-line mark.
+
+## [0.8.2-0] - 2026-05-16
+
+### Changed
+
+- Reduced the Atomic startup banner to a compact three-line mark.
+
+## [0.8.1] - 2026-05-15
+
+### Fixed
+
+- Fixed the Atomic changelog viewer to show only the current release notes instead of including older sections.
+- Fixed the published `@bastani/atomic` package manifest so Bun can install it outside the monorepo without resolving private workspace-only bundled packages.
+
+## [0.8.1-1] - 2026-05-15
+
+### Fixed
+
+- Fixed the Atomic changelog viewer to show only the current release notes instead of including older sections.
+
+## [0.8.1-0] - 2026-05-15
+
+### Fixed
+
+- Fixed the published `@bastani/atomic` package manifest so Bun can install it outside the monorepo without resolving private workspace-only bundled packages.
+
+## [0.8.0] - 2026-05-15
+
+### Added
+
+- Added Together AI to built-in provider setup, `/login` API-key auth, and default model resolution ([#3624](https://github.com/earendil-works/pi-mono/pull/3624) by [@Nutlope](https://github.com/Nutlope)).
+- Added Windows ARM64 standalone binary release artifacts ([#4458](https://github.com/earendil-works/pi/pull/4458) by [@brianmichel](https://github.com/brianmichel)).
+
+### Fixed
+
+- Fixed interactive error messages to render with trailing spacing so reload errors do not run into resource listings ([#4510](https://github.com/earendil-works/pi/issues/4510)).
+- Fixed nested code fences in the Termux setup documentation so the example AGENTS.md renders correctly ([#4503](https://github.com/earendil-works/pi/issues/4503)).
+- Fixed tool output expansion while extension confirmation dialogs are focused ([#4429](https://github.com/earendil-works/pi/issues/4429)).
+- Fixed auto-retry for Anthropic streams that end before `message_stop` ([#4433](https://github.com/earendil-works/pi/issues/4433)).
+- Fixed theme sharing across package scopes so extensions do not crash with `Theme not initialized` ([#4333](https://github.com/earendil-works/pi/issues/4333)).
+- Fixed keybinding hints to show Option instead of Alt on macOS ([#4289](https://github.com/earendil-works/pi/issues/4289)).
+- Fixed the interactive update notification to render the changelog as an OSC 8 hyperlink when the terminal supports hyperlinks ([#4280](https://github.com/earendil-works/pi/issues/4280)).
+
+## [0.8.0-0] - 2026-05-15
+
+### Added
+
+- Added Together AI to built-in provider setup, `/login` API-key auth, and default model resolution ([#3624](https://github.com/earendil-works/pi-mono/pull/3624) by [@Nutlope](https://github.com/Nutlope)).
+- Added Windows ARM64 standalone binary release artifacts ([#4458](https://github.com/earendil-works/pi/pull/4458) by [@brianmichel](https://github.com/brianmichel)).
+
+### Fixed
+
+- Fixed interactive error messages to render with trailing spacing so reload errors do not run into resource listings ([#4510](https://github.com/earendil-works/pi/issues/4510)).
+- Fixed nested code fences in the Termux setup documentation so the example AGENTS.md renders correctly ([#4503](https://github.com/earendil-works/pi/issues/4503)).
+- Fixed tool output expansion while extension confirmation dialogs are focused ([#4429](https://github.com/earendil-works/pi/issues/4429)).
+- Fixed auto-retry for Anthropic streams that end before `message_stop` ([#4433](https://github.com/earendil-works/pi/issues/4433)).
+- Fixed theme sharing across package scopes so extensions do not crash with `Theme not initialized` ([#4333](https://github.com/earendil-works/pi/issues/4333)).
+- Fixed keybinding hints to show Option instead of Alt on macOS ([#4289](https://github.com/earendil-works/pi/issues/4289)).
+- Fixed the interactive update notification to render the changelog as an OSC 8 hyperlink when the terminal supports hyperlinks ([#4280](https://github.com/earendil-works/pi/issues/4280)).
+
+## [0.74.0] - 2026-05-07
+
+### Changed
+
+- Updated repository links and package references for the move to `earendil-works/pi-mono` and `@earendil-works/*` package scopes.
+
+## [0.73.1] - 2026-05-07
+
+### New Features
+
+- **Self-update support for the npm scope migration**: `pi update --self` now supports the upcoming package rename from `@bastani/atomic` to `@bastani/atomic`. After the new package is published, existing global installs can update through the normal self-update flow; pi will uninstall the old global package and install the package name returned by the version check endpoint.
+- **Interactive OAuth login selection**: OAuth providers can now present multiple login choices in `/login`, enabling provider-specific interactive authentication flows. See [Providers](docs/providers.md).
+- **JSONC-style `models.json` parsing**: `models.json` now allows comments and trailing commas, making custom provider and model configuration easier to maintain. See [Providers](docs/providers.md) and [Custom Providers](docs/custom-provider.md).
+
+### Added
+
+- Added interactive login selection support so OAuth providers can present multiple login choices ([#4190](https://github.com/earendil-works/pi-mono/pull/4190) by [@mitsuhiko](https://github.com/mitsuhiko)).
+
+### Changed
+
+- Changed `pi update --self` to honor the active package name returned by the Pi version check endpoint, defaulting to the current package when omitted and uninstalling the old global package before installing a renamed package.
+- Changed extension loading to use upstream `jiti` 2.7 instead of the `@mariozechner/jiti` fork ([#4244](https://github.com/earendil-works/pi-mono/pull/4244) by [@pi0](https://github.com/pi0)).
+- Changed `models.json` parsing to allow comments and trailing commas ([#4162](https://github.com/earendil-works/pi-mono/pull/4162) by [@julien-c](https://github.com/julien-c)).
+
+### Fixed
+
+- Fixed `pi -p` treating prompts that start with YAML frontmatter as extension flags instead of user messages ([#4163](https://github.com/badlogic/pi-mono/issues/4163)).
+- Fixed pending tool results not updating in the live TUI after toggling thinking block visibility while the tool is running ([#4167](https://github.com/badlogic/pi-mono/issues/4167)).
+- Fixed `/copy` reporting success on Linux without writing the clipboard on Wayland-only compositors (Hyprland, Niri, ...) by skipping the X11-only native addon on Linux and routing through `wl-copy`/`xclip`/`xsel` instead ([#4177](https://github.com/badlogic/pi-mono/issues/4177)).
+- Fixed HTML session exports to strip skill wrapper XML from rendered user messages ([#4234](https://github.com/earendil-works/pi-mono/pull/4234) by [@aliou](https://github.com/aliou)).
+- Fixed OpenAI-compatible chat completion streams that interleave content and tool-call deltas in the same choice.
+- Fixed OpenAI Codex OAuth refresh failures writing directly to stderr while the TUI is active ([#4141](https://github.com/badlogic/pi-mono/issues/4141)).
+- Fixed OpenAI Codex Responses requests to send a non-empty system prompt ([#4184](https://github.com/earendil-works/pi-mono/issues/4184)).
+- Fixed Kimi For Coding model resolution for the Kimi K2 P6 alias ([#4218](https://github.com/earendil-works/pi-mono/issues/4218)).
+- Fixed Kitty inline image redraws to stay within TUI-owned terminal regions and avoid writing below the active viewport.
+- Fixed Kitty inline image rendering by letting the terminal allocate image ids and bounding parsed image ids to valid values.
+- Fixed inline image capability detection to disable inline images in cmux terminals.
+
+## [0.73.0] - 2026-05-04
+
+### New Features
+
+- **Xiaomi MiMo API billing and regional Token Plan providers** - `xiaomi` now uses API billing, with separate `xiaomi-token-plan-{cn,ams,sgp}` providers. See [docs/providers.md#api-keys](docs/providers.md#api-keys) and [README.md#providers--models](README.md#providers--models). ([#4112](https://github.com/badlogic/pi-mono/pull/4112) by [@Phoen1xCode](https://github.com/Phoen1xCode))
+- **Incremental bash output streaming** - Bash tool output now appears while commands run instead of only after completion. ([#4145](https://github.com/badlogic/pi-mono/issues/4145))
+- **Compact read rendering** - Interactive `read` output for Pi docs, context files, and skills is collapsed by default and shows selected line ranges.
+
+### Breaking Changes
+
+- Switched the built-in `xiaomi` provider from Token Plan AMS to Xiaomi's API billing endpoint, and renamed its `/login` display from "Xiaomi MiMo Token Plan" to "Xiaomi MiMo". `XIAOMI_API_KEY` now refers to the API billing key from [platform.xiaomimimo.com](https://platform.xiaomimimo.com). Users on Token Plan should switch to the appropriate `xiaomi-token-plan-*` provider and set the corresponding env var ([#4112](https://github.com/badlogic/pi-mono/pull/4112) by [@Phoen1xCode](https://github.com/Phoen1xCode)).
+
+### Added
+
+- Added three Xiaomi MiMo Token Plan regional providers visible in `/login`: `xiaomi-token-plan-cn` (`XIAOMI_TOKEN_PLAN_CN_API_KEY`), `xiaomi-token-plan-ams` (`XIAOMI_TOKEN_PLAN_AMS_API_KEY`), `xiaomi-token-plan-sgp` (`XIAOMI_TOKEN_PLAN_SGP_API_KEY`). Each defaults to `mimo-v2.5-pro` ([#4112](https://github.com/badlogic/pi-mono/pull/4112) by [@Phoen1xCode](https://github.com/Phoen1xCode)).
+
+### Changed
+
+- Changed `read` tool rendering to collapse Pi documentation, AGENTS/CLAUDE context files, and `SKILL.md` contents by default in interactive output.
+
+### Fixed
+
+- Fixed generated OpenAI-compatible model metadata for Qwen 3.5/3.6 and MiniMax M2.7, so those models work through the built-in provider catalog ([#4110](https://github.com/badlogic/pi-mono/pull/4110) by [@jsynowiec](https://github.com/jsynowiec)).
+- Fixed Bedrock Claude Opus 4.7 `xhigh` thinking requests by preserving the provider's native effort value.
+- Fixed OpenAI Codex WebSocket transport to fall back to SSE when setup fails before streaming starts, and surface transport diagnostics in the assistant message ([#4133](https://github.com/badlogic/pi-mono/issues/4133)).
+- Fixed OpenAI Codex WebSocket transport keeping `--print` and JSON mode processes alive after the response by closing cached WebSocket sessions during session shutdown ([#4103](https://github.com/badlogic/pi-mono/issues/4103)).
+- Fixed compact `read` tool calls to render directly and include selected line ranges in interactive output.
+- Fixed interactive sessions to exit when terminal input is lost instead of continuing in a broken state.
+- Fixed bash tool output to stream incrementally while commands run instead of waiting for command completion ([#4145](https://github.com/badlogic/pi-mono/issues/4145)).
+- Fixed selector and autocomplete fuzzy ranking to prioritize exact matches.
+
+## [0.72.1] - 2026-05-02
+
+## [0.72.0] - 2026-05-01
+
+### New Features
+
+- **Xiaomi MiMo Token Plan provider** - New Anthropic-compatible provider with `XIAOMI_API_KEY` auth, default model (`mimo-v2.5-pro`), and `/login` display. See [docs/providers.md](docs/providers.md). ([#4005](https://github.com/badlogic/pi-mono/pull/4005) by [@Phoen1xCode](https://github.com/Phoen1xCode)).
+- **Model thinking level metadata** - Models can now declare which thinking levels they support via `thinkingLevelMap`, replacing the old `reasoningEffortMap`. See [docs/models.md#thinking-level-map](docs/models.md#thinking-level-map) and [docs/custom-provider.md](docs/custom-provider.md). ([#3208](https://github.com/badlogic/pi-mono/issues/3208)).
+- **Custom provider base URL overrides** - `pi.registerProvider()` now respects per-model `baseUrl` settings. See [docs/custom-provider.md](docs/custom-provider.md). ([#4063](https://github.com/badlogic/pi-mono/issues/4063)).
+- **Post-turn stop callback** - Agent loop can now exit gracefully after a completed turn via `shouldStopAfterTurn`. See [`packages/agent/README.md`](https://github.com/badlogic/pi-mono/blob/main/packages/agent/README.md).
+- **Self-update detection fix** - `pi` now correctly identifies and applies available updates. ([#3942](https://github.com/badlogic/pi-mono/issues/3942), [#3980](https://github.com/badlogic/pi-mono/issues/3980), [#3922](https://github.com/badlogic/pi-mono/issues/3922)).
+
+### Breaking Changes
+
+- Replaced `compat.reasoningEffortMap` in `models.json` and `pi.registerProvider()` model definitions with model-level `thinkingLevelMap` ([#3208](https://github.com/badlogic/pi-mono/issues/3208)). Migration: move old mappings from `compat.reasoningEffortMap` to `thinkingLevelMap`. Use string values for provider-specific thinking values and `null` for unsupported pi levels that should be hidden and skipped by cycling. See `docs/models.md#thinking-level-map` and `docs/custom-provider.md`.
+
+### Added
+
+- Added Xiaomi MiMo Token Plan provider support with `XIAOMI_API_KEY`, default model resolution, `/login` display support, and provider documentation ([#4005](https://github.com/badlogic/pi-mono/pull/4005) by [@Phoen1xCode](https://github.com/Phoen1xCode)).
+- Added model-level `thinkingLevelMap` support in `models.json` and `pi.registerProvider()`, allowing models to expose only the thinking levels they actually support ([#3208](https://github.com/badlogic/pi-mono/issues/3208)).
+- Added `shouldStopAfterTurn` agent loop callback for post-turn stop control, inherited from `@mariozechner/pi-agent-core`. See [`packages/agent/README.md`](https://github.com/badlogic/pi-mono/blob/main/packages/agent/README.md).
+
+### Fixed
+
+- Fixed the default transport setting to use `auto`, allowing OpenAI Codex to use cached WebSocket context when available ([#4083](https://github.com/badlogic/pi-mono/issues/4083)).
+- Fixed `pi.registerProvider()` to honor per-model `baseUrl` overrides ([#4063](https://github.com/badlogic/pi-mono/issues/4063)).
+- Fixed self-update detection so `pi` correctly identifies when a newer version is available and applies updates ([#3942](https://github.com/badlogic/pi-mono/issues/3942), [#3980](https://github.com/badlogic/pi-mono/issues/3980), [#3922](https://github.com/badlogic/pi-mono/issues/3922)).
+
+## [0.71.1] - 2026-05-01
+
+### Added
+
+- Added `websocket-cached` to the transport setting options for the OpenAI Codex provider used with ChatGPT subscription auth. This keeps the same WebSocket open for a session and, after the first request, sends only the new conversation items instead of resending the full chat history when possible.
+
+## [0.71.0] - 2026-04-30
+
+### Breaking Changes
+
+- Removed built-in Google Gemini CLI and Google Antigravity support. Existing configurations using those providers must switch to another supported provider.
+
+### New Features
+
+- Cloudflare AI Gateway provider support with `CLOUDFLARE_API_KEY`/`CLOUDFLARE_ACCOUNT_ID`/`CLOUDFLARE_GATEWAY_ID`, default model resolution, and `/login` display. See [docs/providers.md#cloudflare-ai-gateway](docs/providers.md#cloudflare-ai-gateway). ([#3856](https://github.com/badlogic/pi-mono/pull/3856) by [@mchenco](https://github.com/mchenco)).
+- Moonshot AI provider support with `MOONSHOT_API_KEY`, default model resolution, and `/login` display.
+- Mistral Medium 3.5 built-in model support. See [docs/providers.md#api-keys](docs/providers.md#api-keys). ([#4009](https://github.com/badlogic/pi-mono/pull/4009) by [@technocidal](https://github.com/technocidal)).
+- Extension APIs can replace finalized `message_end` messages, wrap custom editor factories via `ctx.ui.getEditorComponent()`, and observe thinking level changes. See [docs/extensions.md#message_start--message_update--message_end](docs/extensions.md#message_start--message_update--message_end), [docs/extensions.md#widgets-status-and-footer](docs/extensions.md#widgets-status-and-footer), and [docs/extensions.md#thinking_level_select](docs/extensions.md#thinking_level_select).
+- `PI_CODING_AGENT_SESSION_DIR` configures session storage from the environment. See [docs/usage.md#environment-variables](docs/usage.md#environment-variables).
+
+### Added
+
+- Added Cloudflare AI Gateway as a built-in provider with `CLOUDFLARE_API_KEY`/`CLOUDFLARE_ACCOUNT_ID`/`CLOUDFLARE_GATEWAY_ID` setup, default model resolution, `/login` display support, and provider documentation ([#3856](https://github.com/badlogic/pi-mono/pull/3856) by [@mchenco](https://github.com/mchenco)).
+- Added Moonshot AI as a built-in provider with `MOONSHOT_API_KEY` setup, default model resolution, and `/login` display support.
+- Added Mistral Medium 3.5 built-in model support via `@mariozechner/pi-ai` ([#4009](https://github.com/badlogic/pi-mono/pull/4009) by [@technocidal](https://github.com/technocidal)).
+- Added routed OpenAI-compatible response model metadata in assistant messages, so providers such as OpenRouter can expose the concrete model used ([#3968](https://github.com/badlogic/pi-mono/pull/3968) by [@purrgrammer](https://github.com/purrgrammer)).
+- Added `PI_CODING_AGENT_SESSION_DIR` as an environment equivalent to `--session-dir` ([#4027](https://github.com/badlogic/pi-mono/issues/4027)).
+- Added `message_end` extension result support for replacing finalized messages, enabling extensions to override assistant usage cost ([#3982](https://github.com/badlogic/pi-mono/issues/3982)).
+- Added top-level `name` support to `pi.registerProvider()` so extension-registered providers can show a friendly name in `/login` ([#3956](https://github.com/badlogic/pi-mono/issues/3956)).
+- Added `ctx.ui.getEditorComponent()` so extensions can wrap the currently configured custom editor factory ([#3935](https://github.com/badlogic/pi-mono/issues/3935)).
+- Added a `thinking_level_select` extension event for observing thinking level changes ([#3888](https://github.com/badlogic/pi-mono/issues/3888)).
+
+### Fixed
+
+- Fixed WSL clipboard image paste by passing the PowerShell save path directly instead of through a custom environment variable ([#2469](https://github.com/badlogic/pi-mono/issues/2469)).
+- Fixed Google Vertex Gemini 3 tool call replay for unsigned tool calls ([#4032](https://github.com/badlogic/pi-mono/issues/4032)).
+- Fixed blocked `edit` tool results rendering the rejection reason twice after interactive extension confirmation ([#3830](https://github.com/badlogic/pi-mono/issues/3830)).
+- Fixed extension-triggered thinking level changes refreshing the interactive editor border immediately ([#3888](https://github.com/badlogic/pi-mono/issues/3888)).
+- Fixed the coding-agent README See Also link to point at `@mariozechner/pi-agent-core` ([#4023](https://github.com/badlogic/pi-mono/issues/4023)).
+- Fixed `grep` and `find` tool argument injection for flag-like search patterns ([#4018](https://github.com/badlogic/pi-mono/issues/4018)).
+- Fixed PowerShell shell command output on Windows by only spawning detached processes on Unix ([#4013](https://github.com/badlogic/pi-mono/pull/4013) by [@picasso250](https://github.com/picasso250)).
+- Fixed Bun package manager `node_modules` discovery when `npmCommand` is configured to use Bun ([#3998](https://github.com/badlogic/pi-mono/pull/3998) by [@thirtythreeforty](https://github.com/thirtythreeforty)).
+- Fixed edit and edit-preview access failures to report filesystem errors correctly ([#3955](https://github.com/badlogic/pi-mono/pull/3955) by [@rwachtler](https://github.com/rwachtler)).
+- Fixed `ProcessTerminal` sizing to use `COLUMNS` and `LINES` before falling back to 80x24 ([#4004](https://github.com/badlogic/pi-mono/issues/4004)).
+- Updated `@anthropic-ai/sdk` to clear GHSA-p7fg-763f-g4gf audit findings ([#3992](https://github.com/badlogic/pi-mono/issues/3992)).
+- Updated `@mariozechner/clipboard` to an attested release so package managers with trust policies do not reject installs ([#3946](https://github.com/badlogic/pi-mono/issues/3946)).
+- Fixed project context discovery to load `AGENTS.MD` files in addition to `AGENTS.md` ([#3949](https://github.com/badlogic/pi-mono/issues/3949)).
+- Fixed `/handoff` to use compacted session context instead of pre-compaction raw messages ([#3945](https://github.com/badlogic/pi-mono/issues/3945)).
+- Fixed DeepSeek V4 Flash `xhigh` thinking support so requests map to DeepSeek's `max` reasoning effort ([#3944](https://github.com/badlogic/pi-mono/issues/3944)).
+- Fixed Anthropic streams that end before `message_stop` to be treated as errors instead of successful partial responses ([#3936](https://github.com/badlogic/pi-mono/issues/3936)).
+- Fixed generated OpenAI-compatible DeepSeek V4 reasoning compatibility outside the direct DeepSeek provider ([#3940](https://github.com/badlogic/pi-mono/issues/3940)).
+- Fixed idle follow-up submission to clear the editor like normal message submission ([#3926](https://github.com/badlogic/pi-mono/issues/3926)).
+- Fixed editor rendering artifacts for Thai Sara Am and Lao AM vowel characters ([#3904](https://github.com/badlogic/pi-mono/issues/3904)).
+- Fixed DeepSeek V4 Flash and V4 Pro pricing metadata to match current official rates ([#3910](https://github.com/badlogic/pi-mono/issues/3910)).
+- Updated the sandbox extension example lockfile to resolve the vulnerable `lodash-es` transitive dependency ([#3901](https://github.com/badlogic/pi-mono/issues/3901)).
+- Fixed DeepSeek prompt cache hits to be tracked from OpenAI-compatible usage responses ([#3880](https://github.com/badlogic/pi-mono/issues/3880)).
+
+### Removed
+
+- Removed the discontinued Qwen CLI OAuth custom provider extension example ([#3832](https://github.com/badlogic/pi-mono/pull/3832) by [@4h9fbZ](https://github.com/4h9fbZ)).
+- Removed Google Gemini CLI and Google Antigravity built-in login, default model, documentation, and example extension support.
+
+## [0.70.6] - 2026-04-28
+
+### New Features
+
+- Cloudflare Workers AI provider support with `CLOUDFLARE_API_KEY`/`CLOUDFLARE_ACCOUNT_ID` setup. See [docs/providers.md#api-keys](docs/providers.md#api-keys). ([#3851](https://github.com/badlogic/pi-mono/pull/3851) by [@mchenco](https://github.com/mchenco))
+- Pi update checks now use `pi.dev` and identify Pi with a `pi/<version>` user agent. See [docs/packages.md](docs/packages.md). ([#3877](https://github.com/badlogic/pi-mono/pull/3877) by [@mitsuhiko](https://github.com/mitsuhiko))
+
+### Added
+
+- Added Cloudflare Workers AI as a built-in provider with `CLOUDFLARE_API_KEY`/`CLOUDFLARE_ACCOUNT_ID` setup, default model resolution, `/login` support, and provider documentation ([#3851](https://github.com/badlogic/pi-mono/pull/3851) by [@mchenco](https://github.com/mchenco)).
+
+### Changed
+
+- Changed Pi version checks to identify Pi with a `pi/<version>` user agent ([#3877](https://github.com/badlogic/pi-mono/pull/3877) by [@mitsuhiko](https://github.com/mitsuhiko)).
+
+### Fixed
+
+- Fixed config selector scroll indicators to show item counts instead of line counts ([#3820](https://github.com/badlogic/pi-mono/pull/3820) by [@aliou](https://github.com/aliou)).
+- Fixed exported HTML to escape embedded image data and session metadata, preventing crafted session content from injecting markup ([#3819](https://github.com/badlogic/pi-mono/pull/3819) by [@justinpbarnett](https://github.com/justinpbarnett), [#3883](https://github.com/badlogic/pi-mono/pull/3883) by [@justinpbarnett](https://github.com/justinpbarnett)).
+- Fixed Bun-based package manager startup by locating global `node_modules` relative to Bun's install layout ([#3861](https://github.com/badlogic/pi-mono/pull/3861) by [@thirtythreeforty](https://github.com/thirtythreeforty)).
+- Fixed Bedrock inference profile capability checks by normalizing profile ARNs to the underlying model name.
+- Fixed file discovery to fall back to `fdfind` when `fd` is unavailable.
+- Fixed `pi update` to skip self-update reinstalls when the installed version is already current ([#3853](https://github.com/badlogic/pi-mono/issues/3853)).
+- Fixed Cloudflare Workers AI attribution headers to honor the install telemetry setting.
+- Fixed `pi update --self` detection and execution for Windows package-manager shim installs, including symlinked global package roots, and print the manual fallback command when self-update fails ([#3857](https://github.com/badlogic/pi-mono/issues/3857)).
+
+## [0.70.5] - 2026-04-27
+
+### Fixed
+
+- Fixed HTML export preserving ANSI-renderer trailing padding as extra blank wrapped lines.
+
+## [0.70.4] - 2026-04-27
+
+### Fixed
+
+- Fixed packaged `pi` startup failing because the session selector imported a source-only utility path.
+
+## [0.70.3] - 2026-04-27
+
+### New Features
+
+- `pi update` can now update pi itself in addition to installed pi packages. See [docs/packages.md](docs/packages.md). ([#3680](https://github.com/badlogic/pi-mono/pull/3680) by [@mitsuhiko](https://github.com/mitsuhiko))
+- Azure Cognitive Services endpoint support for Azure OpenAI Responses deployments. See [docs/providers.md#api-keys](docs/providers.md#api-keys). ([#3799](https://github.com/badlogic/pi-mono/pull/3799) by [@marcbloech](https://github.com/marcbloech))
+- Suppressible Anthropic extra-usage billing warning via `warnings.anthropicExtraUsage` in `/settings`. See [docs/settings.md](docs/settings.md). ([#3808](https://github.com/badlogic/pi-mono/issues/3808))
+- Extension-controlled working row visibility via `ctx.ui.setWorkingVisible()`, allowing extensions to hide the built-in loader row and render custom working state. See [docs/extensions.md](docs/extensions.md) and [examples/extensions/border-status-editor.ts](examples/extensions/border-status-editor.ts). ([#3674](https://github.com/badlogic/pi-mono/issues/3674))
+
+### Added
+
+- Added `pi update` support for updating pi itself in addition to installed pi packages ([#3680](https://github.com/badlogic/pi-mono/pull/3680) by [@mitsuhiko](https://github.com/mitsuhiko)).
+- Added Azure Cognitive Services endpoint support for Azure OpenAI Responses base URLs ([#3799](https://github.com/badlogic/pi-mono/pull/3799) by [@marcbloech](https://github.com/marcbloech)).
+- Added `warnings.anthropicExtraUsage` and a `/settings` warnings submenu to suppress the Anthropic extra usage billing warning ([#3808](https://github.com/badlogic/pi-mono/issues/3808))
+- Added `ctx.ui.setWorkingVisible()` so extensions can hide the built-in interactive working loader row without reserving layout space, plus a border-status editor example that moves working state into a custom editor border ([#3674](https://github.com/badlogic/pi-mono/issues/3674))
+
+### Fixed
+
+- Fixed duplicate printable characters from Kitty keyboard protocol CSI-u plus raw character input on layouts such as Italian ([#3780](https://github.com/badlogic/pi-mono/issues/3780)).
+- Fixed API-key environment discovery and Bun startup to fall back to `/proc/self/environ` when Bun's sandbox leaves `process.env` empty ([#3801](https://github.com/badlogic/pi-mono/pull/3801) by [@mdsjip](https://github.com/mdsjip)).
+- Fixed Bun sandboxed package-manager commands when `process.env` is empty ([#3807](https://github.com/badlogic/pi-mono/pull/3807) by [@mdsjip](https://github.com/mdsjip)).
+- Fixed symlinked packages, resources, skills, and sessions being duplicated in selectors and loaders ([#3818](https://github.com/badlogic/pi-mono/pull/3818) by [@aliou](https://github.com/aliou)).
+- Fixed Bedrock prompt-caching and adaptive-thinking capability checks for inference profile ARNs ([#3527](https://github.com/badlogic/pi-mono/pull/3527) by [@anirudhmarc](https://github.com/anirudhmarc)).
+- Fixed OpenAI Codex Responses default verbosity to `low` when no verbosity is specified.
+- Stopped sending empty `tools` arrays to providers that reject them when tools are disabled ([#3650](https://github.com/badlogic/pi-mono/pull/3650) by [@HQidea](https://github.com/HQidea)).
+- Fixed Anthropic SSE parsing to ignore unknown proxy events such as OpenAI-style `done` terminators ([#3708](https://github.com/badlogic/pi-mono/issues/3708)).
+- Fixed provider registration with override-only `models.json` entries to preserve built-in model lists ([#3651](https://github.com/badlogic/pi-mono/issues/3651)).
+- Fixed `/login` to show auth supplied by `models.json` provider definitions.
+- Fixed HTML export whitespace around extension-rendered tool output and expandable output hints.
+- Fixed bash executor temp output streams leaking file descriptors when output was truncated by line count ([#3786](https://github.com/badlogic/pi-mono/issues/3786))
+- Fixed extension `pi.setSessionName()` updates to refresh the interactive terminal title immediately ([#3686](https://github.com/badlogic/pi-mono/issues/3686))
+- Fixed `/tree` cancellation via `session_before_tree` leaving the session stuck in compaction state ([#3688](https://github.com/badlogic/pi-mono/issues/3688))
+- Fixed Escape interrupt handling when extensions hide the built-in working loader row ([#3674](https://github.com/badlogic/pi-mono/issues/3674))
+- Fixed coding-agent test expectations for current default models and missing-auth guidance.
+- Fixed long local-LLM SSE streams aborting at 5 minutes with `UND_ERR_BODY_TIMEOUT` by disabling undici `bodyTimeout`/`headersTimeout` on the global dispatcher; provider SDKs continue to enforce their own deadlines via `retry.provider.timeoutMs` ([#3715](https://github.com/badlogic/pi-mono/issues/3715))
+
+## [0.70.2] - 2026-04-24
+
+### Fixed
+
+- Fixed provider retry/timeout forwarding to omit undefined provider request controls, avoiding downstream SDK validation errors such as `timeout must be an integer` when `retry.provider.timeoutMs` is not configured ([#3627](https://github.com/badlogic/pi-mono/issues/3627))
+
+## [0.70.1] - 2026-04-24
+
+### New Features
+
+- DeepSeek provider support with V4 Flash/Pro models and `DEEPSEEK_API_KEY` authentication. See [README.md#providers--models](README.md#providers--models) and [docs/providers.md#api-keys](docs/providers.md#api-keys).
+- Provider request timeout/retry controls via `retry.provider.{timeoutMs,maxRetries,maxRetryDelayMs}`, useful for long-running local inference and provider SDK retry behavior. See [docs/settings.md#retry](docs/settings.md#retry). ([#3627](https://github.com/badlogic/pi-mono/issues/3627))
+
+### Added
+
+- Added DeepSeek to built-in provider setup, default model resolution, and provider documentation.
+
+### Fixed
+
+- Fixed `/copy` to avoid unbounded OSC 52 writes and clipboard races that could break terminal rendering or panic the native clipboard addon ([#3639](https://github.com/badlogic/pi-mono/issues/3639))
+- Fixed extension flag docs to show `pi.getFlag()` using registered flag names without the CLI `--` prefix ([#3614](https://github.com/badlogic/pi-mono/issues/3614))
+- Fixed provider retry/timeout settings wiring by adding `retry.provider.{timeoutMs,maxRetries,maxRetryDelayMs}`, migrating legacy `retry.maxDelayMs`, and forwarding provider controls into `streamSimple` request options ([#3627](https://github.com/badlogic/pi-mono/issues/3627))
+- Fixed Windows git package installs to bypass `cmd.exe` for native git commands, so install paths containing spaces no longer break `pi install git:...` with `fatal: Too many arguments` ([#3642](https://github.com/badlogic/pi-mono/issues/3642))
+- Fixed DeepSeek V4 session replay 400 errors by sending DeepSeek-compatible thinking controls and replayed assistant `reasoning_content` fields ([#3636](https://github.com/badlogic/pi-mono/issues/3636))
+- Fixed GPT-5.5 generated context window metadata to use the observed 272k limit.
+- Fixed CSI-u Ctrl+letter decoding inside bracketed paste, so pasted modified-key escape sequences no longer become literal editor text ([#3623](https://github.com/badlogic/pi-mono/pull/3623) by [@Exrun94](https://github.com/Exrun94))
+
+## [0.70.0] - 2026-04-23
+
+### New Features
+
+- Searchable auth provider login flow: the `/login` provider selector now supports fuzzy search/filtering, making it faster to find providers when many are configured. See [docs/providers.md](docs/providers.md). ([#3572](https://github.com/badlogic/pi-mono/pull/3572) by [@mitsuhiko](https://github.com/mitsuhiko))
+- GPT-5.5 Codex support: `openai-codex/gpt-5.5` is available as a model option, including `xhigh` reasoning support and corrected priority-tier pricing.
+- Terminal progress indicators are now opt-in: OSC 9;4 progress reporting during streaming/compaction is off by default and can be toggled via `terminal.showTerminalProgress` in `/settings` ([#3588](https://github.com/badlogic/pi-mono/issues/3588))
+- `--no-builtin-tools` / `createAgentSession({ noTools: "builtin" })` now correctly disables only built-in tools while keeping extension tools active. See [docs/extensions.md](docs/extensions.md) and [README.md](README.md) ([#3592](https://github.com/badlogic/pi-mono/issues/3592))
+
+### Breaking Changes
+
+- Disabled OSC 9;4 terminal progress indicators by default. Set `terminal.showTerminalProgress` to `true` in `/settings` to re-enable ([#3588](https://github.com/badlogic/pi-mono/issues/3588))
+
+### Added
+
+- Added searchable auth provider login flow with fuzzy filtering in the provider selector ([#3572](https://github.com/badlogic/pi-mono/pull/3572) by [@mitsuhiko](https://github.com/mitsuhiko))
+- Added GPT-5.5 Codex model
+- Added auth source labels in `/login` so provider entries can show when auth comes from `--api-key`, an environment variable, or custom provider fallback without exposing secrets.
+
+### Changed
+
+- Updated default model selection across providers to current recommended models.
+- Improved stale extension context errors after session replacement or reload to tell extension authors to avoid captured `pi`/command `ctx` and use `withSession` for post-replacement work.
+
+### Fixed
+
+- Fixed `/model` selector cancellation to request render instead of incorrectly triggering login selector.
+- Changed login, OAuth, and extension selectors for more consistent styling.
+- Added Amazon Bedrock setup guidance to `/login` and updated `/model` copy to refer to configured providers instead of only API keys.
+- Improved no-model and missing-auth warnings to point users to `/login` for OAuth or API key setup.
+- Fixed `/quit` shutdown ordering to stop the TUI before extension UI teardown can repaint, preserving the final rendered frame while still emitting `session_shutdown` before process exit.
+- Fixed `SettingsManager.inMemory()` initial settings being lost after reloads triggered by SDK resource loading ([#3616](https://github.com/badlogic/pi-mono/issues/3616))
+- Fixed `models.json` provider compatibility to accept `compat.supportsLongCacheRetention`, allowing proxies to opt out of long-retention cache fields when needed while long retention is enabled by default when requested ([#3543](https://github.com/badlogic/pi-mono/issues/3543))
+- Fixed `--thinking xhigh` for `openai-codex` `gpt-5.5` so it is no longer downgraded to `high`.
+- Fixed git package installs with custom `npmCommand` values such as `pnpm` by avoiding npm-specific production flags in that compatibility path ([#3604](https://github.com/badlogic/pi-mono/issues/3604))
+- Fixed first user messages rendering without spacing after existing notices such as compaction summaries or status messages ([#3613](https://github.com/badlogic/pi-mono/issues/3613))
+- Fixed the handoff extension example to use the replacement-session context after creating a new session, avoiding stale `ctx` errors when it installs the generated prompt ([#3606](https://github.com/badlogic/pi-mono/issues/3606))
+- Fixed session replacement and `/quit` teardown ordering to run host-owned extension UI cleanup synchronously after `session_shutdown` handlers complete but before invalidating the old extension context, preventing stale extension UI from rendering against a disposed session ([#3597](https://github.com/badlogic/pi-mono/pull/3597) by [@vegarsti](https://github.com/vegarsti))
+- Fixed crash on `/quit` when an extension registers a custom footer whose `render()` accesses `ctx`, by tearing down extension-provided UI before invalidating the extension runner during shutdown ([#3595](https://github.com/badlogic/pi-mono/issues/3595))
+- Fixed auto-retry to treat Bedrock/Smithy HTTP/2 transport failures like `http2 request did not get a response` as transient errors, so the agent retries automatically instead of waiting for a manual nudge ([#3594](https://github.com/badlogic/pi-mono/issues/3594))
+- Fixed the CLI/SDK tool-selection split so `--no-builtin-tools` and `createAgentSession({ noTools: "builtin" })` disable only built-in default tools while keeping extension/custom tools enabled, instead of falling through to the same "disable everything" path as `--no-tools` ([#3592](https://github.com/badlogic/pi-mono/issues/3592))
+- Fixed remaining hardcoded `pi` / `.pi` branding to route through `APP_NAME` and `CONFIG_DIR_NAME` extension points, so SDK rebrands get consistent naming in `/quit` description, `process.title`, and the project-local extensions directory ([#3583](https://github.com/badlogic/pi-mono/pull/3583) by [@jlaneve](https://github.com/jlaneve))
+- Fixed `pi-coding-agent` shipping `uuid@11`, which triggered `npm audit` moderate vulnerability reports for downstream installs; the package now depends on `uuid@14` ([#3577](https://github.com/badlogic/pi-mono/issues/3577))
+- Fixed `openai-completions` streamed tool-call assembly to coalesce deltas by stable tool index when OpenAI-compatible gateways mutate tool call IDs mid-stream, preventing malformed Kimi K2.6/OpenCode tool streams from splitting one call into multiple bogus tool calls ([#3576](https://github.com/badlogic/pi-mono/issues/3576))
+- Fixed `ctx.ui.setWorkingMessage()` to persist across loader recreation, matching the behavior of `ctx.ui.setWorkingIndicator()` ([#3566](https://github.com/badlogic/pi-mono/issues/3566))
+- Fixed coding-agent `fs.watch` error handling for theme and git-footer watchers to retry after transient watcher failures such as `EMFILE`, avoiding startup crashes in large repos ([#3564](https://github.com/badlogic/pi-mono/issues/3564))
+- Fixed built-in `kimi-coding` model generation to attach the expected `User-Agent` header so direct Kimi Coding requests use the provider's expected client identity ([#3586](https://github.com/badlogic/pi-mono/issues/3586))
+- Fixed extension shortcut conflict diagnostics to display at startup instead of only on reload, so extension authors discover reserved keybinding conflicts immediately rather than discovering them later through user feedback ([#3617](https://github.com/badlogic/pi-mono/issues/3617))
+- Fixed `models.json` Anthropic-compatible provider configuration to accept `compat.supportsEagerToolInputStreaming`, allowing proxies that reject per-tool `eager_input_streaming` to use the legacy fine-grained tool streaming beta header instead ([#3575](https://github.com/badlogic/pi-mono/issues/3575))
+- Fixed startup banner extension labels to strip trailing `index.js`/`index.ts` suffixes ([#3596](https://github.com/badlogic/pi-mono/pull/3596) by [@aliou](https://github.com/aliou))
+- Fixed OSC 9;4 terminal progress updates to stay alive in terminals such as Ghostty during long-running agent work ([#3610](https://github.com/badlogic/pi-mono/issues/3610))
+- Fixed OpenAI-compatible completion usage parsing to avoid double-counting reasoning tokens already included in `completion_tokens` ([#3581](https://github.com/badlogic/pi-mono/issues/3581))
+- Fixed `openai-responses` compatibility for strict OpenAI-compatible proxies by allowing `models.json` to disable the underscore-containing `session_id` header with `compat.sendSessionIdHeader: false` ([#3579](https://github.com/badlogic/pi-mono/issues/3579))
+- Fixed GPT-5.5 Codex capability handling to clamp unsupported minimal reasoning to `low` and apply the model's 2.5x priority service-tier pricing multiplier ([#3618](https://github.com/badlogic/pi-mono/pull/3618) by [@markusylisiurunen](https://github.com/markusylisiurunen))
+
+## [0.69.0] - 2026-04-22
+
+### New Features
+
+- TypeBox 1.x migration for extensions and SDK integrations, including TypeBox-native tool argument validation that now works in eval-restricted runtimes such as Cloudflare Workers. See [docs/extensions.md](docs/extensions.md) and [docs/sdk.md](docs/sdk.md).
+- Stacked extension autocomplete providers via `ctx.ui.addAutocompleteProvider(...)`, allowing extensions to layer custom completion logic on top of built-in slash and path completion. See [docs/extensions.md#autocomplete-providers](docs/extensions.md#autocomplete-providers) and [examples/extensions/github-issue-autocomplete.ts](examples/extensions/github-issue-autocomplete.ts).
+- Terminating tool results via `terminate: true`, allowing custom tools to end on a final tool call without paying for an automatic follow-up LLM turn. See [docs/extensions.md](docs/extensions.md) and [examples/extensions/structured-output.ts](examples/extensions/structured-output.ts).
+- OSC 9;4 terminal progress indicators during agent streaming and compaction for supporting terminals.
+
+### Breaking Changes
+
+- Migrated first-party coding-agent code, SDK/examples/docs, and package metadata from `@sinclair/typebox` 0.34.x to `typebox` 1.x. New extensions, SDK integrations, and pi packages should depend on and import from `typebox`. Legacy extension loading still aliases the root `@sinclair/typebox` package, but `@sinclair/typebox/compiler` is no longer shimmed. This migration also picks up the new `@mariozechner/pi-ai` TypeBox-native validator path, so tool argument validation now works in eval-restricted runtimes such as Cloudflare Workers instead of being skipped ([#3112](https://github.com/badlogic/pi-mono/issues/3112))
+- Session-replacement commands now invalidate captured pre-replacement session-bound extension objects after `ctx.newSession()`, `ctx.fork()`, and `ctx.switchSession()`. Old `pi` and command `ctx` references now throw instead of silently targeting the replaced session. Migration: if code needs to keep working in the replacement session after one of those calls, pass `withSession` to that same method and do the post-switch work there. In practice, move post-switch `pi.sendUserMessage()`, `pi.sendMessage()`, and command-ctx/session-manager access into `withSession`, and use only the `ReplacedSessionContext` passed to that callback for session-bound operations. Footguns: `withSession` runs after the old extension instance has already received `session_shutdown`, old cleanup may already have invalidated captured state, captured old `pi` / old command `ctx` are stale, and previously extracted raw objects such as `const sm = ctx.sessionManager` remain the caller's responsibility and must not be reused after the switch.
+
+### Added
+
+- Added support for terminating tool results via `terminate: true`, allowing custom tools to end the current tool batch without an automatic follow-up LLM call, plus a `structured-output.ts` extension example and extension docs showing the pattern ([#3525](https://github.com/badlogic/pi-mono/issues/3525))
+- Added OSC 9;4 terminal progress indicators during agent streaming and compaction, so terminals like iTerm2, WezTerm, Windows Terminal, and Kitty show activity in their tab bar
+- Added `ctx.ui.addAutocompleteProvider(...)` for stacking extension autocomplete providers on top of the built-in slash/path provider, plus a `github-issue-autocomplete.ts` example and extension docs ([#2983](https://github.com/badlogic/pi-mono/issues/2983))
+
+### Fixed
+
+- Fixed exported session HTML to sanitize markdown link URLs before rendering them into anchor tags, blocking `javascript:`-style payloads while preserving safe links in shared/exported sessions ([#3532](https://github.com/badlogic/pi-mono/issues/3532))
+- Fixed `ctx.getSystemPrompt()` inside `before_agent_start` to reflect chained system-prompt changes made by earlier `before_agent_start` handlers, and clarified the extension docs around provider-payload rewrites and what `ctx.getSystemPrompt()` does and does not report ([#3539](https://github.com/badlogic/pi-mono/issues/3539))
+- Fixed built-in `google-gemini-cli` model lists and selector entries to include `gemini-3.1-flash-lite-preview`, so Cloud Code Assist users no longer need manual `--model` fallback selection to use it ([#3545](https://github.com/badlogic/pi-mono/issues/3545))
+- Fixed extension session-replacement flows so `ctx.newSession()`, `ctx.fork()`, `ctx.switchSession()`, and imported-session replacements fully rebind before post-switch work runs, added `withSession` replacement callbacks with fresh `ReplacedSessionContext` helpers, and make stale pre-replacement `pi` / `ctx` session-bound accesses throw instead of silently targeting the wrong session ([#2860](https://github.com/badlogic/pi-mono/issues/2860))
+- Fixed `models.json` built-in provider overrides to accept `headers` without requiring `baseUrl`, so request-header-only overrides now load and apply correctly ([#3538](https://github.com/badlogic/pi-mono/issues/3538))
+
+## [0.68.1] - 2026-04-22
+
+### New Features
+
+- Fireworks provider support with built-in models and `FIREWORKS_API_KEY` auth. See [README.md#providers--models](README.md#providers--models) and [docs/providers.md](docs/providers.md).
+- Configurable inline tool image width via `terminal.imageWidthCells` in `/settings`. See [docs/settings.md#terminal--images](docs/settings.md#terminal--images).
+
+### Added
+
+- Added built-in Fireworks provider support, including `FIREWORKS_API_KEY` setup/docs and the default Fireworks model `accounts/fireworks/models/kimi-k2p6` ([#3519](https://github.com/badlogic/pi-mono/issues/3519))
+
+### Fixed
+
+- Fixed interactive inline tool images to honor configurable `terminal.imageWidthCells` via `/settings`, so tool-output images are no longer hard-capped to 60 terminal cells ([#3508](https://github.com/badlogic/pi-mono/issues/3508))
+- Fixed `sessionDir` in `settings.json` to expand `~`, so portable session-directory settings no longer require a shell wrapper ([#3514](https://github.com/badlogic/pi-mono/issues/3514))
+- Fixed parallel tool-call rows to leave the pending state as soon as each tool is finalized, while still appending persisted tool results in assistant source order ([#3503](https://github.com/badlogic/pi-mono/issues/3503))
+- Fixed exported session markdown to render Markdown while showing HTML-like message content such as `<file name="...">...</file>` verbatim, so shared sessions match the TUI instead of letting the browser interpret message text ([#3484](https://github.com/badlogic/pi-mono/issues/3484))
+- Fixed exported session HTML to render `grep` and `find` output through their existing TUI renderers and `ls` output through a native template renderer, avoiding missing formatting and spacing artifacts in shared sessions ([#3491](https://github.com/badlogic/pi-mono/pull/3491) by [@aliou](https://github.com/aliou))
+- Fixed `@` autocomplete fuzzy search to follow symlinked directories and include symlinked paths in results ([#3507](https://github.com/badlogic/pi-mono/issues/3507))
+- Fixed proxied agent streams to preserve the proxy-safe serializable subset of stream options, including session, transport, retry-delay, metadata, header, cache-retention, and thinking-budget settings ([#3512](https://github.com/badlogic/pi-mono/issues/3512))
+- Hardened Anthropic streaming against malformed tool-call JSON by owning SSE parsing with defensive JSON repair, replacing the deprecated `fine-grained-tool-streaming` beta header with per-tool `eager_input_streaming`, and updating stale test model references ([#3175](https://github.com/badlogic/pi-mono/issues/3175))
+- Fixed Bedrock runtime endpoint resolution to stop pinning built-in regional endpoints over `AWS_REGION` / `AWS_PROFILE`, restoring `us.*` and `eu.*` inference profile support after v0.68.0 while preserving custom VPC/proxy endpoint overrides ([#3481](https://github.com/badlogic/pi-mono/issues/3481), [#3485](https://github.com/badlogic/pi-mono/issues/3485), [#3486](https://github.com/badlogic/pi-mono/issues/3486), [#3487](https://github.com/badlogic/pi-mono/issues/3487), [#3488](https://github.com/badlogic/pi-mono/issues/3488))
+
+## [0.68.0] - 2026-04-20
+
+### New Features
+
+- Configurable streaming working indicator for extensions via `ctx.ui.setWorkingIndicator()`, including animated, static, and hidden indicators. See [docs/tui.md#working-indicator](docs/tui.md#working-indicator), [docs/extensions.md](docs/extensions.md), and [examples/extensions/working-indicator.ts](examples/extensions/working-indicator.ts).
+- `before_agent_start` now exposes `systemPromptOptions` (`BuildSystemPromptOptions`) so extensions can inspect the structured system-prompt inputs without re-discovering resources. See [docs/extensions.md#before_agent_start](docs/extensions.md#before_agent_start) and [examples/extensions/prompt-customizer.ts](examples/extensions/prompt-customizer.ts).
+- Configurable keybindings for scoped model selector actions and session-tree filter actions. See [docs/keybindings.md](docs/keybindings.md).
+- `/clone` duplicates the current active branch into a new session, while extensions can choose whether to fork `before` or `at` an entry via `ctx.fork(..., { position })`. See [README.md](README.md), [docs/extensions.md](docs/extensions.md), and [docs/session.md](docs/session.md).
+
+### Breaking Changes
+
+- Changed SDK and CLI tool selection from cwd-bound built-in tool instances to tool-name allowlists. `createAgentSession({ tools })` now expects `string[]` names such as `"read"` and `"bash"` instead of `Tool[]`, `--tools` now allowlists built-in, extension, and custom tools by name, and `--no-tools` now disables all tools by default rather than only built-ins. Migrate SDK code from `tools: [readTool, bashTool]` to `tools: ["read", "bash"]` ([#2835](https://github.com/badlogic/pi-mono/issues/2835), [#3452](https://github.com/badlogic/pi-mono/issues/3452))
+- Removed prebuilt cwd-bound tool and tool-definition exports from `@bastani/atomic`, including `readTool`, `bashTool`, `editTool`, `writeTool`, `grepTool`, `findTool`, `lsTool`, `readOnlyTools`, `codingTools`, and the corresponding `*ToolDefinition` values. Use the explicit factory exports instead, for example `createReadTool(cwd)`, `createBashTool(cwd)`, `createCodingTools(cwd)`, and `createReadToolDefinition(cwd)` ([#3452](https://github.com/badlogic/pi-mono/issues/3452))
+- Removed ambient `process.cwd()` / default agent-dir fallback behavior from public resource helpers. `DefaultResourceLoader`, `loadProjectContextFiles()`, and `loadSkills()` now require explicit cwd/agent-dir style inputs, and exported system-prompt option types now require an explicit `cwd`. Pass the session or project cwd explicitly instead of relying on process-global defaults ([#3452](https://github.com/badlogic/pi-mono/issues/3452))
+
+### Added
+
+- Added extension support for customizing the interactive streaming working indicator via `ctx.ui.setWorkingIndicator()`, including custom animated frames, static indicators, hidden indicators, a new `working-indicator.ts` example extension, and updated extension/TUI/RPC docs ([#3413](https://github.com/badlogic/pi-mono/issues/3413))
+- Added `systemPromptOptions` (`BuildSystemPromptOptions`) to `before_agent_start` extension events, so extensions can inspect the structured inputs used to build the current system prompt ([#3473](https://github.com/badlogic/pi-mono/pull/3473) by [@dljsjr](https://github.com/dljsjr))
+- Added `/clone` to duplicate the current active branch into a new session, while keeping `/fork` focused on forking from a previous user message ([#2962](https://github.com/badlogic/pi-mono/issues/2962))
+- Added `ctx.fork()` support for `position: "before" | "at"` so extensions and integrations can branch before a user message or duplicate the current point in the conversation; the interactive clone/fork UX builds on that runtime support ([#3431](https://github.com/badlogic/pi-mono/pull/3431) by [@mitsuhiko](https://github.com/mitsuhiko))
+- Added configurable keybinding ids for scoped model selector actions and tree filter actions, so those interactive shortcuts can be remapped in `keybindings.json` ([#3343](https://github.com/badlogic/pi-mono/pull/3343) by [@mpazik](https://github.com/mpazik))
+- Added `PI_OAUTH_CALLBACK_HOST` support for built-in OAuth login flows, allowing local callback servers used by `pi auth` to bind to a custom interface instead of hardcoded `127.0.0.1` ([#3409](https://github.com/badlogic/pi-mono/pull/3409) by [@Michaelliv](https://github.com/Michaelliv))
+- Added `reason` and `targetSessionFile` metadata to `session_shutdown` extension events, so extensions can distinguish quit, reload, new-session, resume, and fork teardown paths ([#2863](https://github.com/badlogic/pi-mono/issues/2863))
+
+### Changed
+
+- Changed `pi update` to batch npm package updates per scope and run git package updates with bounded parallelism, reducing multi-package update time while preserving skip behavior for pinned and already-current packages ([#2980](https://github.com/badlogic/pi-mono/issues/2980))
+- Changed Bedrock session requests to omit `maxTokens` when model token limits are unknown and to omit `temperature` when unset, letting Bedrock use provider defaults and avoid unnecessary TPM quota reservation ([#3400](https://github.com/badlogic/pi-mono/pull/3400) by [@wirjo](https://github.com/wirjo))
+
+### Fixed
+
+- Fixed `AgentSession` system-prompt option initialization to avoid constructing an invalid empty `BuildSystemPromptOptions`, so `npm run check` passes after `cwd` became mandatory.
+- Fixed shell-path resolution to stop consulting ambient `process.cwd()` state during bash execution, so session/project-specific `shellPath` settings now follow the active coding-agent session cwd instead of the launcher cwd ([#3452](https://github.com/badlogic/pi-mono/issues/3452))
+- Fixed `ctx.ui.setWorkingIndicator()` custom frames to render verbatim instead of forcing the theme accent color, so extensions now own working-indicator coloring when they customize it ([#3467](https://github.com/badlogic/pi-mono/issues/3467))
+- Fixed `pi update` reinstalling npm packages that are already at the latest published version by checking the installed package version before running `npm install <pkg>@latest` ([#3000](https://github.com/badlogic/pi-mono/issues/3000))
+- Fixed `@` autocomplete plain queries to stop matching against the full cwd/base path, so path fragments in worktree names no longer crowd out intended results such as `@plan` ([#2778](https://github.com/badlogic/pi-mono/issues/2778))
+- Fixed built-in tool wrapping to use the same extension-runner context path as extension tools, so built-in tools receive execution context and `read` can warn when the current model does not support images ([#3429](https://github.com/badlogic/pi-mono/issues/3429))
+- Fixed `openai-completions` assistant replay to preserve `compat.requiresThinkingAsText` text-part serialization, avoiding same-model follow-up crashes when previous assistant messages mix thinking and text ([#3387](https://github.com/badlogic/pi-mono/issues/3387))
+- Fixed direct OpenAI Chat Completions sessions to map `sessionId` and `cacheRetention` to prompt caching fields, sending `prompt_cache_key` when caching is enabled and `prompt_cache_retention: "24h"` for direct `api.openai.com` requests with long retention ([#3426](https://github.com/badlogic/pi-mono/issues/3426))
+- Fixed OpenAI-compatible Chat Completions sessions to optionally send aligned `session_id`, `x-client-request-id`, and `x-session-affinity` headers from `sessionId` via `compat.sendSessionAffinityHeaders`, improving cache-affinity routing for backends such as Fireworks ([#3430](https://github.com/badlogic/pi-mono/issues/3430))
+- Fixed threaded `/resume` session relationships and current-session detection to canonicalize symlinked session paths during selector comparisons, so shared session directories no longer break parent-child matching or active-session delete protection ([#3364](https://github.com/badlogic/pi-mono/issues/3364))
+- Fixed `/session`, Sessions docs, and CLI help to consistently document that session reuse supports both file paths and session IDs, and that `/session` shows the current session ID ([#3390](https://github.com/badlogic/pi-mono/issues/3390))
+- Fixed Windows pnpm global install detection to recognize `\\.pnpm\\` store paths, so update notices now suggest `pnpm install -g @bastani/atomic` instead of falling back to npm ([#3378](https://github.com/badlogic/pi-mono/issues/3378))
+- Fixed missing `@sinclair/typebox` runtime dependency in `@bastani/atomic`, so strict pnpm installs no longer fail with `ERR_MODULE_NOT_FOUND` when starting `pi` ([#3434](https://github.com/badlogic/pi-mono/issues/3434))
+- Fixed xterm uppercase typing in the interactive editor by decoding printable `modifyOtherKeys` input and normalizing shifted letter matching, so `Shift+letter` no longer disappears in `pi` ([#3436](https://github.com/badlogic/pi-mono/issues/3436))
+- Fixed `/compact` to reuse the session thinking level for compaction summaries instead of forcing `high`, avoiding invalid reasoning-effort errors on `github-copilot/claude-opus-4.7` sessions configured for `medium` thinking ([#3438](https://github.com/badlogic/pi-mono/issues/3438))
+- Fixed shared/exported plain-text tool output to preserve indentation instead of collapsing leading whitespace in the web share page ([#3440](https://github.com/badlogic/pi-mono/issues/3440))
+- Fixed exported share pages to use browser-safe `T` and `O` shortcuts with clickable header toggles for thinking and tool visibility instead of browser-reserved `Ctrl+T` / `Ctrl+O` bindings ([#3374](https://github.com/badlogic/pi-mono/pull/3374) by [@vekexasia](https://github.com/vekexasia))
+- Fixed skill resolution to dedupe symlinked aliases by canonical path, so `pi config` no longer shows duplicate skill entries when `~/.pi/agent/skills` points to `~/.agents/skills` ([#3417](https://github.com/badlogic/pi-mono/pull/3417) by [@rwachtler](https://github.com/rwachtler))
+- Fixed OpenRouter request attribution to include Pi app headers (`HTTP-Referer: https://pi.dev`, `X-OpenRouter-Title: pi`, `X-OpenRouter-Categories: cli-agent`) when sessions are created through the coding-agent SDK and install telemetry is enabled ([#3414](https://github.com/badlogic/pi-mono/issues/3414))
+- Fixed custom-model `compat` schema/docs to support `cacheControlFormat: "anthropic"` for OpenAI-compatible providers that expose Anthropic-style prompt caching via `cache_control` markers ([#3392](https://github.com/badlogic/pi-mono/issues/3392))
+- Fixed Cloud Code Assist tool schemas to strip JSON Schema meta-declaration keys before provider translation, avoiding validation failures for tool-enabled sessions that use `$schema`, `$defs`, and related metadata ([#3412](https://github.com/badlogic/pi-mono/pull/3412) by [@vladlearns](https://github.com/vladlearns))
+- Fixed direct Bedrock sessions to honor `model.baseUrl` as the runtime client endpoint, restoring support for custom Bedrock VPC or proxy routes ([#3402](https://github.com/badlogic/pi-mono/pull/3402) by [@wirjo](https://github.com/wirjo))
+- Fixed the `edit` tool to coerce stringified `edits` JSON before validation, so models that send the array payload as a JSON string no longer fall back to ad-hoc shell edits ([#3370](https://github.com/badlogic/pi-mono/pull/3370) by [@dannote](https://github.com/dannote))
+- Fixed package manifest positive glob entries to expand before loading packaged resources, restoring manifest patterns such as `skills/**/*.md` ([#3350](https://github.com/badlogic/pi-mono/pull/3350) by [@neonspectra](https://github.com/neonspectra))
+
+## [0.67.68] - 2026-04-17
+
+## [0.67.67] - 2026-04-17
+
+### New Features
+
+- Bedrock sessions can now authenticate with `AWS_BEARER_TOKEN_BEDROCK`, enabling Converse API access without local SigV4 credentials. See [docs/providers.md#amazon-bedrock](docs/providers.md#amazon-bedrock).
+
+### Added
+
+- Added Bedrock bearer-token authentication support via `AWS_BEARER_TOKEN_BEDROCK`, enabling coding-agent sessions to use Bedrock Converse without local SigV4 credentials ([#3125](https://github.com/badlogic/pi-mono/pull/3125) by [@wirjo](https://github.com/wirjo))
+
+### Fixed
+
+- Fixed `/scoped-models` Alt+Up/Down to stay a no-op in the implicit `all enabled` state instead of materializing a full explicit enabled-model list and marking the selector dirty ([#3331](https://github.com/badlogic/pi-mono/issues/3331))
+- Fixed Mistral Small 4 default thinking requests to use the model's supported reasoning control, avoiding `400` errors when starting sessions on `mistral-small-2603` and `mistral-small-latest` ([#3338](https://github.com/badlogic/pi-mono/issues/3338))
+- Fixed Qwen chat-template thinking replay to preserve prior thinking across turns, so affected OpenAI-compatible models keep multi-turn tool-call arguments instead of degrading to empty `{}` payloads ([#3325](https://github.com/badlogic/pi-mono/issues/3325))
+- Fixed exported HTML transcripts so text selection no longer triggers click-based expand/collapse toggles ([#3332](https://github.com/badlogic/pi-mono/pull/3332) by [@xu0o0](https://github.com/xu0o0))
+- Fixed flaky git package update notifications by waiting for captured git command stdio to fully drain before comparing local and remote commit SHAs ([#3027](https://github.com/badlogic/pi-mono/issues/3027))
+- Fixed system prompt dates to use a stable `YYYY-MM-DD` format instead of locale-dependent output, keeping prompts deterministic across runtimes and locales ([#2814](https://github.com/badlogic/pi-mono/issues/2814))
+- Fixed auto-retry transient error detection to treat `Network connection lost.` as retryable, so dropped provider connections retry instead of terminating the agent ([#3317](https://github.com/badlogic/pi-mono/issues/3317))
+- Fixed compact interactive extension startup summaries to disambiguate package extensions and repeated local `index.ts` entries by using package-aware labels and the minimal parent path needed to make local entries unique ([#3308](https://github.com/badlogic/pi-mono/issues/3308))
+- Fixed git package dependency installation to use production installs (`npm install --omit=dev`) during both install and update flows, so extension runtime dependencies must come from `dependencies` and not `devDependencies` ([#3009](https://github.com/badlogic/pi-mono/issues/3009))
+- Fixed `tool_result` / `afterToolCall` extension handling for error results by forwarding `details` and `isError` overrides through `AgentSession` instead of dropping them when `isError` was already true ([#3051](https://github.com/badlogic/pi-mono/issues/3051))
+- Fixed missing root exports for `RpcClient` and RPC protocol types from `@bastani/atomic`, so ESM consumers can import them from the main package entrypoint ([#3275](https://github.com/badlogic/pi-mono/issues/3275))
+- Fixed OpenAI Codex service-tier cost accounting to trust the explicitly requested tier when the API echoes the default tier in responses, keeping session cost displays aligned with the selected tier ([#3307](https://github.com/badlogic/pi-mono/pull/3307) by [@markusylisiurunen](https://github.com/markusylisiurunen))
+- Fixed parallel tool-call finalization to convert `afterToolCall` hook throws into error tool results instead of aborting the remaining tool batch ([#3084](https://github.com/badlogic/pi-mono/issues/3084))
+- Fixed Bun binary asset path resolution to honor `PI_PACKAGE_DIR` for built-in themes, HTML export templates, and interactive bundled assets ([#3074](https://github.com/badlogic/pi-mono/issues/3074))
+- Fixed user-message turn spacing in interactive mode by restoring an inter-message spacer before user turns (except the first user message), preventing assistant and user blocks from rendering flush together.
+- Fixed interactive `/import` handling to support quoted JSONL paths with spaces, route missing JSONL files through the non-fatal `SessionImportFileNotFoundError` path, and document the `importFromJsonl()` exceptions (`SessionImportFileNotFoundError`, `MissingSessionCwdError`).
+
+## [0.67.6] - 2026-04-16
+
+### New Features
+
+- Prompt templates support an `argument-hint` frontmatter field that renders before the description in the `/` autocomplete dropdown, using `<angle>` for required and `[square]` for optional arguments. See [docs/prompt-templates.md#argument-hints](docs/prompt-templates.md#argument-hints).
+- New `after_provider_response` extension hook lets extensions inspect provider HTTP status codes and headers immediately after each response is received and before stream consumption begins. See [docs/extensions.md](docs/extensions.md).
+- Compact interactive startup header with a comma-separated view of loaded AGENTS.md files, prompt templates, skills, and extensions. Press `Ctrl+O` to toggle the expanded listing.
+- Markdown links in assistant output now render as OSC 8 hyperlinks on terminals that advertise support; unknown terminals and tmux/screen default to plain text so URLs are never silently dropped.
+
+### Added
+
+- Added `argument-hint` frontmatter field for prompt templates, displayed before the description in the autocomplete dropdown ([#2780](https://github.com/badlogic/pi-mono/pull/2780) by [@andresvi94](https://github.com/andresvi94))
+- Added `after_provider_response` extension hook so extensions can inspect provider HTTP status codes and headers after each provider response is received and before stream consumption begins ([#3128](https://github.com/badlogic/pi-mono/issues/3128))
+- Added OSC 8 hyperlink rendering for markdown links when the terminal advertises support ([#3248](https://github.com/badlogic/pi-mono/pull/3248) by [@ofa1](https://github.com/ofa1))
+
+### Changed
+
+- Changed interactive startup header to a compact, comma-separated view of loaded AGENTS.md files, prompt templates, skills, and extensions, with `Ctrl+O` to toggle the expanded listing ([#3267](https://github.com/badlogic/pi-mono/pull/3267))
+- Tightened hyperlink capability detection to default `hyperlinks: false` for unknown terminals and force it off under tmux/screen (including nested sessions), preventing markdown link URLs from disappearing on terminals that silently swallow OSC 8 sequences ([#3248](https://github.com/badlogic/pi-mono/pull/3248))
+
+### Fixed
+
+- Fixed interactive user message rendering to keep bottom padding visible in terminals affected by OSC 133 prompt markers without adding an extra blank line before the following assistant message ([#3090](https://github.com/badlogic/pi-mono/issues/3090))
+- Fixed `--verbose` startup output to begin with expanded startup help and loaded resource listings after the compact startup header change ([#3147](https://github.com/badlogic/pi-mono/issues/3147))
+- Fixed `find` tool returning no results for path-based glob patterns such as `src/**/*.spec.ts` or `some/parent/child/**` by switching fd into full-path mode and normalizing the pattern when it contains a `/` ([#3302](https://github.com/badlogic/pi-mono/issues/3302))
+- Fixed `find` tool applying nested `.gitignore` rules across sibling directories (e.g. rules from `a/.gitignore` hiding matching files under `b/`) by dropping the manual `--ignore-file` collection and delegating to fd's hierarchical `.gitignore` handling via `--no-require-git` ([#3303](https://github.com/badlogic/pi-mono/issues/3303))
+- Fixed OpenAI Responses prompt caching for non-`api.openai.com` base URLs (OpenAI-compatible proxies such as litellm, theclawbay) by sending the `session_id` and `x-client-request-id` cache-affinity headers unconditionally when a `sessionId` is provided, matching the official Codex CLI behavior ([#3264](https://github.com/badlogic/pi-mono/pull/3264) by [@vegarsti](https://github.com/vegarsti))
+- Fixed the `preset` example extension to snapshot the active model, thinking level, and tool set on the first preset application and restore that state when cycling back to `(none)`, instead of falling back to a hardcoded default tool list ([#3272](https://github.com/badlogic/pi-mono/pull/3272) by [@stembi](https://github.com/stembi))
+
+## [0.67.5] - 2026-04-16
+
+### Fixed
+
+- Fixed Opus 4.7 adaptive thinking configuration across Anthropic and Bedrock providers by recognizing Opus 4.7 adaptive-thinking support and mapping `xhigh` reasoning to provider-supported effort values ([#3286](https://github.com/badlogic/pi-mono/pull/3286) by [@markusylisiurunen](https://github.com/markusylisiurunen))
+- Fixed Zellij `Shift+Enter` regressions by reverting the Zellij-specific Kitty keyboard query bypass and restoring the previous keyboard negotiation behavior ([#3259](https://github.com/badlogic/pi-mono/issues/3259))
+
+## [0.67.4] - 2026-04-16
+
+### New Features
+
+- `--no-context-files` (`-nc`) disables automatic `AGENTS.md` / `CLAUDE.md` discovery when you need a clean run without project context injection. See [README.md#context-files](README.md#context-files).
+- `loadProjectContextFiles()` is now exported as a standalone utility for extensions and SDK-style integrations that need to inspect the same context-file resolution order used by the CLI. See [README.md#context-files](README.md#context-files).
+- New `after_provider_response` extension hook lets extensions inspect provider HTTP status codes and headers immediately after response creation and before stream consumption. See [docs/extensions.md](docs/extensions.md).
+
+### Added
+
+- Added `--no-context-files` (`-nc`) to disable `AGENTS.md` and `CLAUDE.md` context file discovery and loading ([#3253](https://github.com/badlogic/pi-mono/issues/3253))
+- Exported `loadProjectContextFiles()` as a standalone utility so extensions can discover project context files without instantiating a full `DefaultResourceLoader` ([#3142](https://github.com/badlogic/pi-mono/issues/3142))
+- Added `after_provider_response` extension hook so extensions can inspect provider HTTP status codes and headers after each provider response is received and before stream consumption begins ([#3128](https://github.com/badlogic/pi-mono/issues/3128))
+
+### Changed
+
+- Added `claude-opus-4-7` model for Anthropic.
+- Changed Anthropic prompt caching to add a `cache_control` breakpoint on the last tool definition, so tool schemas can be cached independently from transcript updates while preserving existing cache retention behavior ([#3260](https://github.com/badlogic/pi-mono/issues/3260))
+
+### Fixed
+
+- Fixed markdown strikethrough parsing in interactive rendering and HTML export to require strict double-tilde delimiters (`~~text~~`) with non-whitespace boundaries.
+- Fixed shutdown handling to kill tracked detached `bash` tool child processes on exit signals, preventing orphaned background processes.
+- Fixed flaky `edit-tool-no-full-redraw` TUI tests by waiting for asynchronous preview and preflight error rendering instead of relying on fixed render ticks.
+- Fixed `kimi-coding` default model selection to use `kimi-for-coding` instead of `kimi-k2-thinking` ([#3242](https://github.com/badlogic/pi-mono/issues/3242))
+- Fixed `ctrl+z` on native Windows to avoid crashing interactive mode, disable the default suspend binding there, and show a status message when suspend is invoked manually ([#3191](https://github.com/badlogic/pi-mono/issues/3191))
+- Fixed `find` tool cancellation and responsiveness on broad searches by making `.gitignore` discovery and `fd` execution fully abort-aware and non-blocking ([#3148](https://github.com/badlogic/pi-mono/issues/3148))
+- Fixed `grep` broad-search stalls when `context=0` by formatting match lines from ripgrep JSON output instead of doing synchronous per-match file reads ([#3205](https://github.com/badlogic/pi-mono/issues/3205))
+
+## [0.67.3] - 2026-04-15
+
+### New Features
+
+- `renderShell: "self"` for custom and built-in tool renderers so tools can own their outer shell instead of the default boxed shell. Useful for stable large previews such as edit diffs. See [docs/extensions.md#custom-rendering](docs/extensions.md#custom-rendering).
+- Interactive auto-retry status now shows a live countdown during backoff instead of a static retry delay message.
+
+### Added
+
+- Added `renderShell: "self"` for custom and built-in tool renderers so tools can own their outer shell instead of using the default boxed shell. This is useful for stable large previews such as edit diffs ([#3134](https://github.com/badlogic/pi-mono/issues/3134))
+
+### Fixed
+
+- Fixed edit diff previews to stay visible during edit permission dialogs and session replay without reintroducing large-result redraw flicker ([#3134](https://github.com/badlogic/pi-mono/issues/3134))
+- Fixed `/reload` to render a static reload status box instead of an animated spinner, avoiding redraw instability during interactive reloads.
+- Fixed the `plan-mode` example extension to allow `eza` in the read-only bash allowlist instead of the deprecated `exa` command ([#3240](https://github.com/badlogic/pi-mono/pull/3240) by [@rwachtler](https://github.com/rwachtler))
+- Fixed `google-vertex` API key resolution to treat `gcp-vertex-credentials` as an Application Default Credentials marker instead of a literal API key, so marker-based setups correctly fall back to ADC ([#3221](https://github.com/badlogic/pi-mono/pull/3221) by [@deepkilo](https://github.com/deepkilo))
+- Fixed RPC `prompt` to wait for prompt preflight success before emitting its single authoritative response, while still treating handled and queued prompts as success ([#3049](https://github.com/badlogic/pi-mono/issues/3049))
+- Fixed `/scoped-models` reordering to propagate into the `/model` scoped tab, preserving the user-defined scoped model order instead of re-sorting it ([#3217](https://github.com/badlogic/pi-mono/issues/3217))
+- Fixed `session_shutdown` to fire on `SIGHUP` and `SIGTERM` in interactive, print, and RPC modes so extensions can run shutdown cleanup on those signal-driven exits ([#3212](https://github.com/badlogic/pi-mono/issues/3212))
+- Fixed screenshot path parsing to handle lower case am/pm in macOS screenshot filenames ([#3194](https://github.com/badlogic/pi-mono/pull/3194) by [@jay-aye-see-kay](https://github.com/jay-aye-see-kay))
+- Fixed interactive auto-retry status updates to show a live countdown during backoff instead of a static retry delay message ([#3187](https://github.com/badlogic/pi-mono/issues/3187))
+
+## [0.67.2] - 2026-04-14
+
+### New Features
+
+- Support for multiple `--append-system-prompt` flags, each value is appended to the system prompt separated by double newlines. See [README.md#other-options](README.md#other-options).
+- Support for passing inline extension factories to `main()` for embedded integrations and custom entrypoints.
+- Interactive keybinding support for Kitty `super`-modified shortcuts such as `super+k`, `super+enter`, and `ctrl+super+k`. See [docs/keybindings.md](docs/keybindings.md).
+
+### Added
+
+- Added support for multiple `--append-system-prompt` flags, each value is appended to the system prompt separated by double newlines ([#3171](https://github.com/badlogic/pi-mono/pull/3171) by [@aliou](https://github.com/aliou))
+- Added interactive keybinding support for Kitty `super`-modified shortcuts such as `super+k`, `super+enter`, and `ctrl+super+k` ([#3111](https://github.com/badlogic/pi-mono/pull/3111) by [@sudosubin](https://github.com/sudosubin))
+- Added support for passing inline extension factories to `main()` for embedded integrations and custom entrypoints ([#3099](https://github.com/badlogic/pi-mono/pull/3099) by [@pmateusz](https://github.com/pmateusz))
+
+### Fixed
+
+- Fixed direct OpenAI Responses and Codex SSE requests to align `prompt_cache_key`, `session_id`, and `x-client-request-id` values with the same session-derived identifier, improving prompt cache affinity for append-only sessions ([#3018](https://github.com/badlogic/pi-mono/pull/3018) by [@steipete](https://github.com/steipete))
+- Fixed streaming-only `partialJson` scratch buffers leaking into persisted OpenAI Responses tool calls, which could corrupt follow-up payloads on resumed conversations.
+- Fixed Ctrl+Alt letter key matching in tmux by falling through from legacy ESC-prefixed handling to CSI-u and xterm `modifyOtherKeys` parsing when the legacy form does not match ([#2989](https://github.com/badlogic/pi-mono/pull/2989) by [@kaofelix](https://github.com/kaofelix))
+- Fixed the shipped `subagent` example to avoid leaking Bun virtual filesystem script paths into subagent prompts ([#3002](https://github.com/badlogic/pi-mono/pull/3002) by [@nathyong](https://github.com/nathyong))
+- Fixed bordered loaders to stop their animation timer when disposed, preventing stale loader updates after teardown.
+
+## [0.67.1] - 2026-04-13
+
+### Telemetry
+
+Interactive mode now sends a lightweight anonymous install/update telemetry ping to `https://pi.dev/install?version=x.y.z` after it writes `lastChangelogVersion` in `settings.json`.
+
+Why this exists:
+- Pi needs a reliable per-version usage signal to understand whether releases are being adopted and to help justify funding continued development.
+- npm download counts are not a reliable proxy for actual Pi usage.
+
+How it works:
+- It only runs in interactive mode.
+- It does not run in RPC mode, print mode, JSON mode, or SDK mode.
+- On a fresh interactive install, Pi writes `lastChangelogVersion`, then sends the ping.
+- On later interactive startups, if the local changelog contains entries newer than the previously stored `lastChangelogVersion`, Pi writes the new `lastChangelogVersion`, then sends the ping.
+- The request is fire-and-forget. Startup does not wait for it, and any errors are ignored.
+
+What data is collected:
+- Only the Pi version in the request path, for example `https://pi.dev/install?version=0.67.1`.
+- The server stores only aggregate per-version counters such as `{ "0.67.1": 3 }`.
+- It does not store IP addresses, client identifiers, prompts, paths, models, auth state, or any other per-user data. It literally only increments a counter for that version.
+
+How to disable it:
+- `/settings` → disable `Install telemetry`
+- `settings.json` → set `enableInstallTelemetry` to `false`
+- `PI_OFFLINE=1`
+- `PI_TELEMETRY=0`
+
+### New Features
+
+- Full `openRouterRouting` support in `models.json`, including fallbacks, parameter requirements, data collection, ZDR, ignore lists, quantizations, provider sorting, max price, and preferred throughput and latency constraints. See [docs/models.md](docs/models.md).
+- `PI_CODING_AGENT=true` environment variable set at startup so subprocesses can detect they are running inside the coding agent.
+- Updated `antigravity-image-gen.ts` example extension to use User-Agent version `1.21.9` ([#2901](https://github.com/badlogic/pi-mono/pull/2901) by [@aadishv](https://github.com/aadishv))
+- Fixed `--list-models` silently swallowing `models.json` load errors; errors are now printed to stderr ([#3072](https://github.com/badlogic/pi-mono/issues/3072))
+- Fixed custom models for built-in providers (e.g. `openrouter`) being silently dropped from `--list-models` by inheriting `api`/`baseUrl` from built-in model definitions and no longer requiring `apiKey` for providers with existing auth ([#2921](https://github.com/badlogic/pi-mono/issues/2921) and [#3072](https://github.com/badlogic/pi-mono/issues/3072))
+### Added
+
+- Added full `openRouterRouting` field support in `models.json`, including fallbacks, parameter requirements, data collection, ZDR, ignore lists, quantizations, provider sorting, max price, and preferred throughput and latency constraints ([#2904](https://github.com/badlogic/pi-mono/pull/2904) by [@zmberber](https://github.com/zmberber))
+- Set `PI_CODING_AGENT=true` environment variable at startup so sub-processes can detect they are running inside the coding agent ([#2868](https://github.com/badlogic/pi-mono/issues/2868))
+
+### Fixed
+
+- Fixed interactive changelog rendering for the telemetry notes by moving the section under a `### Telemetry` heading, so startup shows the full release notes instead of only the version header.
+- Updated `antigravity-image-gen.ts` example extension to use User-Agent version `1.21.9` ([#2901](https://github.com/badlogic/pi-mono/pull/2901) by [@aadishv](https://github.com/aadishv))
+- Bumped default Antigravity User-Agent version to `1.21.9` ([#2901](https://github.com/badlogic/pi-mono/pull/2901) by [@aadishv](https://github.com/aadishv))
+- Fixed Gemma 4 thinking level mapping to route between `MINIMAL` and `HIGH`, and map Pi reasoning levels to the model's supported thinking levels ([#2903](https://github.com/badlogic/pi-mono/pull/2903) by [@aadishv](https://github.com/aadishv))
+- Fixed Gemini 2.5 Flash Lite minimal thinking budget to use the model's supported 512-token minimum instead of the regular Flash 128-token minimum, avoiding invalid thinking budget errors ([#2861](https://github.com/badlogic/pi-mono/pull/2861) by [@JasonOA888](https://github.com/JasonOA888))
+- Fixed OpenAI Codex Responses requests to forward configured `serviceTier` values, restoring service-tier selection for Codex sessions ([#2996](https://github.com/badlogic/pi-mono/pull/2996) by [@markusylisiurunen](https://github.com/markusylisiurunen))
+- Fixed newly generated session IDs to use UUIDv7, improving time locality for session-based request routing ([#3018](https://github.com/badlogic/pi-mono/pull/3018) by [@steipete](https://github.com/steipete))
+- Fixed `Container.render()` stack overflow on long sessions by replacing `Array.push(...spread)` with a loop-based push, preventing `RangeError: Maximum call stack size exceeded` when child output exceeds the V8 call stack argument limit ([#2651](https://github.com/badlogic/pi-mono/issues/2651))
+- Fixed editor sticky-column tracking around paste markers so vertical cursor navigation restores the column from before the cursor entered a paste marker instead of jumping inside or past pasted content ([#3092](https://github.com/badlogic/pi-mono/pull/3092) by [@Perlence](https://github.com/Perlence))
+- Fixed queued messages typed during `/tree` branch summarization to flush automatically after navigation completes, so they no longer remain stuck in the steering queue ([#3091](https://github.com/badlogic/pi-mono/pull/3091) by [@Perlence](https://github.com/Perlence))
+- Fixed npm package update check to work with packages on non-default registries by using `npm view` instead of hardcoded `registry.npmjs.org` fetch ([#3164](https://github.com/badlogic/pi-mono/pull/3164) by [@aliou](https://github.com/aliou))
+
+## [0.67.0] - 2026-04-13
+
+See [0.67.1]. Version 0.67.0 shipped with a changelog formatting error that caused interactive startup to show only the version header instead of the full release notes.
+
+## [0.66.1] - 2026-04-08
+
+### Changed
+
+- Changed the Earendil announcement from an automatic startup notice to the hidden `/dementedelves` slash command.
+
+## [0.66.0] - 2026-04-08
+
+### New Features
+
+- Earendil startup announcement with bundled inline image rendering and a linked blog post for April 8 and 9, 2026.
+- Interactive Anthropic subscription auth warning when Anthropic subscription auth is active, clarifying that Anthropic third-party usage draws from extra usage and is billed per token.
+
+### Fixed
+
+- Fixed bare `readline` import to use `node:readline` prefix for Deno compatibility ([#2885](https://github.com/badlogic/pi-mono/issues/2885) by [@milosv-vtool](https://github.com/milosv-vtool))
+- Fixed auto-retry to treat stream failures like `request ended without sending any chunks` as transient errors ([#2892](https://github.com/badlogic/pi-mono/issues/2892))
+- Fixed interactive startup notices to render after the initial resource listing, and added a bundled Earendil startup announcement with inline image rendering for April 8 and 9, 2026. Moved the blog link above the image to avoid overlap with terminal image rendering.
+- Fixed interactive mode to warn when Anthropic subscription auth is active, so users know Anthropic third-party usage draws from extra usage and is billed per token.
+
+## [0.65.2] - 2026-04-06
+
+## [0.65.1] - 2026-04-05
+
+### Fixed
+
+- Fixed bash output truncation by line count to always persist full output to a temp file, preventing data loss when output exceeds 2000 lines but stays under the byte threshold ([#2852](https://github.com/badlogic/pi-mono/issues/2852))
+- RpcClient now forwards subprocess stderr to parent process in real-time ([#2805](https://github.com/badlogic/pi-mono/issues/2805))
+- Theme file watcher now handles async `fs.watch` error events instead of crashing the process ([#2791](https://github.com/badlogic/pi-mono/issues/2791))
+- Fixed stored session cwd handling so resuming or importing a session whose original working directory no longer exists now prompts interactive users to continue in the current cwd, while non-interactive modes fail with a clear error.
+- Fixed resource collision precedence so project and user skills, prompt templates, and themes override package resources consistently, and CLI-provided paths take precedence over discovered resources ([#2781](https://github.com/badlogic/pi-mono/issues/2781))
+- Fixed OpenAI-compatible completions streaming usage accounting to preserve `prompt_tokens_details.cache_write_tokens` and normalize OpenRouter `cached_tokens`, preventing incorrect cache read/write token and cost reporting in pi ([#2802](https://github.com/badlogic/pi-mono/issues/2802))
+- Fixed CLI extension paths like `git:gist.github.com/...` being incorrectly resolved against cwd instead of being passed through to the package manager ([#2845](https://github.com/badlogic/pi-mono/pull/2845) by [@aliou](https://github.com/aliou))
+- Fixed piped stdin runs with `--mode json` to preserve JSONL output instead of falling back to plain text ([#2848](https://github.com/badlogic/pi-mono/pull/2848) by [@aliou](https://github.com/aliou))
+- Fixed interactive command docs to stop listing removed `/exit` as a supported quit command ([#2850](https://github.com/badlogic/pi-mono/issues/2850))
+
+## [0.65.0] - 2026-04-03
+
+### New Features
+
+- **Session runtime API**: `createAgentSessionRuntime()` and `AgentSessionRuntime` provide a closure-based runtime that recreates cwd-bound services and session config on every session switch. Startup, `/new`, `/resume`, `/fork`, and import all use the same creation path. See [docs/sdk.md](docs/sdk.md) and [examples/sdk/13-session-runtime.ts](examples/sdk/13-session-runtime.ts).
+- **Label timestamps in `/tree`**: Toggle timestamps on tree entries with `Shift+T`, with smart date formatting and timestamp preservation through branching ([#2691](https://github.com/badlogic/pi-mono/pull/2691) by [@w-winter](https://github.com/w-winter))
+- **`defineTool()` helper**: Create standalone custom tool definitions with full TypeScript parameter type inference, no manual casts needed ([#2746](https://github.com/badlogic/pi-mono/issues/2746)). See [docs/extensions.md](docs/extensions.md).
+- **Unified diagnostics**: Arg parsing, service creation, session option resolution, and resource loading all return structured diagnostics (`info`/`warning`/`error`) instead of logging or exiting. The app layer decides presentation and exit behavior.
+
+### Breaking Changes
+
+- Removed extension post-transition events `session_switch` and `session_fork`. Use `session_start` with `event.reason` (`"startup" | "reload" | "new" | "resume" | "fork"`). For `"new"`, `"resume"`, and `"fork"`, `session_start` includes `previousSessionFile`.
+- Removed session-replacement methods from `AgentSession`. Use `AgentSessionRuntime` for `newSession()`, `switchSession()`, `fork()`, and `importFromJsonl()`. Cross-cwd session replacement rebuilds all cwd-bound runtime state and replaces the live `AgentSession` instance.
+- Removed `session_directory` from extension and settings APIs.
+- Unknown single-dash CLI flags (e.g. `-s`) now produce an error instead of being silently ignored.
+
+#### Migration: Extensions
+
+Before:
+
+```ts
+pi.on("session_switch", async (event, ctx) => { ... });
+pi.on("session_fork", async (_event, ctx) => { ... });
+```
+
+After:
+
+```ts
+pi.on("session_start", async (event, ctx) => {
+  // event.reason: "startup" | "reload" | "new" | "resume" | "fork"
+  // event.previousSessionFile: set for "new", "resume", "fork"
+});
+```
+
+#### Migration: SDK session replacement
+
+Before:
+
+```ts
+await session.newSession();
+await session.switchSession("/path/to/session.jsonl");
+```
+
+After:
+
+```ts
+import {
+  type CreateAgentSessionRuntimeFactory,
+  createAgentSessionFromServices,
+  createAgentSessionRuntime,
+  createAgentSessionServices,
+  getAgentDir,
+  SessionManager,
+} from "@bastani/atomic";
+
+const createRuntime: CreateAgentSessionRuntimeFactory = async ({ cwd, sessionManager, sessionStartEvent }) => {
+  const services = await createAgentSessionServices({ cwd });
+  return {
+    ...(await createAgentSessionFromServices({ services, sessionManager, sessionStartEvent })),
+    services,
+    diagnostics: services.diagnostics,
+  };
+};
+
+const runtime = await createAgentSessionRuntime(createRuntime, {
+  cwd: process.cwd(),
+  agentDir: getAgentDir(),
+  sessionManager: SessionManager.create(process.cwd()),
+});
+
+await runtime.newSession();
+await runtime.switchSession("/path/to/session.jsonl");
+await runtime.fork("entry-id");
+
+// After replacement, runtime.session is the new live session.
+// Rebind any session-local subscriptions or extension bindings.
+```
+
+### Added
+
+- Added `createAgentSessionRuntime()` and `AgentSessionRuntime` for runtime-backed session replacement. The runtime takes a `CreateAgentSessionRuntimeFactory` closure that closes over process-global fixed inputs and recreates cwd-bound services and session config for each effective cwd. Startup and later `/new`, `/resume`, `/fork`, import all use the same factory.
+- Added unified diagnostics model (`info`/`warning`/`error`) for arg parsing, service creation, session option resolution, and resource loading. Creation logic no longer logs or exits. The app layer decides presentation and exit behavior.
+- Added error diagnostics for missing explicit CLI resource paths (`-e`, `--skill`, `--prompt-template`, `--theme`)
+
+- Added `defineTool()` so standalone and array-based custom tool definitions keep inferred parameter types without manual casts ([#2746](https://github.com/badlogic/pi-mono/issues/2746))
+
+- Added label timestamps to the session tree with a `Shift+T` toggle in `/tree`, smart date formatting, and timestamp preservation through branching ([#2691](https://github.com/badlogic/pi-mono/pull/2691) by [@w-winter](https://github.com/w-winter))
+
+### Fixed
+
+- Fixed startup resource loading to reuse the initial `ResourceLoader` for the first runtime, so extensions are not loaded twice before session startup and `session_start` handlers still fire for singleton-style extensions ([#2766](https://github.com/badlogic/pi-mono/issues/2766))
+- Fixed retry settlement so retried agent runs wait for the full retry cycle to complete before declaring idle, preventing stale state after transient errors
+- Fixed theme `export` colors to resolve theme variables the same way as `colors`, so `/export` HTML backgrounds now honor entries like `pageBg: "base"` instead of requiring inline hex values ([#2707](https://github.com/badlogic/pi-mono/issues/2707))
+- Fixed Bedrock throttling errors being misidentified as context overflow, causing unnecessary compaction instead of retry ([#2699](https://github.com/badlogic/pi-mono/pull/2699) by [@xu0o0](https://github.com/xu0o0))
+- Added tool streaming support for newer Z.ai models ([#2732](https://github.com/badlogic/pi-mono/pull/2732) by [@kaofelix](https://github.com/kaofelix))
+
+## [0.64.0] - 2026-03-29
+
+### New Features
+
+- Extensions and SDK callers can attach a `prepareArguments` hook to any tool definition, letting them normalize or migrate raw model arguments before schema validation. The built-in `edit` tool uses this to transparently support sessions created with the old single-edit schema. See [docs/extensions.md](docs/extensions.md)
+- Extensions can customize the collapsed thinking block label via `ctx.ui.setHiddenThinkingLabel()`. See [examples/extensions/hidden-thinking-label.ts](examples/extensions/hidden-thinking-label.ts) ([#2673](https://github.com/badlogic/pi-mono/issues/2673))
+
+### Breaking Changes
+
+- `ModelRegistry` no longer has a public constructor. SDK callers and tests must use `ModelRegistry.create(authStorage, modelsJsonPath?)` for file-backed registries or `ModelRegistry.inMemory(authStorage)` for built-in-only registries. Direct `new ModelRegistry(...)` calls no longer compile.
+
+### Added
+
+- Added `ToolDefinition.prepareArguments` hook to prepare raw tool call arguments before schema validation, enabling compatibility shims for resumed sessions with outdated tool schemas
+- Built-in `edit` tool now uses `prepareArguments` to silently fold legacy top-level `oldText`/`newText` into `edits[]` when resuming old sessions
+- Added `ctx.ui.setHiddenThinkingLabel()` so extensions can customize the collapsed thinking label in interactive mode, with a no-op in RPC mode and a runnable example extension in `examples/extensions/hidden-thinking-label.ts` ([#2673](https://github.com/badlogic/pi-mono/issues/2673))
+
+### Fixed
+
+- Fixed extension-queued user messages to refresh the interactive pending-message list so messages submitted while a turn is active are no longer silently dropped ([#2674](https://github.com/badlogic/pi-mono/pull/2674) by [@mrexodia](https://github.com/mrexodia))
+- Fixed monorepo `tsconfig.json` path mappings to resolve `@mariozechner/pi-ai` subpath exports to source files in development checkouts ([#2625](https://github.com/badlogic/pi-mono/pull/2625) by [@ferologics](https://github.com/ferologics))
+- Fixed TUI cell size response handling to consume only exact `CSI 6 ; height ; width t` replies, so bare `Escape` is no longer swallowed while waiting for terminal image metadata ([#2661](https://github.com/badlogic/pi-mono/issues/2661))
+- Fixed Kitty keyboard protocol keypad functional keys to normalize to logical digits, symbols, and navigation keys, so numpad input in terminals such as iTerm2 no longer inserts Private Use Area gibberish or gets ignored ([#2650](https://github.com/badlogic/pi-mono/issues/2650))
+
+## [0.63.2] - 2026-03-29
+
+### New Features
+
+- Extension handlers can now use `ctx.signal` to forward cancellation into nested model calls, `fetch()`, and other abort-aware work. See [docs/extensions.md#ctxsignal](docs/extensions.md#ctxsignal) ([#2660](https://github.com/badlogic/pi-mono/issues/2660))
+- Built-in `edit` tool input now uses `edits[]` as the only replacement shape, reducing invalid tool calls caused by mixed single-edit and multi-edit schemas ([#2639](https://github.com/badlogic/pi-mono/issues/2639))
+- Large multi-edit results no longer trigger full-screen redraws in the interactive TUI when the final diff is rendered ([#2664](https://github.com/badlogic/pi-mono/issues/2664))
+
+### Added
+
+- Added `ctx.signal` to `ExtensionContext` and wired it to the active agent turn so extension handlers can forward cancellation into nested model calls, `fetch()`, and other abort-aware work ([#2660](https://github.com/badlogic/pi-mono/issues/2660))
+
+### Fixed
+
+- Fixed built-in `edit` tool input to use `edits[]` as the only replacement shape, eliminating the mixed single-edit and multi-edit modes that caused repeated invalid tool calls and retries ([#2639](https://github.com/badlogic/pi-mono/issues/2639))
+- Fixed edit tool TUI rendering to defer large multi-edit diffs to the settled result, avoiding full-screen redraws when the tool completes ([#2664](https://github.com/badlogic/pi-mono/issues/2664))
+
+## [0.63.1] - 2026-03-27
+
+### Added
+
+- Added `gemini-3.1-pro-preview-customtools` model availability for the `google-vertex` provider ([#2610](https://github.com/badlogic/pi-mono/pull/2610) by [@gordonhwc](https://github.com/gordonhwc))
+
+### Fixed
+
+- Documented `tool_call` input mutation as supported extension API behavior, clarified that post-mutation inputs are not re-validated, and added regression coverage for executing mutated tool arguments ([#2611](https://github.com/badlogic/pi-mono/issues/2611))
+- Fixed repeated compactions dropping messages that were kept by an earlier compaction by re-summarizing from the previous kept boundary and recalculating `tokensBefore` from the rebuilt session context ([#2608](https://github.com/badlogic/pi-mono/issues/2608))
+- Fixed interactive compaction UI updates so `ctx.compact()` rebuilds the chat through unified compaction events, manual compaction no longer duplicates the summary block, and the `trigger-compact` example only fires when context usage crosses its threshold ([#2617](https://github.com/badlogic/pi-mono/issues/2617))
+- Fixed interactive compaction completion to append a synthetic compaction summary after rebuilding the chat so the latest compaction remains visible at the bottom
+- Fixed skill discovery to stop recursing once a directory contains `SKILL.md`, and to ignore root `*.md` files in `.agents/skills` while keeping root markdown skill files supported in `~/.pi/agent/skills`, `.pi/skills`, and package `skills/` directories ([#2603](https://github.com/badlogic/pi-mono/issues/2603))
+- Fixed edit tool diff rendering for multi-edit operations with large unchanged gaps so distant edits collapse intermediate context instead of dumping the full unchanged middle block
+- Fixed edit tool error rendering to avoid repeating the same exact-match failure in both the preview and result blocks
+- Fixed auto-compaction overflow recovery for Ollama models when the backend returns explicit `prompt too long; exceeded max context length ...` errors instead of silently truncating input ([#2626](https://github.com/badlogic/pi-mono/issues/2626))
+- Fixed built-in tool overrides that reuse built-in parameter schemas to still honor custom `renderCall` and `renderResult` renderers in the interactive TUI, restoring the `minimal-mode` example ([#2595](https://github.com/badlogic/pi-mono/issues/2595))
+
+## [0.63.0] - 2026-03-27
+
+### Breaking Changes
+
+- `ModelRegistry.getApiKey(model)` has been replaced by `getApiKeyAndHeaders(model)` because `models.json` auth and header values can now resolve dynamically on every request. Extensions and SDK integrations that previously fetched only an API key must now fetch request auth per call and forward both `apiKey` and `headers`. Use `getApiKeyForProvider(provider)` only when you explicitly want provider-level API key lookup without model headers or `authHeader` handling ([#1835](https://github.com/badlogic/pi-mono/issues/1835))
+- Removed deprecated direct `minimax` and `minimax-cn` model IDs, keeping only `MiniMax-M2.7` and `MiniMax-M2.7-highspeed`. Update pinned model IDs to one of those supported direct MiniMax models, or use another provider route that still exposes the older IDs ([#2596](https://github.com/badlogic/pi-mono/pull/2596) by [@liyuan97](https://github.com/liyuan97))
+
+#### Migration Notes
+
+Before:
+
+```ts
+const apiKey = await ctx.modelRegistry.getApiKey(model);
+return streamSimple(model, messages, { apiKey });
+```
+
+After:
+
+```ts
+const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
+if (!auth.ok) throw new Error(auth.error);
+return streamSimple(model, messages, {
+  apiKey: auth.apiKey,
+  headers: auth.headers,
+});
+```
+
+### Added
+
+- Added `sessionDir` setting support in global and project `settings.json` so session storage can be configured without passing `--session-dir` on every invocation ([#2598](https://github.com/badlogic/pi-mono/pull/2598) by [@smcllns](https://github.com/smcllns))
+- Added a startup onboarding hint in the interactive header telling users pi can explain its own features and documentation ([#2620](https://github.com/badlogic/pi-mono/pull/2620) by [@ferologics](https://github.com/ferologics))
+- Added `edit` tool multi-edit support so one call can update multiple separate, disjoint regions in the same file while matching all replacements against the original file content
+- Added support for `PI_TUI_WRITE_LOG` directory paths, creating a unique log file (`tui-<timestamp>-<pid>.log`) per instance for easier debugging of multiple pi sessions ([#2508](https://github.com/badlogic/pi-mono/pull/2508) by [@mrexodia](https://github.com/mrexodia))
+
+### Changed
+
+### Fixed
+
+- Fixed file mutation queue ordering so concurrent `edit` and `write` operations targeting the same file stay serialized in request order instead of being reordered during queue-key resolution
+- Fixed `models.json` shell-command auth and headers to resolve at request time instead of being cached into long-lived model state. pi now leaves TTL, caching, and recovery policy to user-provided wrapper commands because arbitrary shell commands need provider-specific strategies ([#1835](https://github.com/badlogic/pi-mono/issues/1835))
+- Fixed Google and Vertex cost calculation to subtract cached prompt tokens from billable input tokens instead of double-counting them when providers report `cachedContentTokenCount` ([#2588](https://github.com/badlogic/pi-mono/pull/2588) by [@sparkleMing](https://github.com/sparkleMing))
+- Added missing `ajv` direct dependency; previously relied on transitive install via `@mariozechner/pi-ai` which broke standalone installs ([#2252](https://github.com/badlogic/pi-mono/issues/2252))
+- Fixed `/export` HTML backgrounds to honor `theme.export.pageBg`, `cardBg`, and `infoBg` instead of always deriving them from `userMessageBg` ([#2565](https://github.com/badlogic/pi-mono/issues/2565))
+- Fixed interactive bash execution collapsed previews to recompute visual line wrapping at render time, so previews respect the current terminal width after resizes and split-pane width changes ([#2569](https://github.com/badlogic/pi-mono/issues/2569))
+- Fixed RPC `get_session_stats` to expose `contextUsage`, so headless clients can read actual current context-window usage instead of deriving it from token totals ([#2550](https://github.com/badlogic/pi-mono/issues/2550))
+- Fixed `pi update` for git packages to fetch only the tracked target branch with `--no-tags`, reducing unrelated branch and tag noise while preserving force-push-safe updates ([#2548](https://github.com/badlogic/pi-mono/issues/2548))
+- Fixed print and JSON modes to emit `session_shutdown` before exit, so extensions can release long-lived resources and non-interactive runs terminate cleanly ([#2576](https://github.com/badlogic/pi-mono/issues/2576))
+- Fixed GitHub Copilot OpenAI Responses requests to omit the `reasoning` field entirely when no reasoning effort is requested, avoiding `400` errors from Copilot `gpt-5-mini` rejecting `reasoning: { effort: "none" }` during internal summary calls ([#2567](https://github.com/badlogic/pi-mono/issues/2567))
+- Fixed blockquote text color breaking after inline links (and other inline elements) due to missing style restoration prefix
+- Fixed slash-command Tab completion from immediately chaining into argument autocomplete after completing the command name, restoring flows like `/model` that submit into a selector dialog ([#2577](https://github.com/badlogic/pi-mono/issues/2577))
+- Fixed stale content and incorrect viewport tracking after TUI content shrinks or transient components inflate the working area ([#2126](https://github.com/badlogic/pi-mono/pull/2126) by [@Perlence](https://github.com/Perlence))
+- Fixed `@` autocomplete to debounce editor-triggered searches, cancel in-flight `fd` lookups cleanly, and keep suggestions visible while results refresh ([#1278](https://github.com/badlogic/pi-mono/issues/1278))
+
+## [0.62.0] - 2026-03-23
+
+### New Features
+
+- Built-in tools as extensible ToolDefinitions. Extension authors can now override rendering of built-in read/write/edit/bash/grep/find/ls tools with custom `renderCall`/`renderResult` components. See [docs/extensions.md](docs/extensions.md).
+- Unified source provenance via `sourceInfo`. All resources, commands, tools, skills, and prompt templates now carry structured `sourceInfo` with path, scope, and source metadata. Visible in autocomplete, RPC discovery, and SDK introspection. See [docs/extensions.md](docs/extensions.md).
+- AWS Bedrock cost allocation tagging. New `requestMetadata` option on `BedrockOptions` forwards key-value pairs to the Bedrock Converse API for AWS Cost Explorer split cost allocation.
+
+### Breaking Changes
+
+- Changed `ToolDefinition.renderCall` and `renderResult` semantics. Fallback rendering now happens only when a renderer is not defined for that slot. If `renderCall` or `renderResult` is defined, it must return a `Component`.
+- Changed slash command provenance to use `sourceInfo` consistently. RPC `get_commands`, `RpcSlashCommand`, and SDK `SlashCommandInfo` no longer expose `location` or `path`. Use `sourceInfo` instead ([#1734](https://github.com/badlogic/pi-mono/issues/1734))
+- Removed legacy `source` fields from `Skill` and `PromptTemplate`. Use `sourceInfo.source` for provenance instead ([#1734](https://github.com/badlogic/pi-mono/issues/1734))
+- Removed `ResourceLoader.getPathMetadata()`. Resource provenance is now attached directly to loaded resources via `sourceInfo` ([#1734](https://github.com/badlogic/pi-mono/issues/1734))
+- Removed `extensionPath` from `RegisteredCommand` and `RegisteredTool`. Use `sourceInfo.path` for provenance instead ([#1734](https://github.com/badlogic/pi-mono/issues/1734))
+
+#### Migration Notes
+
+Resource, command, and tool provenance now use `sourceInfo` consistently.
+
+Common updates:
+- RPC `get_commands`: replace `path` and `location` with `sourceInfo.path`, `sourceInfo.scope`, and `sourceInfo.source`
+- `SlashCommandInfo`: replace `command.path` and `command.location` with `command.sourceInfo`
+- `Skill` and `PromptTemplate`: replace `.source` with `.sourceInfo.source`
+- `RegisteredCommand` and `RegisteredTool`: replace `.extensionPath` with `.sourceInfo.path`
+- Custom `ResourceLoader` implementations: remove `getPathMetadata()` and read provenance from loaded resources directly
+
+Examples:
+- `command.path` -> `command.sourceInfo.path`
+- `command.location === "user"` -> `command.sourceInfo.scope === "user"`
+- `skill.source` -> `skill.sourceInfo.source`
+- `tool.extensionPath` -> `tool.sourceInfo.path`
+
+### Changed
+
+- Built-in tools now work like custom tools in extensions. To get built-in tool definitions, import `readToolDefinition` / `createReadToolDefinition()` and the equivalent `bash`, `edit`, `write`, `grep`, `find`, and `ls` exports from `@bastani/atomic`.
+- Cleaned up `buildSystemPrompt()` so built-in tool snippets and tool-local guidelines come from built-in `ToolDefinition` metadata, while cross-tool and global prompt rules stay in system prompt construction.
+- Added structured `sourceInfo` to `pi.getAllTools()` results for built-in, SDK, and extension tools ([#1734](https://github.com/badlogic/pi-mono/issues/1734))
+
+### Fixed
+
+- Fixed extension command name conflicts so extensions with duplicate command names can load together. Conflicting extension commands now get numeric invocation suffixes in load order, for example `/review:1` and `/review:2` ([#1061](https://github.com/badlogic/pi-mono/issues/1061))
+- Fixed slash command source attribution for extension commands, prompt templates, and skills in autocomplete and command discovery ([#1734](https://github.com/badlogic/pi-mono/issues/1734))
+- Fixed auto-resized image handling to enforce the inline image size limit on the final base64 payload, return text-only fallbacks when resizing cannot produce a safe image, and avoid falling back to the original image in `read` and `@file` auto-resize paths ([#2055](https://github.com/badlogic/pi-mono/issues/2055))
+- Fixed `pi update` for git packages to skip destructive reset, clean, and reinstall steps when the fetched target already matches the local checkout ([#2503](https://github.com/badlogic/pi-mono/issues/2503))
+- Fixed print and JSON mode to take over stdout during non-interactive startup, keeping package-manager and other incidental chatter off protocol/output stdout ([#2482](https://github.com/badlogic/pi-mono/issues/2482))
+- Fixed cli-highlight auto-detection for languageless code blocks that misidentified prose as programming languages and colored random English words as keywords
+- Fixed Anthropic thinking disable handling to send `thinking: { type: "disabled" }` for reasoning-capable models when thinking is explicitly off ([#2022](https://github.com/badlogic/pi-mono/issues/2022))
+- Fixed explicit thinking disable handling across Google, Google Vertex, Gemini CLI, OpenAI Responses, Azure OpenAI Responses, and OpenRouter-backed OpenAI-compatible completions ([#2490](https://github.com/badlogic/pi-mono/issues/2490))
+- Fixed OpenAI Responses replay for foreign tool-call item IDs by hashing foreign IDs into bounded `fc_<hash>` IDs
+- Fixed OpenAI-compatible completions streams to ignore null chunks instead of crashing ([#2466](https://github.com/badlogic/pi-mono/pull/2466) by [@Cheng-Zi-Qing](https://github.com/Cheng-Zi-Qing))
+- Fixed `truncateToWidth()` performance for very large strings by streaming truncation ([#2447](https://github.com/badlogic/pi-mono/issues/2447))
+- Fixed markdown heading styling being lost after inline code spans within headings
+
+## [0.61.1] - 2026-03-20
+
+### New Features
+
+- Typed `tool_call` handler return values via `ToolCallEventResult` exports from the top-level package and core extension entry. See [docs/extensions.md](docs/extensions.md).
+- Updated default models for `zai`, `cerebras`, `minimax`, and `minimax-cn`, and aligned MiniMax catalog coverage and limits with the current provider lineup. See [docs/models.md](docs/models.md) and [docs/providers.md](docs/providers.md).
+
+### Added
+
+- Added `ToolCallEventResult` to the `@bastani/atomic` top-level and core extension exports so extension authors can type explicit `tool_call` handler return values ([#2458](https://github.com/badlogic/pi-mono/issues/2458))
+
+### Changed
+
+- Changed the default models for `zai`, `cerebras`, `minimax`, and `minimax-cn` to match the current provider lineup, and added missing `MiniMax-M2.1-highspeed` model entries with normalized MiniMax context limits ([#2445](https://github.com/badlogic/pi-mono/pull/2445) by [@1500256797](https://github.com/1500256797))
+
+### Fixed
+
+- Fixed `ctrl+z` suspend and `fg` resume reliability by keeping the process alive until the `SIGCONT` handler restores the TUI, avoiding immediate process exit in environments with no other live event-loop handles ([#2454](https://github.com/badlogic/pi-mono/issues/2454))
+- Fixed `createAgentSession({ agentDir })` to derive the default persisted session path from the provided `agentDir`, keeping session storage aligned with settings, auth, models, and resource loading ([#2457](https://github.com/badlogic/pi-mono/issues/2457))
+- Fixed shared keybinding resolution to stop user overrides from evicting unrelated default shortcuts such as selector confirm and editor cursor keys ([#2455](https://github.com/badlogic/pi-mono/issues/2455))
+- Fixed Termux software keyboard height changes from forcing full-screen redraws and replaying TUI history on every toggle ([#2467](https://github.com/badlogic/pi-mono/issues/2467))
+- Fixed project-local npm package updates to install npm `latest` instead of reusing stale saved dependency ranges, and added `Did you mean ...?` suggestions when `pi update <source>` omits the configured npm or git source prefix ([#2459](https://github.com/badlogic/pi-mono/issues/2459))
+
+## [0.61.0] - 2026-03-20
+
+### New Features
+
+- Namespaced keybinding ids and a unified keybinding manager across the app and TUI. See [docs/keybindings.md](docs/keybindings.md) and [docs/extensions.md](docs/extensions.md).
+- JSONL session export and import via `/export <path.jsonl>` and `/import <path.jsonl>`. See [README.md](README.md) and [docs/session.md](docs/session.md).
+- Resizable sidebar in HTML share and export views. See [README.md](README.md).
+
+### Breaking Changes
+
+- Interactive keybinding ids are now namespaced, and `keybindings.json` now uses those same canonical namespaced ids. Older config files are migrated automatically on startup. Custom editors and extension UI components still receive an injected `keybindings: KeybindingsManager`. They do not call `getKeybindings()` or `setKeybindings()` themselves. Declaration merging applies to that injected type ([#2391](https://github.com/badlogic/pi-mono/issues/2391))
+- Extension author migration: update `keyHint()`, `keyText()`, and injected `keybindings.matches(...)` calls from old built-in names like `"expandTools"`, `"selectConfirm"`, and `"interrupt"` to namespaced ids like `"app.tools.expand"`, `"tui.select.confirm"`, and `"app.interrupt"`. See [docs/keybindings.md](docs/keybindings.md) for the full list. `pi.registerShortcut("ctrl+shift+p", ...)` is unchanged because extension shortcuts still use raw key combos, not keybinding ids.
+
+### Added
+
+- Added `gpt-5.4-mini` to the `openai-codex` model catalog ([#2334](https://github.com/badlogic/pi-mono/pull/2334) by [@justram](https://github.com/justram))
+- Added JSONL session export and import via `/export <path.jsonl>` and `/import <path.jsonl>` ([#2356](https://github.com/badlogic/pi-mono/pull/2356) by [@hjanuschka](https://github.com/hjanuschka))
+- Added a resizable sidebar to HTML share and export views ([#2435](https://github.com/badlogic/pi-mono/pull/2435) by [@dmmulroy](https://github.com/dmmulroy))
+
+### Fixed
+
+- Tests for session-selector-rename and tree-selector are now keybinding-agnostic, resetting editor keybindings to defaults before each test so user `keybindings.json` cannot cause failures ([#2360](https://github.com/badlogic/pi-mono/issues/2360))
+- Fixed custom `keybindings.json` overrides to shadow conflicting default shortcuts globally, so bindings such as `cursorUp: ["up", "ctrl+p"]` no longer leave default actions like model cycling active ([#2391](https://github.com/badlogic/pi-mono/issues/2391))
+- Fixed concurrent `edit` and `write` mutations targeting the same file to run serially, preventing interleaved file writes from overwriting each other ([#2327](https://github.com/badlogic/pi-mono/issues/2327))
+- Fixed RPC mode to redirect unexpected stdout writes to stderr so JSONL responses remain parseable ([#2388](https://github.com/badlogic/pi-mono/issues/2388))
+- Fixed auto-retry with tool-using retry responses so `session.prompt()` waits for the full retry loop, including tool execution, before returning ([#2440](https://github.com/badlogic/pi-mono/pull/2440) by [@pasky](https://github.com/pasky))
+- Fixed `/model` to refresh scoped model lists after `models.json` changes, avoiding stale selector contents ([#2408](https://github.com/badlogic/pi-mono/pull/2408) by [@Perlence](https://github.com/Perlence))
+- Fixed `validateToolArguments()` to fall back gracefully when AJV schema compilation is blocked in restricted runtimes such as Cloudflare Workers, allowing tool execution to proceed without schema validation ([#2395](https://github.com/badlogic/pi-mono/issues/2395))
+- Fixed CLI startup to suppress process warnings from leaking into terminal, print, and RPC output ([#2404](https://github.com/badlogic/pi-mono/issues/2404))
+- Fixed bash tool rendering to show elapsed time at the bottom of the tool block ([#2406](https://github.com/badlogic/pi-mono/issues/2406))
+- Fixed custom theme file watching to reload updated theme contents from disk instead of keeping stale cached theme data ([#2417](https://github.com/badlogic/pi-mono/issues/2417), [#2003](https://github.com/badlogic/pi-mono/issues/2003))
+- Fixed footer Git branch refreshes to run asynchronously so branch watcher updates do not block the UI ([#2418](https://github.com/badlogic/pi-mono/issues/2418))
+- Fixed invalid extension provider registrations to surface an extension error without preventing other providers from loading ([#2431](https://github.com/badlogic/pi-mono/issues/2431))
+- Fixed Windows bash execution hanging for commands that spawn detached descendants inheriting stdout/stderr handles, which caused `agent-browser` and similar commands to spin forever ([#2389](https://github.com/badlogic/pi-mono/pull/2389) by [@mrexodia](https://github.com/mrexodia))
+- Fixed `google-vertex` API key resolution to ignore placeholder auth markers like `<authenticated>` and fall back to ADC instead of sending them as literal API keys ([#2335](https://github.com/badlogic/pi-mono/issues/2335))
+- Fixed desktop clipboard text copy to prefer native OS clipboard integration before shell fallbacks, improving reliability on macOS and Windows ([#2347](https://github.com/badlogic/pi-mono/issues/2347))
+- Fixed Bun Bedrock provider registration to survive provider resets and session reloads in compiled binaries ([#2350](https://github.com/badlogic/pi-mono/pull/2350) by [@unexge](https://github.com/unexge))
+- Fixed OpenRouter reasoning requests to use the provider's nested reasoning payload, restoring thinking level support for OpenRouter models and custom compat settings ([#2298](https://github.com/badlogic/pi-mono/pull/2298) by [@PriNova](https://github.com/PriNova))
+- Fixed Bedrock application inference profiles to support prompt caching when `AWS_BEDROCK_FORCE_CACHE=1` is set, covering profile ARNs that do not expose the underlying Claude model name ([#2346](https://github.com/badlogic/pi-mono/pull/2346) by [@haoqixu](https://github.com/haoqixu))
+
+## [0.60.0] - 2026-03-18
+
+### New Features
+
+- Fork existing sessions directly from the CLI with `--fork <path|id>`, which copies a source session into a new session in the current project. See [README.md](README.md).
+- Extensions and SDK callers can reuse pi's built-in local bash backend via `createLocalBashOperations()` for `user_bash` interception and custom bash integrations. See [docs/extensions.md#user_bash](docs/extensions.md#user_bash).
+- Startup no longer updates unpinned npm and git packages automatically. Use `pi update` explicitly, while interactive mode checks for updates in the background and notifies you when newer packages are available. See [README.md](README.md).
+
+### Breaking Changes
+
+- Changed package startup behavior so installed unpinned packages are no longer checked or updated during startup. Use `pi update` to apply npm/git package updates, while interactive mode now checks for available package updates in the background and notifies you when updates are available ([#1963](https://github.com/badlogic/pi-mono/issues/1963))
+
+### Added
+
+- Added `--fork <path|id>` CLI flag to fork an existing session file or partial session UUID directly into a new session ([#2290](https://github.com/badlogic/pi-mono/issues/2290))
+- Added `createLocalBashOperations()` export so extensions and SDK callers can wrap pi's built-in local bash backend for `user_bash` handling and other custom bash integrations ([#2299](https://github.com/badlogic/pi-mono/issues/2299))
+
+### Fixed
+
+- Fixed active model selection to refresh immediately after dynamic provider registrations or updates change the available model set ([#2291](https://github.com/badlogic/pi-mono/issues/2291))
+- Fixed tmux xterm `modifyOtherKeys` matching for `Backspace`, `Escape`, and `Space`, and resolved raw `\x08` backspace ambiguity by treating Windows Terminal sessions differently from legacy terminals ([#2293](https://github.com/badlogic/pi-mono/issues/2293))
+- Fixed Gemini 3 and Antigravity image tool results to stay inline as multimodal tool responses instead of being rerouted through separate follow-up messages ([#2052](https://github.com/badlogic/pi-mono/issues/2052))
+- Fixed bundled Bedrock Claude 4.6 model metadata to use the correct 200K context window instead of 1M ([#2305](https://github.com/badlogic/pi-mono/issues/2305))
+- Fixed `/reload` to reload keybindings from disk so changes in `keybindings.json` apply immediately ([#2309](https://github.com/badlogic/pi-mono/issues/2309))
+- Fixed lazy built-in provider registration so compiled Bun binaries can still load providers on first use without eagerly bundling provider SDKs ([#2314](https://github.com/badlogic/pi-mono/issues/2314))
+- Fixed built-in OAuth login flows to use aligned callback handling across Anthropic, Gemini CLI, Antigravity, and OpenAI Codex, and fixed OpenAI Codex login to complete immediately once the browser callback succeeds ([#2316](https://github.com/badlogic/pi-mono/issues/2316))
+- Fixed OpenAI-compatible z.ai `network_error` responses to trigger error handling and retries instead of being treated as successful assistant output ([#2313](https://github.com/badlogic/pi-mono/issues/2313))
+- Fixed print mode to merge piped stdin into the initial prompt when both stdin and an explicit prompt are provided ([#2315](https://github.com/badlogic/pi-mono/issues/2315))
+- Fixed OpenAI Responses replay in coding-agent to normalize oversized resumed tool call IDs before sending them back to OpenAI Codex and other Responses-compatible targets ([#2328](https://github.com/badlogic/pi-mono/issues/2328))
+- Fixed tmux extended-keys warning to stay hidden when the tmux server is unreachable, avoiding false startup warnings in sandboxed environments ([#2311](https://github.com/badlogic/pi-mono/pull/2311) by [@kaffarell](https://github.com/kaffarell))
+
+## [0.59.0] - 2026-03-17
+
+### New Features
+
+- Faster startup by lazy-loading `@mariozechner/pi-ai` provider SDKs on first use instead of import time ([#2297](https://github.com/badlogic/pi-mono/issues/2297))
+- Better provider retry behavior when providers return error messages as responses ([#2264](https://github.com/badlogic/pi-mono/issues/2264))
+- Better terminal integration via OSC 133 command-executed markers ([#2242](https://github.com/badlogic/pi-mono/issues/2242))
+- Better Git footer branch detection for repositories using reftable storage ([#2300](https://github.com/badlogic/pi-mono/issues/2300))
+
+### Breaking Changes
+
+- Changed custom tool system prompt behavior so extension and SDK tools are included in the default `Available tools` section only when they provide `promptSnippet`. Omitting `promptSnippet` now leaves the tool out of that section instead of falling back to `description` ([#2285](https://github.com/badlogic/pi-mono/issues/2285))
+
+### Changed
+
+- Lazy-load built-in `@mariozechner/pi-ai` provider modules and root provider wrappers so coding-agent startup no longer eagerly loads provider SDKs before first use ([#2297](https://github.com/badlogic/pi-mono/issues/2297))
+
+### Fixed
+
+- Fixed session title handling in `/tree`, compaction, and branch summarization so empty title clears render correctly and `session_info` entries stay out of summaries ([#2304](https://github.com/badlogic/pi-mono/pull/2304) by [@aliou](https://github.com/aliou))
+- Fixed footer branch detection for Git repositories using reftable storage so branch names still appear correctly in the footer ([#2300](https://github.com/badlogic/pi-mono/issues/2300))
+- Fixed rendered user messages to emit an OSC 133 command-executed marker after command output, improving terminal prompt integration ([#2242](https://github.com/badlogic/pi-mono/issues/2242))
+- Fixed provider retry handling to treat provider-returned error messages as retryable failures instead of successful responses ([#2264](https://github.com/badlogic/pi-mono/issues/2264))
+- Fixed Claude 4.6 context window overrides in bundled model metadata so coding-agent sees the intended model limits after generated catalogs are rebuilt ([#2286](https://github.com/badlogic/pi-mono/issues/2286))
+
+## [0.58.4] - 2026-03-16
+
+### Fixed
+
+- Fixed steering messages to wait until the current assistant message's tool-call batch fully finishes instead of skipping pending tool calls.
+
+## [0.58.3] - 2026-03-15
+
+## [0.58.2] - 2026-03-15
+
+### Added
+
+- Improved settings, theme, thinking, and show-images selector layouts by using configurable select-list primary column sizing ([#2154](https://github.com/badlogic/pi-mono/pull/2154) by [@markusylisiurunen](https://github.com/markusylisiurunen))
+
+### Fixed
+
+- Fixed fuzzy `edit` matching to normalize Unicode compatibility variants before comparison, reducing false "oldText not found" failures for text such as CJK and full-width characters ([#2044](https://github.com/badlogic/pi-mono/issues/2044))
+- Fixed `/model <ref>` exact matching and picker search to recognize canonical `provider/model` references when model IDs themselves contain `/`, such as LM Studio models like `unsloth/qwen3.5-35b-a3b` ([#2174](https://github.com/badlogic/pi-mono/issues/2174))
+- Fixed Anthropic OAuth manual login and token refresh by using the localhost callback URI for pasted redirect/code flows and omitting `scope` from refresh-token requests ([#2169](https://github.com/badlogic/pi-mono/issues/2169))
+- Fixed stale scrollback remaining after session switches by clearing the screen before wiping scrollback ([#2155](https://github.com/badlogic/pi-mono/pull/2155) by [@Perlence](https://github.com/Perlence))
+- Fixed extra blank lines after markdown block elements in rendered output ([#2152](https://github.com/badlogic/pi-mono/pull/2152) by [@markusylisiurunen](https://github.com/markusylisiurunen))
+
+## [0.58.1] - 2026-03-14
+
+### Added
+
+- Added `pi uninstall` alias for `pi install --uninstall` convenience
+
+### Fixed
+
+- Fixed OpenAI Codex websocket protocol to include required headers and properly terminate SSE streams on connection close ([#1961](https://github.com/badlogic/pi-mono/issues/1961))
+- Fixed WSL clipboard image fallback to properly handle missing clipboard utilities and permission errors ([#1722](https://github.com/badlogic/pi-mono/issues/1722))
+- Fixed extension `session_start` hook firing before TUI was ready, causing UI operations in `session_start` handlers to fail ([#2035](https://github.com/badlogic/pi-mono/issues/2035))
+- Fixed Windows shell and path handling for package manager operations and autocomplete to properly handle drive letters and mixed path separators
+- Fixed Bedrock prompt caching being enabled for non-Claude models, causing API errors ([#2053](https://github.com/badlogic/pi-mono/issues/2053))
+- Fixed Qwen models via OpenAI-compatible providers by adding `qwen-chat-template` compat mode that uses Qwen's native chat template format ([#2020](https://github.com/badlogic/pi-mono/issues/2020))
+- Fixed Bedrock unsigned thinking replay to handle edge cases with empty or malformed thinking blocks ([#2063](https://github.com/badlogic/pi-mono/issues/2063))
+- Fixed headless clipboard fallback logging spurious errors in non-interactive environments ([#2056](https://github.com/badlogic/pi-mono/issues/2056))
+- Fixed `models.json` provider compat flags not being honored when loading custom model definitions ([#2062](https://github.com/badlogic/pi-mono/issues/2062))
+- Fixed xhigh reasoning effort detection for Claude Opus 4.6 to match by model ID instead of requiring explicit capability flag ([#2040](https://github.com/badlogic/pi-mono/issues/2040))
+- Fixed prompt cwd containing Windows backslashes breaking bash tool execution by normalizing to forward slashes ([#2080](https://github.com/badlogic/pi-mono/issues/2080))
+- Fixed editor paste to preserve literal content instead of normalizing newlines, preventing content corruption for text with embedded escape sequences ([#2064](https://github.com/badlogic/pi-mono/issues/2064))
+- Fixed skill discovery recursing past skill root directories when nested SKILL.md files exist ([#2075](https://github.com/badlogic/pi-mono/issues/2075))
+- Fixed tab completion to preserve `./` prefix when completing relative paths ([#2087](https://github.com/badlogic/pi-mono/issues/2087))
+- Fixed npm package installs and lookups being tied to the active repository Node version by adding `npmCommand` as an argv-style settings override for package manager operations ([#2072](https://github.com/badlogic/pi-mono/issues/2072))
+- Fixed `ctx.ui.getEditorText()` in the extension API returning paste markers (e.g., `[paste #1 +24 lines]`) instead of the actual pasted content ([#2084](https://github.com/badlogic/pi-mono/issues/2084))
+- Fixed startup crash when downloading `fd`/`ripgrep` on first run by using `pipeline()` instead of `finished(readable.pipe(writable))` so stream errors from timeouts are caught properly, and increased the download timeout from 10s to 120s ([#2066](https://github.com/badlogic/pi-mono/issues/2066))
+
+## [0.58.0] - 2026-03-14
+
+### New Features
+
+- Claude Opus 4.6, Sonnet 4.6, and related Bedrock models now use a 1M token context window (up from 200K) ([#2135](https://github.com/badlogic/pi-mono/pull/2135) by [@mitsuhiko](https://github.com/mitsuhiko)).
+- Extension tool calls now execute in parallel by default, with sequential `tool_call` preflight preserved for extension interception.
+- `GOOGLE_CLOUD_API_KEY` environment variable support for the `google-vertex` provider as an alternative to Application Default Credentials ([#1976](https://github.com/badlogic/pi-mono/pull/1976) by [@gordonhwc](https://github.com/gordonhwc)).
+- Extensions can supply deterministic session IDs via `newSession()` ([#2130](https://github.com/badlogic/pi-mono/pull/2130) by [@zhahaoyu](https://github.com/zhahaoyu)).
+
+### Added
+
+- Added `GOOGLE_CLOUD_API_KEY` environment variable support for the `google-vertex` provider as an alternative to Application Default Credentials ([#1976](https://github.com/badlogic/pi-mono/pull/1976) by [@gordonhwc](https://github.com/gordonhwc))
+- Added custom session ID support in `newSession()` for extensions that need deterministic session paths ([#2130](https://github.com/badlogic/pi-mono/pull/2130) by [@zhahaoyu](https://github.com/zhahaoyu))
+
+### Changed
+
+- Changed extension tool interception to use agent-core `beforeToolCall` and `afterToolCall` hooks instead of wrapper-based interception. Tool calls now execute in parallel by default, extension `tool_call` preflight still runs sequentially, and final tool results are emitted in assistant source order.
+- Raised Claude Opus 4.6, Sonnet 4.6, and related Bedrock model context windows from 200K to 1M tokens ([#2135](https://github.com/badlogic/pi-mono/pull/2135) by [@mitsuhiko](https://github.com/mitsuhiko))
+
+### Fixed
+
+- Fixed `tool_call` extension handlers observing stale `sessionManager` state during multi-tool turns by draining queued agent events before each `tool_call` preflight. In parallel tool mode this guarantees state through the current assistant tool-calling message, but not sibling tool results from the same assistant message.
+- Fixed interactive input fields backed by the TUI `Input` component to scroll by visual column width for wide Unicode text (CJK, fullwidth characters), preventing rendered line overflow and TUI crashes in places like search and filter inputs ([#1982](https://github.com/badlogic/pi-mono/issues/1982))
+- Fixed `shift+tab` and other modified Tab bindings in tmux when `extended-keys-format` is left at the default `xterm`
+- Fixed EXIF orientation not being applied during image convert and resize, causing JPEG and WebP images from phone cameras to display rotated or mirrored ([#2105](https://github.com/badlogic/pi-mono/pull/2105) by [@melihmucuk](https://github.com/melihmucuk))
+- Fixed the default coding-agent system prompt to include only the current date in ISO format, not the current time, so prompt prefixes stay cacheable across reloads and resumed sessions ([#2131](https://github.com/badlogic/pi-mono/issues/2131))
+- Fixed retry regex to match `server_error` and `internal_error` error types from providers, improving automatic retry coverage ([#2117](https://github.com/badlogic/pi-mono/pull/2117) by [@MadKangYu](https://github.com/MadKangYu))
+- Fixed example extensions to support `PI_CODING_AGENT_DIR` environment variable for custom agent directory paths ([#2009](https://github.com/badlogic/pi-mono/pull/2009) by [@smithbm2316](https://github.com/smithbm2316))
+- Fixed tool result images not being sent in `function_call_output` items for OpenAI Responses API providers, causing image data to be silently dropped in tool results ([#2104](https://github.com/badlogic/pi-mono/issues/2104))
+- Fixed assistant content being sent as structured content blocks instead of plain strings in the `openai-completions` provider, causing errors with some OpenAI-compatible backends ([#2008](https://github.com/badlogic/pi-mono/pull/2008) by [@geraldoaax](https://github.com/geraldoaax))
+- Fixed error details in OpenAI Responses `response.failed` handler to include status code, error code, and message instead of a generic failure ([#1956](https://github.com/badlogic/pi-mono/pull/1956) by [@drewburr](https://github.com/drewburr))
+- Fixed GitHub Copilot device-code login polling to respect OAuth slow-down intervals, wait before the first token poll, and include a clearer clock-drift hint in WSL/VM environments when repeated slow-downs lead to timeout
+- Fixed usage statistics not being captured for OpenAI-compatible providers that return usage in `choice.usage` instead of the standard `chunk.usage` (e.g., Moonshot/Kimi) ([#2017](https://github.com/badlogic/pi-mono/issues/2017))
+- Fixed editor scroll indicator rendering crash in narrow terminal widths ([#2103](https://github.com/badlogic/pi-mono/pull/2103) by [@haoqixu](https://github.com/haoqixu))
+- Fixed tab characters in editor and input paste not being normalized to spaces ([#2027](https://github.com/badlogic/pi-mono/pull/2027), [#1975](https://github.com/badlogic/pi-mono/pull/1975) by [@haoqixu](https://github.com/haoqixu))
+- Fixed `wordWrapLine` overflow when wide characters (CJK, fullwidth) fall exactly at the wrap boundary ([#2082](https://github.com/badlogic/pi-mono/pull/2082) by [@haoqixu](https://github.com/haoqixu))
+- Fixed paste markers not being treated as atomic segments in editor word wrapping and cursor navigation ([#2111](https://github.com/badlogic/pi-mono/pull/2111) by [@haoqixu](https://github.com/haoqixu))
+
+## [0.57.1] - 2026-03-07
+
+### New Features
+- Tree branch folding and segment-jump navigation in `/tree`, with `Ctrl+←`/`Ctrl+→` and `Alt+←`/`Alt+→` shortcuts while `←`/`→` and `Page Up`/`Page Down` remain available for paging. See [docs/tree.md](docs/tree.md) and [docs/keybindings.md](docs/keybindings.md).
+- `session_directory` extension event for customizing session directory paths before session manager creation. See [docs/extensions.md](docs/extensions.md).
+- Digit keybindings (`0-9`) in the TUI keybinding system, including modified combos like `ctrl+1`. See [docs/keybindings.md](docs/keybindings.md).
+
+### Added
+- Added `/tree` branch folding and segment-jump navigation with `Ctrl+←`/`Ctrl+→` and `Alt+←`/`Alt+→`, while keeping `←`/`→` and `Page Up`/`Page Down` for paging ([#1724](https://github.com/badlogic/pi-mono/pull/1724) by [@Perlence](https://github.com/Perlence))
+- Added `session_directory` extension event that fires before session manager creation, allowing extensions to customize the session directory path based on cwd and other factors. CLI `--session-dir` flag takes precedence over extension-provided paths ([#1730](https://github.com/badlogic/pi-mono/pull/1730) by [@hjanuschka](https://github.com/hjanuschka)).
+- Added digit keys (`0-9`) to the keybinding system, including Kitty CSI-u and xterm `modifyOtherKeys` support for bindings like `ctrl+1` ([#1905](https://github.com/badlogic/pi-mono/issues/1905))
+
+### Fixed
+- Fixed custom tool collapsed/expanded rendering in HTML exports. Custom tools that define different collapsed vs expanded displays now render correctly in exported HTML, with expandable sections when both states differ and direct display when only expanded exists ([#1934](https://github.com/badlogic/pi-mono/pull/1934) by [@aliou](https://github.com/aliou))
+- Fixed tmux startup guidance and keyboard setup warnings for modified key handling, including Ghostty `shift+enter=text:\n` remap guidance and tmux `extended-keys-format` detection ([#1872](https://github.com/badlogic/pi-mono/issues/1872))
+- Fixed z.ai context overflow recovery so `model_context_window_exceeded` errors trigger auto-compaction instead of surfacing as unhandled stop reason failures ([#1937](https://github.com/badlogic/pi-mono/issues/1937))
+- Fixed autocomplete selection ignoring typed text: highlight now follows the first prefix match as the user types, and exact matches are always selected on Enter ([#1931](https://github.com/badlogic/pi-mono/pull/1931) by [@aliou](https://github.com/aliou))
+- Fixed slash-command Tab completion to immediately open argument completions when available ([#1481](https://github.com/badlogic/pi-mono/pull/1481) by [@barapa](https://github.com/barapa))
+- Fixed explicit `pi -e <path>` extensions losing command and tool conflicts to discovered extensions by giving CLI-loaded extensions higher precedence ([#1896](https://github.com/badlogic/pi-mono/issues/1896))
+- Fixed Windows external editor launch for `Ctrl+G` and `ctx.ui.editor()` so shell-based commands like `EDITOR="code --wait"` work correctly ([#1925](https://github.com/badlogic/pi-mono/issues/1925))
+
+## [0.57.0] - 2026-03-07
+
+### New Features
+
+- Extensions can intercept and modify provider request payloads via `before_provider_request`. See [docs/extensions.md#before_provider_request](docs/extensions.md#before_provider_request).
+- Extension UIs can use non-capturing overlays with explicit focus control via `OverlayOptions.nonCapturing` and `OverlayHandle.focus()` / `unfocus()` / `isFocused()`. See [docs/extensions.md](docs/extensions.md) and [../tui/README.md](../tui/README.md).
+- RPC mode now uses strict LF-only JSONL framing for robust payload handling. See [docs/rpc.md](docs/rpc.md).
+
+### Breaking Changes
+
+- RPC mode now uses strict LF-delimited JSONL framing. Clients must split records on `\n` only instead of using generic line readers such as Node `readline`, which also split on Unicode separators inside JSON payloads ([#1911](https://github.com/badlogic/pi-mono/issues/1911))
+
+### Added
+
+- Added `before_provider_request` extension hook so extensions can inspect or replace provider payloads before requests are sent, with an example in `examples/extensions/provider-payload.ts`
+- Added non-capturing overlay focus control for extension UIs via `OverlayOptions.nonCapturing` and `OverlayHandle.focus()` / `unfocus()` / `isFocused()` ([#1916](https://github.com/badlogic/pi-mono/pull/1916) by [@nicobailon](https://github.com/nicobailon))
+
+### Changed
+
+- Overlay compositing in extension UIs now uses focus order so focused overlays render on top while preserving stack semantics for show/hide behavior ([#1916](https://github.com/badlogic/pi-mono/pull/1916) by [@nicobailon](https://github.com/nicobailon))
+
+### Fixed
+
+- Fixed RPC mode stdin/stdout framing to use strict LF-delimited JSONL instead of `readline`, so payloads containing `U+2028` or `U+2029` no longer corrupt command or event streams ([#1911](https://github.com/badlogic/pi-mono/issues/1911))
+- Fixed automatic overlay focus restoration in extension UIs to skip non-capturing overlays, and fixed overlay hide behavior to only reassign focus when the hidden overlay had focus ([#1916](https://github.com/badlogic/pi-mono/pull/1916) by [@nicobailon](https://github.com/nicobailon))
+- Fixed `pi config` misclassifying `~/.agents/skills` as project-scoped in non-git directories under `$HOME`, so toggling those skills no longer writes project overrides to `.pi/settings.json` ([#1915](https://github.com/badlogic/pi-mono/issues/1915))
+
+## [0.56.3] - 2026-03-06
+
+### New Features
+
+- `claude-sonnet-4-6` model available via the `google-antigravity` provider ([#1859](https://github.com/badlogic/pi-mono/issues/1859))
+- Custom editors can now define their own `onEscape`/`onCtrlD` handlers without being overwritten by app defaults, enabling vim-mode extensions ([#1838](https://github.com/badlogic/pi-mono/issues/1838))
+- Shift+Enter and Ctrl+Enter now work inside tmux via xterm modifyOtherKeys fallback ([docs/tmux.md](docs/tmux.md), [#1872](https://github.com/badlogic/pi-mono/issues/1872))
+- Auto-compaction is now resilient to persistent API errors (e.g. 529 overloaded) and no longer retriggers spuriously after compaction ([#1834](https://github.com/badlogic/pi-mono/issues/1834), [#1860](https://github.com/badlogic/pi-mono/issues/1860))
+
+### Added
+
+- Added `claude-sonnet-4-6` model for the `google-antigravity` provider ([#1859](https://github.com/badlogic/pi-mono/issues/1859)).
+- Added [tmux setup documentation](docs/tmux.md) for modified enter key support ([#1872](https://github.com/badlogic/pi-mono/issues/1872))
+
+### Fixed
+
+- Fixed custom editors having their `onEscape`/`onCtrlD` handlers unconditionally overwritten by app-level defaults, making vim-style escape handling impossible ([#1838](https://github.com/badlogic/pi-mono/issues/1838))
+- Fixed auto-compaction retriggering on the first prompt after compaction due to stale pre-compaction assistant usage ([#1860](https://github.com/badlogic/pi-mono/issues/1860) by [@joelhooks](https://github.com/joelhooks))
+- Fixed sessions never auto-compacting when hitting persistent API errors (e.g. 529 overloaded) by estimating context size from the last successful response ([#1834](https://github.com/badlogic/pi-mono/issues/1834))
+- Fixed compaction summarization requests exceeding context limits by truncating tool results to 2k chars ([#1796](https://github.com/badlogic/pi-mono/issues/1796))
+- Fixed `/new` leaving startup header content, including the changelog, visible after starting a fresh session ([#1880](https://github.com/badlogic/pi-mono/issues/1880))
+- Fixed misleading docs and example implying that returning `{ isError: true }` from a tool's `execute` function marks the execution as failed; errors must be signaled by throwing ([#1881](https://github.com/badlogic/pi-mono/issues/1881))
+- Fixed model switches through non-reasoning models to preserve the saved default thinking level instead of persisting a capability-forced `off` clamp ([#1864](https://github.com/badlogic/pi-mono/issues/1864))
+- Fixed parallel pi processes failing with false "No API key found" errors due to immediate lockfile contention on `auth.json` and `settings.json` ([#1871](https://github.com/badlogic/pi-mono/issues/1871))
+- Fixed OpenAI Responses reasoning replay regression that broke multi-turn reasoning continuity ([#1878](https://github.com/badlogic/pi-mono/issues/1878))
+
+## [0.56.2] - 2026-03-05
+
+### New Features
+
+- GPT-5.4 support across `openai`, `openai-codex`, `azure-openai-responses`, and `opencode`, with `gpt-5.4` now the default for `openai` and `openai-codex` ([README.md](README.md), [docs/providers.md](docs/providers.md)).
+- `treeFilterMode` setting to choose the default `/tree` filter mode (`default`, `no-tools`, `user-only`, `labeled-only`, `all`) ([docs/settings.md](docs/settings.md), [#1852](https://github.com/badlogic/pi-mono/pull/1852) by [@lajarre](https://github.com/lajarre)).
+- Mistral native conversations integration with SDK-backed provider behavior, preserving Mistral-specific thinking and replay semantics ([README.md](README.md), [docs/providers.md](docs/providers.md), [#1716](https://github.com/badlogic/pi-mono/issues/1716)).
+
+### Added
+
+- Added `gpt-5.4` model availability for `openai`, `openai-codex`, `azure-openai-responses`, and `opencode` providers.
+- Added `gpt-5.3-codex` fallback model availability for `github-copilot` until upstream model catalogs include it ([#1853](https://github.com/badlogic/pi-mono/issues/1853)).
+- Added `treeFilterMode` setting to choose the default `/tree` filter mode (`default`, `no-tools`, `user-only`, `labeled-only`, `all`) ([#1852](https://github.com/badlogic/pi-mono/pull/1852) by [@lajarre](https://github.com/lajarre)).
+
+### Changed
+
+- Updated the default models for the `openai` and `openai-codex` providers to `gpt-5.4`.
+
+### Fixed
+
+- Fixed GPT-5.3 Codex follow-up turns dropping OpenAI Responses assistant `phase` metadata by preserving replayable signatures in session history and forwarding `phase` back to the Responses API ([#1819](https://github.com/badlogic/pi-mono/issues/1819)).
+- Fixed OpenAI Responses replay to omit empty thinking blocks, avoiding invalid no-op reasoning items in follow-up turns.
+- Updated Mistral integration to use the native SDK-backed provider and conversations API, including coding-agent model/provider wiring and Mistral setup documentation ([#1716](https://github.com/badlogic/pi-mono/issues/1716)).
+- Fixed Antigravity reliability: endpoint cascade on 403/404, added autopush sandbox fallback, removed extra fingerprint headers ([#1830](https://github.com/badlogic/pi-mono/issues/1830)).
+- Fixed `@mariozechner/pi-ai/oauth` extension imports in published installs by resolving the subpath directly from built `dist` files instead of package-root wrapper shims ([#1856](https://github.com/badlogic/pi-mono/issues/1856)).
+- Fixed Gemini 3 multi-turn tool use losing structured context by using `skip_thought_signature_validator` sentinel for unsigned function calls instead of text fallback ([#1829](https://github.com/badlogic/pi-mono/issues/1829)).
+- Fixed model selector filter not accepting typed characters in VS Code 1.110+ due to missing Kitty CSI-u printable decoding in the `Input` component ([#1857](https://github.com/badlogic/pi-mono/issues/1857))
+- Fixed editor/footer visibility drift during terminal resize by forcing full redraws when terminal width or height changes ([#1844](https://github.com/badlogic/pi-mono/pull/1844) by [@ghoulr](https://github.com/ghoulr)).
+- Fixed footer width truncation for wide Unicode text (session name, model, provider) to prevent TUI crashes from rendered lines exceeding terminal width ([#1833](https://github.com/badlogic/pi-mono/issues/1833)).
+- Fixed Windows write preview background artifacts by normalizing CRLF content (`\r\n`) to LF for display rendering in tool output previews ([#1854](https://github.com/badlogic/pi-mono/issues/1854)).
+
+## [0.56.1] - 2026-03-05
+
+### Fixed
+
+- Fixed extension alias fallback resolution to use ESM-aware resolution for `jiti` aliases in global installs ([#1821](https://github.com/badlogic/pi-mono/pull/1821) by [@Perlence](https://github.com/Perlence))
+- Fixed markdown blockquote rendering to isolate blockquote styling from default text style, preventing style leakage.
+
+## [0.56.0] - 2026-03-04
+
+### New Features
+
+- Added OpenCode Go provider support with `opencode-go` model defaults and `OPENCODE_API_KEY` environment variable support ([docs/providers.md](docs/providers.md), [#1757](https://github.com/badlogic/pi-mono/issues/1757)).
+- Added `branchSummary.skipPrompt` setting to skip branch summarization prompts during tree navigation ([docs/settings.md](docs/settings.md), [#1792](https://github.com/badlogic/pi-mono/issues/1792)).
+- Added `gemini-3.1-flash-lite-preview` fallback model availability for Google provider catalogs when upstream model metadata lags ([README.md](README.md), [#1785](https://github.com/badlogic/pi-mono/issues/1785)).
+
+### Breaking Changes
+
+- Changed scoped model thinking semantics. Scoped entries without an explicit `:<thinking>` suffix now inherit the current session thinking level when selected, instead of applying a startup-captured default.
+- Moved Node OAuth runtime exports off the top-level `@mariozechner/pi-ai` entry. OAuth login and refresh must be imported from `@mariozechner/pi-ai/oauth` ([#1814](https://github.com/badlogic/pi-mono/issues/1814)).
+
+### Added
+
+- Added `branchSummary.skipPrompt` setting to skip the summary prompt when navigating branches ([#1792](https://github.com/badlogic/pi-mono/issues/1792)).
+- Added OpenCode Go provider support with `opencode-go` model defaults and `OPENCODE_API_KEY` environment variable support ([#1757](https://github.com/badlogic/pi-mono/issues/1757)).
+- Added `gemini-3.1-flash-lite-preview` fallback model availability in provider catalogs when upstream catalogs lag ([#1785](https://github.com/badlogic/pi-mono/issues/1785)).
+
+### Changed
+
+- Updated Antigravity Gemini 3.1 model metadata and request headers to match upstream behavior.
+
+### Fixed
+
+- Fixed IME hardware cursor positioning in the custom extension editor (`ctx.ui.editor()` / extension editor dialog) by propagating focus to the internal `Editor`, preventing the terminal cursor from getting stuck at the bottom-right during composition.
+- Added OSC 133 semantic zone markers around rendered user messages to support terminal navigation between prompts in iTerm2, WezTerm, Kitty, Ghostty, and other compatible terminals ([#1805](https://github.com/badlogic/pi-mono/issues/1805)).
+- Fixed markdown blockquotes dropping nested list content in the TUI renderer ([#1787](https://github.com/badlogic/pi-mono/issues/1787)).
+- Fixed TUI width handling for regional indicator symbols to prevent wrap drift and stale characters during streaming ([#1783](https://github.com/badlogic/pi-mono/issues/1783)).
+- Fixed Kitty CSI-u handling to ignore unsupported modifiers so modifier-only events do not insert printable characters ([#1807](https://github.com/badlogic/pi-mono/issues/1807)).
+- Fixed single-line paste handling to insert text atomically and avoid repeated `@` autocomplete scans on large pastes ([#1812](https://github.com/badlogic/pi-mono/issues/1812)).
+- Fixed extension loading with the new `@mariozechner/pi-ai/oauth` export path by aliasing the oauth subpath in the extension loader and development path mapping ([#1814](https://github.com/badlogic/pi-mono/issues/1814)).
+- Fixed browser-safe provider loading regressions by preloading the Bedrock provider module in compiled Bun binaries and rebuilding binaries against fresh workspace dependencies ([#1814](https://github.com/badlogic/pi-mono/issues/1814)).
+- Fixed GNU screen terminal detection by downgrading theme output to 256-color mode for `screen*` TERM values ([#1809](https://github.com/badlogic/pi-mono/issues/1809)).
+- Fixed branch summarization queue handling so messages typed while summaries are generated are processed correctly ([#1803](https://github.com/badlogic/pi-mono/issues/1803)).
+- Fixed compaction summary requests to avoid reasoning output for non-reasoning models ([#1793](https://github.com/badlogic/pi-mono/issues/1793)).
+- Fixed overflow auto-compaction cascades so a single overflow does not trigger repeated compaction loops.
+- Fixed `models.json` to allow provider-scoped custom model ids and model-level `baseUrl` overrides ([#1759](https://github.com/badlogic/pi-mono/issues/1759), [#1777](https://github.com/badlogic/pi-mono/issues/1777)).
+- Fixed session selector display sanitization by stripping control characters from session display text ([#1747](https://github.com/badlogic/pi-mono/issues/1747)).
+- Fixed Groq Qwen3 reasoning effort mapping for OpenAI-compatible models ([#1745](https://github.com/badlogic/pi-mono/issues/1745)).
+- Fixed Bedrock `AWS_PROFILE` region resolution by honoring profile `region` values ([#1800](https://github.com/badlogic/pi-mono/issues/1800)).
+- Fixed Gemini 3.1 thinking-level detection for `google` and `google-vertex` providers ([#1785](https://github.com/badlogic/pi-mono/issues/1785)).
+- Fixed browser bundling compatibility for `@mariozechner/pi-ai` by removing Node-only side effects from default browser import paths ([#1814](https://github.com/badlogic/pi-mono/issues/1814)).
+## [0.55.4] - 2026-03-02
+
+### New Features
+
+- Runtime tool registration now applies immediately in active sessions. Tools registered via `pi.registerTool()` after startup are available to `pi.getAllTools()` and the LLM without `/reload` ([docs/extensions.md](docs/extensions.md), [examples/extensions/dynamic-tools.ts](examples/extensions/dynamic-tools.ts), [#1720](https://github.com/badlogic/pi-mono/issues/1720)).
+- Tool definitions can customize the default system prompt with `promptSnippet` (`Available tools`) and `promptGuidelines` (`Guidelines`) while the tool is active ([docs/extensions.md](docs/extensions.md), [#1720](https://github.com/badlogic/pi-mono/issues/1720)).
+- Custom tool renderers can suppress transcript output without leaving extra spacing or empty transcript footprint in interactive rendering ([docs/extensions.md](docs/extensions.md), [#1719](https://github.com/badlogic/pi-mono/pull/1719)).
+
+### Added
+
+- Added optional `promptSnippet` to `ToolDefinition` for one-line entries in the default system prompt's `Available tools` section. Active extension tools appear there when registered and active ([#1237](https://github.com/badlogic/pi-mono/pull/1237) by [@semtexzv](https://github.com/semtexzv)).
+- Added optional `promptGuidelines` to `ToolDefinition` so active tools can append tool-specific bullets to the default system prompt `Guidelines` section ([#1720](https://github.com/badlogic/pi-mono/issues/1720)).
+
+### Fixed
+
+- Fixed `pi.registerTool()` dynamic registration after session initialization. Tools registered in `session_start` and later handlers now refresh immediately, become active, and are visible to the LLM without `/reload` ([#1720](https://github.com/badlogic/pi-mono/issues/1720))
+- Fixed session message persistence ordering by serializing `AgentSession` event processing, preventing `toolResult` entries from being written before their corresponding assistant tool-call messages when extension handlers are asynchronous ([#1717](https://github.com/badlogic/pi-mono/issues/1717))
+- Fixed spacing artifacts when custom tool renderers intentionally suppress per-call transcript output, including extra blank rows in interactive streaming and non-zero transcript footprint for empty custom renders ([#1719](https://github.com/badlogic/pi-mono/pull/1719) by [@alasano](https://github.com/alasano))
+- Fixed `session.prompt()` returning before retry completion by creating the retry promise synchronously at `agent_end` dispatch, which closes a race when earlier queued event handlers are async ([#1726](https://github.com/badlogic/pi-mono/pull/1726) by [@pasky](https://github.com/pasky))
+
+## [0.55.3] - 2026-02-27
+
+### Fixed
+
+- Changed the default image paste keybinding on Windows to `alt+v` to avoid `ctrl+v` conflicts with terminal paste behavior ([#1682](https://github.com/badlogic/pi-mono/pull/1682) by [@mrexodia](https://github.com/mrexodia)).
+
+## [0.55.2] - 2026-02-27
+
+### New Features
+
+- Extensions can dynamically remove custom providers via `pi.unregisterProvider(name)`, restoring any built-in models that were overridden, without requiring `/reload` ([docs](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/custom-provider.md)).
+- `pi.registerProvider()` now takes effect immediately when called outside the initial extension load phase (e.g. from a command handler), removing the need for `/reload` after late registrations.
+
+### Added
+
+- `pi.unregisterProvider(name)` removes a dynamically registered provider and its models from the registry without requiring `/reload`. Built-in models that were overridden by the provider are restored ([#1669](https://github.com/badlogic/pi-mono/pull/1669) by [@aliou](https://github.com/aliou)).
+
+### Fixed
+
+- `pi.registerProvider()` now takes effect immediately when called after the initial extension load phase (e.g. from a command handler). Previously the registration sat in a pending queue that was never flushed until the next `/reload` ([#1669](https://github.com/badlogic/pi-mono/pull/1669) by [@aliou](https://github.com/aliou)).
+- Fixed duplicate session headers when forking from a point before any assistant message. `createBranchedSession` now defers file creation to `_persist()` when the branched path has no assistant message, matching the `newSession()` contract ([#1672](https://github.com/badlogic/pi-mono/pull/1672) by [@w-winter](https://github.com/w-winter)).
+- Fixed SIGINT being delivered to pi while the process is suspended (e.g. via `ctrl+z`), which could corrupt terminal state on resume ([#1668](https://github.com/badlogic/pi-mono/pull/1668) by [@aliou](https://github.com/aliou)).
+- Fixed Z.ai thinking control using wrong parameter name, causing thinking to always be enabled and wasting tokens/latency ([#1674](https://github.com/badlogic/pi-mono/pull/1674) by [@okuyam2y](https://github.com/okuyam2y))
+- Fixed `redacted_thinking` blocks being silently dropped during Anthropic streaming, and related issues with interleaved-thinking beta headers and temperature being sent alongside extended thinking ([#1665](https://github.com/badlogic/pi-mono/pull/1665) by [@tctev](https://github.com/tctev))
+- Fixed `(external, cli)` user-agent flag causing 401 errors on Anthropic setup-token endpoint ([#1677](https://github.com/badlogic/pi-mono/pull/1677) by [@LazerLance777](https://github.com/LazerLance777))
+- Fixed crash when OpenAI-compatible provider returns a chunk with no `choices` array ([#1671](https://github.com/badlogic/pi-mono/issues/1671))
+
+## [0.55.1] - 2026-02-26
+
+### New Features
+
+- Added offline startup mode via `--offline` (or `PI_OFFLINE`) to disable startup network operations, with startup network timeouts to avoid hangs in restricted or offline environments.
+- Added `gemini-3.1-pro-preview` model support to the `google-gemini-cli` provider ([#1599](https://github.com/badlogic/pi-mono/pull/1599) by [@audichuang](https://github.com/audichuang)).
+
+### Fixed
+
+- Fixed offline startup hangs by adding offline startup behavior and network timeouts during managed tool setup ([#1631](https://github.com/badlogic/pi-mono/pull/1631) by [@mcollina](https://github.com/mcollina))
+- Fixed Windows VT input initialization in ESM by loading koffi via createRequire, avoiding runtime and bundling issues in end-user environments ([#1627](https://github.com/badlogic/pi-mono/pull/1627) by [@kaste](https://github.com/kaste))
+- Fixed managed `fd`/`rg` bootstrap on Windows in Git Bash by using `extract-zip` for `.zip` archives, searching extracted layouts more robustly, and isolating extraction temp directories to avoid concurrent download races ([#1348](https://github.com/badlogic/pi-mono/issues/1348))
+- Fixed extension loading on Windows when resolving `@sinclair/typebox` aliases so subpath imports like `@sinclair/typebox/compiler` resolve correctly.
+- Fixed adaptive thinking for Claude Sonnet 4.6 in Anthropic and Bedrock providers, and clamped unsupported `xhigh` effort values to supported levels ([#1548](https://github.com/badlogic/pi-mono/pull/1548) by [@tctev](https://github.com/tctev))
+- Fixed Vertex ADC credential detection race by avoiding caching a false negative during async import initialization ([#1550](https://github.com/badlogic/pi-mono/pull/1550) by [@jeremiahgaylord-web](https://github.com/jeremiahgaylord-web))
+- Fixed subagent extension example to resolve user agents from the configured agent directory instead of hardcoded paths ([#1559](https://github.com/badlogic/pi-mono/pull/1559) by [@tianshuwang](https://github.com/tianshuwang))
+
+## [0.55.0] - 2026-02-24
+
+### Breaking Changes
+
+- Resource precedence for extensions, skills, prompts, themes, and slash-command name collisions is now project-first (`cwd/.pi`) before user-global (`~/.pi/agent`). If you relied on global resources overriding project resources with the same names, rename or reorder your resources.
+- Extension registration conflicts no longer unload the entire later extension. All extensions stay loaded, and conflicting command/tool/flag names are resolved by first registration in load order.
+
+## [0.54.2] - 2026-02-23
+
+### Fixed
+
+- Fixed `.pi` folder being created unnecessarily when only reading settings. The folder is now only created when writing project-specific settings.
+- Fixed extension-driven runtime theme changes to persist in settings so `/settings` reflects the active `currentTheme` after `ctx.ui.setTheme(...)` ([#1483](https://github.com/badlogic/pi-mono/pull/1483) by [@ferologics](https://github.com/ferologics))
+- Fixed interactive mode freezes during large streaming `write` tool calls by using incremental syntax highlighting while partial arguments stream, with a final full re-highlight after tool-call arguments complete.
+
+## [0.54.1] - 2026-02-22
+
+### Fixed
+
+- Externalized koffi from bun binary builds, reducing archive sizes by ~15MB per platform (e.g. darwin-arm64: 43MB -> 28MB). Koffi's Windows-only `.node` file is now shipped alongside the Windows binary only.
+
+## [0.54.0] - 2026-02-19
+
+### Added
+
+- Added default skill auto-discovery for `.agents/skills` locations. Pi now discovers project skills from `.agents/skills` in `cwd` and ancestor directories (up to git repo root, or filesystem root when not in a repo), and global skills from `~/.agents/skills`, in addition to existing `.pi` skill paths.
+
+## [0.53.1] - 2026-02-19
+
+### Changed
+
+- Added Gemini 3.1 model catalog entries for all built-in providers that currently expose it: `google`, `google-vertex`, `opencode`, `openrouter`, and `vercel-ai-gateway`.
+- Added Claude Opus 4.6 Thinking to the `google-antigravity` model catalog.
+
+## [0.53.0] - 2026-02-17
+
+### Breaking Changes
+
+- `SettingsManager` persistence semantics changed for SDK consumers. Setters now update in-memory state immediately and queue disk writes. Code that requires durable on-disk settings must call `await settingsManager.flush()`.
+- `AuthStorage` constructor is no longer public. Use static factories (`AuthStorage.create(...)`, `AuthStorage.fromStorage(...)`, `AuthStorage.inMemory(...)`). This breaks code that used `new AuthStorage(...)` directly.
+
+### Added
+
+- Added `SettingsManager.drainErrors()` for caller-controlled settings I/O error handling without manager-side console output.
+- Added auth storage backends (`FileAuthStorageBackend`, `InMemoryAuthStorageBackend`) and `AuthStorage.fromStorage(...)` for storage-first auth persistence wiring.
+- Added Anthropic `claude-sonnet-4-6` model fallback entry to generated model definitions.
+
+### Changed
+
+- `SettingsManager` now uses scoped storage abstraction with per-scope locked read/merge/write persistence for global and project settings.
+
+### Fixed
+
+- Fixed project settings persistence to preserve unrelated external edits via merge-on-write, while still applying in-memory changes for modified keys.
+- Fixed auth credential persistence to preserve unrelated external edits to `auth.json` via locked read/merge/write updates.
+- Fixed auth load/persist error surfacing by buffering errors and exposing them via `AuthStorage.drainErrors()`.
+
+## [0.52.12] - 2026-02-13
+
+### Added
+
+- Added `transport` setting (`"sse"`, `"websocket"`, `"auto"`) to `/settings` and `settings.json` for providers that support multiple transports (currently `openai-codex` via OpenAI Codex Responses).
+
+### Changed
+
+- Interactive mode now applies transport changes immediately to the active agent session.
+- Settings migration now maps legacy `websockets: boolean` to the new `transport` setting.
+
+## [0.52.11] - 2026-02-13
+
+### Added
+
+- Added MiniMax M2.5 model entries for `minimax`, `minimax-cn`, `openrouter`, and `vercel-ai-gateway` providers, plus `minimax-m2.5-free` for `opencode`.
+
+## [0.52.10] - 2026-02-12
+
+### New Features
+
+- Extension terminal input interception via `terminal_input`, allowing extensions to consume or transform raw input before normal TUI handling. See [docs/extensions.md](docs/extensions.md).
+- Expanded CLI model selection: `--model` now supports `provider/id`, fuzzy matching, and `:<thinking>` suffixes. See [README.md](README.md) and [docs/models.md](docs/models.md).
+- Safer package source handling with stricter git source parsing and improved local path normalization. See [docs/packages.md](docs/packages.md).
+- New built-in model definition `gpt-5.3-codex-spark` for OpenAI and OpenAI Codex providers.
+- Improved OpenAI stream robustness for malformed trailing tool-call JSON in partial chunks.
+- Added built-in GLM-5 model support via z.ai and OpenRouter provider catalogs.
+
+### Breaking Changes
+
+- `ContextUsage.tokens` and `ContextUsage.percent` are now `number | null`. After compaction, context token count is unknown until the next LLM response, so these fields return `null`. Extensions that read `ContextUsage` must handle the `null` case. Removed `usageTokens`, `trailingTokens`, and `lastUsageIndex` fields from `ContextUsage` (implementation details that should not have been public) ([#1382](https://github.com/badlogic/pi-mono/pull/1382) by [@ferologics](https://github.com/ferologics))
+- Git source parsing is now strict without `git:` prefix: only protocol URLs are treated as git (`https://`, `http://`, `ssh://`, `git://`). Shorthand sources like `github.com/org/repo` and `git@github.com:org/repo` now require the `git:` prefix. ([#1426](https://github.com/badlogic/pi-mono/issues/1426))
+
+### Added
+
+- Added extension event forwarding for message and tool execution lifecycles (`message_start`, `message_update`, `message_end`, `tool_execution_start`, `tool_execution_update`, `tool_execution_end`) ([#1375](https://github.com/badlogic/pi-mono/pull/1375) by [@sumeet](https://github.com/sumeet))
+- Added `terminal_input` extension event to intercept, consume, or transform raw terminal input before normal TUI handling.
+- Added `gpt-5.3-codex-spark` model definition for OpenAI and OpenAI Codex providers (research preview).
+
+### Changed
+
+- Routed GitHub Copilot Claude 4.x models through Anthropic Messages API, with updated Copilot header handling for Claude model requests.
+
+### Fixed
+
+- Fixed context usage percentage in footer showing stale pre-compaction values. After compaction the footer now shows `?/200k` until the next LLM response provides accurate usage ([#1382](https://github.com/badlogic/pi-mono/pull/1382) by [@ferologics](https://github.com/ferologics))
+- Fixed `_checkCompaction()` using the first compaction entry instead of the latest, which could cause incorrect overflow detection with multiple compactions ([#1382](https://github.com/badlogic/pi-mono/pull/1382) by [@ferologics](https://github.com/ferologics))
+- `--model` now works without `--provider`, supports `provider/id` syntax, fuzzy matching, and `:<thinking>` suffix (e.g., `--model sonnet:high`, `--model openai/gpt-4o`) ([#1350](https://github.com/badlogic/pi-mono/pull/1350) by [@mitsuhiko](https://github.com/mitsuhiko))
+- Fixed local package path normalization for extension sources while tightening git source parsing rules ([#1426](https://github.com/badlogic/pi-mono/issues/1426))
+- Fixed extension terminal input listeners not being cleared during session resets, which could leave stale handlers active.
+- Fixed Termux bootstrap package name for `fd` installation ([#1433](https://github.com/badlogic/pi-mono/pull/1433))
+- Fixed `@` file autocomplete fuzzy matching to prioritize path-prefix and segment matches for nested paths ([#1423](https://github.com/badlogic/pi-mono/issues/1423))
+- Fixed OpenAI streaming tool-call parsing to tolerate malformed trailing JSON in partial chunks ([#1424](https://github.com/badlogic/pi-mono/issues/1424))
+
+## [0.52.9] - 2026-02-08
+
+### New Features
+
+- Extensions can trigger a full runtime reload via `ctx.reload()`, useful for hot-reloading configuration or restarting the agent. See [docs/extensions.md](docs/extensions.md) and the [`reload-runtime` example](examples/extensions/reload-runtime.ts) ([#1371](https://github.com/badlogic/pi-mono/issues/1371))
+- Short CLI disable aliases: `-ne` (`--no-extensions`), `-ns` (`--no-skills`), and `-np` (`--no-prompt-templates`) for faster interactive usage and scripting.
+- `/export` HTML now includes collapsible tool input schemas (parameter names, types, and descriptions), improving session review and sharing workflows ([#1416](https://github.com/badlogic/pi-mono/pull/1416) by [@marchellodev](https://github.com/marchellodev)).
+- `pi.getAllTools()` now exposes tool parameters in addition to name and description, enabling richer extension integrations ([#1416](https://github.com/badlogic/pi-mono/pull/1416) by [@marchellodev](https://github.com/marchellodev)).
+
+### Added
+
+- Added `ctx.reload()` to the extension API for programmatic runtime reload ([#1371](https://github.com/badlogic/pi-mono/issues/1371))
+- Added short aliases for disable flags: `-ne` for `--no-extensions`, `-ns` for `--no-skills`, `-np` for `--no-prompt-templates`
+- `/export` HTML now includes tool input schema (parameter names, types, descriptions) in a collapsible section under each tool ([#1416](https://github.com/badlogic/pi-mono/pull/1416) by [@marchellodev](https://github.com/marchellodev))
+- `pi.getAllTools()` now returns tool parameters in addition to name and description ([#1416](https://github.com/badlogic/pi-mono/pull/1416) by [@marchellodev](https://github.com/marchellodev))
+
+### Fixed
+
+- Fixed extension source parsing so dot-prefixed local paths (for example `.pi/extensions/foo.ts`) are treated as local paths instead of git URLs
+- Fixed fd/rg download failing on Windows due to `unzip` not being available; now uses `tar` for both `.tar.gz` and `.zip` extraction, with proper error reporting ([#1348](https://github.com/badlogic/pi-mono/issues/1348))
+- Fixed RPC mode documentation incorrectly stating `ctx.hasUI` is `false`; it is `true` because dialog and fire-and-forget UI methods work via the RPC sub-protocol. Also documented missing unsupported/degraded methods (`pasteToEditor`, `getAllThemes`, `getTheme`, `setTheme`) ([#1411](https://github.com/badlogic/pi-mono/pull/1411) by [@aliou](https://github.com/aliou))
+- Fixed `rg` not available in bash tool by downloading it at startup alongside `fd` ([#1348](https://github.com/badlogic/pi-mono/issues/1348))
+- Fixed `custom-compaction` example to use `ModelRegistry` ([#1387](https://github.com/badlogic/pi-mono/issues/1387))
+- Google providers now support full JSON Schema in tool declarations (anyOf, oneOf, const, etc.) ([#1398](https://github.com/badlogic/pi-mono/issues/1398) by [@jarib](https://github.com/jarib))
+- Reverted incorrect Antigravity model change: `claude-opus-4-6-thinking` back to `claude-opus-4-5-thinking` (model does not exist on Antigravity endpoint)
+- Updated the Antigravity system instruction to a more compact version for Google Gemini CLI compatibility
+- Corrected opencode context windows for Claude Sonnet 4 and 4.5 ([#1383](https://github.com/badlogic/pi-mono/issues/1383))
+- Fixed subagent example unknown-agent errors to include available agent names ([#1414](https://github.com/badlogic/pi-mono/pull/1414) by [@dnouri](https://github.com/dnouri))
+
+## [0.52.8] - 2026-02-07
+
+### New Features
+
+- Emacs-style kill ring (`ctrl+k`/`ctrl+y`/`alt+y`) and undo (`ctrl+z`) in the editor input ([#1373](https://github.com/badlogic/pi-mono/pull/1373) by [@Perlence](https://github.com/Perlence))
+- OpenRouter `auto` model alias (`openrouter:auto`) for automatic model routing ([#1361](https://github.com/badlogic/pi-mono/pull/1361) by [@yogasanas](https://github.com/yogasanas))
+- Extensions can programmatically paste content into the editor via `pasteToEditor` in the extension UI context. See [docs/extensions.md](docs/extensions.md) ([#1351](https://github.com/badlogic/pi-mono/pull/1351) by [@kaofelix](https://github.com/kaofelix))
+- `pi <package> --help` and invalid subcommands now show helpful output instead of failing silently ([#1347](https://github.com/badlogic/pi-mono/pull/1347) by [@ferologics](https://github.com/ferologics))
+
+### Added
+
+- Added `pasteToEditor` to extension UI context for programmatic editor paste ([#1351](https://github.com/badlogic/pi-mono/pull/1351) by [@kaofelix](https://github.com/kaofelix))
+- Added package subcommand help and friendly error messages for invalid commands ([#1347](https://github.com/badlogic/pi-mono/pull/1347) by [@ferologics](https://github.com/ferologics))
+- Added OpenRouter `auto` model alias for automatic model routing ([#1361](https://github.com/badlogic/pi-mono/pull/1361) by [@yogasanas](https://github.com/yogasanas))
+- Added kill ring (ctrl+k/ctrl+y/alt+y) and undo (ctrl+z) support to the editor input ([#1373](https://github.com/badlogic/pi-mono/pull/1373) by [@Perlence](https://github.com/Perlence))
+
+### Changed
+
+- Replaced Claude Opus 4.5 with Opus 4.6 as default model ([#1345](https://github.com/badlogic/pi-mono/pull/1345) by [@calvin-hpnet](https://github.com/calvin-hpnet))
+
+### Fixed
+
+- Fixed temporary git package caches (`-e <git-url>`) to refresh on cache hits for unpinned sources, including detached/no-upstream checkouts
+- Fixed aborting retries when an extension customizes the editor ([#1364](https://github.com/badlogic/pi-mono/pull/1364) by [@Perlence](https://github.com/Perlence))
+- Fixed autocomplete not propagating to custom editors created by extensions ([#1372](https://github.com/badlogic/pi-mono/pull/1372) by [@Perlence](https://github.com/Perlence))
+- Fixed extension shutdown to use clean TUI shutdown path, preventing orphaned processes
+
+## [0.52.7] - 2026-02-06
+
+### New Features
+
+- Per-model overrides in `models.json` via `modelOverrides`, allowing customization of built-in provider models without replacing provider model lists. See [docs/models.md#per-model-overrides](docs/models.md#per-model-overrides).
+- `models.json` provider `models` now merge with built-in models by `id`, so custom models can be added or replace matching built-ins without full provider replacement. See [docs/models.md#overriding-built-in-providers](docs/models.md#overriding-built-in-providers).
+- Bedrock proxy support for unauthenticated endpoints via `AWS_BEDROCK_SKIP_AUTH` and `AWS_BEDROCK_FORCE_HTTP1`. See [docs/providers.md](docs/providers.md).
+
+### Breaking Changes
+
+- Changed `models.json` provider `models` behavior from full replacement to merge-by-id with built-in models. Built-in models are now kept by default, and custom models upsert by `id`.
+
+### Added
+
+- Added `modelOverrides` in `models.json` to customize individual built-in models per provider without full provider replacement ([#1332](https://github.com/badlogic/pi-mono/pull/1332) by [@charles-cooper](https://github.com/charles-cooper))
+- Added `AWS_BEDROCK_SKIP_AUTH` and `AWS_BEDROCK_FORCE_HTTP1` environment variables for connecting to unauthenticated Bedrock proxies ([#1320](https://github.com/badlogic/pi-mono/pull/1320) by [@virtuald](https://github.com/virtuald))
+
+### Fixed
+
+- Fixed extra spacing between thinking-only assistant content and subsequent tool execution blocks when assistant messages contain no text
+- Fixed queued steering/follow-up/custom messages remaining stuck after threshold auto-compaction by resuming the agent loop when Agent-level queues still contain pending messages ([#1312](https://github.com/badlogic/pi-mono/pull/1312) by [@ferologics](https://github.com/ferologics))
+- Fixed `tool_result` extension handlers to chain result patches across handlers instead of last-handler-wins behavior ([#1280](https://github.com/badlogic/pi-mono/issues/1280))
+- Fixed compromised auth lock files being handled gracefully instead of crashing auth storage initialization ([#1322](https://github.com/badlogic/pi-mono/issues/1322))
+- Fixed Bedrock adaptive thinking handling for Claude Opus 4.6 with interleaved thinking beta responses ([#1323](https://github.com/badlogic/pi-mono/pull/1323) by [@markusylisiurunen](https://github.com/markusylisiurunen))
+- Fixed OpenAI Responses API requests to use `store: false` by default to avoid server-side history logging ([#1308](https://github.com/badlogic/pi-mono/issues/1308))
+- Fixed interactive mode startup by initializing autocomplete after resources are loaded ([#1328](https://github.com/badlogic/pi-mono/issues/1328))
+- Fixed `modelOverrides` merge behavior for nested objects and documented usage details ([#1062](https://github.com/badlogic/pi-mono/issues/1062))
+
+## [0.52.6] - 2026-02-05
+
+### Breaking Changes
+
+- Removed `/exit` command handling. Use `/quit` to exit ([#1303](https://github.com/badlogic/pi-mono/issues/1303))
+
+### Fixed
+
+- Fixed `/quit` being shadowed by fuzzy slash command autocomplete matches from skills by adding `/quit` to built-in command autocomplete ([#1303](https://github.com/badlogic/pi-mono/issues/1303))
+- Fixed local package source parsing and settings normalization regression that misclassified relative paths as git URLs and prevented globally installed local packages from loading after restart ([#1304](https://github.com/badlogic/pi-mono/issues/1304))
+
+## [0.52.5] - 2026-02-05
+
+### Fixed
+
+- Fixed thinking level capability detection so Anthropic Opus 4.6 models expose `xhigh` in selectors and cycling
+
+## [0.52.4] - 2026-02-05
+
+### Fixed
+
+- Fixed extensions setting not respecting `package.json` `pi.extensions` manifest when directory is specified directly ([#1302](https://github.com/badlogic/pi-mono/pull/1302) by [@hjanuschka](https://github.com/hjanuschka))
+
+## [0.52.3] - 2026-02-05
+
+### Fixed
+
+- Fixed git package parsing fallback for unknown hosts so enterprise git sources like `git:github.tools.sap/org/repo` are treated as git packages instead of local paths
+- Fixed git package `@ref` parsing for shorthand, HTTPS, and SSH source formats, including branch refs with slashes
+- Fixed Bedrock default model ID from `us.anthropic.claude-opus-4-6-v1:0` to `us.anthropic.claude-opus-4-6-v1`
+- Fixed Bedrock Opus 4.6 model metadata (IDs, cache pricing) and added missing EU profile
+- Fixed Claude Opus 4.6 context window metadata to 200000 for Anthropic and OpenCode providers
+
+## [0.52.2] - 2026-02-05
+
+### Changed
+
+- Updated default model for `anthropic` provider to `claude-opus-4-6`
+- Updated default model for `openai-codex` provider to `gpt-5.3-codex`
+- Updated default model for `amazon-bedrock` provider to `us.anthropic.claude-opus-4-6-v1:0`
+- Updated default model for `vercel-ai-gateway` provider to `anthropic/claude-opus-4-6`
+- Updated default model for `opencode` provider to `claude-opus-4-6`
+
+## [0.52.1] - 2026-02-05
+
+## [0.52.0] - 2026-02-05
+
+### New Features
+
+- Claude Opus 4.6 model support.
+- GPT-5.3 Codex model support (OpenAI Codex provider only).
+- SSH URL support for git packages. See [docs/packages.md](docs/packages.md).
+- `auth.json` API keys now support shell command resolution (`!command`) and environment variable lookup. See [docs/providers.md](docs/providers.md).
+- Model selectors now display the selected model name.
+
+### Added
+
+- API keys in `auth.json` now support shell command resolution (`!command`) and environment variable lookup, matching the behavior in `models.json`
+- Added `minimal-mode.ts` example extension demonstrating how to override built-in tool rendering for a minimal display mode
+- Added Claude Opus 4.6 model to the model catalog
+- Added GPT-5.3 Codex model to the model catalog (OpenAI Codex provider only)
+- Added SSH URL support for git packages ([#1287](https://github.com/badlogic/pi-mono/pull/1287) by [@markusn](https://github.com/markusn))
+- Model selectors now display the selected model name ([#1275](https://github.com/badlogic/pi-mono/pull/1275) by [@haoqixu](https://github.com/haoqixu))
+
+### Fixed
+
+- Fixed HTML export losing indentation in ANSI-rendered tool output (e.g. JSON code blocks in custom tool results) ([#1269](https://github.com/badlogic/pi-mono/pull/1269) by [@aliou](https://github.com/aliou))
+- Fixed images being silently dropped when `prompt()` is called with both `images` and `streamingBehavior` during streaming. `steer()`, `followUp()`, and the corresponding RPC commands now accept optional images. ([#1271](https://github.com/badlogic/pi-mono/pull/1271) by [@aliou](https://github.com/aliou))
+- CLI `--help`, `--version`, `--list-models`, and `--export` now exit even if extensions keep the event loop alive ([#1285](https://github.com/badlogic/pi-mono/pull/1285) by [@ferologics](https://github.com/ferologics))
+- Fixed crash when models send malformed tool arguments (objects instead of strings) ([#1259](https://github.com/badlogic/pi-mono/issues/1259))
+- Fixed custom message expand state not being respected ([#1258](https://github.com/badlogic/pi-mono/pull/1258) by [@Gurpartap](https://github.com/Gurpartap))
+- Fixed skill loader to respect .gitignore, .ignore, and .fdignore when scanning directories
+
+## [0.51.6] - 2026-02-04
+
+### New Features
+
+- Configurable resume keybinding action for opening the session resume selector. See [docs/keybindings.md](docs/keybindings.md). ([#1249](https://github.com/badlogic/pi-mono/pull/1249) by [@juanibiapina](https://github.com/juanibiapina))
+
+### Added
+
+- Added `resume` as a configurable keybinding action, allowing users to bind a key to open the session resume selector (like `newSession`, `tree`, and `fork`) ([#1249](https://github.com/badlogic/pi-mono/pull/1249) by [@juanibiapina](https://github.com/juanibiapina))
+
+### Changed
+
+- Slash command menu now triggers on the first line even when other lines have content, allowing commands to be prepended to existing text ([#1227](https://github.com/badlogic/pi-mono/pull/1227) by [@aliou](https://github.com/aliou))
+
+### Fixed
+
+- Ignored unknown skill frontmatter fields when loading skills
+- Fixed `/reload` not picking up changes in global settings.json ([#1241](https://github.com/badlogic/pi-mono/issues/1241))
+- Fixed forked sessions to persist the user message after forking
+- Fixed forked sessions to write to new session files instead of the parent ([#1242](https://github.com/badlogic/pi-mono/issues/1242))
+- Fixed local package removal to normalize paths before comparison ([#1243](https://github.com/badlogic/pi-mono/issues/1243))
+- Fixed OpenAI Codex Responses provider to respect configured baseUrl ([#1244](https://github.com/badlogic/pi-mono/issues/1244))
+- Fixed `/settings` crashing in narrow terminals by handling small widths in the settings list ([#1246](https://github.com/badlogic/pi-mono/pull/1246) by [@haoqixu](https://github.com/haoqixu))
+- Fixed Unix bash detection to fall back to PATH lookup when `/bin/bash` is unavailable, including Termux setups ([#1230](https://github.com/badlogic/pi-mono/pull/1230) by [@VaclavSynacek](https://github.com/VaclavSynacek))
+
+## [0.51.5] - 2026-02-04
+
+### Changed
+
+- Changed Bedrock model generation to drop legacy workarounds now handled upstream ([#1239](https://github.com/badlogic/pi-mono/pull/1239) by [@unexge](https://github.com/unexge))
+
+### Fixed
+
+- Fixed Windows package installs regression by using shell execution instead of `.cmd` resolution ([#1220](https://github.com/badlogic/pi-mono/issues/1220))
+
+## [0.51.4] - 2026-02-03
+
+### New Features
+
+- Share URLs now default to pi.dev, graciously donated by exe.dev.
+
+### Changed
+
+- Share URLs now use pi.dev by default while pi.dev and buildwithpi.ai continue to work.
+
+### Fixed
+
+- Fixed input scrolling to avoid splitting emoji sequences ([#1228](https://github.com/badlogic/pi-mono/pull/1228) by [@haoqixu](https://github.com/haoqixu))
+
+## [0.51.3] - 2026-02-03
+
+### New Features
+
+- Command discovery for extensions via `ExtensionAPI.getCommands()`, with `commands.ts` example for invocation patterns. See [docs/extensions.md#pigetcommands](docs/extensions.md#pigetcommands) and [examples/extensions/commands.ts](examples/extensions/commands.ts).
+- Local path support for `pi install` and `pi remove`, with relative path resolution against the settings file. See [docs/packages.md#local-paths](docs/packages.md#local-paths).
+
+### Breaking Changes
+
+- RPC `get_commands` response and `SlashCommandSource` type: renamed `"template"` to `"prompt"` for consistency with the rest of the codebase
+
+### Added
+
+- Added `ExtensionAPI.getCommands()` to let extensions list available slash commands (extensions, prompt templates, skills) for invocation via `prompt` ([#1210](https://github.com/badlogic/pi-mono/pull/1210) by [@w-winter](https://github.com/w-winter))
+- Added `commands.ts` example extension and exported `SlashCommandInfo` types for command discovery integrations ([#1210](https://github.com/badlogic/pi-mono/pull/1210) by [@w-winter](https://github.com/w-winter))
+- Added local path support for `pi install` and `pi remove` with relative paths stored against the target settings file ([#1216](https://github.com/badlogic/pi-mono/issues/1216))
+
+### Fixed
+
+- Fixed default thinking level persistence so settings-derived defaults are saved and restored correctly
+- Fixed Windows package installs by resolving `npm.cmd` when `npm` is not directly executable ([#1220](https://github.com/badlogic/pi-mono/issues/1220))
+- Fixed xhigh thinking level support check to accept gpt-5.2 model IDs ([#1209](https://github.com/badlogic/pi-mono/issues/1209))
+
+## [0.51.2] - 2026-02-03
+
+### New Features
+
+- Extension tool output expansion controls via ExtensionUIContext getToolsExpanded and setToolsExpanded. See [docs/extensions.md](docs/extensions.md) and [docs/rpc.md](docs/rpc.md).
+
+### Added
+
+- Added ExtensionUIContext getToolsExpanded and setToolsExpanded for controlling tool output expansion ([#1199](https://github.com/badlogic/pi-mono/pull/1199) by [@academo](https://github.com/academo))
+- Added install method detection to show package manager specific update instructions ([#1203](https://github.com/badlogic/pi-mono/pull/1203) by [@Itsnotaka](https://github.com/Itsnotaka))
+
+### Fixed
+
+- Fixed Kitty key release events leaking to parent shell over slow SSH connections by draining stdin for up to 1s on exit ([#1204](https://github.com/badlogic/pi-mono/issues/1204))
+- Fixed legacy newline handling in the editor to preserve previous newline behavior
+- Fixed @ autocomplete to include hidden paths
+- Fixed submit fallback to honor configured keybindings
+- Fixed extension commands conflicting with built-in commands by skipping them ([#1196](https://github.com/badlogic/pi-mono/pull/1196) by [@haoqixu](https://github.com/haoqixu))
+- Fixed @-prefixed tool paths failing to resolve by stripping the prefix ([#1206](https://github.com/badlogic/pi-mono/issues/1206))
+- Fixed install method detection to avoid stale cached results
+
+## [0.51.1] - 2026-02-02
+
+### New Features
+
+- **Extension API switchSession**: Extensions can now programmatically switch sessions via `ctx.switchSession(sessionPath)`. See [docs/extensions.md](docs/extensions.md). ([#1187](https://github.com/badlogic/pi-mono/issues/1187))
+- **Clear on shrink setting**: New `terminal.clearOnShrink` setting keeps the editor and footer pinned to the bottom of the terminal when content shrinks. May cause some flicker due to redraws. Disabled by default. Enable via `/settings` or `PI_CLEAR_ON_SHRINK=1` env var.
+
+### Fixed
+
+- Fixed scoped models not finding valid credentials after logout ([#1194](https://github.com/badlogic/pi-mono/pull/1194) by [@terrorobe](https://github.com/terrorobe))
+- Fixed Ctrl+D exit closing the parent SSH session due to stdin buffer race condition ([#1185](https://github.com/badlogic/pi-mono/issues/1185))
+- Fixed emoji cursor positioning in editor input ([#1183](https://github.com/badlogic/pi-mono/pull/1183) by [@haoqixu](https://github.com/haoqixu))
+
+## [0.51.0] - 2026-02-01
+
+### Breaking Changes
+
+- **Extension tool signature change**: `ToolDefinition.execute` now uses `(toolCallId, params, signal, onUpdate, ctx)` parameter order to match `AgentTool.execute`. Previously it was `(toolCallId, params, onUpdate, ctx, signal)`. This makes wrapping built-in tools trivial since the first four parameters now align. Update your extensions by swapping the `signal` and `onUpdate` parameters:
+  ```ts
+  // Before
+  async execute(toolCallId, params, onUpdate, ctx, signal) { ... }
+
+  // After
+  async execute(toolCallId, params, signal, onUpdate, ctx) { ... }
+  ```
+
+### New Features
+
+- **Android/Termux support**: Pi now runs on Android via Termux. Install with:
+  ```bash
+  pkg install nodejs termux-api git
+  npm install -g @bastani/atomic
+  mkdir -p ~/.pi/agent
+  echo "You are running on Android in Termux." > ~/.pi/agent/AGENTS.md
+  ```
+  Clipboard operations fall back gracefully when `termux-api` is unavailable. ([#1164](https://github.com/badlogic/pi-mono/issues/1164))
+- **Bash spawn hook**: Extensions can now intercept and modify bash commands before execution via `pi.setBashSpawnHook()`. Adjust the command string, working directory, or environment variables. See [docs/extensions.md](docs/extensions.md). ([#1160](https://github.com/badlogic/pi-mono/pull/1160) by [@mitsuhiko](https://github.com/mitsuhiko))
+- **Linux ARM64 musl support**: Pi now runs on Alpine Linux ARM64 (linux-arm64-musl) via updated clipboard dependency.
+- **Nix/Guix support**: `PI_PACKAGE_DIR` environment variable overrides the package path for content-addressed package managers where store paths tokenize poorly. See [README.md#environment-variables](README.md#environment-variables). ([#1153](https://github.com/badlogic/pi-mono/pull/1153) by [@odysseus0](https://github.com/odysseus0))
+- **Named session filter**: `/resume` picker now supports filtering to show only named sessions via Ctrl+N. Configurable via `toggleSessionNamedFilter` keybinding. See [docs/keybindings.md](docs/keybindings.md). ([#1128](https://github.com/badlogic/pi-mono/pull/1128) by [@w-winter](https://github.com/w-winter))
+- **Typed tool call events**: Extension developers can narrow `ToolCallEvent` types using `isToolCallEventType()` for better TypeScript support. See [docs/extensions.md#tool-call-events](docs/extensions.md#tool-call-events). ([#1147](https://github.com/badlogic/pi-mono/pull/1147) by [@giuseppeg](https://github.com/giuseppeg))
+- **Extension UI Protocol**: Full RPC documentation and examples for extension dialogs and notifications, enabling headless clients to support interactive extensions. See [docs/rpc.md#extension-ui-protocol](docs/rpc.md#extension-ui-protocol). ([#1144](https://github.com/badlogic/pi-mono/pull/1144) by [@aliou](https://github.com/aliou))
+
+### Added
+
+- Added Linux ARM64 musl (Alpine Linux) support via clipboard dependency update
+- Added Android/Termux support with graceful clipboard fallback ([#1164](https://github.com/badlogic/pi-mono/issues/1164))
+- Added bash tool spawn hook support for adjusting command, cwd, and env before execution ([#1160](https://github.com/badlogic/pi-mono/pull/1160) by [@mitsuhiko](https://github.com/mitsuhiko))
+- Added typed `ToolCallEvent.input` per tool with `isToolCallEventType()` type guard for narrowing built-in tool events ([#1147](https://github.com/badlogic/pi-mono/pull/1147) by [@giuseppeg](https://github.com/giuseppeg))
+- Exported `discoverAndLoadExtensions` from package to enable extension testing without a local repo clone ([#1148](https://github.com/badlogic/pi-mono/issues/1148))
+- Added Extension UI Protocol documentation to RPC docs covering all request/response types for extension dialogs and notifications ([#1144](https://github.com/badlogic/pi-mono/pull/1144) by [@aliou](https://github.com/aliou))
+- Added `rpc-demo.ts` example extension exercising all RPC-supported extension UI methods ([#1144](https://github.com/badlogic/pi-mono/pull/1144) by [@aliou](https://github.com/aliou))
+- Added `rpc-extension-ui.ts` TUI example client demonstrating the extension UI protocol with interactive dialogs ([#1144](https://github.com/badlogic/pi-mono/pull/1144) by [@aliou](https://github.com/aliou))
+- Added `PI_PACKAGE_DIR` environment variable to override package path for content-addressed package managers (Nix, Guix) where store paths tokenize poorly ([#1153](https://github.com/badlogic/pi-mono/pull/1153) by [@odysseus0](https://github.com/odysseus0))
+- `/resume` session picker now supports named-only filter toggle (default Ctrl+N, configurable via `toggleSessionNamedFilter`) to show only named sessions ([#1128](https://github.com/badlogic/pi-mono/pull/1128) by [@w-winter](https://github.com/w-winter))
+
+### Fixed
+
+- Fixed `pi update` not updating npm/git packages when called without arguments ([#1151](https://github.com/badlogic/pi-mono/issues/1151))
+- Fixed `models.json` validation requiring fields documented as optional. Model definitions now only require `id`; all other fields (`name`, `reasoning`, `input`, `cost`, `contextWindow`, `maxTokens`) have sensible defaults. ([#1146](https://github.com/badlogic/pi-mono/issues/1146))
+- Fixed models resolving relative paths in skill files from cwd instead of skill directory by adding explicit guidance to skills preamble ([#1136](https://github.com/badlogic/pi-mono/issues/1136))
+- Fixed tree selector losing focus state when navigating entries ([#1142](https://github.com/badlogic/pi-mono/pull/1142) by [@Perlence](https://github.com/Perlence))
+- Fixed `cacheRetention` option not being passed through in `buildBaseOptions` ([#1154](https://github.com/badlogic/pi-mono/issues/1154))
+- Fixed OAuth login/refresh not using HTTP proxy settings (`HTTP_PROXY`, `HTTPS_PROXY` env vars) ([#1132](https://github.com/badlogic/pi-mono/issues/1132))
+- Fixed `pi update <source>` installing packages locally when the source is only registered globally ([#1163](https://github.com/badlogic/pi-mono/pull/1163) by [@aliou](https://github.com/aliou))
+- Fixed tree navigation with summarization overwriting editor content typed during the summarization wait ([#1169](https://github.com/badlogic/pi-mono/pull/1169) by [@aliou](https://github.com/aliou))
+
+## [0.50.9] - 2026-02-01
+
+### Added
+
+- Added `titlebar-spinner.ts` example extension that shows a braille spinner animation in the terminal title while the agent is working.
+- Added `PI_AI_ANTIGRAVITY_VERSION` environment variable documentation to help text ([#1129](https://github.com/badlogic/pi-mono/issues/1129))
+- Added `cacheRetention` stream option with provider-specific mappings for prompt cache controls, defaulting to short retention ([#1134](https://github.com/badlogic/pi-mono/issues/1134))
+
+## [0.50.8] - 2026-02-01
+
+### Added
+
+- Added `newSession`, `tree`, and `fork` keybinding actions for `/new`, `/tree`, and `/fork` commands. All unbound by default. ([#1114](https://github.com/badlogic/pi-mono/pull/1114) by [@juanibiapina](https://github.com/juanibiapina))
+- Added `retry.maxDelayMs` setting to cap maximum server-requested retry delay. When a provider requests a longer delay (e.g., Google's "quota will reset after 5h"), the request fails immediately with an informative error instead of waiting silently. Default: 60000ms (60 seconds). ([#1123](https://github.com/badlogic/pi-mono/issues/1123))
+- `/resume` session picker: new "Threaded" sort mode (now default) displays sessions in a tree structure based on fork relationships. Compact one-line format with message count and age on the right. ([#1124](https://github.com/badlogic/pi-mono/pull/1124) by [@pasky](https://github.com/pasky))
+- Added Qwen CLI OAuth provider extension example. ([#940](https://github.com/badlogic/pi-mono/pull/940) by [@4h9fbZ](https://github.com/4h9fbZ))
+- Added OAuth `modifyModels` hook support for extension-registered providers at registration time. ([#940](https://github.com/badlogic/pi-mono/pull/940) by [@4h9fbZ](https://github.com/4h9fbZ))
+- Added Qwen thinking format support for OpenAI-compatible completions via `enable_thinking`. ([#940](https://github.com/badlogic/pi-mono/pull/940) by [@4h9fbZ](https://github.com/4h9fbZ))
+- Added sticky column tracking for vertical cursor navigation so the editor restores the preferred column when moving across short lines. ([#1120](https://github.com/badlogic/pi-mono/pull/1120) by [@Perlence](https://github.com/Perlence))
+- Added `resources_discover` extension hook to supply additional skills, prompts, and themes on startup and reload.
+
+### Fixed
+
+- Fixed `switchSession()` appending spurious `thinking_level_change` entry to session log on resume. `setThinkingLevel()` is now idempotent. ([#1118](https://github.com/badlogic/pi-mono/issues/1118))
+- Fixed clipboard image paste on WSL2/WSLg writing invalid PNG files when clipboard provides `image/bmp` format. BMP images are now converted to PNG before saving. ([#1112](https://github.com/badlogic/pi-mono/pull/1112) by [@lightningRalf](https://github.com/lightningRalf))
+- Fixed Kitty keyboard protocol base layout fallback so non-QWERTY layouts do not trigger wrong shortcuts ([#1096](https://github.com/badlogic/pi-mono/pull/1096) by [@rytswd](https://github.com/rytswd))
+
+## [0.50.7] - 2026-01-31
+
+### Fixed
+
+- Multi-file extensions in packages now work correctly. Package resolution now uses the same discovery logic as local extensions: only `index.ts` (or manifest-declared entries) are loaded from subdirectories, not helper modules. ([#1102](https://github.com/badlogic/pi-mono/issues/1102))
+
+## [0.50.6] - 2026-01-30
+
+### Added
+
+- Added `ctx.getSystemPrompt()` to extension context for accessing the current effective system prompt ([#1098](https://github.com/badlogic/pi-mono/pull/1098) by [@kaofelix](https://github.com/kaofelix))
+
+### Fixed
+
+- Fixed empty rows appearing below footer when content shrinks (e.g., closing `/tree`, clearing multi-line editor) ([#1095](https://github.com/badlogic/pi-mono/pull/1095) by [@marckrenn](https://github.com/marckrenn))
+- Fixed terminal cursor remaining hidden after exiting TUI via `stop()` when a render was pending ([#1099](https://github.com/badlogic/pi-mono/pull/1099) by [@haoqixu](https://github.com/haoqixu))
+
+## [0.50.5] - 2026-01-30
+
+## [0.50.4] - 2026-01-30
+
+### New Features
+
+- **OSC 52 clipboard support for SSH/mosh** - The `/copy` command now works over remote connections using the OSC 52 terminal escape sequence. No more clipboard frustration when using pi over SSH. ([#1069](https://github.com/badlogic/pi-mono/issues/1069) by [@gturkoglu](https://github.com/gturkoglu))
+- **Vercel AI Gateway routing** - Route requests through Vercel's AI Gateway with provider failover and load balancing. Configure via `vercelGatewayRouting` in models.json. ([#1051](https://github.com/badlogic/pi-mono/pull/1051) by [@ben-vargas](https://github.com/ben-vargas))
+- **Character jump navigation** - Bash/Readline-style character search: Ctrl+] jumps forward to the next occurrence of a character, Ctrl+Alt+] jumps backward. ([#1074](https://github.com/badlogic/pi-mono/pull/1074) by [@Perlence](https://github.com/Perlence))
+- **Emacs-style Ctrl+B/Ctrl+F navigation** - Alternative keybindings for word navigation (cursor word left/right) in the editor. ([#1053](https://github.com/badlogic/pi-mono/pull/1053) by [@ninlds](https://github.com/ninlds))
+- **Line boundary navigation** - Editor jumps to line start when pressing Up at first visual line, and line end when pressing Down at last visual line. ([#1050](https://github.com/badlogic/pi-mono/pull/1050) by [@4h9fbZ](https://github.com/4h9fbZ))
+- **Performance improvements** - Optimized image line detection and box rendering cache in the TUI for better rendering performance. ([#1084](https://github.com/badlogic/pi-mono/pull/1084) by [@can1357](https://github.com/can1357))
+- **`set_session_name` RPC command** - Headless clients can now set the session display name programmatically. ([#1075](https://github.com/badlogic/pi-mono/pull/1075) by [@dnouri](https://github.com/dnouri))
+- **Disable double-escape behavior** - New `"none"` option for `doubleEscapeAction` setting completely disables the double-escape shortcut. ([#973](https://github.com/badlogic/pi-mono/issues/973) by [@juanibiapina](https://github.com/juanibiapina))
+
+### Added
+
+- Added "none" option to `doubleEscapeAction` setting to disable double-escape behavior entirely ([#973](https://github.com/badlogic/pi-mono/issues/973) by [@juanibiapina](https://github.com/juanibiapina))
+- Added OSC 52 clipboard support for SSH/mosh sessions. `/copy` now works over remote connections. ([#1069](https://github.com/badlogic/pi-mono/issues/1069) by [@gturkoglu](https://github.com/gturkoglu))
+- Added Vercel AI Gateway routing support via `vercelGatewayRouting` in models.json ([#1051](https://github.com/badlogic/pi-mono/pull/1051) by [@ben-vargas](https://github.com/ben-vargas))
+- Added Ctrl+B and Ctrl+F keybindings for cursor word left/right navigation in the editor ([#1053](https://github.com/badlogic/pi-mono/pull/1053) by [@ninlds](https://github.com/ninlds))
+- Added character jump navigation: Ctrl+] jumps forward to next character, Ctrl+Alt+] jumps backward ([#1074](https://github.com/badlogic/pi-mono/pull/1074) by [@Perlence](https://github.com/Perlence))
+- Editor now jumps to line start when pressing Up at first visual line, and line end when pressing Down at last visual line ([#1050](https://github.com/badlogic/pi-mono/pull/1050) by [@4h9fbZ](https://github.com/4h9fbZ))
+- Optimized image line detection and box rendering cache for better TUI performance ([#1084](https://github.com/badlogic/pi-mono/pull/1084) by [@can1357](https://github.com/can1357))
+- Added `set_session_name` RPC command for headless clients to set session display name ([#1075](https://github.com/badlogic/pi-mono/pull/1075) by [@dnouri](https://github.com/dnouri))
+
+### Fixed
+
+- Read tool now handles macOS filenames with curly quotes (U+2019) and NFD Unicode normalization ([#1078](https://github.com/badlogic/pi-mono/issues/1078))
+- Respect .gitignore, .ignore, and .fdignore files when scanning package resources for skills, prompts, themes, and extensions ([#1072](https://github.com/badlogic/pi-mono/issues/1072))
+- Fixed tool call argument defaults when providers omit inputs ([#1065](https://github.com/badlogic/pi-mono/issues/1065))
+- Invalid JSON in settings.json no longer causes the file to be overwritten with empty settings ([#1054](https://github.com/badlogic/pi-mono/issues/1054))
+- Config selector now shows folder name for extensions with duplicate display names ([#1064](https://github.com/badlogic/pi-mono/pull/1064) by [@Graffioh](https://github.com/Graffioh))
+
+## [0.50.3] - 2026-01-29
+
+### New Features
+
+- **Kimi For Coding provider**: Access Moonshot AI's Anthropic-compatible coding API. Set `KIMI_API_KEY` environment variable. See [README.md#kimi-for-coding](README.md#kimi-for-coding).
+
+### Added
+
+- Added Kimi For Coding provider support (Moonshot AI's Anthropic-compatible coding API). Set `KIMI_API_KEY` environment variable. See [README.md#kimi-for-coding](README.md#kimi-for-coding).
+
+### Fixed
+
+- Resources now appear before messages when resuming a session, preventing loaded context from appearing at the bottom of the chat.
+
+## [0.50.2] - 2026-01-29
+
+### New Features
+
+- **Hugging Face provider**: Access Hugging Face models via OpenAI-compatible Inference Router. Set `HF_TOKEN` environment variable. See [README.md#hugging-face](README.md#hugging-face).
+- **Extended prompt caching**: `PI_CACHE_RETENTION=long` enables 1-hour caching for Anthropic (vs 5min default) and 24-hour for OpenAI (vs in-memory default). Only applies to direct API calls. See [README.md#prompt-caching](README.md#prompt-caching).
+- **Configurable autocomplete height**: `autocompleteMaxVisible` setting (3-20 items, default 5) controls dropdown size. Adjust via `/settings` or `settings.json`.
+- **Shell-style keybindings**: `alt+b`/`alt+f` for word navigation, `ctrl+d` for delete character forward. See [docs/keybindings.md](docs/keybindings.md).
+- **RPC `get_commands`**: Headless clients can now list available commands programmatically. See [docs/rpc.md](docs/rpc.md).
+
+### Added
+
+- Added Hugging Face provider support via OpenAI-compatible Inference Router ([#994](https://github.com/badlogic/pi-mono/issues/994))
+- Added `PI_CACHE_RETENTION` environment variable to control cache TTL for Anthropic (5m vs 1h) and OpenAI (in-memory vs 24h). Set to `long` for extended retention. ([#967](https://github.com/badlogic/pi-mono/issues/967))
+- Added `autocompleteMaxVisible` setting for configurable autocomplete dropdown height (3-20 items, default 5) ([#972](https://github.com/badlogic/pi-mono/pull/972) by [@masonc15](https://github.com/masonc15))
+- Added `/files` command to list all file operations (read, write, edit) in the current session
+- Added shell-style keybindings: `alt+b`/`alt+f` for word navigation, `ctrl+d` for delete character forward (when editor has text) ([#1043](https://github.com/badlogic/pi-mono/issues/1043) by [@jasonish](https://github.com/jasonish))
+- Added `get_commands` RPC method for headless clients to list available commands ([#995](https://github.com/badlogic/pi-mono/pull/995) by [@dnouri](https://github.com/dnouri))
+
+### Changed
+
+- Improved `extractCursorPosition` performance in TUI: scans lines in reverse order, early-outs when cursor is above viewport ([#1004](https://github.com/badlogic/pi-mono/pull/1004) by [@can1357](https://github.com/can1357))
+- Autocomplete improvements: better handling of partial matches and edge cases ([#1024](https://github.com/badlogic/pi-mono/pull/1024) by [@Perlence](https://github.com/Perlence))
+
+### Fixed
+
+- External edits to `settings.json` are now preserved when pi reloads or saves unrelated settings. Previously, editing settings.json directly (e.g., removing a package from `packages` array) would be silently reverted on next pi startup when automatic setters like `setLastChangelogVersion()` triggered a save.
+- Fixed custom header not displaying correctly with `quietStartup` enabled ([#1039](https://github.com/badlogic/pi-mono/pull/1039) by [@tudoroancea](https://github.com/tudoroancea))
+- Empty array in package filter now disables all resources instead of falling back to manifest defaults ([#1044](https://github.com/badlogic/pi-mono/issues/1044))
+- Auto-retry counter now resets after each successful LLM response instead of accumulating across tool-use turns ([#1019](https://github.com/badlogic/pi-mono/issues/1019))
+- Fixed incorrect `.md` file names in warning messages ([#1041](https://github.com/badlogic/pi-mono/issues/1041) by [@llimllib](https://github.com/llimllib))
+- Fixed provider name hidden in footer when terminal is narrow ([#981](https://github.com/badlogic/pi-mono/pull/981) by [@Perlence](https://github.com/Perlence))
+- Fixed backslash input buffering causing delayed character display in editor ([#1037](https://github.com/badlogic/pi-mono/pull/1037) by [@Perlence](https://github.com/Perlence))
+- Fixed markdown table rendering with proper row dividers and minimum column width ([#997](https://github.com/badlogic/pi-mono/pull/997) by [@tmustier](https://github.com/tmustier))
+- Fixed OpenAI completions `toolChoice` handling ([#998](https://github.com/badlogic/pi-mono/pull/998) by [@williamtwomey](https://github.com/williamtwomey))
+- Fixed cross-provider handoff failing when switching from OpenAI Responses API providers due to pipe-separated tool call IDs ([#1022](https://github.com/badlogic/pi-mono/issues/1022))
+- Fixed 429 rate limit errors incorrectly triggering auto-compaction instead of retry with backoff ([#1038](https://github.com/badlogic/pi-mono/issues/1038))
+- Fixed Anthropic provider to handle `sensitive` stop_reason returned by API ([#978](https://github.com/badlogic/pi-mono/issues/978))
+- Fixed DeepSeek API compatibility by detecting `deepseek.com` URLs and disabling unsupported `developer` role ([#1048](https://github.com/badlogic/pi-mono/issues/1048))
+- Fixed Anthropic provider to preserve input token counts when proxies omit them in `message_delta` events ([#1045](https://github.com/badlogic/pi-mono/issues/1045))
+- Fixed `autocompleteMaxVisible` setting not persisting to `settings.json`
+
+## [0.50.1] - 2026-01-26
+
+### Fixed
+
+- Git extension updates now handle force-pushed remotes gracefully instead of failing ([#961](https://github.com/badlogic/pi-mono/pull/961) by [@aliou](https://github.com/aliou))
+- Extension `ctx.newSession({ setup })` now properly syncs agent state and renders messages after setup callback runs ([#968](https://github.com/badlogic/pi-mono/issues/968))
+- Fixed extension UI bindings not initializing when starting with no extensions, which broke UI methods after `/reload`
+- Fixed `/hotkeys` output to title-case extension hotkeys ([#969](https://github.com/badlogic/pi-mono/pull/969) by [@Perlence](https://github.com/Perlence))
+- Fixed model catalog generation to exclude deprecated OpenCode Zen models ([#970](https://github.com/badlogic/pi-mono/pull/970) by [@DanielTatarkin](https://github.com/DanielTatarkin))
+- Fixed git extension removal to prune empty directories
+
+## [0.50.0] - 2026-01-26
+
+### New Features
+
+- Pi packages for bundling and installing extensions, skills, prompts, and themes. See [docs/packages.md](docs/packages.md).
+- Hot reload (`/reload`) of resources including AGENTS.md, SYSTEM.md, APPEND_SYSTEM.md, prompt templates, skills, themes, and extensions. See [README.md#commands](README.md#commands) and [README.md#context-files](README.md#context-files).
+- Custom providers via `pi.registerProvider()` for proxies, custom endpoints, OAuth or SSO flows, and non-standard streaming APIs. See [docs/custom-provider.md](docs/custom-provider.md).
+- Azure OpenAI Responses provider support with deployment-aware model mapping. See [docs/providers.md#azure-openai](docs/providers.md#azure-openai).
+- OpenRouter routing support for custom models via `openRouterRouting`. See [docs/providers.md#api-keys](docs/providers.md#api-keys) and [docs/models.md](docs/models.md).
+- Skill invocation messages are now collapsible and skills can opt out of model invocation via `disable-model-invocation`. See [docs/skills.md#frontmatter](docs/skills.md#frontmatter).
+- Session selector renaming and configurable keybindings. See [README.md#commands](README.md#commands) and [docs/keybindings.md](docs/keybindings.md).
+- `models.json` headers can resolve environment variables and shell commands. See [docs/models.md#value-resolution](docs/models.md#value-resolution).
+- `--verbose` CLI flag to override quiet startup. See [README.md#cli-reference](README.md#cli-reference).
+
+Read the fully revamped docs in `README.md`, or have your clanker read them for you.
+
+### SDK Migration Guide
+
+There are multiple SDK breaking changes since v0.49.3. For the quickest migration, point your agent at `packages/coding-agent/docs/sdk.md`, the SDK examples in `packages/coding-agent/examples/sdk`, and the SDK source in `packages/coding-agent/src/core/sdk.ts` and related modules.
+
+### Breaking Changes
+
+- Header values in `models.json` now resolve environment variables (if a header value matches an env var name, the env var value is used). This may change behavior if a literal header value accidentally matches an env var name. ([#909](https://github.com/badlogic/pi-mono/issues/909))
+- External packages (npm/git) are now configured via `packages` array in settings.json instead of `extensions`. Existing npm:/git: entries in `extensions` are auto-migrated. ([#645](https://github.com/badlogic/pi-mono/issues/645))
+- Resource loading now uses `ResourceLoader` only and settings.json uses arrays for extensions, skills, prompts, and themes ([#645](https://github.com/badlogic/pi-mono/issues/645))
+- Removed `discoverAuthStorage` and `discoverModels` from the SDK. `AuthStorage` and `ModelRegistry` now default to `~/.pi/agent` paths unless you pass an `agentDir` ([#645](https://github.com/badlogic/pi-mono/issues/645))
+
+### Added
+
+- Session renaming in `/resume` picker via `Ctrl+R` without opening the session ([#863](https://github.com/badlogic/pi-mono/pull/863) by [@svkozak](https://github.com/svkozak))
+- Session selector keybindings are now configurable ([#948](https://github.com/badlogic/pi-mono/pull/948) by [@aos](https://github.com/aos))
+- `disable-model-invocation` frontmatter field for skills to prevent agentic invocation while still allowing explicit `/skill:name` commands ([#927](https://github.com/badlogic/pi-mono/issues/927))
+- Exposed `copyToClipboard` utility for extensions ([#926](https://github.com/badlogic/pi-mono/issues/926) by [@mitsuhiko](https://github.com/mitsuhiko))
+- Skill invocation messages are now collapsible in chat output, showing collapsed by default with skill name and expand hint ([#894](https://github.com/badlogic/pi-mono/issues/894))
+- Header values in `models.json` now support environment variables and shell commands, matching `apiKey` resolution ([#909](https://github.com/badlogic/pi-mono/issues/909))
+- Added HTTP proxy environment variable support for API requests ([#942](https://github.com/badlogic/pi-mono/pull/942) by [@haoqixu](https://github.com/haoqixu))
+- Added OpenRouter provider routing support for custom models via `openRouterRouting` compat field ([#859](https://github.com/badlogic/pi-mono/pull/859) by [@v01dpr1mr0s3](https://github.com/v01dpr1mr0s3))
+- Added `azure-openai-responses` provider support for Azure OpenAI Responses API. ([#890](https://github.com/badlogic/pi-mono/pull/890) by [@markusylisiurunen](https://github.com/markusylisiurunen))
+- Added changelog link to update notifications ([#925](https://github.com/badlogic/pi-mono/pull/925) by [@dannote](https://github.com/dannote))
+- Added `--verbose` CLI flag to override quietStartup setting ([#906](https://github.com/badlogic/pi-mono/pull/906) by [@Perlence](https://github.com/Perlence))
+- `markdown.codeBlockIndent` setting to customize code block indentation in rendered output
+- Extension package management with `pi install`, `pi remove`, `pi update`, and `pi list` commands ([#645](https://github.com/badlogic/pi-mono/issues/645))
+- Package filtering: selectively load resources from packages using object form in `packages` array ([#645](https://github.com/badlogic/pi-mono/issues/645))
+- Glob pattern support with minimatch in package filters, top-level settings arrays, and pi manifest (e.g., `"!funky.json"`, `"*.ts"`) ([#645](https://github.com/badlogic/pi-mono/issues/645))
+- `/reload` command to reload extensions, skills, prompts, and themes ([#645](https://github.com/badlogic/pi-mono/issues/645))
+- `pi config` command with TUI to enable/disable package and top-level resources via patterns ([#938](https://github.com/badlogic/pi-mono/issues/938))
+- CLI flags for `--skill`, `--prompt-template`, `--theme`, `--no-prompt-templates`, and `--no-themes` ([#645](https://github.com/badlogic/pi-mono/issues/645))
+- Package deduplication: if same package appears in global and project settings, project wins ([#645](https://github.com/badlogic/pi-mono/issues/645))
+- Unified collision reporting with `ResourceDiagnostic` type for all resource types ([#645](https://github.com/badlogic/pi-mono/issues/645))
+- Show provider alongside the model in the footer if multiple providers are available
+- Custom provider support via `pi.registerProvider()` with `streamSimple` for custom API implementations
+- Added `custom-provider.ts` example extension demonstrating custom Anthropic provider with OAuth
+
+### Changed
+
+- `/resume` picker sort toggle moved to `Ctrl+S` to free `Ctrl+R` for rename ([#863](https://github.com/badlogic/pi-mono/pull/863) by [@svkozak](https://github.com/svkozak))
+- HTML export: clicking a sidebar message now navigates to its newest leaf and scrolls to it, instead of truncating the branch ([#853](https://github.com/badlogic/pi-mono/pull/853) by [@mitsuhiko](https://github.com/mitsuhiko))
+- HTML export: active path is now visually highlighted with dimmed off-path nodes ([#929](https://github.com/badlogic/pi-mono/pull/929) by [@hewliyang](https://github.com/hewliyang))
+- Azure OpenAI Responses provider now uses base URL configuration with deployment-aware model mapping and no longer includes service tier handling
+- `/reload` now re-renders the entire scrollback so updated extension components are visible immediately ([#928](https://github.com/badlogic/pi-mono/pull/928) by [@ferologics](https://github.com/ferologics))
+- Skill, prompt template, and theme discovery now use settings and CLI path arrays instead of legacy filters ([#645](https://github.com/badlogic/pi-mono/issues/645))
+
+### Fixed
+
+- Extension `setWorkingMessage()` calls in `agent_start` handlers now work correctly; previously the message was silently ignored because the loading animation didn't exist yet ([#935](https://github.com/badlogic/pi-mono/issues/935))
+- Fixed package auto-discovery to respect loader rules, config overrides, and force-exclude patterns
+- Fixed /reload restoring the correct editor after reload ([#949](https://github.com/badlogic/pi-mono/pull/949) by [@Perlence](https://github.com/Perlence))
+- Fixed distributed themes breaking `/export` ([#946](https://github.com/badlogic/pi-mono/pull/946) by [@mitsuhiko](https://github.com/mitsuhiko))
+- Fixed startup hints to clarify thinking level selection and expanded thinking guidance
+- Fixed SDK initial model resolution to use `findInitialModel` and default to Claude Opus 4.5 for Anthropic models
+- Fixed no-models warning to include the `/model` instruction
+- Fixed authentication error messages to point to the authentication documentation
+- Fixed bash output hint lines to truncate to terminal width
+- Fixed custom editors to honor the `paddingX` setting ([#936](https://github.com/badlogic/pi-mono/pull/936) by [@Perlence](https://github.com/Perlence))
+- Fixed system prompt tool list to show only built-in tools
+- Fixed package manager to check npm package versions before using cached copies
+- Fixed package manager to run `npm install` after cloning git repositories with a package.json
+- Fixed extension provider registrations to apply before model resolution
+- Fixed editor multi-line insertion handling and lastAction tracking ([#945](https://github.com/badlogic/pi-mono/pull/945) by [@Perlence](https://github.com/Perlence))
+- Fixed editor word wrapping to reserve a cursor column ([#934](https://github.com/badlogic/pi-mono/pull/934) by [@Perlence](https://github.com/Perlence))
+- Fixed editor word wrapping to use single-pass backtracking for whitespace handling ([#924](https://github.com/badlogic/pi-mono/pull/924) by [@Perlence](https://github.com/Perlence))
+- Fixed Kitty image ID allocation and cleanup to prevent image ID collisions
+- Fixed overlays staying centered after terminal resizes ([#950](https://github.com/badlogic/pi-mono/pull/950) by [@nicobailon](https://github.com/nicobailon))
+- Fixed streaming dispatch to use the model api type instead of hardcoded API defaults
+- Fixed Google providers to default tool call arguments to an empty object when omitted
+- Fixed OpenAI Responses streaming to handle `arguments.done` events on OpenAI-compatible endpoints ([#917](https://github.com/badlogic/pi-mono/pull/917) by [@williballenthin](https://github.com/williballenthin))
+- Fixed OpenAI Codex Responses tool strictness handling after the shared responses refactor
+- Fixed Azure OpenAI Responses streaming to guard deltas before content parts and correct metadata and handoff gating
+- Fixed OpenAI completions tool-result image batching after consecutive tool results ([#902](https://github.com/badlogic/pi-mono/pull/902) by [@terrorobe](https://github.com/terrorobe))
+- Off-by-one error in bash output "earlier lines" count caused by counting spacing newline as hidden content ([#921](https://github.com/badlogic/pi-mono/issues/921))
+- User package filters now layer on top of manifest filters instead of replacing them ([#645](https://github.com/badlogic/pi-mono/issues/645))
+- Auto-retry now handles "terminated" errors from Codex API mid-stream failures
+- Follow-up queue (Alt+Enter) now sends full paste content instead of `[paste #N ...]` markers ([#912](https://github.com/badlogic/pi-mono/issues/912))
+- Fixed Alt-Up not restoring messages queued during compaction ([#923](https://github.com/badlogic/pi-mono/pull/923) by [@aliou](https://github.com/aliou))
+- Fixed session corruption when loading empty or invalid session files via `--session` flag ([#932](https://github.com/badlogic/pi-mono/issues/932) by [@armanddp](https://github.com/armanddp))
+- Fixed extension shortcuts not firing when extension also uses `setEditorComponent()` ([#947](https://github.com/badlogic/pi-mono/pull/947) by [@Perlence](https://github.com/Perlence))
+- Session "modified" time now uses last message timestamp instead of file mtime, so renaming doesn't reorder the recent list ([#863](https://github.com/badlogic/pi-mono/pull/863) by [@svkozak](https://github.com/svkozak))
+
+## [0.49.3] - 2026-01-22
+
+### Added
+
+- `markdown.codeBlockIndent` setting to customize code block indentation in rendered output ([#855](https://github.com/badlogic/pi-mono/pull/855) by [@terrorobe](https://github.com/terrorobe))
+- Added `inline-bash.ts` example extension for expanding `!{command}` patterns in prompts ([#881](https://github.com/badlogic/pi-mono/pull/881) by [@scutifer](https://github.com/scutifer))
+- Added `antigravity-image-gen.ts` example extension for AI image generation via Google Antigravity ([#893](https://github.com/badlogic/pi-mono/pull/893) by [@ben-vargas](https://github.com/ben-vargas))
+- Added `PI_SHARE_VIEWER_URL` environment variable for custom share viewer URLs ([#889](https://github.com/badlogic/pi-mono/pull/889) by [@andresaraujo](https://github.com/andresaraujo))
+- Added Alt+Delete as hotkey for delete word forwards ([#878](https://github.com/badlogic/pi-mono/pull/878) by [@Perlence](https://github.com/Perlence))
+
+### Changed
+
+- Tree selector: changed label filter shortcut from `l` to `Shift+L` so users can search for entries containing "l" ([#861](https://github.com/badlogic/pi-mono/pull/861) by [@mitsuhiko](https://github.com/mitsuhiko))
+- Fuzzy matching now scores consecutive matches higher for better search relevance ([#860](https://github.com/badlogic/pi-mono/pull/860) by [@mitsuhiko](https://github.com/mitsuhiko))
+
+### Fixed
+
+- Fixed error messages showing hardcoded `~/.pi/agent/` paths instead of respecting `PI_CODING_AGENT_DIR` ([#887](https://github.com/badlogic/pi-mono/pull/887) by [@aliou](https://github.com/aliou))
+- Fixed `write` tool not displaying errors in the UI when execution fails ([#856](https://github.com/badlogic/pi-mono/issues/856))
+- Fixed HTML export using default theme instead of user's active theme ([#870](https://github.com/badlogic/pi-mono/pull/870) by [@scutifer](https://github.com/scutifer))
+- Show session name in the footer and terminal / tab title ([#876](https://github.com/badlogic/pi-mono/pull/876) by [@scutifer](https://github.com/scutifer))
+- Fixed 256color fallback in Terminal.app to prevent color rendering issues ([#869](https://github.com/badlogic/pi-mono/pull/869) by [@Perlence](https://github.com/Perlence))
+- Fixed viewport tracking and cursor positioning for overlays and content shrink scenarios
+- Fixed autocomplete to allow searches with `/` characters (e.g., `folder1/folder2`) ([#882](https://github.com/badlogic/pi-mono/pull/882) by [@richardgill](https://github.com/richardgill))
+- Fixed autolinked emails displaying redundant `(mailto:...)` suffix ([#888](https://github.com/badlogic/pi-mono/pull/888) by [@terrorobe](https://github.com/terrorobe))
+- Fixed `@` file autocomplete adding space after directories, breaking continued autocomplete into subdirectories
+
+## [0.49.2] - 2026-01-19
+
+### Added
+
+- Added widget placement option for extension widgets via `widgetPlacement` in `pi.addWidget()` ([#850](https://github.com/badlogic/pi-mono/pull/850) by [@marckrenn](https://github.com/marckrenn))
+- Added AWS credential detection for ECS/Kubernetes environments: `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI`, `AWS_CONTAINER_CREDENTIALS_FULL_URI`, `AWS_WEB_IDENTITY_TOKEN_FILE` ([#848](https://github.com/badlogic/pi-mono/issues/848))
+- Add "quiet startup" setting to `/settings` ([#847](https://github.com/badlogic/pi-mono/pull/847) by [@unexge](https://github.com/unexge))
+
+### Changed
+
+- HTML export now includes JSONL download button, jump-to-last-message on click, and fixed missing labels ([#853](https://github.com/badlogic/pi-mono/pull/853) by [@mitsuhiko](https://github.com/mitsuhiko))
+- Improved error message for OAuth authentication failures (expired credentials, offline) instead of generic 'No API key found' ([#849](https://github.com/badlogic/pi-mono/pull/849) by [@zedrdave](https://github.com/zedrdave))
+
+### Fixed
+- Fixed `/model` selector scope toggle so you can switch between all and scoped models when scoped models are saved ([#844](https://github.com/badlogic/pi-mono/issues/844))
+- Fixed OpenAI Responses 400 error "reasoning without following item" when replaying aborted turns ([#838](https://github.com/badlogic/pi-mono/pull/838))
+- Fixed pi exiting with code 0 when cancelling resume session selection
+
+### Removed
+
+- Removed `strictResponsesPairing` compat option from models.json schema (no longer needed)
+
+## [0.49.1] - 2026-01-18
+
+### Added
+
+- Added `strictResponsesPairing` compat option for custom OpenAI Responses models on Azure ([#768](https://github.com/badlogic/pi-mono/pull/768) by [@prateekmedia](https://github.com/prateekmedia))
+- Session selector (`/resume`) now supports path display toggle (`Ctrl+P`) and session deletion (`Ctrl+D`) with inline confirmation ([#816](https://github.com/badlogic/pi-mono/pull/816) by [@w-winter](https://github.com/w-winter))
+- Added undo support in interactive mode with Ctrl+- hotkey. ([#831](https://github.com/badlogic/pi-mono/pull/831) by [@Perlence](https://github.com/Perlence))
+
+### Changed
+
+- Share URLs now use hash fragments (`#`) instead of query strings (`?`) to prevent session IDs from being sent to buildwithpi.ai ([#829](https://github.com/badlogic/pi-mono/pull/829) by [@terrorobe](https://github.com/terrorobe))
+- API keys in `models.json` can now be retrieved via shell command using `!` prefix (e.g., `"apiKey": "!security find-generic-password -ws 'anthropic'"` for macOS Keychain) ([#762](https://github.com/badlogic/pi-mono/pull/762) by [@cv](https://github.com/cv))
+
+### Fixed
+
+- Fixed IME candidate window appearing in wrong position when filtering menus with Input Method Editor (e.g., Chinese IME). Components with search inputs now properly propagate focus state for cursor positioning. ([#827](https://github.com/badlogic/pi-mono/issues/827))
+- Fixed extension shortcut conflicts to respect user keybindings when built-in actions are remapped. ([#826](https://github.com/badlogic/pi-mono/pull/826) by [@richardgill](https://github.com/richardgill))
+- Fixed photon WASM loading in standalone compiled binaries.
+- Fixed tool call ID normalization for cross-provider handoffs (e.g., Codex to Antigravity Claude) ([#821](https://github.com/badlogic/pi-mono/issues/821))
+
+## [0.49.0] - 2026-01-17
+
+### Added
+
+- `pi.setLabel(entryId, label)` in ExtensionAPI for setting per-entry labels from extensions ([#806](https://github.com/badlogic/pi-mono/issues/806))
+- Export `keyHint`, `appKeyHint`, `editorKey`, `appKey`, `rawKeyHint` for extensions to format keybinding hints consistently ([#802](https://github.com/badlogic/pi-mono/pull/802) by [@dannote](https://github.com/dannote))
+- Exported `VERSION` from the package index and updated the custom-header example. ([#798](https://github.com/badlogic/pi-mono/pull/798) by [@tallshort](https://github.com/tallshort))
+- Added `showHardwareCursor` setting to control cursor visibility while still positioning it for IME support. ([#800](https://github.com/badlogic/pi-mono/pull/800) by [@ghoulr](https://github.com/ghoulr))
+- Added Emacs-style kill ring editing with yank and yank-pop keybindings, plus legacy Alt+letter handling and Alt+D delete word forward support in the interactive editor. ([#810](https://github.com/badlogic/pi-mono/pull/810) by [@Perlence](https://github.com/Perlence))
+- Added `ctx.compact()` and `ctx.getContextUsage()` to extension contexts for programmatic compaction and context usage checks.
+- Added documentation for delete word forward and kill ring keybindings in interactive mode. ([#810](https://github.com/badlogic/pi-mono/pull/810) by [@Perlence](https://github.com/Perlence))
+
+### Changed
+
+- Updated the default system prompt wording to clarify the pi harness and documentation scope.
+- Simplified Codex system prompt handling to use the default system prompt directly for Codex instructions.
+
+### Fixed
+
+- Fixed photon module failing to load in ESM context with "require is not defined" error ([#795](https://github.com/badlogic/pi-mono/pull/795) by [@dannote](https://github.com/dannote))
+- Fixed compaction UI not showing when extensions trigger compaction.
+- Fixed orphaned tool results after errored assistant messages causing Codex API errors. When an assistant message has `stopReason: "error"`, its tool calls are now excluded from pending tool tracking, preventing synthetic tool results from being generated for calls that will be dropped by provider-specific converters. ([#812](https://github.com/badlogic/pi-mono/issues/812))
+- Fixed Bedrock Claude max_tokens handling to always exceed thinking budget tokens, preventing compaction failures. ([#797](https://github.com/badlogic/pi-mono/pull/797) by [@pjtf93](https://github.com/pjtf93))
+- Fixed Claude Code tool name normalization to match the Claude Code tool list case-insensitively and remove invalid mappings.
+
+### Removed
+
+- Removed `pi-internal://` path resolution from the read tool.
+
+## [0.48.0] - 2026-01-16
+
+### Added
+
+- Added `quietStartup` setting to silence startup output (version header, loaded context info, model scope line). Changelog notifications are still shown. ([#777](https://github.com/badlogic/pi-mono/pull/777) by [@ribelo](https://github.com/ribelo))
+- Added `editorPaddingX` setting for horizontal padding in input editor (0-3, default: 0)
+- Added `shellCommandPrefix` setting to prepend commands to every bash execution, enabling alias expansion in non-interactive shells (e.g., `"shellCommandPrefix": "shopt -s expand_aliases"`) ([#790](https://github.com/badlogic/pi-mono/pull/790) by [@richardgill](https://github.com/richardgill))
+- Added bash-style argument slicing for prompt templates ([#770](https://github.com/badlogic/pi-mono/pull/770) by [@airtonix](https://github.com/airtonix))
+- Extension commands can provide argument auto-completions via `getArgumentCompletions` in `pi.registerCommand()` ([#775](https://github.com/badlogic/pi-mono/pull/775) by [@ribelo](https://github.com/ribelo))
+- Bash tool now displays the timeout value in the UI when a timeout is set ([#780](https://github.com/badlogic/pi-mono/pull/780) by [@dannote](https://github.com/dannote))
+- Export `getShellConfig` for extensions to detect user's shell environment ([#766](https://github.com/badlogic/pi-mono/pull/766) by [@dannote](https://github.com/dannote))
+- Added `thinkingText` and `selectedBg` to theme schema ([#763](https://github.com/badlogic/pi-mono/pull/763) by [@scutifer](https://github.com/scutifer))
+- `navigateTree()` now supports `replaceInstructions` option to replace the default summarization prompt entirely, and `label` option to attach a label to the branch summary entry ([#787](https://github.com/badlogic/pi-mono/pull/787) by [@mitsuhiko](https://github.com/mitsuhiko))
+
+### Fixed
+
+- Fixed crash during auto-compaction when summarization fails (e.g., quota exceeded). Now displays error message instead of crashing ([#792](https://github.com/badlogic/pi-mono/issues/792))
+- Fixed `--session <UUID>` to search globally across projects if not found locally, with option to fork sessions from other projects ([#785](https://github.com/badlogic/pi-mono/pull/785) by [@ribelo](https://github.com/ribelo))
+- Fixed standalone binary WASM loading on Linux ([#784](https://github.com/badlogic/pi-mono/issues/784))
+- Fixed string numbers in tool arguments not being coerced to numbers during validation ([#786](https://github.com/badlogic/pi-mono/pull/786) by [@dannote](https://github.com/dannote))
+- Fixed `--no-extensions` flag not preventing extension discovery ([#776](https://github.com/badlogic/pi-mono/issues/776))
+- Fixed extension messages rendering twice on startup when `pi.sendMessage({ display: true })` is called during `session_start` ([#765](https://github.com/badlogic/pi-mono/pull/765) by [@dannote](https://github.com/dannote))
+- Fixed `PI_CODING_AGENT_DIR` env var not expanding tilde (`~`) to home directory ([#778](https://github.com/badlogic/pi-mono/pull/778) by [@aliou](https://github.com/aliou))
+- Fixed session picker hint text overflow ([#764](https://github.com/badlogic/pi-mono/issues/764))
+- Fixed Kitty keyboard protocol shifted symbol keys (e.g., `@`, `?`) not working in editor ([#779](https://github.com/badlogic/pi-mono/pull/779) by [@iamd3vil](https://github.com/iamd3vil))
+- Fixed Bedrock tool call IDs causing API errors from invalid characters ([#781](https://github.com/badlogic/pi-mono/pull/781) by [@pjtf93](https://github.com/pjtf93))
+
+### Changed
+
+- Hardware cursor is now disabled by default for better terminal compatibility. Set `PI_HARDWARE_CURSOR=1` to enable (replaces `PI_NO_HARDWARE_CURSOR=1` which disabled it).
+
+## [0.47.0] - 2026-01-16
+
+### Breaking Changes
+
+- Extensions using `Editor` directly must now pass `TUI` as the first constructor argument: `new Editor(tui, theme)`. The `tui` parameter is available in extension factory functions. ([#732](https://github.com/badlogic/pi-mono/issues/732))
+
+### Added
+
+- **OpenAI Codex official support**: Full compatibility with OpenAI's Codex CLI models (`gpt-5.1`, `gpt-5.2`, `gpt-5.1-codex-mini`, `gpt-5.2-codex`). Features include static system prompt for OpenAI allowlisting, prompt caching via session ID, and reasoning signature retention across turns. Set `OPENAI_API_KEY` and use `--provider openai-codex` or select a Codex model. ([#737](https://github.com/badlogic/pi-mono/pull/737))
+- `pi-internal://` URL scheme in read tool for accessing internal documentation. The model can read files from the coding-agent package (README, docs, examples) to learn about extending pi.
+- New `input` event in extension system for intercepting, transforming, or handling user input before the agent processes it. Supports three result types: `continue` (pass through), `transform` (modify text/images), `handled` (respond without LLM). Handlers chain transforms and short-circuit on handled. ([#761](https://github.com/badlogic/pi-mono/pull/761) by [@nicobailon](https://github.com/nicobailon))
+- Extension example: `input-transform.ts` demonstrating input interception patterns (quick mode, instant commands, source routing) ([#761](https://github.com/badlogic/pi-mono/pull/761) by [@nicobailon](https://github.com/nicobailon))
+- Custom tool HTML export: extensions with `renderCall`/`renderResult` now render in `/share` and `/export` output with ANSI-to-HTML color conversion ([#702](https://github.com/badlogic/pi-mono/pull/702) by [@aliou](https://github.com/aliou))
+- Direct filter shortcuts in Tree mode: Ctrl+D (default), Ctrl+T (no-tools), Ctrl+U (user-only), Ctrl+L (labeled-only), Ctrl+A (all) ([#747](https://github.com/badlogic/pi-mono/pull/747) by [@kaofelix](https://github.com/kaofelix))
+
+### Changed
+
+- Skill commands (`/skill:name`) are now expanded in AgentSession instead of interactive mode. This enables skill commands in RPC and print modes, and allows the `input` event to intercept `/skill:name` before expansion.
+
+### Fixed
+
+- Editor no longer corrupts terminal display when loading large prompts via `setEditorText`. Content now scrolls vertically with indicators showing lines above/below the viewport. ([#732](https://github.com/badlogic/pi-mono/issues/732))
+- Piped stdin now works correctly: `echo foo | pi` is equivalent to `pi -p foo`. When stdin is piped, print mode is automatically enabled since interactive mode requires a TTY ([#708](https://github.com/badlogic/pi-mono/issues/708))
+- Session tree now preserves branch connectors and indentation when filters hide intermediate entries so descendants attach to the nearest visible ancestor and sibling branches align. Fixed in both TUI and HTML export ([#739](https://github.com/badlogic/pi-mono/pull/739) by [@w-winter](https://github.com/w-winter))
+- Added `upstream connect`, `connection refused`, and `reset before headers` patterns to auto-retry error detection ([#733](https://github.com/badlogic/pi-mono/issues/733))
+- Multi-line YAML frontmatter in skills and prompt templates now parses correctly. Centralized frontmatter parsing using the `yaml` library. ([#728](https://github.com/badlogic/pi-mono/pull/728) by [@richardgill](https://github.com/richardgill))
+- `ctx.shutdown()` now waits for pending UI renders to complete before exiting, ensuring notifications and final output are visible ([#756](https://github.com/badlogic/pi-mono/issues/756))
+- OpenAI Codex provider now retries on transient errors (429, 5xx, connection failures) with exponential backoff ([#733](https://github.com/badlogic/pi-mono/issues/733))
+
+## [0.46.0] - 2026-01-15
+
+### Fixed
+
+- Scoped models (`--models` or `enabledModels`) now remember the last selected model across sessions instead of always starting with the first model in the scope ([#736](https://github.com/badlogic/pi-mono/pull/736) by [@ogulcancelik](https://github.com/ogulcancelik))
+- Show `bun install` instead of `npm install` in update notification when running under Bun ([#714](https://github.com/badlogic/pi-mono/pull/714) by [@dannote](https://github.com/dannote))
+- `/skill` prompts now include the skill path ([#711](https://github.com/badlogic/pi-mono/pull/711) by [@jblwilliams](https://github.com/jblwilliams))
+- Use configurable `expandTools` keybinding instead of hardcoded Ctrl+O ([#717](https://github.com/badlogic/pi-mono/pull/717) by [@dannote](https://github.com/dannote))
+- Compaction turn prefix summaries now merge correctly ([#738](https://github.com/badlogic/pi-mono/pull/738) by [@vsabavat](https://github.com/vsabavat))
+- Avoid unsigned Gemini 3 tool calls ([#741](https://github.com/badlogic/pi-mono/pull/741) by [@roshanasingh4](https://github.com/roshanasingh4))
+- Fixed signature support for non-Anthropic models in Amazon Bedrock provider ([#727](https://github.com/badlogic/pi-mono/pull/727) by [@unexge](https://github.com/unexge))
+- Keyboard shortcuts (Ctrl+C, Ctrl+D, etc.) now work on non-Latin keyboard layouts (Russian, Ukrainian, Bulgarian, etc.) in terminals supporting Kitty keyboard protocol with alternate key reporting ([#718](https://github.com/badlogic/pi-mono/pull/718) by [@dannote](https://github.com/dannote))
+
+### Added
+
+- Edit tool now uses fuzzy matching as fallback when exact match fails, tolerating trailing whitespace, smart quotes, Unicode dashes, and special spaces ([#713](https://github.com/badlogic/pi-mono/pull/713) by [@dannote](https://github.com/dannote))
+- Support `APPEND_SYSTEM.md` to append instructions to the system prompt ([#716](https://github.com/badlogic/pi-mono/pull/716) by [@tallshort](https://github.com/tallshort))
+- Session picker search: Ctrl+R toggles sorting between fuzzy match (default) and most recent; supports quoted phrase matching and `re:` regex mode ([#731](https://github.com/badlogic/pi-mono/pull/731) by [@ogulcancelik](https://github.com/ogulcancelik))
+- Export `getAgentDir` for extensions ([#749](https://github.com/badlogic/pi-mono/pull/749) by [@dannote](https://github.com/dannote))
+- Show loaded prompt templates on startup ([#743](https://github.com/badlogic/pi-mono/pull/743) by [@tallshort](https://github.com/tallshort))
+- MiniMax China (`minimax-cn`) provider support ([#725](https://github.com/badlogic/pi-mono/pull/725) by [@tallshort](https://github.com/tallshort))
+- `gpt-5.2-codex` models for GitHub Copilot and OpenCode Zen providers ([#734](https://github.com/badlogic/pi-mono/pull/734) by [@aadishv](https://github.com/aadishv))
+
+### Changed
+
+- Replaced `wasm-vips` with `@silvia-odwyer/photon-node` for image processing ([#710](https://github.com/badlogic/pi-mono/pull/710) by [@can1357](https://github.com/can1357))
+- Extension example: `plan-mode/` shortcut changed from Shift+P to Ctrl+Alt+P to avoid conflict with typing capital P ([#746](https://github.com/badlogic/pi-mono/pull/746) by [@ferologics](https://github.com/ferologics))
+- UI keybinding hints now respect configured keybindings across components ([#724](https://github.com/badlogic/pi-mono/pull/724) by [@dannote](https://github.com/dannote))
+- CLI process title is now set to `pi` for easier process identification ([#742](https://github.com/badlogic/pi-mono/pull/742) by [@richardgill](https://github.com/richardgill))
+
+## [0.45.7] - 2026-01-13
+
+### Added
+
+- Exported `highlightCode` and `getLanguageFromPath` for extensions ([#703](https://github.com/badlogic/pi-mono/pull/703) by [@dannote](https://github.com/dannote))
+
+## [0.45.6] - 2026-01-13
+
+### Added
+
+- `ctx.ui.custom()` now accepts `overlayOptions` for overlay positioning and sizing (anchor, margins, offsets, percentages, absolute positioning) ([#667](https://github.com/badlogic/pi-mono/pull/667) by [@nicobailon](https://github.com/nicobailon))
+- `ctx.ui.custom()` now accepts `onHandle` callback to receive the `OverlayHandle` for controlling overlay visibility ([#667](https://github.com/badlogic/pi-mono/pull/667) by [@nicobailon](https://github.com/nicobailon))
+- Extension example: `overlay-qa-tests.ts` with 10 commands for testing overlay positioning, animation, and toggle scenarios ([#667](https://github.com/badlogic/pi-mono/pull/667) by [@nicobailon](https://github.com/nicobailon))
+- Extension example: `doom-overlay/` - DOOM game running as an overlay at 35 FPS (auto-downloads WAD on first run) ([#667](https://github.com/badlogic/pi-mono/pull/667) by [@nicobailon](https://github.com/nicobailon))
+
+## [0.45.5] - 2026-01-13
+
+### Fixed
+
+- Skip changelog display on fresh install (only show on upgrades)
+
+## [0.45.4] - 2026-01-13
+
+### Changed
+
+- Light theme colors adjusted for WCAG AA compliance (4.5:1 contrast ratio against white backgrounds)
+- Replaced `sharp` with `wasm-vips` for image processing (resize, PNG conversion). Eliminates native build requirements that caused installation failures on some systems. ([#696](https://github.com/badlogic/pi-mono/issues/696))
+
+### Added
+
+- Extension example: `summarize.ts` for summarizing conversations using custom UI and an external model ([#684](https://github.com/badlogic/pi-mono/pull/684) by [@scutifer](https://github.com/scutifer))
+- Extension example: `question.ts` enhanced with custom UI for asking user questions ([#693](https://github.com/badlogic/pi-mono/pull/693) by [@ferologics](https://github.com/ferologics))
+- Extension example: `plan-mode/` enhanced with explicit step tracking and progress widget ([#694](https://github.com/badlogic/pi-mono/pull/694) by [@ferologics](https://github.com/ferologics))
+- Extension example: `questionnaire.ts` for multi-question input with tab bar navigation ([#695](https://github.com/badlogic/pi-mono/pull/695) by [@ferologics](https://github.com/ferologics))
+- Experimental Vercel AI Gateway provider support: set `AI_GATEWAY_API_KEY` and use `--provider vercel-ai-gateway`. Token usage is currently reported incorrectly by Anthropic Messages compatible endpoint. ([#689](https://github.com/badlogic/pi-mono/pull/689) by [@timolins](https://github.com/timolins))
+
+### Fixed
+
+- Fix API key resolution after model switches by using provider argument ([#691](https://github.com/badlogic/pi-mono/pull/691) by [@joshp123](https://github.com/joshp123))
+- Fixed z.ai thinking/reasoning: thinking toggle now correctly enables/disables thinking for z.ai models ([#688](https://github.com/badlogic/pi-mono/issues/688))
+- Fixed extension loading in compiled Bun binary: extensions with local file imports now work correctly. Updated `@mariozechner/jiti` to v2.6.5 which bundles babel for Bun binary compatibility. ([#681](https://github.com/badlogic/pi-mono/issues/681))
+- Fixed theme loading when installed via mise: use wrapper directory in release tarballs for compatibility with mise's `strip_components=1` extraction. ([#681](https://github.com/badlogic/pi-mono/issues/681))
+
+## [0.45.3] - 2026-01-13
+
+## [0.45.2] - 2026-01-13
+
+### Fixed
+
+- Extensions now load correctly in compiled Bun binary using `@mariozechner/jiti` fork with `virtualModules` support. Bundled packages (`@sinclair/typebox`, `@mariozechner/pi-tui`, `@mariozechner/pi-ai`, `@bastani/atomic`) are accessible to extensions without filesystem node_modules.
+
+## [0.45.1] - 2026-01-13
+
+### Changed
+
+- `/share` now outputs `buildwithpi.ai` session preview URLs instead of `pi.dev`
+
+## [0.45.0] - 2026-01-13
+
+### Added
+
+- MiniMax provider support: set `MINIMAX_API_KEY` and use `minimax/MiniMax-M2.1` ([#656](https://github.com/badlogic/pi-mono/pull/656) by [@dannote](https://github.com/dannote))
+- `/scoped-models`: Alt+Up/Down to reorder enabled models. Order is preserved when saving with Ctrl+S and determines Ctrl+P cycling order. ([#676](https://github.com/badlogic/pi-mono/pull/676) by [@thomasmhr](https://github.com/thomasmhr))
+- Amazon Bedrock provider support (experimental, tested with Anthropic Claude models only) ([#494](https://github.com/badlogic/pi-mono/pull/494) by [@unexge](https://github.com/unexge))
+- Extension example: `sandbox/` for OS-level bash sandboxing using `@anthropic-ai/sandbox-runtime` with per-project config ([#673](https://github.com/badlogic/pi-mono/pull/673) by [@dannote](https://github.com/dannote))
+- Print mode JSON output now emits the session header as the first line.
+
+## [0.44.0] - 2026-01-12
+
+### Breaking Changes
+
+- `pi.getAllTools()` now returns `ToolInfo[]` (with `name` and `description`) instead of `string[]`. Extensions that only need names can use `.map(t => t.name)`. ([#648](https://github.com/badlogic/pi-mono/pull/648) by [@carsonfarmer](https://github.com/carsonfarmer))
+
+### Added
+
+- Session naming: `/name <name>` command sets a display name shown in the session selector instead of the first message. Useful for distinguishing forked sessions. Extensions can use `pi.setSessionName()` and `pi.getSessionName()`. ([#650](https://github.com/badlogic/pi-mono/pull/650) by [@scutifer](https://github.com/scutifer))
+- Extension example: `notify.ts` for desktop notifications via OSC 777 escape sequence ([#658](https://github.com/badlogic/pi-mono/pull/658) by [@ferologics](https://github.com/ferologics))
+- Inline hint for queued messages showing the `Alt+Up` restore shortcut ([#657](https://github.com/badlogic/pi-mono/pull/657) by [@tmustier](https://github.com/tmustier))
+- Page-up/down navigation in `/resume` session selector to jump by 5 items ([#662](https://github.com/badlogic/pi-mono/pull/662) by [@aliou](https://github.com/aliou))
+- Fuzzy search in `/settings` menu: type to filter settings by label ([#643](https://github.com/badlogic/pi-mono/pull/643) by [@ninlds](https://github.com/ninlds))
+
+### Fixed
+
+- Session selector now stays open when current folder has no sessions, allowing Tab to switch to "all" scope ([#661](https://github.com/badlogic/pi-mono/pull/661) by [@aliou](https://github.com/aliou))
+- Extensions using theme utilities like `getSettingsListTheme()` now work in dev mode with tsx
+
+## [0.43.0] - 2026-01-11
+
+### Breaking Changes
+
+- Extension editor (`ctx.ui.editor()`) now uses Enter to submit and Shift+Enter for newlines, matching the main editor. Previously used Ctrl+Enter to submit. Extensions with hardcoded "ctrl+enter" hints need updating. ([#642](https://github.com/badlogic/pi-mono/pull/642) by [@mitsuhiko](https://github.com/mitsuhiko))
+- Renamed `/branch` command to `/fork` ([#641](https://github.com/badlogic/pi-mono/issues/641))
+  - RPC: `branch` → `fork`, `get_branch_messages` → `get_fork_messages`
+  - SDK: `branch()` → `fork()`, `getBranchMessages()` → `getForkMessages()`
+  - AgentSession: `branch()` → `fork()`, `getUserMessagesForBranching()` → `getUserMessagesForForking()`
+  - Extension events: `session_before_branch` → `session_before_fork`, `session_branch` → `session_fork`
+  - Settings: `doubleEscapeAction: "branch" | "tree"` → `"fork" | "tree"`
+- `SessionManager.list()` and `SessionManager.listAll()` are now async, returning `Promise<SessionInfo[]>`. Callers must await them. ([#620](https://github.com/badlogic/pi-mono/pull/620) by [@tmustier](https://github.com/tmustier))
+
+### Added
+- `/resume` selector now toggles between current-folder and all sessions with Tab, showing the session cwd in the All view and loading progress. ([#620](https://github.com/badlogic/pi-mono/pull/620) by [@tmustier](https://github.com/tmustier))
+- `SessionManager.list()` and `SessionManager.listAll()` accept optional `onProgress` callback for progress updates
+- `SessionInfo.cwd` field containing the session's working directory (empty string for old sessions)
+- `SessionListProgress` type export for progress callbacks
+- `/scoped-models` command to enable/disable models for Ctrl+P cycling. Changes are session-only by default; press Ctrl+S to persist to settings.json. ([#626](https://github.com/badlogic/pi-mono/pull/626) by [@CarlosGtrz](https://github.com/CarlosGtrz))
+- `model_select` extension hook fires when model changes via `/model`, model cycling, or session restore with `source` field and `previousModel` ([#628](https://github.com/badlogic/pi-mono/pull/628) by [@marckrenn](https://github.com/marckrenn))
+- `ctx.ui.setWorkingMessage()` extension API to customize the "Working..." message during streaming ([#625](https://github.com/badlogic/pi-mono/pull/625) by [@nicobailon](https://github.com/nicobailon))
+- Skill slash commands: loaded skills are registered as `/skill:name` commands for quick access. Toggle via `/settings` or `skills.enableSkillCommands` in settings.json. ([#630](https://github.com/badlogic/pi-mono/pull/630) by [@Dwsy](https://github.com/Dwsy))
+- Slash command autocomplete now uses fuzzy matching (type `/skbra` to match `/skill:brave-search`)
+- `/tree` branch summarization now offers three options: "No summary", "Summarize", and "Summarize with custom prompt". Custom prompts are appended as additional focus to the default summarization instructions. ([#642](https://github.com/badlogic/pi-mono/pull/642) by [@mitsuhiko](https://github.com/mitsuhiko))
+
+### Fixed
+
+- Missing spacer between assistant message and text editor ([#655](https://github.com/badlogic/pi-mono/issues/655))
+- Session picker respects custom keybindings when using `--resume` ([#633](https://github.com/badlogic/pi-mono/pull/633) by [@aos](https://github.com/aos))
+- Custom footer extensions now see model changes: `ctx.model` is now a getter that returns the current model instead of a snapshot from when the context was created ([#634](https://github.com/badlogic/pi-mono/pull/634) by [@ogulcancelik](https://github.com/ogulcancelik))
+- Footer git branch not updating after external branch switches. Git uses atomic writes (temp file + rename), which changes the inode and breaks `fs.watch` on the file. Now watches the directory instead.
+- Extension loading errors are now displayed to the user instead of being silently ignored ([#639](https://github.com/badlogic/pi-mono/pull/639) by [@aliou](https://github.com/aliou))
+
+## [0.42.5] - 2026-01-11
+
+### Fixed
+
+- Reduced flicker by only re-rendering changed lines ([#617](https://github.com/badlogic/pi-mono/pull/617) by [@ogulcancelik](https://github.com/ogulcancelik)). No worries tho, there's still a little flicker in the VS Code Terminal. Praise the flicker.
+- Cursor position tracking when content shrinks with unchanged remaining lines
+- TUI renders with wrong dimensions after suspend/resume if terminal was resized while suspended ([#599](https://github.com/badlogic/pi-mono/issues/599))
+- Pasted content containing Kitty key release patterns (e.g., `:3F` in MAC addresses) was incorrectly filtered out ([#623](https://github.com/badlogic/pi-mono/pull/623) by [@ogulcancelik](https://github.com/ogulcancelik))
+
+## [0.42.4] - 2026-01-10
+
+### Fixed
+
+- Bash output expanded hint now says "(ctrl+o to collapse)" ([#610](https://github.com/badlogic/pi-mono/pull/610) by [@tallshort](https://github.com/tallshort))
+- Fixed UTF-8 text corruption in remote bash execution (SSH, containers) by using streaming TextDecoder ([#608](https://github.com/badlogic/pi-mono/issues/608))
+
+## [0.42.3] - 2026-01-10
+
+### Changed
+
+- OpenAI Codex: updated to use bundled system prompt from upstream
+
+## [0.42.2] - 2026-01-10
+
+### Added
+
+- `/model <search>` now pre-filters the model selector or auto-selects on exact match. Use `provider/model` syntax to disambiguate (e.g., `/model openai/gpt-4`). ([#587](https://github.com/badlogic/pi-mono/pull/587) by [@zedrdave](https://github.com/zedrdave))
+- `FooterDataProvider` for custom footers: `ctx.ui.setFooter()` now receives a third `footerData` parameter providing `getGitBranch()`, `getExtensionStatuses()`, and `onBranchChange()` for reactive updates ([#600](https://github.com/badlogic/pi-mono/pull/600) by [@nicobailon](https://github.com/nicobailon))
+- `Alt+Up` hotkey to restore queued steering/follow-up messages back into the editor without aborting the current run ([#604](https://github.com/badlogic/pi-mono/pull/604) by [@tmustier](https://github.com/tmustier))
+
+### Fixed
+
+- Fixed LM Studio compatibility for OpenAI Responses tool strict mapping in the ai provider ([#598](https://github.com/badlogic/pi-mono/pull/598) by [@gnattu](https://github.com/gnattu))
+
+## [0.42.1] - 2026-01-09
+
+### Fixed
+
+- Symlinked directories in `prompts/` folders are now followed when loading prompt templates ([#601](https://github.com/badlogic/pi-mono/pull/601) by [@aliou](https://github.com/aliou))
+
+## [0.42.0] - 2026-01-09
+
+### Added
+
+- Added OpenCode Zen provider support. Set `OPENCODE_API_KEY` env var and use `opencode/<model-id>` (e.g., `opencode/claude-opus-4-5`).
+
+## [0.41.0] - 2026-01-09
+
+### Added
+
+- Anthropic OAuth support is back! Use `/login` to authenticate with your Claude Pro/Max subscription.
+
+## [0.40.1] - 2026-01-09
+
+### Removed
+
+- Anthropic OAuth support (`/login`). Use API keys instead.
+
+## [0.40.0] - 2026-01-08
+
+### Added
+
+- Documentation on component invalidation and theme changes in `docs/tui.md`
+
+### Fixed
+
+- Components now properly rebuild their content on theme change (tool executions, assistant messages, bash executions, custom messages, branch/compaction summaries)
+
+## [0.39.1] - 2026-01-08
+
+### Fixed
+
+- `setTheme()` now triggers a full rerender so previously rendered components update with the new theme colors
+- `mac-system-theme.ts` example now polls every 2 seconds and uses `osascript` for real-time macOS appearance detection
+
+## [0.39.0] - 2026-01-08
+
+### Breaking Changes
+
+- `before_agent_start` event now receives `systemPrompt` in the event object and returns `systemPrompt` (full replacement) instead of `systemPromptAppend`. Extensions that were appending must now use `event.systemPrompt + extra` pattern. ([#575](https://github.com/badlogic/pi-mono/issues/575))
+- `discoverSkills()` now returns `{ skills: Skill[], warnings: SkillWarning[] }` instead of `Skill[]`. This allows callers to handle skill loading warnings. ([#577](https://github.com/badlogic/pi-mono/pull/577) by [@cv](https://github.com/cv))
+
+### Added
+
+- `ctx.ui.getAllThemes()`, `ctx.ui.getTheme(name)`, and `ctx.ui.setTheme(name | Theme)` methods for extensions to list, load, and switch themes at runtime ([#576](https://github.com/badlogic/pi-mono/pull/576))
+- `--no-tools` flag to disable all built-in tools, allowing extension-only tool setups ([#557](https://github.com/badlogic/pi-mono/pull/557) by [@cv](https://github.com/cv))
+- Pluggable operations for built-in tools enabling remote execution via SSH or other transports ([#564](https://github.com/badlogic/pi-mono/issues/564)). Interfaces: `ReadOperations`, `WriteOperations`, `EditOperations`, `BashOperations`, `LsOperations`, `GrepOperations`, `FindOperations`
+- `user_bash` event for intercepting user `!`/`!!` commands, allowing extensions to redirect to remote systems ([#528](https://github.com/badlogic/pi-mono/issues/528))
+- `setActiveTools()` in ExtensionAPI for dynamic tool management
+- Built-in renderers used automatically for tool overrides without custom `renderCall`/`renderResult`
+- `ssh.ts` example: remote tool execution via `--ssh user@host:/path`
+- `interactive-shell.ts` example: run interactive commands (vim, git rebase, htop) with full terminal access via `!i` prefix or auto-detection
+- Wayland clipboard support for `/copy` command using wl-copy with xclip/xsel fallback ([#570](https://github.com/badlogic/pi-mono/pull/570) by [@OgulcanCelik](https://github.com/OgulcanCelik))
+- **Experimental:** `ctx.ui.custom()` now accepts `{ overlay: true }` option for floating modal components that composite over existing content without clearing the screen ([#558](https://github.com/badlogic/pi-mono/pull/558) by [@nicobailon](https://github.com/nicobailon))
+- `AgentSession.skills` and `AgentSession.skillWarnings` properties to access loaded skills without rediscovery ([#577](https://github.com/badlogic/pi-mono/pull/577) by [@cv](https://github.com/cv))
+
+### Fixed
+
+- String `systemPrompt` in `createAgentSession()` now works as a full replacement instead of having context files and skills appended, matching documented behavior ([#543](https://github.com/badlogic/pi-mono/issues/543))
+- Update notification for bun binary installs now shows release download URL instead of npm command ([#567](https://github.com/badlogic/pi-mono/pull/567) by [@ferologics](https://github.com/ferologics))
+- ESC key now works during "Working..." state after auto-retry ([#568](https://github.com/badlogic/pi-mono/pull/568) by [@tmustier](https://github.com/tmustier))
+- Abort messages now show correct retry attempt count (e.g., "Aborted after 2 retry attempts") ([#568](https://github.com/badlogic/pi-mono/pull/568) by [@tmustier](https://github.com/tmustier))
+- Fixed Antigravity provider returning 429 errors despite available quota ([#571](https://github.com/badlogic/pi-mono/pull/571) by [@ben-vargas](https://github.com/ben-vargas))
+- Fixed malformed thinking text in Gemini/Antigravity responses where thinking content appeared as regular text or vice versa. Cross-model conversations now properly convert thinking blocks to plain text. ([#561](https://github.com/badlogic/pi-mono/issues/561))
+- `--no-skills` flag now correctly prevents skills from loading in interactive mode ([#577](https://github.com/badlogic/pi-mono/pull/577) by [@cv](https://github.com/cv))
+
+## [0.38.0] - 2026-01-08
+
+### Breaking Changes
+
+- `ctx.ui.custom()` factory signature changed from `(tui, theme, done)` to `(tui, theme, keybindings, done)` for keybinding access in custom components
+- `LoadedExtension` type renamed to `Extension`
+- `LoadExtensionsResult.setUIContext()` removed, replaced with `runtime: ExtensionRuntime`
+- `ExtensionRunner` constructor now requires `runtime: ExtensionRuntime` as second parameter
+- `ExtensionRunner.initialize()` signature changed from options object to positional params `(actions, contextActions, commandContextActions?, uiContext?)`
+- `ExtensionRunner.getHasUI()` renamed to `hasUI()`
+- OpenAI Codex model aliases removed (`gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `codex-mini-latest`). Use canonical IDs: `gpt-5.1`, `gpt-5.1-codex-mini`, `gpt-5.2`, `gpt-5.2-codex`. ([#536](https://github.com/badlogic/pi-mono/pull/536) by [@ghoulr](https://github.com/ghoulr))
+
+### Added
+
+- `--no-extensions` flag to disable extension discovery while still allowing explicit `-e` paths ([#524](https://github.com/badlogic/pi-mono/pull/524) by [@cv](https://github.com/cv))
+- SDK: `InteractiveMode`, `runPrintMode()`, `runRpcMode()` exported for building custom run modes. See `docs/sdk.md`.
+- `PI_SKIP_VERSION_CHECK` environment variable to disable new version notifications at startup ([#549](https://github.com/badlogic/pi-mono/pull/549) by [@aos](https://github.com/aos))
+- `thinkingBudgets` setting to customize token budgets per thinking level for token-based providers ([#529](https://github.com/badlogic/pi-mono/pull/529) by [@melihmucuk](https://github.com/melihmucuk))
+- Extension UI dialogs (`ctx.ui.select()`, `ctx.ui.confirm()`, `ctx.ui.input()`) now support a `timeout` option with live countdown display ([#522](https://github.com/badlogic/pi-mono/pull/522) by [@nicobailon](https://github.com/nicobailon))
+- Extensions can now provide custom editor components via `ctx.ui.setEditorComponent()`. See `examples/extensions/modal-editor.ts` and `docs/tui.md` Pattern 7.
+- Extension factories can now be async, enabling dynamic imports and lazy-loaded dependencies ([#513](https://github.com/badlogic/pi-mono/pull/513) by [@austinm911](https://github.com/austinm911))
+- `ctx.shutdown()` is now available in extension contexts for requesting a graceful shutdown. In interactive mode, shutdown is deferred until the agent becomes idle (after processing all queued steering and follow-up messages). In RPC mode, shutdown is deferred until after completing the current command response. In print mode, shutdown is a no-op as the process exits automatically when prompts complete. ([#542](https://github.com/badlogic/pi-mono/pull/542) by [@kaofelix](https://github.com/kaofelix))
+
+### Fixed
+
+- Default thinking level from settings now applies correctly when `enabledModels` is configured ([#540](https://github.com/badlogic/pi-mono/pull/540) by [@ferologics](https://github.com/ferologics))
+- External edits to `settings.json` while pi is running are now preserved when pi saves settings ([#527](https://github.com/badlogic/pi-mono/pull/527) by [@ferologics](https://github.com/ferologics))
+- Overflow-based compaction now skips if error came from a different model or was already handled by a previous compaction ([#535](https://github.com/badlogic/pi-mono/pull/535) by [@mitsuhiko](https://github.com/mitsuhiko))
+- OpenAI Codex context window reduced from 400k to 272k tokens to match Codex CLI defaults and prevent 400 errors ([#536](https://github.com/badlogic/pi-mono/pull/536) by [@ghoulr](https://github.com/ghoulr))
+- Context overflow detection now recognizes `context_length_exceeded` errors.
+- Key presses no longer dropped when input is batched over SSH ([#538](https://github.com/badlogic/pi-mono/issues/538))
+- Clipboard image support now works on Alpine Linux and other musl-based distros ([#533](https://github.com/badlogic/pi-mono/issues/533))
+
+## [0.37.8] - 2026-01-07
+
+## [0.37.7] - 2026-01-07
+
+## [0.37.6] - 2026-01-06
+
+### Added
+
+- Extension UI dialogs (`ctx.ui.select()`, `ctx.ui.confirm()`, `ctx.ui.input()`) now accept an optional `AbortSignal` to programmatically dismiss dialogs. Useful for implementing timeouts. See `examples/extensions/timed-confirm.ts`. ([#474](https://github.com/badlogic/pi-mono/issues/474))
+- HTML export now shows bridge prompts in model change messages for Codex sessions ([#510](https://github.com/badlogic/pi-mono/pull/510) by [@mitsuhiko](https://github.com/mitsuhiko))
+
+## [0.37.5] - 2026-01-06
+
+### Added
+
+- ExtensionAPI: `setModel()`, `getThinkingLevel()`, `setThinkingLevel()` methods for extensions to change model and thinking level at runtime ([#509](https://github.com/badlogic/pi-mono/issues/509))
+- Exported truncation utilities for custom tools: `truncateHead`, `truncateTail`, `truncateLine`, `formatSize`, `DEFAULT_MAX_BYTES`, `DEFAULT_MAX_LINES`, `TruncationOptions`, `TruncationResult`
+- New example `truncated-tool.ts` demonstrating proper output truncation with custom rendering for extensions
+- New example `preset.ts` demonstrating preset configurations with model/thinking/tools switching ([#347](https://github.com/badlogic/pi-mono/issues/347))
+- Documentation for output truncation best practices in `docs/extensions.md`
+- Exported all UI components for extensions: `ArminComponent`, `AssistantMessageComponent`, `BashExecutionComponent`, `BorderedLoader`, `BranchSummaryMessageComponent`, `CompactionSummaryMessageComponent`, `CustomEditor`, `CustomMessageComponent`, `DynamicBorder`, `ExtensionEditorComponent`, `ExtensionInputComponent`, `ExtensionSelectorComponent`, `FooterComponent`, `LoginDialogComponent`, `ModelSelectorComponent`, `OAuthSelectorComponent`, `SessionSelectorComponent`, `SettingsSelectorComponent`, `ShowImagesSelectorComponent`, `ThemeSelectorComponent`, `ThinkingSelectorComponent`, `ToolExecutionComponent`, `TreeSelectorComponent`, `UserMessageComponent`, `UserMessageSelectorComponent`, plus utilities `renderDiff`, `truncateToVisualLines`
+- `docs/tui.md`: Common Patterns section with copy-paste code for SelectList, BorderedLoader, SettingsList, setStatus, setWidget, setFooter
+- `docs/tui.md`: Key Rules section documenting critical patterns for extension UI development
+- `docs/extensions.md`: Exhaustive example links for all ExtensionAPI methods and events
+- System prompt now references `docs/tui.md` for TUI component development
+
+## [0.37.4] - 2026-01-06
+
+### Added
+
+- Session picker (`pi -r`) and `--session` flag now support searching/resuming by session ID (UUID prefix) ([#495](https://github.com/badlogic/pi-mono/issues/495) by [@arunsathiya](https://github.com/arunsathiya))
+- Extensions can now replace the startup header with `ctx.ui.setHeader()`, see `examples/extensions/custom-header.ts` ([#500](https://github.com/badlogic/pi-mono/pull/500) by [@tudoroancea](https://github.com/tudoroancea))
+
+### Changed
+
+- Startup help text: fixed misleading "ctrl+k to delete line" to "ctrl+k to delete to end"
+- Startup help text and `/hotkeys`: added `!!` shortcut for running bash without adding output to context
+
+### Fixed
+
+- Queued steering/follow-up messages no longer wipe unsent editor input ([#503](https://github.com/badlogic/pi-mono/pull/503) by [@tmustier](https://github.com/tmustier))
+- OAuth token refresh failure no longer crashes app at startup, allowing user to `/login` to re-authenticate ([#498](https://github.com/badlogic/pi-mono/issues/498))
+
+## [0.37.3] - 2026-01-06
+
+### Added
+
+- Extensions can now replace the footer with `ctx.ui.setFooter()`, see `examples/extensions/custom-footer.ts` ([#481](https://github.com/badlogic/pi-mono/issues/481))
+- Session ID is now forwarded to LLM providers for session-based caching (used by OpenAI Codex for prompt caching).
+- Added `blockImages` setting to prevent images from being sent to LLM providers ([#492](https://github.com/badlogic/pi-mono/pull/492) by [@jsinge97](https://github.com/jsinge97))
+- Extensions can now send user messages via `pi.sendUserMessage()` ([#483](https://github.com/badlogic/pi-mono/issues/483))
+
+### Fixed
+
+- Add `minimatch` as a direct dependency for explicit imports.
+- Status bar now shows correct git branch when running in a git worktree ([#490](https://github.com/badlogic/pi-mono/pull/490) by [@kcosr](https://github.com/kcosr))
+- Interactive mode: Ctrl+V clipboard image paste now works on Wayland sessions by using `wl-paste` with `xclip` fallback ([#488](https://github.com/badlogic/pi-mono/pull/488) by [@ghoulr](https://github.com/ghoulr))
+
+## [0.37.2] - 2026-01-05
+
+### Fixed
+
+- Extension directories in `settings.json` now respect `package.json` manifests, matching global extension behavior ([#480](https://github.com/badlogic/pi-mono/pull/480) by [@prateekmedia](https://github.com/prateekmedia))
+- Share viewer: deep links now scroll to the target message when opened via `/share`
+- Bash tool now handles spawn errors gracefully instead of crashing the agent (missing cwd, invalid shell path) ([#479](https://github.com/badlogic/pi-mono/pull/479) by [@robinwander](https://github.com/robinwander))
+
+## [0.37.1] - 2026-01-05
+
+### Fixed
+
+- Share viewer: copy-link buttons now generate correct URLs when session is viewed via `/share` (iframe context)
+
+## [0.37.0] - 2026-01-05
+
+### Added
+
+- Share viewer: copy-link button on messages to share URLs that navigate directly to a specific message ([#477](https://github.com/badlogic/pi-mono/pull/477) by [@lockmeister](https://github.com/lockmeister))
+- Extension example: add `claude-rules` to load `.claude/rules/` entries into the system prompt ([#461](https://github.com/badlogic/pi-mono/pull/461) by [@vaayne](https://github.com/vaayne))
+- Headless OAuth login: all providers now show paste input for manual URL/code entry, works over SSH without DISPLAY ([#428](https://github.com/badlogic/pi-mono/pull/428) by [@ben-vargas](https://github.com/ben-vargas), [#468](https://github.com/badlogic/pi-mono/pull/468) by [@crcatala](https://github.com/crcatala))
+
+### Changed
+
+- OAuth login UI now uses dedicated dialog component with consistent borders
+- Assume truecolor support for all terminals except `dumb`, empty, or `linux` (fixes colors over SSH)
+- OpenAI Codex clean-up: removed per-thinking-level model variants, thinking level is now set separately and the provider clamps to what each model supports internally (initial implementation in [#472](https://github.com/badlogic/pi-mono/pull/472) by [@ben-vargas](https://github.com/ben-vargas))
+
+### Fixed
+
+- Messages submitted during compaction are queued and delivered after compaction completes, preserving steering and follow-up behavior. Extension commands execute immediately during compaction. ([#476](https://github.com/badlogic/pi-mono/pull/476) by [@tmustier](https://github.com/tmustier))
+- Managed binaries (`fd`, `rg`) now stored in `~/.pi/agent/bin/` instead of `tools/`, eliminating false deprecation warnings ([#470](https://github.com/badlogic/pi-mono/pull/470) by [@mcinteerj](https://github.com/mcinteerj))
+- Extensions defined in `settings.json` were not loaded ([#463](https://github.com/badlogic/pi-mono/pull/463) by [@melihmucuk](https://github.com/melihmucuk))
+- OAuth refresh no longer logs users out when multiple pi instances are running ([#466](https://github.com/badlogic/pi-mono/pull/466) by [@Cursivez](https://github.com/Cursivez))
+- Migration warnings now ignore `fd.exe` and `rg.exe` in `tools/` on Windows ([#458](https://github.com/badlogic/pi-mono/pull/458) by [@carlosgtrz](https://github.com/carlosgtrz))
+- CI: add `examples/extensions/with-deps` to workspaces to fix typecheck ([#467](https://github.com/badlogic/pi-mono/pull/467) by [@aliou](https://github.com/aliou))
+- SDK: passing `extensions: []` now disables extension discovery as documented ([#465](https://github.com/badlogic/pi-mono/pull/465) by [@aliou](https://github.com/aliou))
+
+## [0.36.0] - 2026-01-05
+
+### Added
+
+- Experimental: OpenAI Codex OAuth provider support: access Codex models via ChatGPT Plus/Pro subscription using `/login openai-codex` ([#451](https://github.com/badlogic/pi-mono/pull/451) by [@kim0](https://github.com/kim0))
+
+## [0.35.0] - 2026-01-05
+
+This release unifies hooks and custom tools into a single "extensions" system and renames "slash commands" to "prompt templates". ([#454](https://github.com/badlogic/pi-mono/issues/454))
+
+**Before migrating, read:**
+
+- [docs/extensions.md](docs/extensions.md) - Full API reference
+- [README.md](README.md) - Extensions section with examples
+- [examples/extensions/](examples/extensions/) - Working examples
+
+### Extensions Migration
+
+Hooks and custom tools are now unified as **extensions**. Both were TypeScript modules exporting a factory function that receives an API object. Now there's one concept, one discovery location, one CLI flag, one settings.json entry.
+
+**Automatic migration:**
+
+- `commands/` directories are automatically renamed to `prompts/` on startup (both `~/.pi/agent/commands/` and `.pi/commands/`)
+
+**Manual migration required:**
+
+1. Move files from `hooks/` and `tools/` directories to `extensions/` (deprecation warnings shown on startup)
+2. Update imports and type names in your extension code
+3. Update `settings.json` if you have explicit hook and custom tool paths configured
+
+**Directory changes:**
+
+```
+# Before
+~/.pi/agent/hooks/*.ts       →  ~/.pi/agent/extensions/*.ts
+~/.pi/agent/tools/*.ts       →  ~/.pi/agent/extensions/*.ts
+.pi/hooks/*.ts               →  .pi/extensions/*.ts
+.pi/tools/*.ts               →  .pi/extensions/*.ts
+```
+
+**Extension discovery rules** (in `extensions/` directories):
+
+1. **Direct files:** `extensions/*.ts` or `*.js` → loaded directly
+2. **Subdirectory with index:** `extensions/myext/index.ts` → loaded as single extension
+3. **Subdirectory with package.json:** `extensions/myext/package.json` with `"pi"` field → loads declared paths
+
+```json
+// extensions/my-package/package.json
+{
+  "name": "my-extension-package",
+  "dependencies": { "zod": "^3.0.0" },
+  "pi": {
+    "extensions": ["./src/main.ts", "./src/tools.ts"]
+  }
+}
+```
+
+No recursion beyond one level. Complex packages must use the `package.json` manifest. Dependencies are resolved via jiti, and extensions can be published to and installed from npm.
+
+**Type renames:**
+
+- `HookAPI` → `ExtensionAPI`
+- `HookContext` → `ExtensionContext`
+- `HookCommandContext` → `ExtensionCommandContext`
+- `HookUIContext` → `ExtensionUIContext`
+- `CustomToolAPI` → `ExtensionAPI` (merged)
+- `CustomToolContext` → `ExtensionContext` (merged)
+- `CustomToolUIContext` → `ExtensionUIContext`
+- `CustomTool` → `ToolDefinition`
+- `CustomToolFactory` → `ExtensionFactory`
+- `HookMessage` → `CustomMessage`
+
+**Import changes:**
+
+```typescript
+// Before (hook)
+import type { HookAPI, HookContext } from "@bastani/atomic";
+export default function (pi: HookAPI) { ... }
+
+// Before (custom tool)
+import type { CustomToolFactory } from "@bastani/atomic";
+const factory: CustomToolFactory = (pi) => ({ name: "my_tool", ... });
+export default factory;
+
+// After (both are now extensions)
+import type { ExtensionAPI } from "@bastani/atomic";
+export default function (pi: ExtensionAPI) {
+  pi.on("tool_call", async (event, ctx) => { ... });
+  pi.registerTool({ name: "my_tool", ... });
+}
+```
+
+**Custom tools now have full context access.** Tools registered via `pi.registerTool()` now receive the same `ctx` object that event handlers receive. Previously, custom tools had limited context. Now all extension code shares the same capabilities:
+
+- `pi.registerTool()` - Register tools the LLM can call
+- `pi.registerCommand()` - Register commands like `/mycommand`
+- `pi.registerShortcut()` - Register keyboard shortcuts (shown in `/hotkeys`)
+- `pi.registerFlag()` - Register CLI flags (shown in `--help`)
+- `pi.registerMessageRenderer()` - Custom TUI rendering for message types
+- `pi.on()` - Subscribe to lifecycle events (tool_call, session_start, etc.)
+- `pi.sendMessage()` - Inject messages into the conversation
+- `pi.appendEntry()` - Persist custom data in session (survives restart/branch)
+- `pi.exec()` - Run shell commands
+- `pi.getActiveTools()` / `pi.setActiveTools()` - Dynamic tool enable/disable
+- `pi.getAllTools()` - List all available tools
+- `pi.events` - Event bus for cross-extension communication
+- `ctx.ui.confirm()` / `select()` / `input()` - User prompts
+- `ctx.ui.notify()` - Toast notifications
+- `ctx.ui.setStatus()` - Persistent status in footer (multiple extensions can set their own)
+- `ctx.ui.setWidget()` - Widget display above editor
+- `ctx.ui.setTitle()` - Set terminal window title
+- `ctx.ui.custom()` - Full TUI component with keyboard handling
+- `ctx.ui.editor()` - Multi-line text editor with external editor support
+- `ctx.sessionManager` - Read session entries, get branch history
+
+**Settings changes:**
+
+```json
+// Before
+{
+  "hooks": ["./my-hook.ts"],
+  "customTools": ["./my-tool.ts"]
+}
+
+// After
+{
+  "extensions": ["./my-extension.ts"]
+}
+```
+
+**CLI changes:**
+
+```bash
+# Before
+pi --hook ./safety.ts --tool ./todo.ts
+
+# After
+pi --extension ./safety.ts -e ./todo.ts
+```
+
+### Prompt Templates Migration
+
+"Slash commands" (markdown files defining reusable prompts invoked via `/name`) are renamed to "prompt templates" to avoid confusion with extension-registered commands.
+
+**Automatic migration:** The `commands/` directory is automatically renamed to `prompts/` on startup (if `prompts/` doesn't exist). Works for both regular directories and symlinks.
+
+**Directory changes:**
+
+```
+~/.pi/agent/commands/*.md    →  ~/.pi/agent/prompts/*.md
+.pi/commands/*.md            →  .pi/prompts/*.md
+```
+
+**SDK type renames:**
+
+- `FileSlashCommand` → `PromptTemplate`
+- `LoadSlashCommandsOptions` → `LoadPromptTemplatesOptions`
+
+**SDK function renames:**
+
+- `discoverSlashCommands()` → `discoverPromptTemplates()`
+- `loadSlashCommands()` → `loadPromptTemplates()`
+- `expandSlashCommand()` → `expandPromptTemplate()`
+- `getCommandsDir()` → `getPromptsDir()`
+
+**SDK option renames:**
+
+- `CreateAgentSessionOptions.slashCommands` → `.promptTemplates`
+- `AgentSession.fileCommands` → `.promptTemplates`
+- `PromptOptions.expandSlashCommands` → `.expandPromptTemplates`
+
+### SDK Migration
+
+**Discovery functions:**
+
+- `discoverAndLoadHooks()` → `discoverAndLoadExtensions()`
+- `discoverAndLoadCustomTools()` → merged into `discoverAndLoadExtensions()`
+- `loadHooks()` → `loadExtensions()`
+- `loadCustomTools()` → merged into `loadExtensions()`
+
+**Runner and wrapper:**
+
+- `HookRunner` → `ExtensionRunner`
+- `wrapToolsWithHooks()` → `wrapToolsWithExtensions()`
+- `wrapToolWithHooks()` → `wrapToolWithExtensions()`
+
+**CreateAgentSessionOptions:**
+
+- `.hooks` → removed (use `.additionalExtensionPaths` for paths)
+- `.additionalHookPaths` → `.additionalExtensionPaths`
+- `.preloadedHooks` → `.preloadedExtensions`
+- `.customTools` type changed: `Array<{ path?; tool: CustomTool }>` → `ToolDefinition[]`
+- `.additionalCustomToolPaths` → merged into `.additionalExtensionPaths`
+- `.slashCommands` → `.promptTemplates`
+
+**AgentSession:**
+
+- `.hookRunner` → `.extensionRunner`
+- `.fileCommands` → `.promptTemplates`
+- `.sendHookMessage()` → `.sendCustomMessage()`
+
+### Session Migration
+
+**Automatic.** Session version bumped from 2 to 3. Existing sessions are migrated on first load:
+
+- Message role `"hookMessage"` → `"custom"`
+
+### Breaking Changes
+
+- **Settings:** `hooks` and `customTools` arrays replaced with single `extensions` array
+- **CLI:** `--hook` and `--tool` flags replaced with `--extension` / `-e`
+- **Directories:** `hooks/`, `tools/` → `extensions/`; `commands/` → `prompts/`
+- **Types:** See type renames above
+- **SDK:** See SDK migration above
+
+### Changed
+
+- Extensions can have their own `package.json` with dependencies (resolved via jiti)
+- Documentation: `docs/hooks.md` and `docs/custom-tools.md` merged into `docs/extensions.md`
+- Examples: `examples/hooks/` and `examples/custom-tools/` merged into `examples/extensions/`
+- README: Extensions section expanded with custom tools, commands, events, state persistence, shortcuts, flags, and UI examples
+- SDK: `customTools` option now accepts `ToolDefinition[]` directly (simplified from `Array<{ path?, tool }>`)
+- SDK: `extensions` option accepts `ExtensionFactory[]` for inline extensions
+- SDK: `additionalExtensionPaths` replaces both `additionalHookPaths` and `additionalCustomToolPaths`
+
+## [0.34.2] - 2026-01-04
+
+## [0.34.1] - 2026-01-04
+
+### Added
+
+- Hook API: `ctx.ui.setTitle(title)` allows hooks to set the terminal window/tab title ([#446](https://github.com/badlogic/pi-mono/pull/446) by [@aliou](https://github.com/aliou))
+
+### Changed
+
+- Expanded keybinding documentation to list all 32 supported symbol keys with notes on ctrl+symbol behavior ([#450](https://github.com/badlogic/pi-mono/pull/450) by [@kaofelix](https://github.com/kaofelix))
+
+## [0.34.0] - 2026-01-04
+
+### Added
+
+- Hook API: `pi.getActiveTools()` and `pi.setActiveTools(toolNames)` for dynamically enabling/disabling tools from hooks
+- Hook API: `pi.getAllTools()` to enumerate all configured tools (built-in via --tools or default, plus custom tools)
+- Hook API: `pi.registerFlag(name, options)` and `pi.getFlag(name)` for hooks to register custom CLI flags (parsed automatically)
+- Hook API: `pi.registerShortcut(shortcut, options)` for hooks to register custom keyboard shortcuts using `KeyId` (e.g., `Key.shift("p")`). Conflicts with built-in shortcuts are skipped, conflicts between hooks logged as warnings.
+- Hook API: `ctx.ui.setWidget(key, content)` for status displays above the editor. Accepts either a string array or a component factory function.
+- Hook API: `theme.strikethrough(text)` for strikethrough text styling
+- Hook API: `before_agent_start` handlers can now return `systemPromptAppend` to dynamically append text to the system prompt for that turn. Multiple hooks' appends are concatenated.
+- Hook API: `before_agent_start` handlers can now return multiple messages (all are injected, not just the first)
+- `/hotkeys` command now shows hook-registered shortcuts in a separate "Hooks" section
+- New example hook: `plan-mode.ts` - Claude Code-style read-only exploration mode:
+  - Toggle via `/plan` command, `Shift+P` shortcut, or `--plan` CLI flag
+  - Read-only tools: `read`, `bash`, `grep`, `find`, `ls` (no `edit`/`write`)
+  - Bash commands restricted to non-destructive operations (blocks `rm`, `mv`, `git commit`, `npm install`, etc.)
+  - Interactive prompt after each response: execute plan, stay in plan mode, or refine
+  - Todo list widget showing progress with checkboxes and strikethrough for completed items
+  - Each todo has a unique ID; agent marks items done by outputting `[DONE:id]`
+  - Progress updates via `agent_end` hook (parses completed items from final message)
+  - `/todos` command to view current plan progress
+  - Shows `⏸ plan` indicator in footer when in plan mode, `📋 2/5` when executing
+  - State persists across sessions (including todo progress)
+- New example hook: `tools.ts` - Interactive `/tools` command to enable/disable tools with session persistence
+- New example hook: `pirate.ts` - Demonstrates `systemPromptAppend` to make the agent speak like a pirate
+- Tool registry now contains all built-in tools (read, bash, edit, write, grep, find, ls) even when `--tools` limits the initially active set. Hooks can enable any tool from the registry via `pi.setActiveTools()`.
+- System prompt now automatically rebuilds when tools change via `setActiveTools()`, updating tool descriptions and guidelines to match the new tool set
+- Hook errors now display full stack traces for easier debugging
+- Event bus (`pi.events`) for tool/hook communication: shared pub/sub between custom tools and hooks
+- Custom tools now have `pi.sendMessage()` to send messages directly to the agent session without needing the event bus
+- `sendMessage()` supports `deliverAs: "nextTurn"` to queue messages for the next user prompt
+
+### Changed
+
+- Removed image placeholders after copy & paste, replaced with inserting image file paths directly. ([#442](https://github.com/badlogic/pi-mono/pull/442) by [@mitsuhiko](https://github.com/mitsuhiko))
+
+### Fixed
+
+- Fixed potential text decoding issues in bash executor by using streaming TextDecoder instead of Buffer.toString()
+- External editor (Ctrl-G) now shows full pasted content instead of `[paste #N ...]` placeholders ([#444](https://github.com/badlogic/pi-mono/pull/444) by [@aliou](https://github.com/aliou))
+
+## [0.33.0] - 2026-01-04
+
+### Breaking Changes
+
+- **Key detection functions removed from `@mariozechner/pi-tui`**: All `isXxx()` key detection functions (`isEnter()`, `isEscape()`, `isCtrlC()`, etc.) have been removed. Use `matchesKey(data, keyId)` instead (e.g., `matchesKey(data, "enter")`, `matchesKey(data, "ctrl+c")`). This affects hooks and custom tools that use `ctx.ui.custom()` with keyboard input handling. ([#405](https://github.com/badlogic/pi-mono/pull/405))
+
+### Added
+
+- Clipboard image paste support via `Ctrl+V`. Images are saved to a temp file and attached to the message. Works on macOS, Windows, and Linux (X11). ([#419](https://github.com/badlogic/pi-mono/issues/419))
+- Configurable keybindings via `~/.pi/agent/keybindings.json`. All keyboard shortcuts (editor navigation, deletion, app actions like model cycling, etc.) can now be customized. Supports multiple bindings per action. ([#405](https://github.com/badlogic/pi-mono/pull/405) by [@hjanuschka](https://github.com/hjanuschka))
+- `/quit` and `/exit` slash commands to gracefully exit the application. Unlike double Ctrl+C, these properly await hook and custom tool cleanup handlers before exiting. ([#426](https://github.com/badlogic/pi-mono/pull/426) by [@ben-vargas](https://github.com/ben-vargas))
+
+### Fixed
+
+- Subagent example README referenced incorrect filename `subagent.ts` instead of `index.ts` ([#427](https://github.com/badlogic/pi-mono/pull/427) by [@Whamp](https://github.com/Whamp))
+
+## [0.32.3] - 2026-01-03
+
+### Fixed
+
+- `--list-models` no longer shows Google Vertex AI models without explicit authentication configured
+- JPEG/GIF/WebP images not displaying in terminals using Kitty graphics protocol (Kitty, Ghostty, WezTerm). The protocol requires PNG format, so non-PNG images are now converted before display.
+- Version check URL typo preventing update notifications from working ([#423](https://github.com/badlogic/pi-mono/pull/423) by [@skuridin](https://github.com/skuridin))
+- Large images exceeding Anthropic's 5MB limit now retry with progressive quality/size reduction ([#424](https://github.com/badlogic/pi-mono/pull/424) by [@mitsuhiko](https://github.com/mitsuhiko))
+
+## [0.32.2] - 2026-01-03
+
+### Added
+
+- `$ARGUMENTS` syntax for custom slash commands as alternative to `$@` for all arguments joined. Aligns with patterns used by Claude, Codex, and OpenCode. Both syntaxes remain fully supported. ([#418](https://github.com/badlogic/pi-mono/pull/418) by [@skuridin](https://github.com/skuridin))
+
+### Changed
+
+- **Slash commands and hook commands now work during streaming**: Previously, using a slash command or hook command while the agent was streaming would crash with "Agent is already processing". Now:
+  - Hook commands execute immediately (they manage their own LLM interaction via `pi.sendMessage()`)
+  - File-based slash commands are expanded and queued via steer/followUp
+  - `steer()` and `followUp()` now expand file-based slash commands and error on hook commands (hook commands cannot be queued)
+  - `prompt()` accepts new `streamingBehavior` option (`"steer"` or `"followUp"`) to specify queueing behavior during streaming
+  - RPC `prompt` command now accepts optional `streamingBehavior` field
+    ([#420](https://github.com/badlogic/pi-mono/issues/420))
+
+### Fixed
+
+- Slash command argument substitution now processes positional arguments (`$1`, `$2`, etc.) before all-arguments (`$@`, `$ARGUMENTS`) to prevent recursive substitution when argument values contain dollar-digit patterns like `$100`. ([#418](https://github.com/badlogic/pi-mono/pull/418) by [@skuridin](https://github.com/skuridin))
+
+## [0.32.1] - 2026-01-03
+
+### Added
+
+- Shell commands without context contribution: use `!!command` to execute a bash command that is shown in the TUI and saved to session history but excluded from LLM context. Useful for running commands you don't want the AI to see. ([#414](https://github.com/badlogic/pi-mono/issues/414))
+
+### Fixed
+
+- Edit tool diff not displaying in TUI due to race condition between async preview computation and tool execution
+
+## [0.32.0] - 2026-01-03
+
+### Breaking Changes
+
+- **Queue API replaced with steer/followUp**: The `queueMessage()` method has been split into two methods with different delivery semantics ([#403](https://github.com/badlogic/pi-mono/issues/403)):
+  - `steer(text)`: Interrupts the agent mid-run (Enter while streaming). Delivered after current tool execution.
+  - `followUp(text)`: Waits until the agent finishes (Alt+Enter while streaming). Delivered only when agent stops.
+- **Settings renamed**: `queueMode` setting renamed to `steeringMode`. Added new `followUpMode` setting. Old settings.json files are migrated automatically.
+- **AgentSession methods renamed**:
+  - `queueMessage()` → `steer()` and `followUp()`
+  - `queueMode` getter → `steeringMode` and `followUpMode` getters
+  - `setQueueMode()` → `setSteeringMode()` and `setFollowUpMode()`
+  - `queuedMessageCount` → `pendingMessageCount`
+  - `getQueuedMessages()` → `getSteeringMessages()` and `getFollowUpMessages()`
+  - `clearQueue()` now returns `{ steering: string[], followUp: string[] }`
+  - `hasQueuedMessages()` → `hasPendingMessages()`
+- **Hook API signature changed**: `pi.sendMessage()` second parameter changed from `triggerTurn?: boolean` to `options?: { triggerTurn?, deliverAs? }`. Use `deliverAs: "followUp"` for follow-up delivery. Affects both hooks and internal `sendHookMessage()` method.
+- **RPC API changes**:
+  - `queue_message` command → `steer` and `follow_up` commands
+  - `set_queue_mode` command → `set_steering_mode` and `set_follow_up_mode` commands
+  - `RpcSessionState.queueMode` → `steeringMode` and `followUpMode`
+- **Settings UI**: "Queue mode" setting split into "Steering mode" and "Follow-up mode"
+
+### Added
+
+- Configurable double-escape action: choose whether double-escape with empty editor opens `/tree` (default) or `/branch`. Configure via `/settings` or `doubleEscapeAction` in settings.json ([#404](https://github.com/badlogic/pi-mono/issues/404))
+- Vertex AI provider (`google-vertex`): access Gemini models via Google Cloud Vertex AI using Application Default Credentials ([#300](https://github.com/badlogic/pi-mono/pull/300) by [@default-anton](https://github.com/default-anton))
+- Built-in provider overrides in `models.json`: override just `baseUrl` to route a built-in provider through a proxy while keeping all its models, or define `models` to fully replace the provider ([#406](https://github.com/badlogic/pi-mono/pull/406) by [@yevhen](https://github.com/yevhen))
+- Automatic image resizing: images larger than 2000x2000 are resized for better model compatibility. Original dimensions are injected into the prompt. Controlled via `/settings` or `images.autoResize` in settings.json. ([#402](https://github.com/badlogic/pi-mono/pull/402) by [@mitsuhiko](https://github.com/mitsuhiko))
+- Alt+Enter keybind to queue follow-up messages while agent is streaming
+- `Theme` and `ThemeColor` types now exported for hooks using `ctx.ui.custom()`
+- Terminal window title now displays "pi - dirname" to identify which project session you're in ([#407](https://github.com/badlogic/pi-mono/pull/407) by [@kaofelix](https://github.com/kaofelix))
+
+### Changed
+
+- Editor component now uses word wrapping instead of character-level wrapping for better readability ([#382](https://github.com/badlogic/pi-mono/pull/382) by [@nickseelert](https://github.com/nickseelert))
+
+### Fixed
+
+- `/model` selector now opens instantly instead of waiting for OAuth token refresh. Token refresh is deferred until a model is actually used.
+- Shift+Space, Shift+Backspace, and Shift+Delete now work correctly in Kitty-protocol terminals (Kitty, WezTerm, etc.) instead of being silently ignored ([#411](https://github.com/badlogic/pi-mono/pull/411) by [@nathyong](https://github.com/nathyong))
+- `AgentSession.prompt()` now throws if called while the agent is already streaming, preventing race conditions. Use `steer()` or `followUp()` to queue messages during streaming.
+- Ctrl+C now works like Escape in selector components, so mashing Ctrl+C will eventually close the program ([#400](https://github.com/badlogic/pi-mono/pull/400) by [@mitsuhiko](https://github.com/mitsuhiko))
+
+## [0.31.1] - 2026-01-02
+
+### Fixed
+
+- Model selector no longer allows negative index when pressing arrow keys before models finish loading ([#398](https://github.com/badlogic/pi-mono/pull/398) by [@mitsuhiko](https://github.com/mitsuhiko))
+- Type guard functions (`isBashToolResult`, etc.) now exported at runtime, not just in type declarations ([#397](https://github.com/badlogic/pi-mono/issues/397))
+
+## [0.31.0] - 2026-01-02
+
+This release introduces session trees for in-place branching, major API changes to hooks and custom tools, and structured compaction with file tracking.
+
+### Session Tree
+
+Sessions now use a tree structure with `id`/`parentId` fields. This enables in-place branching: navigate to any previous point with `/tree`, continue from there, and switch between branches while preserving all history in a single file.
+
+**Existing sessions are automatically migrated** (v1 → v2) on first load. No manual action required.
+
+New entry types: `BranchSummaryEntry` (context from abandoned branches), `CustomEntry` (hook state), `CustomMessageEntry` (hook-injected messages), `LabelEntry` (bookmarks).
+
+See [docs/session.md](docs/session.md) for the file format and `SessionManager` API.
+
+### Hooks Migration
+
+The hooks API has been restructured with more granular events and better session access.
+
+**Type renames:**
+
+- `HookEventContext` → `HookContext`
+- `HookCommandContext` is now a new interface extending `HookContext` with session control methods
+
+**Event changes:**
+
+- The monolithic `session` event is now split into granular events: `session_start`, `session_before_switch`, `session_switch`, `session_before_branch`, `session_branch`, `session_before_compact`, `session_compact`, `session_shutdown`
+- `session_before_switch` and `session_switch` events now include `reason: "new" | "resume"` to distinguish between `/new` and `/resume`
+- New `session_before_tree` and `session_tree` events for `/tree` navigation (hook can provide custom branch summary)
+- New `before_agent_start` event: inject messages before the agent loop starts
+- New `context` event: modify messages non-destructively before each LLM call
+- Session entries are no longer passed in events. Use `ctx.sessionManager.getEntries()` or `ctx.sessionManager.getBranch()` instead
+
+**API changes:**
+
+- `pi.send(text, attachments?)` → `pi.sendMessage(message, triggerTurn?)` (creates `CustomMessageEntry`)
+- New `pi.appendEntry(customType, data?)` for hook state persistence (not in LLM context)
+- New `pi.registerCommand(name, options)` for custom slash commands (handler receives `HookCommandContext`)
+- New `pi.registerMessageRenderer(customType, renderer)` for custom TUI rendering
+- New `ctx.isIdle()`, `ctx.abort()`, `ctx.hasQueuedMessages()` for agent state (available in all events)
+- New `ctx.ui.editor(title, prefill?)` for multi-line text editing with Ctrl+G external editor support
+- New `ctx.ui.custom(component)` for full TUI component rendering with keyboard focus
+- New `ctx.ui.setStatus(key, text)` for persistent status text in footer (multiple hooks can set their own)
+- New `ctx.ui.theme` getter for styling text with theme colors
+- `ctx.exec()` moved to `pi.exec()`
+- `ctx.sessionFile` → `ctx.sessionManager.getSessionFile()`
+- New `ctx.modelRegistry` and `ctx.model` for API key resolution
+
+**HookCommandContext (slash commands only):**
+
+- `ctx.waitForIdle()` - wait for agent to finish streaming
+- `ctx.newSession(options?)` - create new sessions with optional setup callback
+- `ctx.fork(entryId) - fork from a specific entry, creating a new session file
+- `ctx.navigateTree(targetId, options?)` - navigate the session tree
+
+These methods are only on `HookCommandContext` (not `HookContext`) because they can deadlock if called from event handlers that run inside the agent loop.
+
+**Removed:**
+
+- `hookTimeout` setting (hooks no longer have timeouts; use Ctrl+C to abort)
+- `resolveApiKey` parameter (use `ctx.modelRegistry.getApiKey(model)`)
+
+See [docs/hooks.md](docs/hooks.md) and [examples/hooks/](examples/hooks/) for the current API.
+
+### Custom Tools Migration
+
+The custom tools API has been restructured to mirror the hooks pattern with a context object.
+
+**Type renames:**
+
+- `CustomAgentTool` → `CustomTool`
+- `ToolAPI` → `CustomToolAPI`
+- `ToolContext` → `CustomToolContext`
+- `ToolSessionEvent` → `CustomToolSessionEvent`
+
+**Execute signature changed:**
+
+```typescript
+// Before (v0.30.2)
+execute(toolCallId, params, signal, onUpdate)
+
+// After
+execute(toolCallId, params, onUpdate, ctx, signal?)
+```
+
+The new `ctx: CustomToolContext` provides `sessionManager`, `modelRegistry`, `model`, and agent state methods:
+
+- `ctx.isIdle()` - check if agent is streaming
+- `ctx.hasQueuedMessages()` - check if user has queued messages (skip interactive prompts)
+- `ctx.abort()` - abort current operation (fire-and-forget)
+
+**Session event changes:**
+
+- `CustomToolSessionEvent` now only has `reason` and `previousSessionFile`
+- Session entries are no longer in the event. Use `ctx.sessionManager.getBranch()` or `ctx.sessionManager.getEntries()` to reconstruct state
+- Reasons: `"start" | "switch" | "branch" | "tree" | "shutdown"` (no separate `"new"` reason; `/new` triggers `"switch"`)
+- `dispose()` method removed. Use `onSession` with `reason: "shutdown"` for cleanup
+
+See [docs/custom-tools.md](docs/custom-tools.md) and [examples/custom-tools/](examples/custom-tools/) for the current API.
+
+### SDK Migration
+
+**Type changes:**
+
+- `CustomAgentTool` → `CustomTool`
+- `AppMessage` → `AgentMessage`
+- `sessionFile` returns `string | undefined` (was `string | null`)
+- `model` returns `Model | undefined` (was `Model | null`)
+- `Attachment` type removed. Use `ImageContent` from `@mariozechner/pi-ai` instead. Add images directly to message content arrays.
+
+**AgentSession API:**
+
+- `branch(entryIndex: number)` → `branch(entryId: string)`
+- `getUserMessagesForBranching()` returns `{ entryId, text }` instead of `{ entryIndex, text }`
+- `reset()` → `newSession(options?)` where options has optional `parentSession` for lineage tracking
+- `newSession()` and `switchSession()` now return `Promise<boolean>` (false if cancelled by hook)
+- New `navigateTree(targetId, options?)` for in-place tree navigation
+
+**Hook integration:**
+
+- New `sendHookMessage(message, triggerTurn?)` for hook message injection
+
+**SessionManager API:**
+
+- Method renames: `saveXXX()` → `appendXXX()` (e.g., `appendMessage`, `appendCompaction`)
+- `branchInPlace()` → `branch()`
+- `reset()` → `newSession(options?)` with optional `parentSession` for lineage tracking
+- `createBranchedSessionFromEntries(entries, index)` → `createBranchedSession(leafId)`
+- `SessionHeader.branchedFrom` → `SessionHeader.parentSession`
+- `saveCompaction(entry)` → `appendCompaction(summary, firstKeptEntryId, tokensBefore, details?)`
+- `getEntries()` now excludes the session header (use `getHeader()` separately)
+- `getSessionFile()` returns `string | undefined` (undefined for in-memory sessions)
+- New tree methods: `getTree()`, `getBranch()`, `getLeafId()`, `getLeafEntry()`, `getEntry()`, `getChildren()`, `getLabel()`
+- New append methods: `appendCustomEntry()`, `appendCustomMessageEntry()`, `appendLabelChange()`
+- New branch methods: `branch(entryId)`, `branchWithSummary()`
+
+**ModelRegistry (new):**
+
+`ModelRegistry` is a new class that manages model discovery and API key resolution. It combines built-in models with custom models from `models.json` and resolves API keys via `AuthStorage`.
+
+```typescript
+import {
+  discoverAuthStorage,
+  discoverModels,
+} from "@bastani/atomic";
+
+const authStorage = discoverAuthStorage(); // ~/.pi/agent/auth.json
+const modelRegistry = discoverModels(authStorage); // + ~/.pi/agent/models.json
+
+// Get all models (built-in + custom)
+const allModels = modelRegistry.getAll();
+
+// Get only models with valid API keys
+const available = await modelRegistry.getAvailable();
+
+// Find specific model
+const model = modelRegistry.find("anthropic", "claude-sonnet-4-20250514");
+
+// Get API key for a model
+const apiKey = await modelRegistry.getApiKey(model);
+```
+
+This replaces the old `resolveApiKey` callback pattern. Hooks and custom tools access it via `ctx.modelRegistry`.
+
+**Renamed exports:**
+
+- `messageTransformer` → `convertToLlm`
+- `SessionContext` alias `LoadedSession` removed
+
+See [docs/sdk.md](docs/sdk.md) and [examples/sdk/](examples/sdk/) for the current API.
+
+### RPC Migration
+
+**Session commands:**
+
+- `reset` command → `new_session` command with optional `parentSession` field
+
+**Branching commands:**
+
+- `branch` command: `entryIndex` → `entryId`
+- `get_branch_messages` response: `entryIndex` → `entryId`
+
+**Type changes:**
+
+- Messages are now `AgentMessage` (was `AppMessage`)
+- `prompt` command: `attachments` field replaced with `images` field using `ImageContent` format
+
+**Compaction events:**
+
+- `auto_compaction_start` now includes `reason` field (`"threshold"` or `"overflow"`)
+- `auto_compaction_end` now includes `willRetry` field
+- `compact` response includes full `CompactionResult` (`summary`, `firstKeptEntryId`, `tokensBefore`, `details`)
+
+See [docs/rpc.md](docs/rpc.md) for the current protocol.
+
+### Structured Compaction
+
+Compaction and branch summarization now use a structured output format:
+
+- Clear sections: Goal, Progress, Key Information, File Operations
+- File tracking: `readFiles` and `modifiedFiles` arrays in `details`, accumulated across compactions
+- Conversations are serialized to text before summarization to prevent the model from "continuing" them
+
+The `before_compact` and `before_tree` hook events allow custom compaction implementations. See [docs/compaction.md](docs/compaction.md).
+
+### Interactive Mode
+
+**`/tree` command:**
+
+- Navigate the full session tree in-place
+- Search by typing, page with ←/→
+- Filter modes (Ctrl+O): default → no-tools → user-only → labeled-only → all
+- Press `l` to label entries as bookmarks
+- Selecting a branch switches context and optionally injects a summary of the abandoned branch
+
+**Entry labels:**
+
+- Bookmark any entry via `/tree` → select → `l`
+- Labels appear in tree view and persist as `LabelEntry`
+
+**Theme changes (breaking for custom themes):**
+
+Custom themes must add these new color tokens or they will fail to load:
+
+- `selectedBg`: background for selected/highlighted items in tree selector and other components
+- `customMessageBg`: background for hook-injected messages (`CustomMessageEntry`)
+- `customMessageText`: text color for hook messages
+- `customMessageLabel`: label color for hook messages (the `[customType]` prefix)
+
+Total color count increased from 46 to 50. See [docs/themes.md](docs/themes.md) for the full color list and copy values from the built-in dark/light themes.
+
+**Settings:**
+
+- `enabledModels`: allowlist models in `settings.json` (same format as `--models` CLI)
+
+### Added
+
+- `ctx.ui.setStatus(key, text)` for hooks to display persistent status text in the footer ([#385](https://github.com/badlogic/pi-mono/pull/385) by [@prateekmedia](https://github.com/prateekmedia))
+- `ctx.ui.theme` getter for styling status text and other output with theme colors
+- `/share` command to upload session as a secret GitHub gist and get a shareable URL via pi.dev ([#380](https://github.com/badlogic/pi-mono/issues/380))
+- HTML export now includes a tree visualization sidebar for navigating session branches ([#375](https://github.com/badlogic/pi-mono/issues/375))
+- HTML export supports keyboard shortcuts: Ctrl+T to toggle thinking blocks, Ctrl+O to toggle tool outputs
+- HTML export supports theme-configurable background colors via optional `export` section in theme JSON ([#387](https://github.com/badlogic/pi-mono/pull/387) by [@mitsuhiko](https://github.com/mitsuhiko))
+- HTML export syntax highlighting now uses theme colors and matches TUI rendering
+- **Snake game example hook**: Demonstrates `ui.custom()`, `registerCommand()`, and session persistence. See [examples/hooks/snake.ts](examples/hooks/snake.ts).
+- **`thinkingText` theme token**: Configurable color for thinking block text. ([#366](https://github.com/badlogic/pi-mono/pull/366) by [@paulbettner](https://github.com/paulbettner))
+
+### Changed
+
+- **Entry IDs**: Session entries now use short 8-character hex IDs instead of full UUIDs
+- **API key priority**: `ANTHROPIC_OAUTH_TOKEN` now takes precedence over `ANTHROPIC_API_KEY`
+- HTML export template split into separate files (template.html, template.css, template.js) for easier maintenance
+
+### Fixed
+
+- HTML export now properly sanitizes user messages containing HTML tags like `<style>` that could break DOM rendering
+- Crash when displaying bash output containing Unicode format characters like U+0600-U+0604 ([#372](https://github.com/badlogic/pi-mono/pull/372) by [@HACKE-RC](https://github.com/HACKE-RC))
+- **Footer shows full session stats**: Token usage and cost now include all messages, not just those after compaction. ([#322](https://github.com/badlogic/pi-mono/issues/322))
+- **Status messages spam chat log**: Rapidly changing settings (e.g., thinking level via Shift+Tab) would add multiple status lines. Sequential status updates now coalesce into a single line. ([#365](https://github.com/badlogic/pi-mono/pull/365) by [@paulbettner](https://github.com/paulbettner))
+- **Toggling thinking blocks during streaming shows nothing**: Pressing Ctrl+T while streaming would hide the current message until streaming completed.
+- **Resuming session resets thinking level to off**: Initial model and thinking level were not saved to session file, causing `--resume`/`--continue` to default to `off`. ([#342](https://github.com/badlogic/pi-mono/issues/342) by [@aliou](https://github.com/aliou))
+- **Hook `tool_result` event ignores errors from custom tools**: The `tool_result` hook event was never emitted when tools threw errors, and always had `isError: false` for successful executions. Now emits the event with correct `isError` value in both success and error cases. ([#374](https://github.com/badlogic/pi-mono/issues/374) by [@nicobailon](https://github.com/nicobailon))
+- **Edit tool fails on Windows due to CRLF line endings**: Files with CRLF line endings now match correctly when LLMs send LF-only text. Line endings are normalized before matching and restored to original style on write. ([#355](https://github.com/badlogic/pi-mono/issues/355) by [@Pratham-Dubey](https://github.com/Pratham-Dubey))
+- **Edit tool fails on files with UTF-8 BOM**: Files with UTF-8 BOM marker could cause "text not found" errors since the LLM doesn't include the invisible BOM character. BOM is now stripped before matching and restored on write. ([#394](https://github.com/badlogic/pi-mono/pull/394) by [@prathamdby](https://github.com/prathamdby))
+- **Use bash instead of sh on Unix**: Fixed shell commands using `/bin/sh` instead of `/bin/bash` on Unix systems. ([#328](https://github.com/badlogic/pi-mono/pull/328) by [@dnouri](https://github.com/dnouri))
+- **OAuth login URL clickable**: Made OAuth login URLs clickable in terminal. ([#349](https://github.com/badlogic/pi-mono/pull/349) by [@Cursivez](https://github.com/Cursivez))
+- **Improved error messages**: Better error messages when `apiKey` or `model` are missing. ([#346](https://github.com/badlogic/pi-mono/pull/346) by [@ronyrus](https://github.com/ronyrus))
+- **Session file validation**: `findMostRecentSession()` now validates session headers before returning, preventing non-session JSONL files from being loaded
+- **Compaction error handling**: `generateSummary()` and `generateTurnPrefixSummary()` now throw on LLM errors instead of returning empty strings
+- **Compaction with branched sessions**: Fixed compaction incorrectly including entries from abandoned branches, causing token overflow errors. Compaction now uses `sessionManager.getPath()` to work only on the current branch path, eliminating 80+ lines of duplicate entry collection logic between `prepareCompaction()` and `compact()`
+- **enabledModels glob patterns**: `--models` and `enabledModels` now support glob patterns like `github-copilot/*` or `*sonnet*`. Previously, patterns were only matched literally or via substring search. ([#337](https://github.com/badlogic/pi-mono/issues/337))
+
+## [0.30.2] - 2025-12-26
+
+### Changed
+
+- **Consolidated migrations**: Moved auth migration from `AuthStorage.migrateLegacy()` to new `migrations.ts` module.
+
+## [0.30.1] - 2025-12-26
+
+### Fixed
+
+- **Sessions saved to wrong directory**: In v0.30.0, sessions were being saved to `~/.pi/agent/` instead of `~/.pi/agent/sessions/<encoded-cwd>/`, breaking `--resume` and `/resume`. Misplaced sessions are automatically migrated on startup. ([#320](https://github.com/badlogic/pi-mono/issues/320) by [@aliou](https://github.com/aliou))
+- **Custom system prompts missing context**: When using a custom system prompt string, project context files (AGENTS.md), skills, date/time, and working directory were not appended. ([#321](https://github.com/badlogic/pi-mono/issues/321))
+
+## [0.30.0] - 2025-12-25
+
+### Breaking Changes
+
+- **SessionManager API**: The second parameter of `create()`, `continueRecent()`, and `list()` changed from `agentDir` to `sessionDir`. When provided, it specifies the session directory directly (no cwd encoding). When omitted, uses default (`~/.pi/agent/sessions/<encoded-cwd>/`). `open()` no longer takes `agentDir`. ([#313](https://github.com/badlogic/pi-mono/pull/313))
+
+### Added
+
+- **`--session-dir` flag**: Use a custom directory for sessions instead of the default `~/.pi/agent/sessions/<encoded-cwd>/`. Works with `-c` (continue) and `-r` (resume) flags. ([#313](https://github.com/badlogic/pi-mono/pull/313) by [@scutifer](https://github.com/scutifer))
+- **Reverse model cycling and model selector**: Shift+Ctrl+P cycles models backward, Ctrl+L opens model selector (retaining text in editor). ([#315](https://github.com/badlogic/pi-mono/pull/315) by [@mitsuhiko](https://github.com/mitsuhiko))
+
+## [0.29.1] - 2025-12-25
+
+### Added
+
+- **Automatic custom system prompt loading**: Pi now auto-loads `SYSTEM.md` files to replace the default system prompt. Project-local `.pi/SYSTEM.md` takes precedence over global `~/.pi/agent/SYSTEM.md`. CLI `--system-prompt` flag overrides both. ([#309](https://github.com/badlogic/pi-mono/issues/309))
+- **Unified `/settings` command**: New settings menu consolidating thinking level, theme, queue mode, auto-compact, show images, hide thinking, and collapse changelog. Replaces individual `/thinking`, `/queue`, `/theme`, `/autocompact`, and `/show-images` commands. ([#310](https://github.com/badlogic/pi-mono/issues/310))
+
+### Fixed
+
+- **Custom tools/hooks with typebox subpath imports**: Fixed jiti alias for `@sinclair/typebox` to point to package root instead of entry file, allowing imports like `@sinclair/typebox/compiler` to resolve correctly. ([#311](https://github.com/badlogic/pi-mono/issues/311) by [@kim0](https://github.com/kim0))
+
+## [0.29.0] - 2025-12-25
+
+### Breaking Changes
+
+- **Renamed `/clear` to `/new`**: The command to start a fresh session is now `/new`. Hook event reasons `before_clear`/`clear` are now `before_new`/`new`. Merry Christmas [@mitsuhiko](https://github.com/mitsuhiko)! ([#305](https://github.com/badlogic/pi-mono/pull/305))
+
+### Added
+
+- **Auto-space before pasted file paths**: When pasting a file path (starting with `/`, `~`, or `.`) after a word character, a space is automatically prepended. ([#307](https://github.com/badlogic/pi-mono/pull/307) by [@mitsuhiko](https://github.com/mitsuhiko))
+- **Word navigation in input fields**: Added Ctrl+Left/Right and Alt+Left/Right for word-by-word cursor movement. ([#306](https://github.com/badlogic/pi-mono/pull/306) by [@kim0](https://github.com/kim0))
+- **Full Unicode input**: Input fields now accept Unicode characters beyond ASCII. ([#306](https://github.com/badlogic/pi-mono/pull/306) by [@kim0](https://github.com/kim0))
+
+### Fixed
+
+- **Readline-style Ctrl+W**: Now skips trailing whitespace before deleting the preceding word, matching standard readline behavior. ([#306](https://github.com/badlogic/pi-mono/pull/306) by [@kim0](https://github.com/kim0))
+
+## [0.28.0] - 2025-12-25
+
+### Changed
+
+- **Credential storage refactored**: API keys and OAuth tokens are now stored in `~/.pi/agent/auth.json` instead of `oauth.json` and `settings.json`. Existing credentials are automatically migrated on first run. ([#296](https://github.com/badlogic/pi-mono/issues/296))
+
+- **SDK API changes** ([#296](https://github.com/badlogic/pi-mono/issues/296)):
+
+  - Added `AuthStorage` class for credential management (API keys and OAuth tokens)
+  - Added `ModelRegistry` class for model discovery and API key resolution
+  - Added `discoverAuthStorage()` and `discoverModels()` discovery functions
+  - `createAgentSession()` now accepts `authStorage` and `modelRegistry` options
+  - Removed `configureOAuthStorage()`, `defaultGetApiKey()`, `findModel()`, `discoverAvailableModels()`
+  - Removed `getApiKey` callback option (use `AuthStorage.setRuntimeApiKey()` for runtime overrides)
+  - Use `getModel()` from `@mariozechner/pi-ai` for built-in models, `modelRegistry.find()` for custom models + built-in models
+  - See updated [SDK documentation](docs/sdk.md) and [README](README.md)
+
+- **Settings changes**: Removed `apiKeys` from `settings.json`. Use `auth.json` instead. ([#296](https://github.com/badlogic/pi-mono/issues/296))
+
+### Fixed
+
+- **Duplicate skill warnings for symlinks**: Skills loaded via symlinks pointing to the same file are now silently deduplicated instead of showing name collision warnings. ([#304](https://github.com/badlogic/pi-mono/pull/304) by [@mitsuhiko](https://github.com/mitsuhiko))
+
+## [0.27.9] - 2025-12-24
+
+### Fixed
+
+- **Model selector and --list-models with settings.json API keys**: Models with API keys configured in settings.json (but not in environment variables) now properly appear in the /model selector and `--list-models` output. ([#295](https://github.com/badlogic/pi-mono/issues/295))
+
+## [0.27.8] - 2025-12-24
+
+### Fixed
+
+- **API key priority**: OAuth tokens now take priority over settings.json API keys. Previously, an API key in settings.json would trump OAuth, causing users logged in with a plan (unlimited tokens) to be billed via PAYG instead.
+
+## [0.27.7] - 2025-12-24
+
+### Fixed
+
+- **Thinking tag leakage**: Fixed Claude mimicking literal `</thinking>` tags in responses. Unsigned thinking blocks (from aborted streams) are now converted to plain text without `<thinking>` tags. The TUI still displays them as thinking blocks. ([#302](https://github.com/badlogic/pi-mono/pull/302) by [@nicobailon](https://github.com/nicobailon))
+
+## [0.27.6] - 2025-12-24
+
+### Added
+
+- **Compaction hook improvements**: The `before_compact` session event now includes:
+
+  - `previousSummary`: Summary from the last compaction (if any), so hooks can preserve accumulated context
+  - `messagesToKeep`: Messages that will be kept after the summary (recent turns), in addition to `messagesToSummarize`
+  - `resolveApiKey`: Function to resolve API keys for any model (checks settings, OAuth, env vars)
+  - Removed `apiKey` string in favor of `resolveApiKey` for more flexibility
+
+- **SessionManager API cleanup**:
+  - Renamed `loadSessionFromEntries()` to `buildSessionContext()` (builds LLM context from entries, handling compaction)
+  - Renamed `loadEntries()` to `getEntries()` (returns defensive copy of all session entries)
+  - Added `buildSessionContext()` method to SessionManager
+
+## [0.27.5] - 2025-12-24
+
+### Added
+
+- **HTML export syntax highlighting**: Code blocks in markdown and tool outputs (read, write) now have syntax highlighting using highlight.js with theme-aware colors matching the TUI.
+- **HTML export improvements**: Render markdown server-side using marked (tables, headings, code blocks, etc.), honor user's chosen theme (light/dark), add image rendering for user messages, and style code blocks with TUI-like language markers. ([@scutifer](https://github.com/scutifer))
+
+### Fixed
+
+- **Ghostty inline images in tmux**: Fixed terminal detection for Ghostty when running inside tmux by checking `GHOSTTY_RESOURCES_DIR` env var. ([#299](https://github.com/badlogic/pi-mono/pull/299) by [@nicobailon](https://github.com/nicobailon))
+
+## [0.27.4] - 2025-12-24
+
+### Fixed
+
+- **Symlinked skill directories**: Skills in symlinked directories (e.g., `~/.pi/agent/skills/my-skills -> /path/to/skills`) are now correctly discovered and loaded.
+
+## [0.27.3] - 2025-12-24
+
+### Added
+
+- **API keys in settings.json**: Store API keys in `~/.pi/agent/settings.json` under the `apiKeys` field (e.g., `{ "apiKeys": { "anthropic": "sk-..." } }`). Settings keys take priority over environment variables. ([#295](https://github.com/badlogic/pi-mono/issues/295))
+
+### Fixed
+
+- **Allow startup without API keys**: Interactive mode no longer throws when no API keys are configured. Users can now start the agent and use `/login` to authenticate. ([#288](https://github.com/badlogic/pi-mono/issues/288))
+- **`--system-prompt` file path support**: The `--system-prompt` argument now correctly resolves file paths (like `--append-system-prompt` already did). ([#287](https://github.com/badlogic/pi-mono/pull/287) by [@scutifer](https://github.com/scutifer))
+
+## [0.27.2] - 2025-12-23
+
+### Added
+
+- **Skip conversation restore on branch**: Hooks can return `{ skipConversationRestore: true }` from `before_branch` to create the branched session file without restoring conversation messages. Useful for checkpoint hooks that restore files separately. ([#286](https://github.com/badlogic/pi-mono/pull/286) by [@nicobarray](https://github.com/nicobarray))
+
+## [0.27.1] - 2025-12-22
+
+### Fixed
+
+- **Skill discovery performance**: Skip `node_modules` directories when recursively scanning for skills. Fixes ~60ms startup delay when skill directories contain npm dependencies.
+
+### Added
+
+- **Startup timing instrumentation**: Set `PI_TIMING=1` to see startup performance breakdown (interactive mode only).
+
+## [0.27.0] - 2025-12-22
+
+### Breaking
+
+- **Session hooks API redesign**: Merged `branch` event into `session` event. `BranchEvent`, `BranchEventResult` types and `pi.on("branch", ...)` removed. Use `pi.on("session", ...)` with `reason: "before_branch" | "branch"` instead. `AgentSession.branch()` returns `{ cancelled }` instead of `{ skipped }`. `AgentSession.reset()` and `switchSession()` now return `boolean` (false if cancelled by hook). RPC commands `reset`, `switch_session`, and `branch` now include `cancelled` in response data. ([#278](https://github.com/badlogic/pi-mono/issues/278))
+
+### Added
+
+- **Session lifecycle hooks**: Added `before_*` variants (`before_switch`, `before_clear`, `before_branch`) that fire before actions and can be cancelled with `{ cancel: true }`. Added `shutdown` reason for graceful exit handling. ([#278](https://github.com/badlogic/pi-mono/issues/278))
+
+### Fixed
+
+- **File tab completion display**: File paths no longer get cut off early. Folders now show trailing `/` and removed redundant "directory"/"file" labels to maximize horizontal space. ([#280](https://github.com/badlogic/pi-mono/issues/280))
+
+- **Bash tool visual line truncation**: Fixed bash tool output in collapsed mode to use visual line counting (accounting for line wrapping) instead of logical line counting. Now consistent with bash-execution.ts behavior. Extracted shared `truncateToVisualLines` utility. ([#275](https://github.com/badlogic/pi-mono/issues/275))
+
+## [0.26.1] - 2025-12-22
+
+### Fixed
+
+- **SDK tools respect cwd**: Core tools (bash, read, edit, write, grep, find, ls) now properly use the `cwd` option from `createAgentSession()`. Added tool factory functions (`createBashTool`, `createReadTool`, etc.) for SDK users who specify custom `cwd` with explicit tools. ([#279](https://github.com/badlogic/pi-mono/issues/279))
+
+## [0.26.0] - 2025-12-22
+
+### Added
+
+- **SDK for programmatic usage**: New `createAgentSession()` factory with full control over model, tools, hooks, skills, session persistence, and settings. Philosophy: "omit to discover, provide to override". Includes 12 examples and comprehensive documentation. ([#272](https://github.com/badlogic/pi-mono/issues/272))
+
+- **Project-specific settings**: Settings now load from both `~/.pi/agent/settings.json` (global) and `<cwd>/.pi/settings.json` (project). Project settings override global with deep merge for nested objects. Project settings are read-only (for version control). ([#276](https://github.com/badlogic/pi-mono/pull/276))
+
+- **SettingsManager static factories**: `SettingsManager.create(cwd?, agentDir?)` for file-based settings, `SettingsManager.inMemory(settings?)` for testing. Added `applyOverrides()` for programmatic overrides.
+
+- **SessionManager static factories**: `SessionManager.create()`, `SessionManager.open()`, `SessionManager.continueRecent()`, `SessionManager.inMemory()`, `SessionManager.list()` for flexible session management.
+
+## [0.25.4] - 2025-12-22
+
+### Fixed
+
+- **Syntax highlighting stderr spam**: Fixed cli-highlight logging errors to stderr when markdown contains malformed code fences (e.g., missing newlines around closing backticks). Now validates language identifiers before highlighting and falls back silently to plain text. ([#274](https://github.com/badlogic/pi-mono/issues/274))
+
+## [0.25.3] - 2025-12-21
+
+### Added
+
+- **Gemini 3 preview models**: Added `gemini-3-pro-preview` and `gemini-3-flash-preview` to the google-gemini-cli provider. ([#264](https://github.com/badlogic/pi-mono/pull/264) by [@LukeFost](https://github.com/LukeFost))
+
+- **External editor support**: Press `Ctrl+G` to edit your message in an external editor. Uses `$VISUAL` or `$EDITOR` environment variable. On successful save, the message is replaced; on cancel, the original is kept. ([#266](https://github.com/badlogic/pi-mono/pull/266) by [@aliou](https://github.com/aliou))
+
+- **Process suspension**: Press `Ctrl+Z` to suspend pi and return to the shell. Resume with `fg` as usual. ([#267](https://github.com/badlogic/pi-mono/pull/267) by [@aliou](https://github.com/aliou))
+
+- **Configurable skills directories**: Added granular control over skill sources with `enableCodexUser`, `enableClaudeUser`, `enableClaudeProject`, `enablePiUser`, `enablePiProject` toggles, plus `customDirectories` and `ignoredSkills` settings. ([#269](https://github.com/badlogic/pi-mono/pull/269) by [@nicobailon](https://github.com/nicobailon))
+
+- **Skills CLI filtering**: Added `--skills <patterns>` flag for filtering skills with glob patterns. Also added `includeSkills` setting and glob pattern support for `ignoredSkills`. ([#268](https://github.com/badlogic/pi-mono/issues/268))
+
+## [0.25.2] - 2025-12-21
+
+### Fixed
+
+- **Image shifting in tool output**: Fixed an issue where images in tool output would shift down (due to accumulating spacers) each time the tool output was expanded or collapsed via Ctrl+O.
+
+## [0.25.1] - 2025-12-21
+
+### Fixed
+
+- **Gemini image reading broken**: Fixed the `read` tool returning images causing flaky/broken responses with Gemini models. Images in tool results are now properly formatted per the Gemini API spec.
+
+- **Tab completion for absolute paths**: Fixed tab completion producing `//tmp` instead of `/tmp/`. Also fixed symlinks to directories (like `/tmp`) not getting a trailing slash, which prevented continuing to tab through subdirectories.
+
+## [0.25.0] - 2025-12-20
+
+### Added
+
+- **Interruptible tool execution**: Queuing a message while tools are executing now interrupts the current tool batch. Remaining tools are skipped with an error result, and your queued message is processed immediately. Useful for redirecting the agent mid-task. ([#259](https://github.com/badlogic/pi-mono/pull/259) by [@steipete](https://github.com/steipete))
+
+- **Google Gemini CLI OAuth provider**: Access Gemini 2.0/2.5 models for free via Google Cloud Code Assist. Login with `/login` and select "Google Gemini CLI". Uses your Google account with rate limits.
+
+- **Google Antigravity OAuth provider**: Access Gemini 3, Claude (sonnet/opus thinking models), and GPT-OSS models for free via Google's Antigravity sandbox. Login with `/login` and select "Antigravity". Uses your Google account with rate limits.
+
+### Changed
+
+- **Model selector respects --models scope**: The `/model` command now only shows models specified via `--models` flag when that flag is used, instead of showing all available models. This prevents accidentally selecting models from unintended providers. ([#255](https://github.com/badlogic/pi-mono/issues/255))
+
+### Fixed
+
+- **Connection errors not retried**: Added "connection error" to the list of retryable errors so Anthropic connection drops trigger auto-retry instead of silently failing. ([#252](https://github.com/badlogic/pi-mono/issues/252))
+
+- **Thinking level not clamped on model switch**: Fixed TUI showing xhigh thinking level after switching to a model that doesn't support it. Thinking level is now automatically clamped to model capabilities. ([#253](https://github.com/badlogic/pi-mono/issues/253))
+
+- **Cross-model thinking handoff**: Fixed error when switching between models with different thinking signature formats (e.g., GPT-OSS to Claude thinking models via Antigravity). Thinking blocks without signatures are now converted to text with `<thinking>` delimiters.
+
+## [0.24.5] - 2025-12-20
+
+### Fixed
+
+- **Input buffering in iTerm2**: Fixed Ctrl+C, Ctrl+D, and other keys requiring multiple presses in iTerm2. The cell size query response parser was incorrectly holding back keyboard input.
+
+## [0.24.4] - 2025-12-20
+
+### Fixed
+
+- **Arrow keys and Enter in selector components**: Fixed arrow keys and Enter not working in model selector, session selector, OAuth selector, and other selector components when Caps Lock or Num Lock is enabled. ([#243](https://github.com/badlogic/pi-mono/issues/243))
+
+## [0.24.3] - 2025-12-19
+
+### Fixed
+
+- **Footer overflow on narrow terminals**: Fixed footer path display exceeding terminal width when resizing to very narrow widths, causing rendering crashes. /arminsayshi
+
+## [0.24.2] - 2025-12-20
+
+### Fixed
+
+- **More Kitty keyboard protocol fixes**: Fixed Backspace, Enter, Home, End, and Delete keys not working with Caps Lock enabled. The initial fix in 0.24.1 missed several key handlers that were still using raw byte detection. Now all key handlers use the helper functions that properly mask out lock key bits. ([#243](https://github.com/badlogic/pi-mono/issues/243))
+
+## [0.24.1] - 2025-12-19
+
+### Added
+
+- **OAuth and model config exports**: Scripts using `AgentSession` directly can now import `getAvailableModels`, `getApiKeyForModel`, `findModel`, `login`, `logout`, and `getOAuthProviders` from `@bastani/atomic` to reuse OAuth token storage and model resolution. ([#245](https://github.com/badlogic/pi-mono/issues/245))
+
+- **xhigh thinking level for gpt-5.2 models**: The thinking level selector and shift+tab cycling now show xhigh option for gpt-5.2 and gpt-5.2-codex models (in addition to gpt-5.1-codex-max). ([#236](https://github.com/badlogic/pi-mono/pull/236) by [@theBucky](https://github.com/theBucky))
+
+### Fixed
+
+- **Hooks wrap custom tools**: Custom tools are now executed through the hook wrapper, so `tool_call`/`tool_result` hooks can observe, block, and modify custom tool executions (consistent with hook type docs). ([#248](https://github.com/badlogic/pi-mono/pull/248) by [@nicobailon](https://github.com/nicobailon))
+
+- **Hook onUpdate callback forwarding**: The `onUpdate` callback is now correctly forwarded through the hook wrapper, fixing custom tool progress updates. ([#238](https://github.com/badlogic/pi-mono/pull/238) by [@nicobailon](https://github.com/nicobailon))
+
+- **Terminal cleanup on Ctrl+C in session selector**: Fixed terminal not being properly restored when pressing Ctrl+C in the session selector. ([#247](https://github.com/badlogic/pi-mono/pull/247) by [@aliou](https://github.com/aliou))
+
+- **OpenRouter models with colons in IDs**: Fixed parsing of OpenRouter model IDs that contain colons (e.g., `openrouter:meta-llama/llama-4-scout:free`). ([#242](https://github.com/badlogic/pi-mono/pull/242) by [@aliou](https://github.com/aliou))
+
+- **Global AGENTS.md loaded twice**: Fixed global AGENTS.md being loaded twice when present in both `~/.pi/agent/` and the current directory. ([#239](https://github.com/badlogic/pi-mono/pull/239) by [@aliou](https://github.com/aliou))
+
+- **Kitty keyboard protocol on Linux**: Fixed keyboard input not working in Ghostty on Linux when Num Lock is enabled. The Kitty protocol includes Caps Lock and Num Lock state in modifier values, which broke key detection. Now correctly masks out lock key bits when matching keyboard shortcuts. ([#243](https://github.com/badlogic/pi-mono/issues/243))
+
+- **Emoji deletion and cursor movement**: Backspace, Delete, and arrow keys now correctly handle multi-codepoint characters like emojis. Previously, deleting an emoji would leave partial bytes, corrupting the editor state. ([#240](https://github.com/badlogic/pi-mono/issues/240))
+
+## [0.24.0] - 2025-12-19
+
+### Added
+
+- **Subagent orchestration example**: Added comprehensive custom tool example for spawning and orchestrating sub-agents with isolated context windows. Includes scout/planner/reviewer/worker agents and workflow commands for multi-agent pipelines. ([#215](https://github.com/badlogic/pi-mono/pull/215) by [@nicobailon](https://github.com/nicobailon))
+
+- **`getMarkdownTheme()` export**: Custom tools can now import `getMarkdownTheme()` from `@bastani/atomic` to use the same markdown styling as the main UI.
+
+- **`pi.exec()` signal and timeout support**: Custom tools and hooks can now pass `{ signal, timeout }` options to `pi.exec()` for cancellation and timeout handling. The result includes a `killed` flag when the process was terminated.
+
+- **Kitty keyboard protocol support**: Shift+Enter, Alt+Enter, Shift+Tab, Ctrl+D, and all Ctrl+key combinations now work in Ghostty, Kitty, WezTerm, and other modern terminals. ([#225](https://github.com/badlogic/pi-mono/pull/225) by [@kim0](https://github.com/kim0))
+
+- **Dynamic API key refresh**: OAuth tokens (GitHub Copilot, Anthropic OAuth) are now refreshed before each LLM call, preventing failures in long-running agent loops where tokens expire mid-session. ([#223](https://github.com/badlogic/pi-mono/pull/223) by [@kim0](https://github.com/kim0))
+
+- **`/hotkeys` command**: Shows all keyboard shortcuts in a formatted table.
+
+- **Markdown table borders**: Tables now render with proper top and bottom borders.
+
+### Changed
+
+- **Subagent example improvements**: Parallel mode now streams updates from all tasks. Chain mode shows all completed steps during streaming. Expanded view uses proper markdown rendering with syntax highlighting. Usage footer shows turn count.
+
+- **Skills standard compliance**: Skills now adhere to the [Agent Skills standard](https://agentskills.io/specification). Validates name (must match parent directory, lowercase, max 64 chars), description (required, max 1024 chars), and frontmatter fields. Warns on violations but remains lenient. Prompt format changed to XML structure. Removed `{baseDir}` placeholder in favor of relative paths. ([#231](https://github.com/badlogic/pi-mono/issues/231))
+
+### Fixed
+
+- **JSON mode stdout flush**: Fixed race condition where `pi --mode json` could exit before all output was written to stdout, causing consumers to miss final events.
+
+- **Symlinked tools, hooks, and slash commands**: Discovery now correctly follows symlinks when scanning for custom tools, hooks, and slash commands. ([#219](https://github.com/badlogic/pi-mono/pull/219), [#232](https://github.com/badlogic/pi-mono/pull/232) by [@aliou](https://github.com/aliou))
+
+### Breaking Changes
+
+- **Custom tools now require `index.ts` entry point**: Auto-discovered custom tools must be in a subdirectory with an `index.ts` file. The old pattern `~/.pi/agent/tools/mytool.ts` must become `~/.pi/agent/tools/mytool/index.ts`. This allows multi-file tools to import helper modules. Explicit paths via `--tool` or `settings.json` still work with any `.ts` file.
+
+- **Hook `tool_result` event restructured**: The `ToolResultEvent` now exposes full tool result data instead of just text. ([#233](https://github.com/badlogic/pi-mono/pull/233))
+  - Removed: `result: string` field
+  - Added: `content: (TextContent | ImageContent)[]` - full content array
+  - Added: `details: unknown` - tool-specific details (typed per tool via discriminated union on `toolName`)
+  - `ToolResultEventResult.result` renamed to `ToolResultEventResult.text` (removed), use `content` instead
+  - Hook handlers returning `{ result: "..." }` must change to `{ content: [{ type: "text", text: "..." }] }`
+  - Built-in tool details types exported: `BashToolDetails`, `ReadToolDetails`, `GrepToolDetails`, `FindToolDetails`, `LsToolDetails`, `TruncationResult`
+  - Type guards exported for narrowing: `isBashToolResult`, `isReadToolResult`, `isEditToolResult`, `isWriteToolResult`, `isGrepToolResult`, `isFindToolResult`, `isLsToolResult`
+
+## [0.23.4] - 2025-12-18
+
+### Added
+
+- **Syntax highlighting**: Added syntax highlighting for markdown code blocks, read tool output, and write tool content. Uses cli-highlight with theme-aware color mapping and VS Code-style syntax colors. ([#214](https://github.com/badlogic/pi-mono/pull/214) by [@svkozak](https://github.com/svkozak))
+
+- **Intra-line diff highlighting**: Edit tool now shows word-level changes with inverse highlighting when a single line is modified. Multi-line changes show all removed lines first, then all added lines.
+
+### Fixed
+
+- **Gemini tool result format**: Fixed tool result format for Gemini 3 Flash Preview which strictly requires `{ output: value }` for success and `{ error: value }` for errors. Previous format using `{ result, isError }` was rejected by newer Gemini models. ([#213](https://github.com/badlogic/pi-mono/issues/213), [#220](https://github.com/badlogic/pi-mono/pull/220))
+
+- **Google baseUrl configuration**: Google provider now respects `baseUrl` configuration for custom endpoints or API proxies. ([#216](https://github.com/badlogic/pi-mono/issues/216), [#221](https://github.com/badlogic/pi-mono/pull/221) by [@theBucky](https://github.com/theBucky))
+
+- **Google provider FinishReason**: Added handling for new `IMAGE_RECITATION` and `IMAGE_OTHER` finish reasons. Upgraded @google/genai to 1.34.0.
+
+## [0.23.3] - 2025-12-17
+
+### Fixed
+
+- Check for compaction before submitting user prompt, not just after agent turn ends. This catches cases where user aborts mid-response and context is already near the limit.
+
+### Changed
+
+- Improved system prompt documentation section with clearer pointers to specific doc files for custom models, themes, skills, hooks, custom tools, and RPC.
+
+- Cleaned up documentation:
+
+  - `theme.md`: Added missing color tokens (`thinkingXhigh`, `bashMode`)
+  - `skills.md`: Rewrote with better framing and examples
+  - `hooks.md`: Fixed timeout/error handling docs, added import aliases section
+  - `custom-tools.md`: Added intro with use cases and comparison table
+  - `rpc.md`: Added missing `hook_error` event documentation
+  - `README.md`: Complete settings table, condensed philosophy section, standardized OAuth docs
+
+- Hooks loader now supports same import aliases as custom tools (`@sinclair/typebox`, `@mariozechner/pi-ai`, `@mariozechner/pi-tui`, `@bastani/atomic`).
+
+### Breaking Changes
+
+- **Hooks**: `turn_end` event's `toolResults` type changed from `AppMessage[]` to `ToolResultMessage[]`. If you have hooks that handle `turn_end` events and explicitly type the results, update your type annotations.
+
+## [0.23.2] - 2025-12-17
+
+### Fixed
+
+- Fixed Claude models via GitHub Copilot re-answering all previous prompts in multi-turn conversations. The issue was that assistant message content was sent as an array instead of a string, which Copilot's Claude adapter misinterpreted. Also added missing `Openai-Intent: conversation-edits` header and fixed `X-Initiator` logic to check for any assistant/tool message in history. ([#209](https://github.com/badlogic/pi-mono/issues/209))
+
+- Detect image MIME type via file magic (read tool and `@file` attachments), not filename extension.
+
+- Fixed markdown tables overflowing terminal width. Tables now wrap cell contents to fit available width instead of breaking borders mid-row. ([#206](https://github.com/badlogic/pi-mono/pull/206) by [@kim0](https://github.com/kim0))
+
+## [0.23.1] - 2025-12-17
+
+### Fixed
+
+- Fixed TUI performance regression caused by Box component lacking render caching. Built-in tools now use Text directly (like v0.22.5), and Box has proper caching for custom tool rendering.
+
+- Fixed custom tools failing to load from `~/.pi/agent/tools/` when pi is installed globally. Module imports (`@sinclair/typebox`, `@mariozechner/pi-tui`, `@mariozechner/pi-ai`) are now resolved via aliases.
+
+## [0.23.0] - 2025-12-17
+
+### Added
+
+- **Custom tools**: Extend pi with custom tools written in TypeScript. Tools can provide custom TUI rendering, interact with users via `pi.ui` (select, confirm, input, notify), and maintain state across sessions via `onSession` callback. See [docs/custom-tools.md](docs/custom-tools.md) and [examples/custom-tools/](examples/custom-tools/). ([#190](https://github.com/badlogic/pi-mono/issues/190))
+
+- **Hook and tool examples**: Added `examples/hooks/` and `examples/custom-tools/` with working examples. Examples are now bundled in npm and binary releases.
+
+### Breaking Changes
+
+- **Hooks**: Replaced `session_start` and `session_switch` events with unified `session` event. Use `event.reason` (`"start" | "switch" | "clear"`) to distinguish. Event now includes `entries` array for state reconstruction.
+
+## [0.22.5] - 2025-12-17
+
+### Fixed
+
+- Fixed `--session` flag not saving sessions in print mode (`-p`). The session manager was never receiving events because no subscriber was attached.
+
+## [0.22.4] - 2025-12-17
+
+### Added
+
+- `--list-models [search]` CLI flag to list available models with optional fuzzy search. Shows provider, model ID, context window, max output, thinking support, and image support. Only lists models with configured API keys. ([#203](https://github.com/badlogic/pi-mono/issues/203))
+
+### Fixed
+
+- Fixed tool execution showing green (success) background while still running. Now correctly shows gray (pending) background until the tool completes.
+
+## [0.22.3] - 2025-12-16
+
+### Added
+
+- **Streaming bash output**: Bash tool now streams output in real-time during execution. The TUI displays live progress with the last 5 lines visible (expandable with ctrl+o). ([#44](https://github.com/badlogic/pi-mono/issues/44))
+
+### Changed
+
+- **Tool output display**: When collapsed, tool output now shows the last N lines instead of the first N lines, making streaming output more useful.
+
+- Updated `@mariozechner/pi-ai` with X-Initiator header support for GitHub Copilot, ensuring agent calls are not deducted from quota. ([#200](https://github.com/badlogic/pi-mono/pull/200) by [@kim0](https://github.com/kim0))
+
+### Fixed
+
+- Fixed editor text being cleared during compaction. Text typed while compaction is running is now preserved. ([#179](https://github.com/badlogic/pi-mono/issues/179))
+- Improved RGB to 256-color mapping for terminals without truecolor support. Now correctly uses grayscale ramp for neutral colors and preserves semantic tints (green for success, red for error, blue for pending) instead of mapping everything to wrong cube colors.
+- `/think off` now actually disables thinking for all providers. Previously, providers like Gemini with "dynamic thinking" enabled by default would still use thinking even when turned off. ([#180](https://github.com/badlogic/pi-mono/pull/180) by [@markusylisiurunen](https://github.com/markusylisiurunen))
+
+## [0.22.2] - 2025-12-15
+
+### Changed
+
+- Updated `@mariozechner/pi-ai` with interleaved thinking enabled by default for Anthropic Claude 4 models.
+
+## [0.22.1] - 2025-12-15
+
+_Dedicated to Peter's shoulder ([@steipete](https://twitter.com/steipete))_
+
+### Changed
+
+- Updated `@mariozechner/pi-ai` with interleaved thinking support for Anthropic models.
+
+## [0.22.0] - 2025-12-15
+
+### Added
+
+- **GitHub Copilot support**: Use GitHub Copilot models via OAuth login (`/login` -> "GitHub Copilot"). Supports both github.com and GitHub Enterprise. Models are sourced from models.dev and include Claude, GPT, Gemini, Grok, and more. All models are automatically enabled after login. ([#191](https://github.com/badlogic/pi-mono/pull/191) by [@cau1k](https://github.com/cau1k))
+
+### Fixed
+
+- Model selector fuzzy search now matches against provider name (not just model ID) and supports space-separated tokens where all tokens must match
+
+## [0.21.0] - 2025-12-14
+
+### Added
+
+- **Inline image rendering**: Terminals supporting Kitty graphics protocol (Kitty, Ghostty, WezTerm) or iTerm2 inline images now render images inline in tool output. Aspect ratio is preserved by querying terminal cell dimensions on startup. Toggle with `/show-images` command or `terminal.showImages` setting. Falls back to text placeholder on unsupported terminals or when disabled. ([#177](https://github.com/badlogic/pi-mono/pull/177) by [@nicobailon](https://github.com/nicobailon))
+
+- **Gemini 3 Pro thinking levels**: Thinking level selector now works with Gemini 3 Pro models. Minimal/low map to Google's LOW, medium/high map to Google's HIGH. ([#176](https://github.com/badlogic/pi-mono/pull/176) by [@markusylisiurunen](https://github.com/markusylisiurunen))
+
+### Fixed
+
+- Fixed read tool failing on macOS screenshot filenames due to Unicode Narrow No-Break Space (U+202F) in timestamp. Added fallback to try macOS variant paths and consolidated duplicate expandPath functions into shared path-utils.ts. ([#181](https://github.com/badlogic/pi-mono/pull/181) by [@nicobailon](https://github.com/nicobailon))
+
+- Fixed double blank lines rendering after markdown code blocks ([#173](https://github.com/badlogic/pi-mono/pull/173) by [@markusylisiurunen](https://github.com/markusylisiurunen))
+
+## [0.20.1] - 2025-12-13
+
+### Added
+
+- **Exported skills API**: `loadSkillsFromDir`, `formatSkillsForPrompt`, and related types are now exported for use by other packages (e.g., mom).
+
+## [0.20.0] - 2025-12-13
+
+### Breaking Changes
+
+- **Pi skills now use `SKILL.md` convention**: Pi skills must now be named `SKILL.md` inside a directory, matching Codex CLI format. Previously any `*.md` file was treated as a skill. Migrate by renaming `~/.pi/agent/skills/foo.md` to `~/.pi/agent/skills/foo/SKILL.md`.
+
+### Added
+
+- Display loaded skills on startup in interactive mode
+
+## [0.19.1] - 2025-12-12
+
+### Fixed
+
+- Documentation: Added skills system documentation to README (setup, usage, CLI flags, settings)
+
+## [0.19.0] - 2025-12-12
+
+### Added
+
+- **Skills system**: Auto-discover and load instruction files on-demand. Supports Claude Code (`~/.claude/skills/*/SKILL.md`), Codex CLI (`~/.codex/skills/`), and Pi-native formats (`~/.pi/agent/skills/`, `.pi/skills/`). Skills are listed in system prompt with descriptions, agent loads them via read tool when needed. Supports `{baseDir}` placeholder. Disable with `--no-skills` or `skills.enabled: false` in settings. ([#169](https://github.com/badlogic/pi-mono/issues/169))
+
+- **Version flag**: Added `--version` / `-v` flag to display the current version and exit. ([#170](https://github.com/badlogic/pi-mono/pull/170))
+
+## [0.18.2] - 2025-12-11
+
+### Added
+
+- **Auto-retry on transient errors**: Automatically retries requests when providers return overloaded, rate limit, or server errors (429, 500, 502, 503, 504). Uses exponential backoff (2s, 4s, 8s). Shows retry status in TUI with option to cancel via Escape. Configurable in `settings.json` via `retry.enabled`, `retry.maxRetries`, `retry.baseDelayMs`. RPC mode emits `auto_retry_start` and `auto_retry_end` events. ([#157](https://github.com/badlogic/pi-mono/issues/157))
+
+- **HTML export line numbers**: Read tool calls in HTML exports now display line number ranges (e.g., `file.txt:10-20`) when offset/limit parameters are used, matching the TUI display format. Line numbers appear in yellow color for better visibility. ([#166](https://github.com/badlogic/pi-mono/issues/166))
+
+### Fixed
+
+- **Branch selector now works with single message**: Previously the branch selector would not open when there was only one user message. Now it correctly allows branching from any message, including the first one. This is needed for checkpoint hooks to restore state from before the first message. ([#163](https://github.com/badlogic/pi-mono/issues/163))
+
+- **In-memory branching for `--no-session` mode**: Branching now works correctly in `--no-session` mode without creating any session files. The conversation is truncated in memory.
+
+- **Git branch indicator now works in subdirectories**: The footer's git branch detection now walks up the directory hierarchy to find the git root, so it works when running pi from a subdirectory of a repository. ([#156](https://github.com/badlogic/pi-mono/issues/156))
+
+## [0.18.1] - 2025-12-10
+
+### Added
+
+- **Mistral provider**: Added support for Mistral AI models. Set `MISTRAL_API_KEY` environment variable to use.
+
+### Fixed
+
+- Fixed print mode (`-p`) not exiting after output when custom themes are present (theme watcher now properly stops in print mode) ([#161](https://github.com/badlogic/pi-mono/issues/161))
+
+## [0.18.0] - 2025-12-10
+
+### Added
+
+- **Hooks system**: TypeScript modules that extend agent behavior by subscribing to lifecycle events. Hooks can intercept tool calls, prompt for confirmation, modify results, and inject messages from external sources. Auto-discovered from `~/.pi/agent/hooks/*.ts` and `.pi/hooks/*.ts`. Thanks to [@nicobailon](https://github.com/nicobailon) for the collaboration on the design and implementation. ([#145](https://github.com/badlogic/pi-mono/issues/145), supersedes [#158](https://github.com/badlogic/pi-mono/pull/158))
+
+- **`pi.send()` API**: Hooks can inject messages into the agent session from external sources (file watchers, webhooks, CI systems). If streaming, messages are queued; otherwise a new agent loop starts immediately.
+
+- **`--hook <path>` CLI flag**: Load hook files directly for testing without modifying settings.
+
+- **Hook events**: `session_start`, `session_switch`, `agent_start`, `agent_end`, `turn_start`, `turn_end`, `tool_call` (can block), `tool_result` (can modify), `branch`.
+
+- **Hook UI primitives**: `ctx.ui.select()`, `ctx.ui.confirm()`, `ctx.ui.input()`, `ctx.ui.notify()` for interactive prompts from hooks.
+
+- **Hooks documentation**: Full API reference at `docs/hooks.md`, shipped with npm package.
+
+## [0.17.0] - 2025-12-09
+
+### Changed
+
+- **Simplified compaction flow**: Removed proactive compaction (aborting mid-turn when threshold approached). Compaction now triggers in two cases only: (1) overflow error from LLM, which compacts and auto-retries, or (2) threshold crossed after a successful turn, which compacts without retry.
+
+- **Compaction retry uses `Agent.continue()`**: Auto-retry after overflow now uses the new `continue()` API instead of re-sending the user message, preserving exact context state.
+
+- **Merged turn prefix summary**: When a turn is split during compaction, the turn prefix summary is now merged into the main history summary instead of being stored separately.
+
+### Added
+
+- **`isCompacting` property on AgentSession**: Check if auto-compaction is currently running.
+
+- **Session compaction indicator**: When resuming a compacted session, displays "Session compacted N times" status message.
+
+### Fixed
+
+- **Block input during compaction**: User input is now blocked while auto-compaction is running to prevent race conditions.
+
+- **Skip error messages in usage calculation**: Context size estimation now skips both aborted and error messages, as neither have valid usage data.
+
+## [0.16.0] - 2025-12-09
+
+### Breaking Changes
+
+- **New RPC protocol**: The RPC mode (`--mode rpc`) has been completely redesigned with a new JSON protocol. The old protocol is no longer supported. See [`docs/rpc.md`](docs/rpc.md) for the new protocol documentation and [`test/rpc-example.ts`](test/rpc-example.ts) for a working example. Includes `RpcClient` TypeScript class for easy integration. ([#91](https://github.com/badlogic/pi-mono/issues/91))
+
+### Changed
+
+- **README restructured**: Reorganized documentation from 30+ flat sections into 10 logical groups. Converted verbose subsections to scannable tables. Consolidated philosophy sections. Reduced size by ~60% while preserving all information.
+
+## [0.15.0] - 2025-12-09
+
+### Changed
+
+- **Major code refactoring**: Restructured codebase for better maintainability and separation of concerns. Moved files into organized directories (`core/`, `modes/`, `utils/`, `cli/`). Extracted `AgentSession` class as central session management abstraction. Split `main.ts` and `tui-renderer.ts` into focused modules. See `DEVELOPMENT.md` for the new code map. ([#153](https://github.com/badlogic/pi-mono/issues/153))
+
+## [0.14.2] - 2025-12-08
+
+### Added
+
+- `/debug` command now includes agent messages as JSONL in the output
+
+### Fixed
+
+- Fix crash when bash command outputs binary data (e.g., `curl` downloading a video file)
+
+## [0.14.1] - 2025-12-08
+
+### Fixed
+
+- Fix build errors with tsgo 7.0.0-dev.20251208.1 by properly importing `ReasoningEffort` type
+
+## [0.14.0] - 2025-12-08
+
+### Breaking Changes
+
+- **Custom themes require new color tokens**: Themes must now include `thinkingXhigh` and `bashMode` color tokens. The theme loader provides helpful error messages listing missing tokens. See built-in themes (dark.json, light.json) for reference values.
+
+### Added
+
+- **OpenAI compatibility overrides in models.json**: Custom models using `openai-completions` API can now specify a `compat` object to override provider quirks (`supportsStore`, `supportsDeveloperRole`, `supportsReasoningEffort`, `maxTokensField`). Useful for LiteLLM, custom proxies, and other non-standard endpoints. ([#133](https://github.com/badlogic/pi-mono/issues/133), thanks @fink-andreas for the initial idea and PR)
+
+- **xhigh thinking level**: Added `xhigh` thinking level for OpenAI codex-max models. Cycle through thinking levels with Shift+Tab; `xhigh` appears only when using a codex-max model. ([#143](https://github.com/badlogic/pi-mono/issues/143))
+
+- **Collapse changelog setting**: Add `"collapseChangelog": true` to `~/.pi/agent/settings.json` to show a condensed "Updated to vX.Y.Z" message instead of the full changelog after updates. Use `/changelog` to view the full changelog. ([#148](https://github.com/badlogic/pi-mono/issues/148))
+
+- **Bash mode**: Execute shell commands directly from the editor by prefixing with `!` (e.g., `!ls -la`). Output streams in real-time, is added to the LLM context, and persists in session history. Supports multiline commands, cancellation (Escape), truncation for large outputs, and preview/expand toggle (Ctrl+O). Also available in RPC mode via `{"type":"bash","command":"..."}`. ([#112](https://github.com/badlogic/pi-mono/pull/112), original implementation by [@markusylisiurunen](https://github.com/markusylisiurunen))
+
+## [0.13.2] - 2025-12-07
+
+### Changed
+
+- **Tool output truncation**: All tools now enforce consistent truncation limits with actionable notices for the LLM. ([#134](https://github.com/badlogic/pi-mono/issues/134))
+  - **Limits**: 2000 lines OR 50KB (whichever hits first), never partial lines
+  - **read**: Shows `[Showing lines X-Y of Z. Use offset=N to continue]`. If first line exceeds 50KB, suggests bash command
+  - **bash**: Tail truncation with temp file. Shows `[Showing lines X-Y of Z. Full output: /tmp/...]`
+  - **grep**: Pre-truncates match lines to 500 chars. Shows match limit and line truncation notices
+  - **find/ls**: Shows result/entry limit notices
+  - TUI displays truncation warnings in yellow at bottom of tool output (visible even when collapsed)
+
+## [0.13.1] - 2025-12-06
+
+### Added
+
+- **Flexible Windows shell configuration**: The bash tool now supports multiple shell sources beyond Git Bash. Resolution order: (1) custom `shellPath` in settings.json, (2) Git Bash in standard locations, (3) any bash.exe on PATH. This enables Cygwin, MSYS2, and other bash environments. Configure with `~/.pi/agent/settings.json`: `{"shellPath": "C:\\cygwin64\\bin\\bash.exe"}`.
+
+### Fixed
+
+- **Windows binary detection**: Fixed Bun compiled binary detection on Windows by checking for URL-encoded `%7EBUN` in addition to `$bunfs` and `~BUN` in `import.meta.url`. This ensures the binary correctly locates supporting files (package.json, themes, etc.) next to the executable.
+
+## [0.12.15] - 2025-12-06
+
+### Fixed
+
+- **Editor crash with emojis/CJK characters**: Fixed crash when pasting or typing text containing wide characters (emojis like ✅, CJK characters) that caused line width to exceed terminal width. The editor now uses grapheme-aware text wrapping with proper visible width calculation.
+
+## [0.12.14] - 2025-12-06
+
+### Added
+
+- **Double-Escape Branch Shortcut**: Press Escape twice with an empty editor to quickly open the `/branch` selector for conversation branching.
+
+## [0.12.13] - 2025-12-05
+
+### Changed
+
+- **Faster startup**: Version check now runs in parallel with TUI initialization instead of blocking startup for up to 1 second. Update notifications appear in chat when the check completes.
+
+## [0.12.12] - 2025-12-05
+
+### Changed
+
+- **Footer display**: Token counts now use M suffix for millions (e.g., `10.2M` instead of `10184k`). Context display shortened from `61.3% of 200k` to `61.3%/200k`.
+
+### Fixed
+
+- **Multi-key sequences in inputs**: Inputs like model search now handle multi-key sequences identically to the main prompt editor. ([#122](https://github.com/badlogic/pi-mono/pull/122) by [@markusylisiurunen](https://github.com/markusylisiurunen))
+- **Line wrapping escape codes**: Fixed underline style bleeding into padding when wrapping long URLs. ANSI codes now attach to the correct content, and line-end resets only turn off underline (preserving background colors). ([#109](https://github.com/badlogic/pi-mono/issues/109))
+
+### Added
+
+- **Fuzzy search models and sessions**: Implemented a simple fuzzy search for models and sessions (e.g., `codexmax` now finds `gpt-5.1-codex-max`). ([#122](https://github.com/badlogic/pi-mono/pull/122) by [@markusylisiurunen](https://github.com/markusylisiurunen))
+- **Prompt History Navigation**: Browse previously submitted prompts using Up/Down arrow keys when the editor is empty. Press Up to cycle through older prompts, Down to return to newer ones or clear the editor. Similar to shell history and Claude Code's prompt history feature. History is session-scoped and stores up to 100 entries. ([#121](https://github.com/badlogic/pi-mono/pull/121) by [@nicobailon](https://github.com/nicobailon))
+- **`/resume` Command**: Switch to a different session mid-conversation. Opens an interactive selector showing all available sessions. Equivalent to the `--resume` CLI flag but can be used without restarting the agent. ([#117](https://github.com/badlogic/pi-mono/pull/117) by [@hewliyang](https://github.com/hewliyang))
+
+## [0.12.11] - 2025-12-05
+
+### Changed
+
+- **Compaction UI**: Simplified collapsed compaction indicator to show warning-colored text with token count instead of styled banner. Removed redundant success message after compaction. ([#108](https://github.com/badlogic/pi-mono/issues/108))
+
+### Fixed
+
+- **Print mode error handling**: `-p` flag now outputs error messages and exits with code 1 when requests fail, instead of silently producing no output.
+- **Branch selector crash**: Fixed TUI crash when user messages contained Unicode characters (like `✔` or `›`) that caused line width to exceed terminal width. Now uses proper `truncateToWidth` instead of `substring`.
+- **Bash output escape sequences**: Fixed incomplete stripping of terminal escape sequences in bash tool output. `stripAnsi` misses some sequences like standalone String Terminator (`ESC \`), which could cause rendering issues when displaying captured TUI output.
+- **Footer overflow crash**: Fixed TUI crash when terminal width is too narrow for the footer stats line. The footer now truncates gracefully instead of overflowing.
+
+### Added
+
+- **`authHeader` option in models.json**: Custom providers can set `"authHeader": true` to automatically add `Authorization: Bearer <apiKey>` header. Useful for providers that require explicit auth headers. ([#81](https://github.com/badlogic/pi-mono/issues/81))
+- **`--append-system-prompt` Flag**: Append additional text or file contents to the system prompt. Supports both inline text and file paths. Complements `--system-prompt` for layering custom instructions without replacing the base system prompt. ([#114](https://github.com/badlogic/pi-mono/pull/114) by [@markusylisiurunen](https://github.com/markusylisiurunen))
+- **Thinking Block Toggle**: Added `Ctrl+T` shortcut to toggle visibility of LLM thinking blocks. When toggled off, shows a static "Thinking..." label instead of full content. Useful for reducing visual clutter during long conversations. ([#113](https://github.com/badlogic/pi-mono/pull/113) by [@markusylisiurunen](https://github.com/markusylisiurunen))
+
+## [0.12.10] - 2025-12-04
+
+### Added
+
+- Added `gpt-5.1-codex-max` model support
+
+## [0.12.9] - 2025-12-04
+
+### Added
+
+- **`/copy` Command**: Copy the last agent message to clipboard. Works cross-platform (macOS, Windows, Linux). Useful for extracting text from rendered Markdown output. ([#105](https://github.com/badlogic/pi-mono/pull/105) by [@markusylisiurunen](https://github.com/markusylisiurunen))
+
+## [0.12.8] - 2025-12-04
+
+- Fix: Use CTRL+O consistently for compaction expand shortcut (not CMD+O on Mac)
+
+## [0.12.7] - 2025-12-04
+
+### Added
+
+- **Context Compaction**: Long sessions can now be compacted to reduce context usage while preserving recent conversation history. ([#92](https://github.com/badlogic/pi-mono/issues/92), [docs](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/README.md#context-compaction))
+  - `/compact [instructions]`: Manually compact context with optional custom instructions for the summary
+  - `/autocompact`: Toggle automatic compaction when context exceeds threshold
+  - Compaction summarizes older messages while keeping recent messages (default 20k tokens) verbatim
+  - Auto-compaction triggers when context reaches `contextWindow - reserveTokens` (default 16k reserve)
+  - Compacted sessions show a collapsible summary in the TUI (toggle with `o` key)
+  - HTML exports include compaction summaries as collapsible sections
+  - RPC mode supports `{"type":"compact"}` command and auto-compaction (emits compaction events)
+- **Branch Source Tracking**: Branched sessions now store `branchedFrom` in the session header, containing the path to the original session file. Useful for tracing session lineage.
+
+## [0.12.5] - 2025-12-03
+
+### Added
+
+- **Forking/Rebranding Support**: All branding (app name, config directory, environment variable names) is now configurable via `piConfig` in `package.json`. Forks can change `piConfig.name` and `piConfig.configDir` to rebrand the CLI without code changes. Affects CLI banner, help text, config paths, and error messages. ([#95](https://github.com/badlogic/pi-mono/pull/95))
+
+### Fixed
+
+- **Bun Binary Detection**: Fixed Bun compiled binary failing to start after Bun updated its virtual filesystem path format from `%7EBUN` to `$bunfs`. ([#95](https://github.com/badlogic/pi-mono/pull/95))
+
+## [0.12.4] - 2025-12-02
+
+### Added
+
+- **RPC Termination Safeguard**: When running as an RPC worker (stdin pipe detected), the CLI now exits immediately if the parent process terminates unexpectedly. Prevents orphaned RPC workers from persisting indefinitely and consuming system resources.
+
+## [0.12.3] - 2025-12-02
+
+### Fixed
+
+- **Rate limit handling**: Anthropic rate limit errors now trigger automatic retry with exponential backoff (base 10s, max 5 retries). Previously these errors would abort the request immediately.
+- **Usage tracking during retries**: Retried requests now correctly accumulate token usage from all attempts, not just the final successful one. Fixes artificially low token counts when requests were retried.
+
+## [0.12.2] - 2025-12-02
+
+### Changed
+
+- Removed support for gpt-4.5-preview and o3 models (not yet available)
+
+## [0.12.1] - 2025-12-02
+
+### Added
+
+- **Models**: Added support for OpenAI's new models:
+  - `gpt-4.1` (128K context)
+  - `gpt-4.1-mini` (128K context)
+  - `gpt-4.1-nano` (128K context)
+  - `o3` (200K context, reasoning model)
+  - `o4-mini` (200K context, reasoning model)
+
+## [0.12.0] - 2025-12-02
+
+### Added
+
+- **`-p, --print` Flag**: Run in non-interactive batch mode. Processes input message or piped stdin without TUI, prints agent response directly to stdout. Ideal for scripting, piping, and CI/CD integration. Exits after first response.
+- **`-P, --print-streaming` Flag**: Like `-p`, but streams response tokens as they arrive. Use `--print-streaming --no-markdown` for raw unformatted output.
+- **`--print-turn` Flag**: Continue processing tool calls and agent turns until the agent naturally finishes or requires user input. Combine with `-p` for complete multi-turn conversations.
+- **`--no-markdown` Flag**: Output raw text without Markdown formatting. Useful when piping output to tools that expect plain text.
+- **Streaming Print Mode**: Added internal `printStreaming` option for streaming output in non-TUI mode.
+- **RPC Mode `print` Command**: Send `{"type":"print","content":"text"}` to get formatted print output via `print_output` events.
+- **Auto-Save in Print Mode**: Print mode conversations are automatically saved to the session directory, allowing later resumption with `--continue`.
+- **Thinking level options**: Added `--thinking-off`, `--thinking-minimal`, `--thinking-low`, `--thinking-medium`, `--thinking-high` flags for directly specifying thinking level without the selector UI.
+
+### Changed
+
+- **Simplified RPC Protocol**: Replaced the `prompt` wrapper command with direct message objects. Send `{"role":"user","content":"text"}` instead of `{"type":"prompt","message":"text"}`. Better aligns with message format throughout the codebase.
+- **RPC Message Handling**: Agent now processes raw message objects directly, with `timestamp` auto-populated if missing.
+
+## [0.11.9] - 2025-12-02
+
+### Changed
+
+- Change Ctrl+I to Ctrl+P for model cycling shortcut to avoid collision with Tab key in some terminals
+
+## [0.11.8] - 2025-12-01
+
+### Fixed
+
+- Absolute glob patterns (e.g., `/Users/foo/**/*.ts`) are now handled correctly. Previously the leading `/` was being stripped, causing the pattern to be interpreted relative to the current directory.
+
+## [0.11.7] - 2025-12-01
+
+### Fixed
+
+- Fix read path traversal vulnerability. Paths are now validated to prevent reading outside the working directory or its parents. The `read` tool can read from `cwd`, its ancestors (for config files), and all descendants. Symlinks are resolved before validation.
+
+## [0.11.6] - 2025-12-01
+
+### Fixed
+
+- Fix `--system-prompt <path>` allowing the path argument to be captured by the message collection, causing "file not found" errors.
+
+## [0.11.5] - 2025-11-30
+
+### Fixed
+
+- Fixed fatal error "Cannot set properties of undefined (setting '0')" when editing empty files in the `edit` tool.
+- Simplified `edit` tool output: Shows only "Edited file.txt" for successful edits instead of verbose search/replace details.
+- Fixed fatal error in footer rendering when token counts contain NaN values due to missing usage data.
+
+## [0.11.4] - 2025-11-30
+
+### Fixed
+
+- Fixed chat rendering crash when messages contain preformatted/styled text (e.g., thinking traces with gray italic styling). The markdown renderer now preserves existing ANSI escape codes when they appear before inline elements.
+
+## [0.11.3] - 2025-11-29
+
+### Fixed
+
+- Fix file drop functionality for absolute paths
+
+## [0.11.2] - 2025-11-29
+
+### Fixed
+
+- Fixed TUI crash when pasting content containing tab characters. Tabs are now converted to 4 spaces before insertion.
+- Fixed terminal corruption after exit when shell integration sequences (OSC 133) appeared in bash output. These sequences are now stripped along with other ANSI codes.
+
+## [0.11.1] - 2025-11-29
+
+### Added
+
+- Added `fd` integration for file path autocompletion. Now uses `fd` for faster fuzzy file search
+
+### Fixed
+
+- Fixed keyboard shortcuts Ctrl+A, Ctrl+E, Ctrl+K, Ctrl+U, Ctrl+W, and word navigation (Option+Arrow) not working in VS Code integrated terminal and some other terminal emulators
+
+## [0.11.0] - 2025-11-29
+
+### Added
+
+- **File-based Slash Commands**: Create custom reusable prompts as `.txt` files in `~/.pi/slash-commands/`. Files become `/filename` commands with first-line descriptions. Supports `{{selection}}` placeholder for referencing selected/attached content.
+- **`/branch` Command**: Create conversation branches from any previous user message. Opens a selector to pick a message, then creates a new session file starting from that point. Original message text is placed in the editor for modification.
+- **Unified Content References**: Both `@path` in messages and `--file path` CLI arguments now use the same attachment system with consistent MIME type detection.
+- **Drag & Drop Files**: Drop files onto the terminal to attach them to your message. Supports multiple files and both text and image content.
+
+### Changed
+
+- **Model Selector with Search**: The `/model` command now opens a searchable list. Type to filter models by name, use arrows to navigate, Enter to select.
+- **Improved File Autocomplete**: File path completion after `@` now supports fuzzy matching and shows file/directory indicators.
+- **Session Selector with Search**: The `--resume` and `--session` flags now open a searchable session list with fuzzy filtering.
+- **Attachment Display**: Files added via `@path` are now shown as "Attached: filename" in the user message, separate from the prompt text.
+- **Tab Completion**: Tab key now triggers file path autocompletion anywhere in the editor, not just after `@` symbol.
+
+### Fixed
+
+- Fixed autocomplete z-order issue where dropdown could appear behind chat messages
+- Fixed cursor position when navigating through wrapped lines in the editor
+- Fixed attachment handling for continued sessions to preserve file references
+
+## [0.10.6] - 2025-11-28
+
+### Changed
+
+- Show base64-truncated indicator for large images in tool output
+
+### Fixed
+
+- Fixed image dimensions not being read correctly from PNG/JPEG/GIF files
+- Fixed PDF images being incorrectly base64-truncated in display
+- Allow reading files from ancestor directories (needed for monorepo configs)
+
+## [0.10.5] - 2025-11-28
+
+### Added
+
+- Full multimodal support: attach images (PNG, JPEG, GIF, WebP) and PDFs to prompts using `@path` syntax or `--file` flag
+
+### Fixed
+
+- `@`-references now handle special characters in file names (spaces, quotes, unicode)
+- Fixed cursor positioning issues with multi-byte unicode characters in editor
+
+## [0.10.4] - 2025-11-28
+
+### Fixed
+
+- Removed padding on first user message in TUI to improve visual consistency.
+
+## [0.10.3] - 2025-11-28
+
+### Added
+
+- Added RPC mode (`--rpc`) for programmatic integration. Accepts JSON commands on stdin, emits JSON events on stdout. See [RPC mode documentation](https://github.com/nicobailon/pi-mono/blob/main/packages/coding-agent/README.md#rpc-mode) for protocol details.
+
+### Changed
+
+- Refactored internal architecture to support multiple frontends (TUI, RPC) with shared agent logic.
+
+## [0.10.2] - 2025-11-26
+
+### Added
+
+- Added thinking level persistence. Default level stored in `~/.pi/settings.json`, restored on startup. Per-session overrides saved in session files.
+- Added model cycling shortcut: `Ctrl+I` cycles through available models (or scoped models with `-m` flag).
+- Added automatic retry with exponential backoff for transient API errors (network issues, 500s, overload).
+- Cumulative token usage now shown in footer (total tokens used across all messages in session).
+- Added `--system-prompt` flag to override default system prompt with custom text or file contents.
+- Footer now shows estimated total cost in USD based on model pricing.
+
+### Changed
+
+- Replaced `--models` flag with `-m/--model` supporting multiple values. Specify models as `provider/model@thinking` (e.g., `anthropic/claude-sonnet-4-20250514@high`). Multiple `-m` flags scope available models for the session.
+- Thinking level border now persists visually after selector closes.
+- Improved tool result display with collapsible output (default collapsed, expand with `Ctrl+O`).
+
+## [0.10.1] - 2025-11-25
+
+### Added
+
+- Add custom model configuration via `~/.pi/models.json`
+
+## [0.10.0] - 2025-11-25
+
+Initial public release.
+
+### Added
+
+- Interactive TUI with streaming responses
+- Conversation session management with `--continue`, `--resume`, and `--session` flags
+- Multi-line input support (Shift+Enter or Option+Enter for new lines)
+- Tool execution: `read`, `write`, `edit`, `bash`, `glob`, `grep`, `think`
+- Thinking mode support for Claude with visual indicator and `/thinking` selector
+- File path autocompletion with `@` prefix
+- Slash command autocompletion
+- `/export` command for HTML session export
+- `/model` command for runtime model switching
+- `/session` command for session statistics
+- Model provider support: Anthropic (Claude), OpenAI, Google (Gemini)
+- Git branch display in footer
+- Message queueing during streaming responses
+- OAuth integration for Gmail and Google Calendar access
+- HTML export with syntax highlighting and collapsible sections

@@ -1,0 +1,148 @@
+import type { CodexFastModeResolvedSettings, CodexFastModeScope } from "@bastani/atomic";
+import type { ModelAttempt } from "../../shared/types.ts";
+
+export interface RunnerSubagentStep {
+	agent: string;
+	task: string;
+	phase?: string;
+	label?: string;
+	outputName?: string;
+	structured?: boolean;
+	intercomGroup?: string;
+	cwd?: string;
+	model?: string;
+	thinking?: string;
+	fastMode?: boolean;
+	modelFastModes?: Record<string, boolean>;
+	modelCandidates?: string[];
+	modelAttempts?: ModelAttempt[];
+	codexFastModeSettings?: CodexFastModeResolvedSettings;
+	codexFastModeScope?: CodexFastModeScope;
+	tools?: string[];
+	extensions?: string[];
+	mcpDirectTools?: string[];
+	systemPrompt?: string | null;
+	systemPromptMode?: "append" | "replace";
+	inheritProjectContext: boolean;
+	inheritSkills: boolean;
+	skills?: string[];
+	outputPath?: string;
+	outputMode?: "inline" | "file-only";
+	sessionFile?: string;
+	maxSubagentDepth?: number;
+	workflowStageSubagentGuard?: boolean;
+	structuredOutput?: {
+		schema: import("../../shared/types.ts").JsonSchemaObject;
+		schemaPath: string;
+		outputPath: string;
+	};
+	structuredOutputSchema?: import("../../shared/types.ts").JsonSchemaObject;
+}
+
+export interface ParallelStepGroup {
+	parallel: RunnerSubagentStep[];
+	concurrency?: number;
+	failFast?: boolean;
+	worktree?: boolean;
+}
+
+export interface DynamicRunnerGroup {
+	expand: import("../../shared/settings.ts").DynamicExpandSpec;
+	parallel: RunnerSubagentStep;
+	collect: import("../../shared/settings.ts").DynamicCollectSpec;
+	concurrency?: number;
+	failFast?: boolean;
+	phase?: string;
+	label?: string;
+}
+
+export type RunnerStep = RunnerSubagentStep | ParallelStepGroup | DynamicRunnerGroup;
+
+export function isParallelGroup(step: RunnerStep): step is ParallelStepGroup {
+	return "parallel" in step && Array.isArray(step.parallel);
+}
+
+export function isDynamicRunnerGroup(step: RunnerStep): step is DynamicRunnerGroup {
+	return (
+		"expand" in step &&
+		"collect" in step &&
+		"parallel" in step &&
+		!Array.isArray((step as { parallel?: unknown }).parallel)
+	);
+}
+
+export function flattenSteps(steps: RunnerStep[]): RunnerSubagentStep[] {
+	const flat: RunnerSubagentStep[] = [];
+	for (const step of steps) {
+		if (isParallelGroup(step)) {
+			for (const task of step.parallel) flat.push(task);
+		} else if (isDynamicRunnerGroup(step)) {
+		} else {
+			flat.push(step);
+		}
+	}
+	return flat;
+}
+
+export async function mapConcurrent<T, R>(
+	items: T[],
+	limit: number,
+	fn: (item: T, i: number) => Promise<R>,
+): Promise<R[]> {
+	const safeLimit = Math.max(1, Math.floor(limit) || 1);
+	const results: R[] = new Array(items.length);
+	let next = 0;
+
+	async function worker(_workerIndex: number): Promise<void> {
+		while (next < items.length) {
+			const i = next++;
+			results[i] = await fn(items[i], i);
+		}
+	}
+
+	await Promise.all(Array.from({ length: Math.min(safeLimit, items.length) }, (_, wi) => worker(wi)));
+	return results;
+}
+
+export interface ParallelTaskResult {
+	agent: string;
+	taskIndex?: number;
+	output: string;
+	status: import("../../shared/types.ts").SubagentAttemptStatus;
+	error?: string;
+	model?: string;
+	fastMode?: boolean;
+	attemptedModels?: string[];
+	outputTargetPath?: string;
+	outputTargetExists?: boolean;
+}
+
+export function aggregateParallelOutputs(
+	results: ParallelTaskResult[],
+	headerFormat: (index: number, agent: string) => string = (i, agent) => `=== Parallel Task ${i + 1} (${agent}) ===`,
+): string {
+	return results
+		.map((r, i) => {
+			const header = headerFormat(r.taskIndex ?? i, r.agent);
+			const hasOutput = Boolean(r.output?.trim());
+			const status =
+				r.status === "skipped"
+					? "SKIPPED"
+					: r.status === "continued"
+						? "CONTINUED"
+						: r.status === "error"
+							? `FAILED${r.error ? `: ${r.error}` : ""}`
+							: r.error
+								? `WARNING: ${r.error}`
+								: !hasOutput && r.outputTargetPath && r.outputTargetExists === false
+									? `EMPTY OUTPUT (expected output file missing: ${r.outputTargetPath})`
+									: !hasOutput && !r.outputTargetPath
+										? "EMPTY OUTPUT (no textual response returned)"
+										: "";
+			const body = status ? (hasOutput ? `${status}\n${r.output}` : status) : r.output;
+			return `${header}\n${body}`;
+		})
+		.join("\n\n");
+}
+
+export const MAX_PARALLEL_CONCURRENCY = 4;

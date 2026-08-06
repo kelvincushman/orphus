@@ -1,0 +1,161 @@
+# Sessions
+
+Atomic saves conversations as sessions so you can continue work, branch from earlier turns, and revisit previous paths.
+
+## Session Storage
+
+Sessions auto-save to `~/.atomic/agent/sessions/`, organized by working directory. Each session is a JSONL file with a tree structure.
+
+```bash
+atomic -c                  # Continue most recent session
+atomic -r                  # Browse and select from past sessions
+atomic --no-session        # Ephemeral mode; do not save
+atomic --name "my task"    # Set session display name at startup
+atomic --session <path|id> # Use a specific session file or partial session ID
+atomic --fork <path|id>    # Fork a session file or partial session ID into a new session
+```
+
+Use `/session` in interactive mode to see the current session file, session ID, message count, tokens, and cost.
+
+### Custom session directories
+
+Use `--session-dir <dir>`, `ORPHUS_CODING_AGENT_SESSION_DIR`, or the matching settings override to save the active chat session outside the default `~/.atomic/agent/sessions/` store. When a workflow runs from a session that uses one of these non-default directories, Atomic also writes workflow stage transcripts to that same directory so a headless command such as `atomic --mode json --session-dir <dir> -p '/workflow <name> ...'` captures the main transcript and all stage transcripts together. Workflow definitions can still set a per-stage `sessionDir`; that explicit stage directory wins over the inherited host directory. If the host session uses the default session store, workflow stages keep the previous default behavior and write to the global store unless a stage explicitly sets `sessionDir`.
+
+For the JSONL file format and SessionManager API, see [Session Format](/session-format).
+
+## Session Commands
+
+| Command | Description |
+|---------|-------------|
+| `/resume` | Browse and select previous sessions |
+| `/new` | Start a new session |
+| `/name <name>` | Set the current session display name |
+| `/session` | Show session info |
+| `/tree` | Navigate the current session tree |
+| `/fork` | Create a new session from a previous user message |
+| `/clone` | Duplicate the current active branch into a new session |
+| `/compact` | Compact transcript lines verbatim while preserving exactly the configured number of newest context-visible messages; see [Compaction](/compaction) |
+| `/export [file]` | Export session to HTML |
+| `/share` | Upload as private GitHub gist with shareable HTML link |
+
+## Resuming and Deleting Sessions
+
+`/resume` opens an interactive session picker for the current project. `atomic -r` opens the same picker at startup.
+
+When Atomic reconstructs a resumed session, the latest active verbatim `compaction` entry supplies one boundary text message: the durable compacted transcript string with the kept tail serialized and appended to its end rather than replayed as separate message blocks. A zero-retention boundary stores `firstKeptEntryId: null` and replays no pre-boundary ordinary message. Resume does not rerun a planner or re-derive omissions. Legacy logical-deletion `context_compaction` entries are inert archival records, so previously hidden content can re-enter context in sessions created by older versions.
+
+In the picker you can:
+
+- search by typing
+- toggle path display with CTRL+P
+- toggle sort mode with CTRL+S
+- filter to named sessions with CTRL+N
+- rename with CTRL+R
+- delete with CTRL+D, then confirm
+
+When available, Atomic uses the `trash` CLI for deletion instead of permanently removing files.
+
+The picker opens instantly: its header, search field, and loading indicator paint on the first frame, then sessions are discovered and parsed off the terminal's UI loop. Large session directories are scanned in cooperative batches and a single very large transcript is parsed in yielding chunks, so search, navigation, and cancel stay responsive and no individual session can freeze the picker while it loads. Closing the picker cancels any in-flight scan and discards stale results, so a slow load that finishes after you leave never updates the list.
+
+### Internal (workflow) sessions
+
+Sessions created by workflow stage execution are marked as **internal** and are excluded from the standard `/resume`, `atomic -r`, and `--continue` history by default. This keeps the resume picker focused on your interactive coding sessions. Workflow stage sessions remain fully discoverable and resumable through the workflow-specific path: use `/workflow resume <runId>` (or the workflow tool's resume/status actions) to inspect and continue a workflow run and its stages. A workflow stage session can still be opened directly by passing its file path to `--session`.
+
+Legacy workflow sessions created before this behavior lack the internal marker and will continue to appear in the standard history until they age out or are deleted.
+
+## Naming Sessions
+
+Use `/name <name>` to set a human-readable session name:
+
+```text
+/name Refactor auth module
+```
+
+Set the name at startup with `--name` or `-n`:
+
+```bash
+atomic --name "Refactor auth module"
+atomic --name "CI audit" -p "Review this build failure"
+```
+
+Named sessions are easier to find in `/resume` and `atomic -r`.
+
+## Branching with `/tree`
+
+Sessions are stored as trees. Every entry has an `id` and `parentId`, and the current position is the active leaf. `/tree` lets you jump to any previous point and continue from there without creating a new file.
+
+<p align="center"><img src="images/tree-view.png" alt="Tree View" width="600" /></p>
+
+Example shape:
+
+```text
+├─ user: "Hello, can you help..."
+│  └─ assistant: "Of course! I can..."
+│     ├─ user: "Let's try approach A..."
+│     │  └─ assistant: "For approach A..."
+│     │     └─ user: "That worked..."  ← active
+│     └─ user: "Actually, approach B..."
+│        └─ assistant: "For approach B..."
+```
+
+### Tree Controls
+
+| Key | Action |
+|-----|--------|
+| ↑/↓ | Navigate visible entries |
+| ←/→ | Page up/down |
+| CTRL+←/CTRL+→ or ALT+←/ALT+→ | Fold/unfold or jump between branch segments |
+| SHIFT+L | Set or clear a label on the selected entry |
+| SHIFT+T | Toggle label timestamps |
+| Enter | Select entry |
+| Escape/CTRL+C | Cancel |
+| CTRL+O | Cycle filter mode |
+
+Filter modes are: default, no-tools, user-only, labeled-only, and all. Configure the default with `treeFilterMode` in [Settings](/settings).
+
+### Selection Behavior
+
+Selecting a user or custom message:
+
+1. Moves the leaf to the selected message's parent.
+2. Places the selected message text in the editor.
+3. Lets you edit and resubmit, creating a new branch.
+
+Selecting an assistant, tool, compaction, or other non-user entry:
+
+1. Moves the leaf to that entry.
+2. Leaves the editor empty.
+3. Lets you continue from that point.
+
+Selecting the root user message resets the leaf to an empty conversation and places the original prompt in the editor.
+
+## `/tree`, `/fork`, and `/clone`
+
+| Feature | `/tree` | `/fork` | `/clone` |
+|---------|---------|---------|----------|
+| Output | Same session file | New session file | New session file |
+| View | Full tree | User-message selector | Current active branch |
+| Typical use | Explore alternatives in place | Start a new session from an earlier prompt | Duplicate current work before continuing |
+| Summary | Optional branch summary | None | None |
+
+Use `/tree` when you want to keep alternatives together. Use `/fork` or `/clone` when you want a separate session file.
+
+## Branch Summaries
+
+When `/tree` switches away from one branch to another, Atomic can summarize the abandoned branch and attach that summary at the new position. This preserves important context from the path you left without replaying the whole branch.
+
+When prompted, choose one of:
+
+1. no summary
+2. summarize with the default prompt
+3. summarize with custom focus instructions
+
+Branch summaries are separate from `/compact`: branch navigation can generate summary prose (optionally with focus instructions), while Verbatim Compaction lets a model select numbered line ranges and reconstructs retained text mechanically.
+
+See [Compaction](/compaction) for Verbatim Compaction, branch summarization internals, and extension hooks.
+
+## Session Format
+
+Session files are JSONL and contain message entries, model changes, thinking-level changes, context-window changes, labels, active verbatim `compaction` boundaries, branch summaries, and extension entries. Retired `context_compaction` and non-verbatim `compaction` records remain parseable but inert.
+
+For parsers, extensions, SDK usage, and the full SessionManager API, see [Session Format](/session-format).

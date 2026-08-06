@@ -8,13 +8,49 @@
         "noUnusedParameters": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
+        "types": ["bun"],
+        "typeRoots": ["./node_modules/@types"],
         "lib": ["ESNext"],
-        "types": ["node"],
         "allowImportingTsExtensions": true,
+        "allowArbitraryExtensions": true,
         "noEmit": true,
+        "resolveJsonModule": true,
         "isolatedModules": true,
-        "verbatimModuleSyntax": true
+        "verbatimModuleSyntax": true,
+        "paths": {
+            "@bastani/atomic": ["./packages/coding-agent/src/index.ts"],
+            "@bastani/workflows": ["./packages/workflows/src/index.ts"],
+            "@bastani/workflows/builtin": ["./packages/workflows/builtin/index.ts"],
+            "@bastani/workflows/builtin/*": ["./packages/workflows/builtin/*"],
+            "@bastani/workflows/*": ["./packages/workflows/src/*"],
+            "@bastani/subagents": [
+                "./packages/subagents/src/extension/index.ts"
+            ],
+            "@bastani/subagents/*": ["./packages/subagents/src/*"],
+            "@bastani/mcp": ["./packages/mcp/index.ts"],
+            "@bastani/mcp/*": ["./packages/mcp/*"],
+            "@bastani/web-access": ["./packages/web-access/index.ts"],
+            "@bastani/web-access/*": ["./packages/web-access/*"],
+            "@bastani/intercom": ["./packages/intercom/index.ts"],
+            "@bastani/intercom/*": ["./packages/intercom/*"],
+            "@bastani/roundtable": ["./packages/roundtable/index.ts"],
+            "@bastani/roundtable/*": ["./packages/roundtable/*"]
+        }
     },
-    "include": ["src/**/*", "demo/**/*", "test/**/*", "bin/**/*"],
-    "exclude": ["node_modules", "integrations"]
+    "include": [
+        "packages/coding-agent/src/**/*.d.ts",
+        "packages/workflows/**/*",
+        "packages/roundtable/**/*",
+        "test/**/*",
+        "examples/**/*",
+        ".atomic/workflows/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "packages/coding-agent",
+        "packages/subagents",
+        "packages/mcp",
+        "packages/web-access",
+        "packages/intercom"
+    ]
 }

@@ -1,0 +1,196 @@
+import { describe, expect, test } from "vitest";
+import { buildSystemPrompt } from "../src/core/system-prompt.ts";
+
+const DEFAULT_COMMUNICATION_GUIDELINES = `- Never use a familiar printed metaphor, simile, or figure of speech.
+- Never use a long word where a short one will do.
+- Cut every word that can be cut.
+- Use active rather than passive voice where possible.
+- Prefer everyday English to foreign phrases, scientific terms, and jargon.
+- Break any rule rather than say anything outright barbarous.`;
+
+describe("buildSystemPrompt", () => {
+	describe("empty tools", () => {
+		test("shows (none) for empty tools list", () => {
+			const prompt = buildSystemPrompt({
+				selectedTools: [],
+				contextFiles: [],
+				skills: [],
+				cwd: process.cwd(),
+			});
+
+			expect(prompt).toContain("Available tools:\n(none)");
+		});
+
+		test("shows file paths guideline even with no tools", () => {
+			const prompt = buildSystemPrompt({
+				selectedTools: [],
+				contextFiles: [],
+				skills: [],
+				cwd: process.cwd(),
+			});
+
+			expect(prompt).toContain("Show file paths clearly");
+		});
+	});
+
+	describe("default tools", () => {
+		test("includes all default tools when snippets are provided", () => {
+			const prompt = buildSystemPrompt({
+				toolSnippets: {
+					read: "Read file contents",
+					bash: "Execute bash commands",
+					edit: "Make surgical edits",
+					write: "Create or overwrite files",
+					find: "Find filesystem paths",
+					search: "Search file contents",
+					ask_user_question: "Ask structured user questions",
+					todo: "Manage file-based todos",
+				},
+				contextFiles: [],
+				skills: [],
+				cwd: process.cwd(),
+			});
+
+			expect(prompt).toContain("- read:");
+			expect(prompt).toContain("- bash:");
+			expect(prompt).toContain("- edit:");
+			expect(prompt).toContain("- write:");
+			expect(prompt).toContain("- find:");
+			expect(prompt).toContain("- search:");
+			expect(prompt).toContain("- ask_user_question:");
+			expect(prompt).toContain("- todo:");
+		});
+	});
+
+	describe("custom tool snippets", () => {
+		test("includes custom tools in available tools section when promptSnippet is provided", () => {
+			const prompt = buildSystemPrompt({
+				selectedTools: ["read", "dynamic_tool"],
+				toolSnippets: {
+					dynamic_tool: "Run dynamic test behavior",
+				},
+				contextFiles: [],
+				skills: [],
+				cwd: process.cwd(),
+			});
+
+			expect(prompt).toContain("- dynamic_tool: Run dynamic test behavior");
+		});
+
+		test("omits custom tools from available tools section when promptSnippet is not provided", () => {
+			const prompt = buildSystemPrompt({
+				selectedTools: ["read", "dynamic_tool"],
+				contextFiles: [],
+				skills: [],
+				cwd: process.cwd(),
+			});
+
+			expect(prompt).not.toContain("dynamic_tool");
+		});
+	});
+
+	describe("model attribution", () => {
+		test("includes selected model name and reasoning level before date and working directory", () => {
+			const prompt = buildSystemPrompt({
+				selectedTools: [],
+				contextFiles: [],
+				skills: [],
+				cwd: process.cwd(),
+				selectedModel: {
+					provider: "anthropic",
+					id: "claude-sonnet-4-5",
+					name: "Claude Sonnet 4.5",
+				},
+				selectedThinkingLevel: "high",
+			});
+
+			const modelLine = "Model name (used for commit attribution): Claude Sonnet 4.5";
+			const reasoningLine = "Model reasoning level: high";
+			expect(prompt).toContain(modelLine);
+			expect(prompt).toContain(reasoningLine);
+			expect(prompt.indexOf(modelLine)).toBeLessThan(prompt.indexOf(reasoningLine));
+			expect(prompt.indexOf(reasoningLine)).toBeLessThan(prompt.indexOf("Current date:"));
+			expect(prompt.indexOf("Current date:")).toBeLessThan(prompt.indexOf("Current working directory:"));
+		});
+
+		test("falls back to selected model id when no display name is available", () => {
+			const prompt = buildSystemPrompt({
+				customPrompt: "Custom prompt",
+				selectedTools: [],
+				contextFiles: [],
+				skills: [],
+				cwd: process.cwd(),
+				selectedModel: {
+					provider: "openai",
+					id: "gpt-5.1-codex",
+				},
+			});
+
+			expect(prompt).toContain("Model name (used for commit attribution): gpt-5.1-codex");
+		});
+	});
+
+	describe("prompt guidelines", () => {
+		test("appends promptGuidelines to default guidelines", () => {
+			const prompt = buildSystemPrompt({
+				selectedTools: ["read", "dynamic_tool"],
+				promptGuidelines: ["Use dynamic_tool for project summaries."],
+				contextFiles: [],
+				skills: [],
+				cwd: process.cwd(),
+			});
+
+			expect(prompt).toContain("- Use dynamic_tool for project summaries.");
+		});
+
+		test("deduplicates and trims promptGuidelines", () => {
+			const prompt = buildSystemPrompt({
+				selectedTools: ["read", "dynamic_tool"],
+				promptGuidelines: ["Use dynamic_tool for summaries.", "  Use dynamic_tool for summaries.  ", "   "],
+				contextFiles: [],
+				skills: [],
+				cwd: process.cwd(),
+			});
+
+			expect(prompt.match(/- Use dynamic_tool for summaries\./g)).toHaveLength(1);
+		});
+	});
+
+	test("includes all six core communication rules without promptGuidelines", () => {
+		const prompt = buildSystemPrompt({
+			selectedTools: [],
+			contextFiles: [],
+			skills: [],
+			cwd: process.cwd(),
+		});
+
+		expect(prompt).toContain(`Guidelines:\n${DEFAULT_COMMUNICATION_GUIDELINES}`);
+	});
+
+	test("keeps core communication rules when tool promptGuidelines are present", () => {
+		const prompt = buildSystemPrompt({
+			selectedTools: [],
+			promptGuidelines: ["**Workflows**: Workflow-specific sentinel."],
+			contextFiles: [],
+			skills: [],
+			cwd: process.cwd(),
+		});
+		const guidelines = prompt.slice(prompt.indexOf("Guidelines:\n"), prompt.indexOf("\n\nAtomic documentation"));
+
+		expect(guidelines).toContain("- **Workflows**: Workflow-specific sentinel.");
+		expect(guidelines).toContain(DEFAULT_COMMUNICATION_GUIDELINES);
+	});
+
+	describe("workflow guidance", () => {
+		test("does not inject workflow guidance directly from system-prompt", () => {
+			const prompt = buildSystemPrompt({
+				selectedTools: [],
+				contextFiles: [],
+				skills: [],
+				cwd: process.cwd(),
+			});
+
+			expect(prompt).not.toContain("- **Workflows**:");
+		});
+	});
+});

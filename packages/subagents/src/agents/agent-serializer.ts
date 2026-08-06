@@ -1,0 +1,91 @@
+import type { AgentConfig } from "./agents.ts";
+import { frontmatterNameForConfig } from "./identity.ts";
+
+export const KNOWN_FIELDS = new Set([
+	"name",
+	"package",
+	"description",
+	"tools",
+	"model",
+	"fallbackModels",
+	"fallbackThinkingLevels",
+	"thinking",
+	"systemPromptMode",
+	"inheritProjectContext",
+	"inheritSkills",
+	"defaultContext",
+	"skill",
+	"skills",
+	"extensions",
+	"output",
+	"defaultReads",
+	"defaultProgress",
+	"interactive",
+	"maxSubagentDepth",
+]);
+
+const REMOVED_AGENT_FRONTMATTER_FIELDS = new Set<string>([`completion${"Guard"}`]);
+
+export function shouldPreserveAgentExtraField(key: string): boolean {
+	return !KNOWN_FIELDS.has(key) && !REMOVED_AGENT_FRONTMATTER_FIELDS.has(key);
+}
+
+function joinComma(values: string[] | undefined): string | undefined {
+	if (!values || values.length === 0) return undefined;
+	return values.join(", ");
+}
+
+export function serializeAgent(config: AgentConfig): string {
+	const lines: string[] = [];
+	lines.push("---");
+	lines.push(`name: ${frontmatterNameForConfig(config)}`);
+	if (config.packageName) lines.push(`package: ${config.packageName}`);
+	lines.push(`description: ${config.description}`);
+
+	const tools = [...(config.tools ?? []), ...(config.mcpDirectTools ?? []).map((tool) => `mcp:${tool}`)];
+	const toolsValue = joinComma(tools);
+	if (toolsValue) lines.push(`tools: ${toolsValue}`);
+
+	if (config.model) lines.push(`model: ${config.model}`);
+	const fallbackModelsValue = joinComma(config.fallbackModels);
+	if (fallbackModelsValue) lines.push(`fallbackModels: ${fallbackModelsValue}`);
+	const fallbackThinkingLevelsValue = joinComma(config.fallbackThinkingLevels);
+	if (fallbackThinkingLevelsValue) lines.push(`fallbackThinkingLevels: ${fallbackThinkingLevelsValue}`);
+	if (config.thinking && config.thinking !== "off") lines.push(`thinking: ${config.thinking}`);
+	lines.push(`systemPromptMode: ${config.systemPromptMode}`);
+	lines.push(`inheritProjectContext: ${config.inheritProjectContext ? "true" : "false"}`);
+	lines.push(`inheritSkills: ${config.inheritSkills ? "true" : "false"}`);
+	if (config.defaultContext) lines.push(`defaultContext: ${config.defaultContext}`);
+
+	const skillsValue = joinComma(config.skills);
+	if (skillsValue) lines.push(`skills: ${skillsValue}`);
+
+	if (config.extensions !== undefined) {
+		const extensionsValue = joinComma(config.extensions);
+		lines.push(`extensions: ${extensionsValue ?? ""}`);
+	}
+
+	if (config.output) lines.push(`output: ${config.output}`);
+
+	const readsValue = joinComma(config.defaultReads);
+	if (readsValue) lines.push(`defaultReads: ${readsValue}`);
+
+	if (config.defaultProgress) lines.push("defaultProgress: true");
+	if (config.interactive) lines.push("interactive: true");
+	const maxSubagentDepth = config.maxSubagentDepth;
+	if (typeof maxSubagentDepth === "number" && Number.isInteger(maxSubagentDepth) && maxSubagentDepth >= 0) {
+		lines.push(`maxSubagentDepth: ${maxSubagentDepth}`);
+	}
+
+	if (config.extraFields) {
+		for (const [key, value] of Object.entries(config.extraFields)) {
+			if (!shouldPreserveAgentExtraField(key)) continue;
+			lines.push(`${key}: ${value}`);
+		}
+	}
+
+	lines.push("---");
+
+	const body = config.systemPrompt ?? "";
+	return `${lines.join("\n")}\n\n${body}\n`;
+}

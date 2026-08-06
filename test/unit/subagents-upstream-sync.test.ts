@@ -1,0 +1,416 @@
+import assert from "node:assert/strict";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import type { AgentMessage } from "@earendil-works/pi-agent-core";
+import { Value } from "typebox/value";
+import { describe, test } from "vitest";
+import { convertToLlm } from "../../packages/coding-agent/src/core/messages.js";
+import type { ExtensionContext } from "../../packages/coding-agent/src/index.js";
+import type { AgentConfig } from "../../packages/subagents/src/agents/agent-types.js";
+import { SubagentParams } from "../../packages/subagents/src/extension/schemas.js";
+import { createSubagentExecutor } from "../../packages/subagents/src/runs/foreground/subagent-executor.js";
+import type {
+	ExecutorDeps,
+	SubagentExecutorRuntimeDeps,
+} from "../../packages/subagents/src/runs/foreground/subagent-executor-types.js";
+import { stripParentOnlySubagentMessages } from "../../packages/subagents/src/runs/inprocess/prompt-behavior.js";
+import type { SingleResult, SubagentAttemptStatus, Usage } from "../../packages/subagents/src/shared/types.js";
+import { resolveTopLevelParallelMaxTasks } from "../../packages/subagents/src/shared/types.js";
+import {
+	PROMPT_TEMPLATE_SUBAGENT_REQUEST_EVENT,
+	PROMPT_TEMPLATE_SUBAGENT_RESPONSE_EVENT,
+	registerPromptTemplateDelegationBridge,
+} from "../../packages/subagents/src/slash/prompt-template-bridge.js";
+
+type Handler = (data: unknown) => void;
+
+class FakeEvents {
+	private readonly handlers = new Map<string, Set<Handler>>();
+
+	on(event: string, handler: Handler): () => void {
+		const handlers = this.handlers.get(event) ?? new Set<Handler>();
+		handlers.add(handler);
+		this.handlers.set(event, handlers);
+		return () => handlers.delete(handler);
+	}
+
+	emit(event: string, data: unknown): void {
+		for (const handler of this.handlers.get(event) ?? []) handler(data);
+	}
+}
+
+function once(events: FakeEvents, event: string): Promise<unknown> {
+	return new Promise((resolve) => {
+		const unsubscribe = events.on(event, (data) => {
+			unsubscribe();
+			resolve(data);
+		});
+	});
+}
+
+const usage: Usage = {
+	input: 0,
+	output: 0,
+	cacheRead: 0,
+	cacheWrite: 0,
+	cost: 0,
+	turns: 0,
+};
+
+function makeAgent(name: string): AgentConfig {
+	return {
+		name,
+		description: `${name} test agent`,
+		systemPromptMode: "replace",
+		inheritProjectContext: false,
+		inheritSkills: false,
+		systemPrompt: "You are a test agent.",
+		source: "project",
+		filePath: `/tmp/${name}.md`,
+	};
+}
+
+function makeState(): ExecutorDeps["state"] {
+	return {
+		baseCwd: "",
+		currentSessionId: null,
+		asyncJobs: new Map(),
+		foregroundRuns: new Map(),
+		foregroundControls: new Map(),
+		lastForegroundControlId: null,
+		cleanupTimers: new Map(),
+		lastUiContext: null,
+		poller: null,
+		completionSeen: new Map(),
+		watcher: null,
+		watcherRestartTimer: null,
+		resultFileCoalescer: {
+			schedule: () => false,
+			clear: () => {},
+		},
+	};
+}
+
+function makeContext(cwd: string): ExtensionContext {
+	return {
+		cwd,
+		mode: "tui",
+		hasUI: false,
+		ui: { custom: async <T>() => undefined as T },
+		model: undefined,
+		modelRegistry: { getAvailable: () => [] },
+		sessionManager: {
+			getSessionFile: () => undefined,
+			getSessionId: () => "parent-session",
+			getLeafId: () => null,
+		},
+		isIdle: () => true,
+		isProjectTrusted: () => true,
+		signal: undefined,
+		abort: () => {},
+		hasPendingMessages: () => false,
+		shutdown: () => {},
+		getContextUsage: () => undefined,
+		compact: () => {},
+		getSystemPrompt: () => "",
+	} as unknown as ExtensionContext;
+}
+
+function makeExecutor(input: {
+	cwd: string;
+	agents: AgentConfig[];
+	runSync: SubagentExecutorRuntimeDeps["runSync"];
+}): ReturnType<typeof createSubagentExecutor> {
+	const deps: ExecutorDeps = {
+		pi: {
+			events: { on: () => () => {}, emit: () => {} },
+			getSessionName: () => "parent-session-name",
+		} as unknown as ExecutorDeps["pi"],
+		state: makeState(),
+		config: { maxSubagentDepth: 2, parallel: { concurrency: 4, maxTasks: 50 } } as ExecutorDeps["config"],
+		asyncByDefault: false,
+		tempArtifactsDir: join(input.cwd, "artifacts"),
+		getSubagentSessionRoot: () => join(input.cwd, "sessions"),
+		expandTilde: (p) => p,
+		discoverAgents: () => ({ agents: input.agents }),
+		runtime: { runSync: input.runSync },
+	};
+	return createSubagentExecutor(deps);
+}
+
+function result(
+	agent: string,
+	task: string,
+	status: SubagentAttemptStatus = "ok",
+	finalOutput = "ok",
+	error?: string,
+): SingleResult {
+	return {
+		agent,
+		task,
+		status,
+		messages: [],
+		usage,
+		finalOutput,
+		...(error ? { error } : {}),
+		artifactPaths: {
+			inputPath: "/tmp/in.md",
+			outputPath: "/tmp/out.md",
+			jsonlPath: "/tmp/run.jsonl",
+			metadataPath: "/tmp/meta.json",
+		},
+	};
+}
+
+describe("recent upstream subagent syncs", () => {
+	test("rebuilds compact delegated tool-call summaries into response messages", async () => {
+		const events = new FakeEvents();
+		const bridge = registerPromptTemplateDelegationBridge({
+			events,
+			getContext: () => ({ cwd: "/repo" }),
+			execute: async () => ({
+				details: {
+					results: [
+						{
+							finalOutput: "finished",
+							toolCalls: [
+								{ text: "write src/output.md", expandedText: "write src/output.md" },
+								{ text: "$ bun test", expandedText: "$ bun test" },
+							],
+						},
+					],
+				},
+			}),
+		});
+
+		const responsePromise = once(events, PROMPT_TEMPLATE_SUBAGENT_RESPONSE_EVENT);
+		events.emit(PROMPT_TEMPLATE_SUBAGENT_REQUEST_EVENT, {
+			requestId: "r-compact-tools",
+			agent: "worker",
+			task: "do work",
+			context: "fresh",
+			model: "openai/gpt-5",
+			cwd: "/repo",
+		});
+
+		const response = (await responsePromise) as {
+			messages: Array<{ role?: string; content?: Array<{ type?: string; text?: string }> }>;
+		};
+		const content = response.messages[0]?.content ?? [];
+		const text = content.find((part) => part.type === "text")?.text ?? "";
+		assert.equal(
+			content.some((part) => part.type === "toolCall"),
+			false,
+		);
+		assert.match(text, /Tool calls:\n- write src\/output\.md\n- \$ bun test/);
+		assert.match(text, /finished/);
+		assert.equal(
+			convertToLlm(response.messages as AgentMessage[]).some(
+				(message) => message.role === "assistant" && message.content.some((part) => part.type === "toolCall"),
+			),
+			false,
+		);
+		bridge.dispose();
+	});
+
+	test("preserves live nested subagent history in fanout child context", () => {
+		const user = { role: "user", content: "Task" };
+		const subagentCall = {
+			role: "assistant",
+			content: [{ type: "toolCall", name: "subagent", input: { agent: "delegate" } }],
+		};
+		const subagentResult = { role: "toolResult", toolName: "subagent", content: "OK" };
+		const slashTextResult = {
+			role: "custom",
+			customType: "subagent-slash-text-result",
+			content: "Subagent profiles",
+		};
+
+		assert.deepEqual(stripParentOnlySubagentMessages([user, subagentCall, subagentResult, slashTextResult], true), [
+			user,
+			subagentCall,
+			subagentResult,
+		]);
+	});
+
+	test("omits provider-rejected chain schema keywords", () => {
+		const serialized = JSON.stringify(SubagentParams);
+		for (const keyword of ["allOf", "const", "if", "then", "not"]) {
+			assert.equal(serialized.includes(`"${keyword}"`), false, `schema should omit ${keyword}`);
+		}
+	});
+
+	test("defaults the top-level parallel task maximum to 50 and only allows config to lower it", () => {
+		assert.equal(resolveTopLevelParallelMaxTasks(undefined), 50);
+		assert.equal(resolveTopLevelParallelMaxTasks(12), 12);
+		assert.equal(resolveTopLevelParallelMaxTasks(51), 50);
+	});
+
+	test("accepts 50 top-level parallel tasks in the tool schema and rejects 51", () => {
+		const makeTasks = (count: number) =>
+			Array.from({ length: count }, (_, index) => ({
+				agent: "worker",
+				task: `Task ${index + 1}`,
+			}));
+
+		assert.equal(Value.Check(SubagentParams, { tasks: makeTasks(50) }), true);
+		assert.equal(Value.Check(SubagentParams, { tasks: makeTasks(51) }), false);
+	});
+
+	test("rejects more than 50 expanded top-level parallel tasks at runtime", async () => {
+		const cwd = mkdtempSync(join(tmpdir(), "atomic-subagent-parallel-limit-"));
+		try {
+			let runCount = 0;
+			const executor = makeExecutor({
+				cwd,
+				agents: [makeAgent("worker")],
+				runSync: async (_parentCwd, _agents, agentName, task) => {
+					runCount += 1;
+					return result(agentName, task);
+				},
+			});
+
+			const output = await executor.execute(
+				"parallel-limit",
+				{
+					tasks: [{ agent: "worker", task: "Repeated task", count: 51 }],
+				},
+				new AbortController().signal,
+				undefined,
+				makeContext(cwd),
+			);
+			const text = output.content[0]?.type === "text" ? output.content[0].text : "";
+
+			assert.equal(output.isError, true);
+			assert.equal(text, "Max 50 tasks");
+			assert.equal(runCount, 0);
+		} finally {
+			rmSync(cwd, { recursive: true, force: true });
+		}
+	});
+
+	test("returns clear runtime errors for malformed dynamic fanout shapes", async () => {
+		const cwd = mkdtempSync(join(tmpdir(), "atomic-subagent-malformed-chain-"));
+		try {
+			let runCount = 0;
+			const executor = makeExecutor({
+				cwd,
+				agents: [makeAgent("scout"), makeAgent("reviewer")],
+				runSync: async (_parentCwd, _agents, agentName, task) => {
+					runCount += 1;
+					return result(agentName, task);
+				},
+			});
+
+			const output = await executor.execute(
+				"malformed-chain",
+				{
+					chain: [
+						{ agent: "scout", task: "Find targets", as: "targets", outputSchema: { type: "object" } },
+						{
+							expand: { from: { output: "targets", path: "/items" }, maxItems: 4 },
+							parallel: [{ agent: "reviewer", task: "Review" }],
+							collect: { as: "reviews" },
+						},
+					] as never,
+				},
+				new AbortController().signal,
+				undefined,
+				makeContext(cwd),
+			);
+			const text = output.content[0]?.type === "text" ? output.content[0].text : "";
+
+			assert.equal(output.isError, true);
+			assert.match(text, /requires expand, a single parallel template object, and collect/);
+			assert.equal(runCount, 0);
+		} finally {
+			rmSync(cwd, { recursive: true, force: true });
+		}
+	});
+
+	test("rejects duplicate concurrent execution calls but allows management", async () => {
+		const cwd = mkdtempSync(join(tmpdir(), "atomic-subagent-upstream-sync-"));
+		try {
+			const calls: string[] = [];
+			const executor = makeExecutor({
+				cwd,
+				agents: [makeAgent("echo")],
+				runSync: async (_parentCwd, _agents, agentName, task) => {
+					calls.push(agentName);
+					await new Promise((resolve) => setTimeout(resolve, 50));
+					return result(agentName, task);
+				},
+			});
+			const ctx = makeContext(cwd);
+
+			const first = executor.execute(
+				"first",
+				{ agent: "echo", task: "First" },
+				new AbortController().signal,
+				undefined,
+				ctx,
+			);
+			const second = await executor.execute(
+				"second",
+				{ agent: "echo", task: "Duplicate" },
+				new AbortController().signal,
+				undefined,
+				ctx,
+			);
+			const status = await executor.execute(
+				"status",
+				{ action: "status" },
+				new AbortController().signal,
+				undefined,
+				ctx,
+			);
+			const firstResult = await first;
+
+			assert.equal(firstResult.isError, undefined);
+			assert.equal(second.isError, true);
+			assert.match(
+				second.content[0]?.type === "text" ? second.content[0].text : "",
+				/Issue exactly ONE subagent call per turn/,
+			);
+			assert.equal(status.isError, undefined);
+			assert.equal(calls.length, 1);
+		} finally {
+			rmSync(cwd, { recursive: true, force: true });
+		}
+	});
+
+	test("includes captured output when a foreground single run fails", async () => {
+		const cwd = mkdtempSync(join(tmpdir(), "atomic-subagent-failed-output-"));
+		try {
+			const executor = makeExecutor({
+				cwd,
+				agents: [makeAgent("oracle")],
+				runSync: async (_parentCwd, _agents, agentName, task) =>
+					result(
+						agentName,
+						task,
+						"error",
+						"Oracle review:\n- finding one\n- finding two",
+						"completed without making edits",
+					),
+			});
+
+			const output = await executor.execute(
+				"failed",
+				{ agent: "oracle", task: "Implement" },
+				new AbortController().signal,
+				undefined,
+				makeContext(cwd),
+			);
+			const text = output.content[0]?.type === "text" ? output.content[0].text : "";
+
+			assert.equal(output.isError, true);
+			assert.match(text, /completed without making edits/);
+			assert.match(text, /Output:\nOracle review:\n- finding one\n- finding two/);
+			assert.match(text, /Output artifact: \/tmp\/out\.md/);
+		} finally {
+			rmSync(cwd, { recursive: true, force: true });
+		}
+	});
+});

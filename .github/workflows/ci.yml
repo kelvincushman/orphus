@@ -1,20 +1,53 @@
-name: CI
+name: Orphus
+
+# The Orphus-specific gate: rooms, the digest bound, and the role launcher.
+#
+# The inherited Atomic workflows (test.yml, publish.yml, warm-toolchain-cache.yml)
+# target Blacksmith runners that only exist on the upstream org, and
+# test/ci/test-workflow-topology.test.ts pins their runner names — so they are
+# left byte-identical to upstream and disabled at the repository level rather
+# than rewritten here. Their full suites (unit 5.8k, integration, CI contracts)
+# still run locally on every commit and push via the prek hooks in prek.toml.
+
 on:
   push:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      # Bun runs the demo and the role launcher; see AGENTS.md for the split.
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
-      - run: bun install
-      - run: bun run typecheck
-      - run: bun run test
-      - run: bun run demo
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Scoped to the Orphus additions: these need no native bindings, so the
+      # gate stays fast and honest about what it actually covers.
+      - name: Rooms and role-launcher tests
+        run: npx vitest --run --project unit test/unit/roundtable-
+
+      - name: Demo — bounded digest for a late joiner
+        run: bun packages/roundtable/demo/run-demo.ts
+        env:
+          ORPHUS_CODING_AGENT_DIR: ${{ runner.temp }}/orphus-agent
+
       # The example manifest ships as a template; keep it parseable and planable.
-      - run: bun run roles --format json
+      - name: Role manifest plans
+        run: bun packages/roundtable/bin/orphus-roles.ts --format json

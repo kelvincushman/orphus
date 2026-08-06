@@ -1,0 +1,837 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Changed
+
+- In-process subagents now receive MCP direct-tool selection through typed admission policy. Omitted selection preserves MCP configuration defaults, a list selects exact server/tool entries, and an empty list disables direct tools; the process-era environment bridge has been removed ([#2188](https://github.com/bastani-inc/atomic/issues/2188)).
+
+## [0.9.12] - 2026-08-04
+
+### Fixed
+
+- Fixed bundled MCP resources failing to load on Windows when shared modules used mixed `.ts` and `.js` import spellings.
+
+## [0.9.12-alpha.1] - 2026-08-04
+
+### Fixed
+
+- Fixed bundled MCP resources failing to load on Windows when shared modules used mixed `.ts` and `.js` import spellings.
+
+## [0.9.11] - 2026-08-03
+
+### Removed
+
+- Removed Cursor MCP configuration discovery and the `cursor` compatibility import kind ([#1994](https://github.com/bastani-inc/atomic/issues/1994)).
+
+### Fixed
+
+- Declared `handlesCtrlC` on the `/mcp` panel, the `/mcp setup` panel, and the MCP OAuth panel, so Ctrl+C still reaches each panel's own handler — and its cancel and cleanup work — in isolated interactive sessions.
+
+## [0.9.11-alpha.9] - 2026-08-01
+
+### Fixed
+
+- Declared `handlesCtrlC` on the `/mcp` panel, the `/mcp setup` panel, and the MCP OAuth panel. In isolated interactive sessions the terminal host now closes an undeclared remote `ctx.ui.custom()` component on the first Ctrl+C, which would have bypassed each panel's own Ctrl+C handler along with its cancel and cleanup work. The declaration keeps that handler running.
+
+## [0.9.11-alpha.6] - 2026-07-28
+
+### Removed
+
+- Removed Cursor MCP configuration discovery and the `cursor` compatibility import kind ([#1994](https://github.com/bastani-inc/atomic/issues/1994)).
+
+## [0.9.11-alpha.1] - 2026-07-20
+
+### Changed
+
+- Published a synchronized Atomic 0.9.11-alpha.1 prerelease for the MCP extension; no functional MCP changes were made after 0.9.10.
+
+## [0.9.10] - 2026-07-20
+
+### Added
+
+- Added validated per-server MCP tool-call inactivity timeouts for local and remote servers, with progress-aware timer resets, user-readable timeout errors, and preserved host cancellation.
+
+### Fixed
+
+- Fixed collapsed MCP results showing a malformed or unavailable expand shortcut when `app.tools.expand` is remapped or unbound.
+- Preserved credential-specific `baseUrl` overrides for MCP sampling requests so enterprise/provider-owned endpoints are used alongside dynamic API keys and headers ([#1875](https://github.com/bastani-inc/atomic/issues/1875)).
+
+## [0.9.10-alpha.1] - 2026-07-19
+
+### Added
+
+- Added validated per-server MCP tool-call inactivity timeouts for local and remote servers, with progress-aware timer resets, user-readable timeout errors, and preserved host cancellation.
+
+### Fixed
+
+- Fixed collapsed MCP results showing a malformed or unavailable expand shortcut when `app.tools.expand` is remapped or unbound.
+- Preserved credential-specific `baseUrl` overrides for MCP sampling requests so enterprise/provider-owned endpoints are used alongside dynamic API keys and headers ([#1875](https://github.com/bastani-inc/atomic/issues/1875)).
+
+## [0.9.9] - 2026-07-15
+
+### Changed
+
+- Aligned the MCP extension peer dependencies with `@earendil-works/pi-ai` and `@earendil-works/pi-tui` `^0.80.7` as part of the consolidated Pi v0.80.7 dependency update; no MCP source changes were needed.
+- Updated the runtime `typebox` range to `^1.3.6`.
+
+## [0.9.9-alpha.4] - 2026-07-15
+
+### Changed
+
+- Published a synchronized Atomic 0.9.9-alpha.4 prerelease for the MCP extension; no functional MCP changes were made after 0.9.9-alpha.3.
+
+## [0.9.9-alpha.3] - 2026-07-14
+
+### Changed
+
+- Published a synchronized Atomic 0.9.9-alpha.3 prerelease for the MCP extension; no functional MCP changes were made after 0.9.9-alpha.2.
+
+## [0.9.9-alpha.2] - 2026-07-14
+
+### Changed
+
+- Aligned the MCP extension peer dependencies with `@earendil-works/pi-ai` and `@earendil-works/pi-tui` `^0.80.7` as part of the consolidated Pi v0.80.7 dependency update; no MCP source changes were needed.
+- Updated the runtime `typebox` range to `^1.3.6`.
+
+## [0.9.9-alpha.1] - 2026-07-14
+
+### Changed
+
+- Published a synchronized Atomic 0.9.9-alpha.1 prerelease for the MCP extension; no functional MCP changes were made after 0.9.8.
+
+## [0.9.8] - 2026-07-12
+
+### Changed
+
+- Published the stable Atomic 0.9.8 release for the MCP extension; no functional MCP changes were made after 0.9.7.
+
+## [0.9.8-alpha.1] - 2026-07-12
+
+### Changed
+
+- Published a synchronized Atomic 0.9.8-alpha.1 prerelease for the MCP extension; no functional MCP changes were made after 0.9.7.
+
+## [0.9.7] - 2026-07-12
+
+### Changed
+
+- Published the stable Atomic 0.9.7 release for the MCP extension; no functional MCP changes were made after 0.9.6.
+
+## [0.9.7-alpha.1] - 2026-07-12
+
+### Changed
+
+- Published a synchronized Atomic 0.9.7-alpha.1 prerelease for the MCP extension; no functional MCP changes were made after 0.9.6.
+
+## [0.9.6] - 2026-07-12
+
+### Changed
+
+- Published the stable Atomic 0.9.6 release for the MCP extension; no functional MCP changes were made after 0.9.5.
+
+## [0.9.6-alpha.1] - 2026-07-12
+
+### Changed
+
+- Published a synchronized Atomic 0.9.6-alpha.1 prerelease for the MCP extension; no functional MCP changes were made after 0.9.5.
+
+## [0.9.5] - 2026-07-11
+
+### Changed
+
+- Aligned the MCP extension peer dependencies with upstream `pi-ai`/`pi-tui` `^0.80.6` as part of the consolidated Pi sync; no MCP source behavior changed ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+- Improved startup responsiveness by keeping first-run/default lazy MCP metadata bootstrap out of `initializeMcp()`'s synchronous path. Cached direct tools and the MCP proxy still register immediately, explicit `eager`/`keep-alive` servers still connect during initialization, missing configured or `MCP_DIRECT_TOOLS`-selected direct-tool metadata is warmed in the background, and explicit proxy `search`, `describe`, and server-list requests hydrate cold-cache lazy server metadata on demand instead of broadening startup warmup. Warmed direct tools are registered live in the current session after metadata refresh rather than requiring restart. Cold-cache `describe` first narrows hydration to prefix-matched or explicitly requested servers, treats hyphen/underscore prefixes as aliases, and does not fan out to unrelated lazy servers after a prefix-directed miss; cold-cache proxy `search` intentionally hydrates all matching lazy servers so unscoped searches can see every configured tool.
+
+### Fixed
+
+- Replaced one-shot detached MCP startup with generation-safe, retryable single-flight initialization shared by background startup, proxy/direct tools, and readiness-critical commands. Initialization fast paths now validate the active context and exact session lease, commands retain the state they initialized across lazy module imports, and stale or unpublished state cannot execute or publish after shutdown, restart, or context disposal. Replacement startup normally waits for retired initialization plus state/OAuth cleanup, but bounded observed teardown prevents non-abortable SDK work from permanently poisoning later sessions while fencing late completion.
+- Made readiness, lazy-connection, manager-close, and UI-start waits caller-local across direct tools and proxy connect/call/search/describe/list paths. Pre-aborted calls start no producer; one aborted waiter rejects promptly with its exact reason; late shared failures stay observed; late UI runtimes are closed; and proxy modes plus metadata hydration revalidate session ownership after waits and before metadata mutation or SDK side effects.
+- Completed MCP Apps cancellation lifecycles for direct and proxy UI calls by emitting exactly one terminal `tool-cancelled` before session teardown, preserving the exact host abort reason over SDK wrappers, isolating notification failures, keeping success `tool-result` mutually exclusive, forwarding real cancellation events from reused runtimes, and observing asynchronous browser AppBridge send failures.
+- Aligned MCP tool result expansion hints with the CLI-wide `Ctrl+o` keybinding copy.
+- Fixed MCP background direct-tool warmup cancellation so stale in-flight connects are discarded before metadata/cache mutation, direct-tool refresh callbacks are guarded to the active session, completed warmups clear their active handle safely, and env-selected direct tool servers hydrate without forcing every lazy server eager.
+
+## [0.9.5-alpha.10] - 2026-07-11
+
+### Changed
+
+- Aligned the MCP extension peer dependencies with upstream `pi-ai`/`pi-tui` `^0.80.6` as part of the consolidated Pi sync; no MCP source behavior changed ([#1703](https://github.com/bastani-inc/atomic/issues/1703)).
+
+### Fixed
+
+- Replaced one-shot detached MCP startup with generation-safe, retryable single-flight initialization shared by background startup, proxy/direct tools, and readiness-critical commands. Initialization fast paths now validate the active context and exact session lease, commands retain the state they initialized across lazy module imports, and stale or unpublished state cannot execute or publish after shutdown, restart, or context disposal. Replacement startup normally waits for retired initialization plus state/OAuth cleanup, but bounded observed teardown prevents non-abortable SDK work from permanently poisoning later sessions while fencing late completion.
+- Made readiness, lazy-connection, manager-close, and UI-start waits caller-local across direct tools and proxy connect/call/search/describe/list paths. Pre-aborted calls start no producer; one aborted waiter rejects promptly with its exact reason; late shared failures stay observed; late UI runtimes are closed; and proxy modes plus metadata hydration revalidate session ownership after waits and before metadata mutation or SDK side effects.
+- Completed MCP Apps cancellation lifecycles for direct and proxy UI calls by emitting exactly one terminal `tool-cancelled` before session teardown, preserving the exact host abort reason over SDK wrappers, isolating notification failures, keeping success `tool-result` mutually exclusive, forwarding real cancellation events from reused runtimes, and observing asynchronous browser AppBridge send failures.
+
+## [0.9.5-alpha.9] - 2026-07-09
+
+### Changed
+
+- Improved startup responsiveness by keeping first-run/default lazy MCP metadata bootstrap out of `initializeMcp()`'s synchronous path. Cached direct tools and the MCP proxy still register immediately, explicit `eager`/`keep-alive` servers still connect during initialization, missing configured or `MCP_DIRECT_TOOLS`-selected direct-tool metadata is warmed in the background, and explicit proxy `search`, `describe`, and server-list requests hydrate cold-cache lazy server metadata on demand instead of broadening startup warmup. Warmed direct tools are registered live in the current session after metadata refresh rather than requiring restart. Cold-cache `describe` first narrows hydration to prefix-matched or explicitly requested servers, treats hyphen/underscore prefixes as aliases, and does not fan out to unrelated lazy servers after a prefix-directed miss; cold-cache proxy `search` intentionally hydrates all matching lazy servers so unscoped searches can see every configured tool.
+
+### Fixed
+
+- Aligned MCP tool result expansion hints with the CLI-wide `Ctrl+o` keybinding copy.
+- Fixed MCP background direct-tool warmup cancellation so stale in-flight connects are discarded before metadata/cache mutation, direct-tool refresh callbacks are guarded to the active session, completed warmups clear their active handle safely, and env-selected direct tool servers hydrate without forcing every lazy server eager.
+
+## [0.9.4] - 2026-07-03
+
+### Changed
+
+- Published the stable Atomic 0.9.4 release for the MCP extension with its upstream pi AI/TUI peer dependencies aligned to `^0.80.3`; no MCP extension source changes were needed after 0.9.3.
+
+## [0.9.4-alpha.6] - 2026-07-01
+
+### Changed
+
+- Aligned the MCP extension peer dependencies with upstream pi AI/TUI `^0.80.3`; no MCP extension source changes were needed for this metadata sync.
+
+## [0.9.4-alpha.5] - 2026-07-01
+
+### Changed
+
+- Published a synchronized Atomic 0.9.4-alpha.5 prerelease for the MCP extension; no MCP extension changes were made after 0.9.4-alpha.1.
+
+## [0.9.4-alpha.4] - 2026-06-30
+
+### Changed
+
+- Published a synchronized Atomic 0.9.4-alpha.4 prerelease for the MCP extension; no MCP extension changes were made after 0.9.4-alpha.1.
+
+## [0.9.4-alpha.3] - 2026-06-30
+
+### Changed
+
+- Published a synchronized Atomic 0.9.4-alpha.3 prerelease for the MCP extension; no MCP extension changes were made after 0.9.4-alpha.1.
+
+## [0.9.4-alpha.1] - 2026-06-29
+
+### Changed
+
+- Published a synchronized Atomic 0.9.4-alpha.1 prerelease for the MCP extension; no MCP extension changes were made after 0.9.3.
+
+## [0.9.3] - 2026-06-29
+
+### Changed
+
+- Aligned the MCP extension peer dependencies with upstream pi `^0.80.2` and retargeted legacy provider/model imports to `@earendil-works/pi-ai/compat`, preserving MCP sampling behavior under the updated pi-ai package layout.
+
+### Fixed
+
+- Made `unflattenToolArguments` schema-aware so literal dotted top-level argument keys such as `filter.name` are preserved unless the tool input schema proves the key represents a nested path, while bracket-indexed array/object keys are still reconstructed for direct-tool and proxy/gateway calls.
+
+## [0.9.3-alpha.6] - 2026-06-29
+
+### Changed
+
+- Published a synchronized Atomic 0.9.3-alpha.6 prerelease for the MCP extension; no MCP extension changes were made after 0.9.3-alpha.5.
+
+## [0.9.3-alpha.5] - 2026-06-28
+
+### Changed
+
+- Aligned the MCP extension peer dependencies with upstream pi `^0.80.2` (`@earendil-works/pi-ai` and `@earendil-works/pi-tui`) and retargeted legacy provider/model imports to `@earendil-works/pi-ai/compat`, preserving the MCP sampling provider behavior under the updated pi-ai package layout.
+
+## [0.9.3-alpha.4] - 2026-06-28
+
+### Changed
+
+- Published a synchronized Atomic 0.9.3-alpha.4 prerelease for the MCP extension; no MCP extension changes were made after 0.9.3-alpha.3.
+
+## [0.9.3-alpha.3] - 2026-06-27
+
+### Changed
+
+- Published a synchronized Atomic 0.9.3-alpha.3 prerelease for the MCP extension; no MCP extension changes were made after 0.9.3-alpha.1.
+
+## [0.9.3-alpha.1] - 2026-06-25
+
+### Fixed
+
+- `unflattenToolArguments` is now schema-aware and no longer corrupts literal dotted top-level argument keys (issue [#1496](https://github.com/bastani-inc/atomic/issues/1496)). Bracket-indexed keys (`ids[0]`, `files[0].path`) are always reconstructed, but a purely dotted key (`filter.name`) is only split into a nested path when the tool's `inputSchema` proves its head segment is an object/array container property **and** the schema does not declare the full dotted key as a literal top-level property. The latter guard preserves a literal property such as `filter.name` verbatim even when the schema also defines a same-head container (e.g. `filter`). The tool `inputSchema` is now threaded through from both the direct-tool and proxy/gateway `callTool` paths. The schema-aware disambiguation is shared with the host runtime via a new canonical `unflattenArgumentsWithSchema` helper in `@bastani/atomic`, so the two paths cannot drift.
+
+## [0.9.2] - 2026-06-23
+
+### Changed
+
+- Published the stable Atomic 0.9.2 release with MCP extension peer dependencies aligned to upstream pi AI/TUI `^0.79.10`; no MCP extension source changes were needed for this metadata sync.
+
+## [0.9.2-alpha.1] - 2026-06-23
+
+### Changed
+
+- Aligned the MCP extension peer dependencies with upstream pi AI/TUI `^0.79.10`; no MCP extension source changes were needed for this metadata sync.
+
+## [0.9.1] - 2026-06-23
+
+### Changed
+
+- Published the stable Atomic 0.9.1 release for the MCP extension; no functional MCP changes were made after 0.9.0.
+
+## [0.9.1-alpha.1] - 2026-06-22
+
+### Changed
+
+- Published a synchronized Atomic 0.9.1-alpha.1 prerelease for the MCP extension; no functional MCP changes were made after 0.9.0.
+
+## [0.9.0] - 2026-06-22
+
+### Fixed
+
+- Fixed MCP tool calls under GitHub Copilot Gemini models by normalizing flattened array/object and dotted arguments at the `callTool` boundary before they reach direct-tool or proxy/gateway MCP servers.
+- Hardened flattened tool-argument reconstruction against prototype pollution by dropping any reconstructed key path that walks through `__proto__`, `constructor`, or `prototype`, using the canonical host implementation shared with `@bastani/atomic`.
+
+### Changed
+
+- Published the stable Atomic 0.9.0 release with MCP peer dependencies aligned through upstream pi AI/TUI `^0.79.9`, so MCP-backed sessions inherit chat-template custom-provider thinking controls, GLM-5.2 provider metadata, GitHub Copilot model-availability filtering, Mistral prompt-cache accounting, Markdown streaming stability, and shared provider/TUI fixes.
+- Changed contributor validation to include the monorepo-wide file-length gate for tracked TS/JS/Rust files in local `prek` hooks and PR CI, with only documented generated/vendored exclusions and no grandfathered baseline allowlist.
+
+## [0.9.0-alpha.2] - 2026-06-21
+
+### Changed
+
+- Aligned the MCP extension peer dependencies with upstream pi AI/TUI `^0.79.9` so MCP-backed Atomic sessions inherit chat-template custom-provider thinking controls, GLM-5.2 provider metadata, GitHub Copilot model-availability filtering, Mistral prompt-cache accounting, Markdown streaming code-fence stability, and shared provider/TUI compatibility fixes; no MCP extension source changes were needed for this dependency-covered sync.
+
+## [0.9.0-alpha.1] - 2026-06-20
+
+### Fixed
+
+- Hardened `unflattenToolArguments` against prototype pollution: a flattened key whose path walks through `__proto__`, `constructor`, or `prototype` (at any position, including the final segment and a literal plain key) is now dropped instead of being written, so a model-emitted key such as `__proto__.polluted` can no longer reach and mutate `Object.prototype`. The reconstruction logic (parse/assign/compact plus this guard) is now imported from a single canonical implementation in `@bastani/atomic` (`reconstructFlattenedKeys`) instead of being duplicated in `packages/mcp/utils.ts`, so the host-runtime and MCP `callTool` paths can no longer drift (the previous near-duplicate copies had already diverged on the security guard). Behavior for well-formed and ordinary flattened arguments is unchanged.
+- Fixed MCP tool calls failing under GitHub Copilot Gemini models (e.g. `github-copilot/gemini-3.1-pro-preview`). Gemini, served through Copilot's CAPI/GenAI gateway, serializes array/object function-call arguments as flattened indexed keys on the wire — for example `{ keywords: ["a", "b"] }` arrives as `{ "keywords[0]": "a", "keywords[1]": "b" }` — which MCP servers reject as invalid arguments. The extension now normalizes arguments at the `callTool` boundary (both direct-tool and proxy/gateway paths) via `unflattenToolArguments`, reconstructing `name[i]`, `name[i].sub`, and `parent.child` keys back into proper arrays/objects before they reach the server. The normalizer is provider-agnostic and self-gating (a no-op unless flattened keys are present), so well-formed arguments — including those already normalized by the host runtime — pass through untouched.
+
+### Changed
+
+- Aligned the MCP extension peer dependencies with upstream pi AI/TUI `^0.79.7` so MCP-backed sessions can use the host's latest provider catalog, model-search, theme/color-scheme, Warp image capability, and shared TUI compatibility fixes; no MCP extension code changes were made for this metadata sync ([#1413](https://github.com/bastani-inc/atomic/issues/1413)).
+- Changed contributor validation to include the monorepo-wide file-length gate for tracked TS/JS/Rust files in local `prek` hooks and PR CI, with only documented generated/vendored exclusions and no grandfathered baseline allowlist ([#1445](https://github.com/bastani-inc/atomic/issues/1445)).
+
+## [0.8.30] - 2026-06-17
+
+### Changed
+
+- Aligned the MCP extension peer dependencies with upstream pi AI/TUI `^0.79.4`; no MCP extension code changes were made.
+
+## [0.8.29] - 2026-06-15
+
+### Changed
+
+- Published a synchronized Atomic 0.8.29 stable release with upstream pi AI/TUI dependencies aligned to `^0.79.3`; no functional changes were made in the MCP extension.
+
+## [0.8.28] - 2026-06-11
+
+### Changed
+
+- Published a synchronized Atomic 0.8.28 stable release; no functional changes were made in the MCP extension.
+
+## [0.8.27] - 2026-06-08
+
+### Changed
+
+- Promoted the 0.8.27 prerelease package version to a stable release.
+
+## [0.8.26] - 2026-06-08
+
+### Changed
+
+- Kept MCP startup registration cheap by lazily importing the heavy MCP command, initialization, proxy-mode, and OAuth/auth-flow modules, and by deferring config/cache-backed direct-tool discovery instead of loading them on the cold extension factory path ([#1223](https://github.com/bastani-inc/atomic/issues/1223)).
+
+### Fixed
+
+- Stopped logging a spurious stale-context MCP initialization error when a disposed session invalidates the captured extension context during deferred MCP `session_start` initialization; stale-context errors are now treated as cancellation for that path ([#1223](https://github.com/bastani-inc/atomic/issues/1223)).
+
+## [0.8.26-alpha.11] - 2026-06-08
+
+### Changed
+
+- Published a synchronized Atomic 0.8.26-alpha.11 prerelease alongside the subagent codebase-agent tool restriction changes; no functional changes were made in the MCP extension.
+
+## [0.8.26-alpha.10] - 2026-06-08
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.26-alpha.10 prerelease.
+
+## [0.8.26-alpha.9] - 2026-06-07
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.26-alpha.9 prerelease.
+
+## [0.8.26-alpha.8] - 2026-06-07
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.26-alpha.8 prerelease.
+
+## [0.8.26-alpha.7] - 2026-06-07
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.26-alpha.7 prerelease.
+
+## [0.8.26-alpha.6] - 2026-06-06
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.26-alpha.6 prerelease.
+
+## [0.8.26-alpha.5] - 2026-06-06
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.26-alpha.5 prerelease.
+
+## [0.8.26-alpha.4] - 2026-06-05
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.26-alpha.4 prerelease.
+
+## [0.8.26-alpha.3] - 2026-06-05
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.26-alpha.3 prerelease.
+
+## [0.8.26-alpha.2] - 2026-06-05
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.26-alpha.2 prerelease.
+
+## [0.8.26-alpha.1] - 2026-06-05
+
+### Changed
+
+- Kept MCP startup registration cheap by lazily importing the heavy MCP command, initialization, proxy-mode, and OAuth/auth-flow modules (and deferring config/cache-backed direct-tool discovery) instead of loading them on the cold extension factory path, while keeping the result renderer synchronous so restored MCP tool results still render ([#1223](https://github.com/bastani-inc/atomic/issues/1223)).
+
+### Fixed
+
+- Stopped logging a spurious "MCP initialization failed: This extension ctx is stale..." error when a session backing the captured `pi`/`ctx` is disposed (e.g. a workflow child stage session) during MCP's deferred `session_start` initialization. The deferred init now liveness-checks the captured context before and after `initializeMcp()` and treats a stale-context error as a cancellation rather than a failure. The async gap that exposed this race was introduced by the lazy-load startup change ([#1223](https://github.com/bastani-inc/atomic/issues/1223)).
+
+## [0.8.25] - 2026-06-04
+
+### Changed
+
+- Promoted the 0.8.25 prerelease package version to a stable release.
+
+## [0.8.25-alpha.1] - 2026-06-04
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.25-alpha.1 prerelease.
+
+## [0.8.24] - 2026-06-04
+
+### Changed
+
+- Promoted the 0.8.24 prerelease package version to a stable release.
+
+## [0.8.24-alpha.4] - 2026-06-04
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.24-alpha.4 prerelease.
+
+## [0.8.24-alpha.3] - 2026-06-03
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.24-alpha.3 prerelease.
+
+## [0.8.24-alpha.2] - 2026-06-03
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.24-alpha.2 prerelease.
+
+## [0.8.24-alpha.1] - 2026-06-02
+
+### Changed
+
+- Adopted the new `-alpha.N` prerelease version convention (revision starting at 1), replacing the legacy numeric `-N` prerelease suffix in the release tooling (bump script, CI publish validation, and changelog parsing).
+- Dropped the leading `v` from release git tags and `release/`/`prerelease/` branch names; the Publish CI now triggers on and validates bare version tags such as `0.8.24` or `0.8.24-alpha.1`.
+
+## [0.8.23] - 2026-06-02
+
+### Changed
+
+- Promoted the 0.8.23 prerelease package version to a stable release.
+
+## [0.8.23-0] - 2026-06-02
+
+### Changed
+
+- Bumped package version for the Atomic 0.8.23 prerelease.
+
+## [0.8.20] - 2026-05-29
+
+### Changed
+- Promoted the 0.8.20 prerelease changes to a stable release.
+
+## [0.8.20-0] - 2026-05-29
+
+### Changed
+- Bumped `@modelcontextprotocol/ext-apps` to 1.7.2 to align with the pi 0.77.0 upgrade.
+
+## [0.8.18] - 2026-05-27
+
+### Changed
+- Promoted the 0.8.18 prerelease package version to a stable release.
+
+## [0.8.17] - 2026-05-26
+
+### Changed
+- Promoted the 0.8.17 prerelease package version to a stable release.
+
+## [0.8.16] - 2026-05-26
+
+### Changed
+- Promoted the 0.8.16 prerelease package version to a stable release.
+
+## [0.8.15] - 2026-05-26
+
+### Fixed
+- Stopped eagerly starting MCP OAuth callback handling during session startup, preventing non-blocking OAuth initialization failures from surfacing as workflow/orchestrator errors.
+
+## [2.6.1] - 2026-05-13
+
+### Added
+- Added `/mcp logout <server>` to clear stored OAuth credentials and disconnect the server. Thanks @mattzcarey for PR #96.
+
+### Fixed
+- Cancel pending OAuth callbacks when logging out of an MCP server.
+
+## [2.6.0] - 2026-05-10
+
+### Added
+- Added a no-argument `/mcp-auth` OAuth picker and in-panel auth shortcut for OAuth-capable MCP servers.
+- Added compact collapsed rendering for MCP proxy and direct-tool result rows while keeping full tool results available when expanded.
+
+### Changed
+- Migrated Pi runtime dependencies and imports from deprecated `@mariozechner/*` packages to `@earendil-works/*` packages.
+
+### Fixed
+- Re-register dynamic OAuth clients during fresh auth when cached DCR client info exists without tokens, avoiding dead authorization URLs after server-side client invalidation.
+- Kept OAuth tokens, dynamic client info, PKCE verifiers, and OAuth state bound to the server URL so stale credentials cannot be reused after a server URL changes.
+- Kept the `/mcp-auth` OAuth picker search focused on OAuth server rows and prevented hidden panel shortcuts from unexpectedly launching auth.
+- Kept long MCP error results expanded in compact tool result rendering.
+
+## [2.5.4] - 2026-05-04
+
+### Changed
+- Ignored npm lockfiles and removed checked-in `package-lock.json` files.
+
+### Fixed
+- Resolved `${VAR}` and `$env:VAR` placeholders in HTTP bearer tokens.
+- Honored MCP sampling `modelPreferences.hints` before falling back to the current/default model.
+
+## [2.5.3] - 2026-05-01
+
+### Added
+- Added environment variable and `~` expansion for stdio server `cwd` values.
+
+## [2.5.2] - 2026-04-29
+
+### Fixed
+- Respected `PI_CODING_AGENT_DIR` for Pi-owned MCP config and state files, including metadata cache, npx cache, onboarding state, OAuth credentials, and `pi-mcp-adapter init` writes.
+
+## [2.5.1] - 2026-04-24
+
+### Fixed
+- Changed OAuth browser callbacks to `http://localhost:<port>/callback` for pre-registered clients such as Slack MCP. Thanks @shenal for PR #53.
+
+## [2.5.0] - 2026-04-24
+
+### Added
+- Added MCP `sampling/createMessage` support with conservative human approval by default and opt-in `settings.samplingAutoApprove` for non-interactive flows.
+- Added configured Vitest coverage for OAuth provider authorization fallback behavior.
+- Added `test:oauth-provider` for running the root OAuth provider node test with the required TypeScript loader.
+
+### Fixed
+- Applied `settings.authRequiredMessage` to proxy and direct-tool auth-required paths, including non-UI `autoAuth` failures.
+- Fixed `/mcp-auth <server>` reporting success for expired stored OAuth tokens without forcing the SDK refresh/re-auth flow.
+- Kept `mcp` search focused on MCP tools and added a direct-call hint when native Pi tools are accidentally routed through the proxy.
+
+## [2.4.2] - 2026-04-22
+
+### Fixed
+- Migrated extension tool schemas from `@sinclair/typebox` to `typebox` 1.x so packaged installs follow Pi's current extension runtime contract.
+
+### Changed
+- Replaced the legacy `@sinclair/typebox` runtime dependency with `typebox`.
+
+## [2.4.1] - 2026-04-22
+
+### Added
+- Added standard-MCP-first config discovery: `~/.config/mcp/mcp.json` and project `.mcp.json` now load automatically, with Pi-owned files preserved as override layers.
+- Added `pi-mcp-adapter init` as a native post-install helper that detects host-specific MCP configs and scaffolds Pi compatibility imports without using the old raw GitHub downloader flow.
+- Added first-run onboarding inside the extension: `/mcp` now shows shared-config hints or actionable empty states, and `/mcp setup` opens a guided setup flow for compatibility imports, minimal `.mcp.json` scaffolding, detected config paths, RepoPrompt quick-add, and exact before/after write previews.
+- Added automatic Pi-core reload after setup or direct-tool config changes, using the same flow as `/reload` so freshly configured direct tools can appear without a manual restart.
+- Added a dedicated Pi-owned onboarding state file so shared-config hints behave as one-time guidance instead of repeating every session.
+
+### Changed
+- Updated config precedence to prefer shared MCP files first, then Pi overrides, with `.pi/mcp.json` acting as the final Pi-specific project override.
+- Updated Claude Code compatibility probing to prefer modern Claude MCP config locations before legacy paths.
+- Updated project scaffolding so generated `.mcp.json` files are safe minimal shells instead of fake placeholder servers that fail on first reload.
+- Updated the setup panel and README for clearer first-run guidance, improved spacing, and a more digestible shared-MCP-first setup story.
+
+## [2.4.0] - 2026-04-13
+
+### Added
+- `settings.disableProxyTool` to hide the `mcp` proxy tool once configured direct tools are fully available from cache. Thanks @tanavamsikrishna for PR #41.
+- Per-server `excludeTools` to hide specific MCP tools/resources by original or prefixed name across direct tools, proxy discovery, and the `/mcp` panel. Thanks @ahmadaccino for issue #36.
+- `settings.autoAuth` to optionally trigger OAuth automatically from proxy/direct tool usage, then rerun the original blocked connect/tool operation once after authentication succeeds. Thanks @unimonkiez for issue #34.
+
+### Fixed
+- Regenerated `package-lock.json` so the root lockfile metadata matches `package.json` again, including the declared `open`, `@types/bun`, `@types/open`, and `tsx` entries.
+- Kept the `mcp` proxy tool available as a first-session fallback when configured direct tools are still missing cache metadata, avoiding no-tool startup gaps.
+
+## [2.3.5] - 2026-04-13
+
+### Fixed
+- Session lifecycle now always tears down OAuth callback state on restart and shutdown, preventing callback-server leaks across session transitions.
+- OAuth callback server now calls `unref()` after successful bind so it no longer keeps sub-agent processes alive by itself.
+- Strict OAuth port mode now rebinds to the configured callback port when safe, while refusing to switch ports when authorizations are still pending.
+- Added focused lifecycle/callback-server regression coverage for teardown, `unref()`, strict rebinding, and pending-auth guardrails.
+- Thanks @blai for the investigation and PR #43 that surfaced the sub-agent hang/root lifecycle issues.
+
+## [2.3.4] - 2026-04-12
+
+### Fixed
+- OAuth callback handling now allows dynamic-registration flows to fall back to a free local port when the preferred callback port is busy, while keeping pre-registered clients on their exact configured redirect port.
+- Documented the new callback-port behavior and added focused auth-flow regression coverage.
+
+## [2.3.3] - 2026-04-12
+
+### Fixed
+- Remove the blank footer status line when no MCP servers are configured by clearing the MCP status entry instead of setting it to an empty string. Thanks @HazAT for PR #27.
+
+## [2.3.2] - 2026-04-11
+
+### Added
+- Optional `oauth.grantType: "client_credentials"` for non-interactive machine-to-machine OAuth on HTTP MCP servers.
+
+### Fixed
+- `/mcp-auth <server>` now handles `client_credentials` without browser/callback flow.
+- MCP panel status no longer marks `client_credentials` servers as auth-blocked solely because no stored user tokens exist yet.
+- OAuth auth flow now closes temporary transports consistently on success, refresh, and auth removal paths.
+- Init paths now preserve debug-level context for previously silent direct-tool bootstrap and lazy-connect failures.
+
+## [2.3.1] - 2026-04-11
+
+### Fixed
+- Removed `/mcp-auth-callback`. OAuth auth now hard-cuts to `/mcp-auth <server>` only.
+
+## [2.3.0] - 2026-04-11
+
+### Added
+- OAuth callback server initialization on session start and a deprecated `/mcp-auth-callback` command that now points users to `/mcp-auth <server>`.
+
+### Fixed
+- OAuth `needs-auth` handling across `/mcp` status/panel, `mcp({ connect })`, `mcp({ tool })`, reconnect flow, lazy/direct tool execution, and startup bootstrap.
+- OAuth callback cleanup now cancels by stored OAuth state and closes pending transports on failure/cancel paths.
+- Callback server now fails fast when the OAuth callback port is occupied by another process.
+- Package manifest test now ignores root `*.test.ts` files.
+
+## [2.2.2] - 2026-04-03
+
+### Fixed
+- Session lifecycle teardown now handles repeated `session_start` transitions safely and prevents stale async init results from replacing newer state.
+- Shutdown now still runs `gracefulShutdown()` even if metadata cache flushing throws, avoiding leaked MCP processes.
+- Proxy/direct tool init error paths now preserve and surface underlying error messages instead of returning generic failures.
+- Invalid `mcp` tool `args` now fail by throwing with parse/type context instead of returning non-failing tool payloads.
+- Added focused lifecycle regressions tests for stale init cleanup and init-error visibility.
+
+## [2.2.1] - 2026-03-23
+
+### Fixed
+- Added `promptSnippet` to MCP proxy tool and direct MCP tools so they appear in the system prompt's Available tools section (required since pi 0.59.0)
+
+## [2.2.0] - 2026-03-16
+
+### Added
+- **MCP UI Integration** - Support for the [MCP UI](https://github.com/MCP-UI-Org/mcp-ui) standard. Tools with `_meta.ui.resourceUri` open interactive UIs:
+  - Bidirectional AppBridge communication (tool calls, messages, context updates)
+  - Works with both stdio and HTTP MCP servers
+  - User consent management for tool calls from UI (configurable: never/once-per-server/always)
+  - Keyboard shortcuts: Cmd/Ctrl+Enter to complete, Escape to cancel
+  - UI prompts/intents trigger agent turns via `pi.sendMessage({ triggerTurn: true })`
+  - `mcp({ action: "ui-messages" })` retrieves accumulated messages from UI sessions
+
+- **Session reuse** - When the agent calls the same tool while its UI is already open, results push to the existing window instead of replacing it. Per-call stream IDs with independent sequences. Error results scoped to the individual call.
+
+- **Glimpse integration** - MCP UI opens in a native macOS WKWebView window instead of a browser tab when [Glimpse](https://github.com/hazat/glimpse) is installed (`pi install npm:glimpseui`). Falls back to browser on non-macOS or when unavailable. Override with `MCP_UI_VIEWER=browser` or `MCP_UI_VIEWER=glimpse`.
+
+- **Logger module** (`logger.ts`) - Centralized logging with levels (debug/info/warn/error), contextual child loggers, and `MCP_UI_DEBUG=1` env var.
+
+- **Error types** (`errors.ts`) - Structured errors with recovery hints: `ResourceFetchError`, `ResourceParseError`, `BridgeConnectionError`, `ConsentError`, `SessionError`, `ServerError`, and `wrapError()` helper.
+
+- **Test suite** - 178 tests covering consent manager, UI resource handler, host HTML template, logger, and error types.
+
+- **Interactive visualizer example** (`examples/interactive-visualizer`) - Minimal MCP server demonstrating charts (bar/line/pie/doughnut via Chart.js), bidirectional messaging, and streaming.
+
+### Fixed
+- Host-iframe timing: bridge now connects before loading iframe, fixing `ui/initialize` timeout on first load
+- All internal `log.info` calls demoted to `log.debug` to eliminate stdout noise during normal use
+
+### Technical Notes
+- Uses local minified AppBridge bundle (408KB) to avoid CDN Zod bundling issues
+- Serves app HTML from `/ui-app` endpoint instead of blob URLs to avoid iframe issues
+- SSE for real-time tool result streaming to browser
+
+## [2.1.2] - 2026-02-03
+
+### Changed
+- Added demo video and `pi.video` field to package.json for pi package browser.
+
+## [2.1.0] - 2026-02-02
+
+### Added
+- **Direct tool registration** - Promote specific MCP tools to first-class Pi tools via `directTools` config (per-server or global). Direct tools appear in the agent's tool list alongside builtins, so the LLM uses them without needing to search through the proxy first. Registers from cached metadata at startup — no server connections needed.
+- **`/mcp` interactive panel** - New TUI overlay replacing the text-based status dump. Shows server connection status, tool lists with direct/proxy toggles, token cost estimates, inline reconnect, and auth notices. Changes written to config on save.
+- **Auto-enriched proxy description** - The `mcp` proxy tool description now includes server names and tool counts from the metadata cache, so the LLM knows what's available without a search call (~30 extra tokens).
+- **`MCP_DIRECT_TOOLS` env var** - Subagent processes receive their direct tool configuration via environment variable, keeping subagents lean by default.
+- **First-run bootstrap** - Servers with `directTools` configured but no cache entry are connected during `session_start` to populate the cache. Direct tools become available after restart.
+- Config provenance tracking for correct write-back to user/project/import sources
+- Builtin name collision guard (skips direct tools that would shadow `read`, `write`, etc.)
+- Cross-server name deduplication for `prefix: "none"` and `prefix: "short"` modes
+
+## [2.0.1] - 2026-02-01
+
+### Fixed
+- Adapt execute signature to pi v0.51.0: add signal, onUpdate, ctx parameters
+
+## [2.0.0] - 2026-01-29
+
+### Changed
+- **BREAKING: Lazy startup by default** - All servers now default to `lifecycle: "lazy"` and only connect when a tool call needs them. Previously all servers connected eagerly on session start. Set `lifecycle: "keep-alive"` or `lifecycle: "eager"` to restore the old behavior per-server.
+- **Idle timeout** - Connected servers are automatically disconnected after 10 minutes of inactivity (configurable via `settings.idleTimeout` or per-server `idleTimeout`). Cached metadata keeps search/list working after disconnect. Set `idleTimeout: 0` to disable.
+- `/mcp reconnect` accepts an optional server name to connect or reconnect a single server
+
+### Added
+- **Metadata cache** - Tool and resource metadata persisted to `~/.pi/agent/mcp-cache.json`. Enables search/list/describe without live connections. Per-server config hashing with 7-day staleness. Multi-session safe via read-merge-write with per-process tmp files.
+- **npx binary resolution** - Resolves npx package binaries to direct paths, eliminating the ~143 MB npm parent process per server. Persistent cache at `~/.pi/agent/mcp-npx-cache.json` with 24h TTL.
+- **`mcp({ connect: "server-name" })` mode** - Explicitly trigger connection and metadata refresh for a named server
+- **Failure backoff** - Servers that fail to connect are skipped for 60 seconds to avoid repeated connection storms
+- **In-flight tracking** - Active tool calls prevent idle timeout from shutting down a server mid-request
+- **Prefix-match fallback** - Tool calls with unrecognized names try to match a server prefix and lazy-connect the matching server
+- Lifecycle options: `lazy` (default), `eager` (connect at startup, no auto-reconnect), `keep-alive` (unchanged)
+- Per-server `idleTimeout` override and global `settings.idleTimeout`
+- First-run bootstrap: connects all servers on first session to populate the cache
+
+### Fixed
+- Connection close race condition: concurrent close + connect no longer orphans server processes
+- **Fuzzy tool name matching** - Hyphens and underscores are treated as equivalent during tool lookup. MCP tools like `resolve-library-id` are now found when called as `resolve_library_id`, which LLMs naturally guess since the prefix separator is `_`.
+- **Better "tool not found" errors** - When a server is identified (via prefix match or override) but the tool isn't found, the error now lists that server's available tools so the LLM can self-correct immediately instead of needing a separate list call
+
+## [1.6.0] - 2026-01-29
+
+### Added
+- **Unified pi tool search** - `mcp({ search: "..." })` now searches both MCP tools and Pi tools (from installed extensions)
+- Pi tools appear first in results with `[pi tool]` prefix
+- Details object includes `server: "pi"` for pi tools
+- Banner image for README
+
+## [1.5.1] - 2026-01-26
+
+### Changed
+- Added `pi-package` keyword for npm discoverability (pi v0.50.0 package system)
+
+## [1.5.0] - 2026-01-22
+
+### Changed
+- **BREAKING: `args` parameter is now a JSON string** - The `args` parameter which previously accepted an object now accepts a JSON string. This change was required for compatibility with Claude's Vertex AI API (`google-antigravity` provider) which rejects `patternProperties` in JSON schemas (generated by `Type.Record()`).
+
+### Added
+- **Type validation for args** - Parsed args are now validated to ensure they're a JSON object (not null, array, or primitive). Clear error messages for invalid input.
+- **`isError: true` on error responses** - JSON parse errors and type validation errors now properly set `isError: true` to indicate failure to the LLM.
+
+### Migration
+```typescript
+// Before (1.4.x)
+mcp({ tool: "my_tool", args: { key: "value" } })
+
+// After (1.5.0)
+mcp({ tool: "my_tool", args: '{"key": "value"}' })
+```
+
+## [1.4.1] - 2026-01-19
+
+### Changed
+
+- Status bar shows server count instead of tool count ("MCP: 5 servers")
+
+## [1.4.0] - 2026-01-19
+
+### Changed
+
+- **Non-blocking startup** - Pi starts immediately, MCP servers connect in background. First MCP call waits only if init isn't done yet.
+
+### Fixed
+
+- Tool metadata now includes `inputSchema` after `/mcp reconnect` (was missing, breaking describe and error hints)
+
+## [1.3.0] - 2026-01-19
+
+### Changed
+
+- **Parallel server connections** - All MCP servers now connect in parallel on startup instead of sequentially, significantly faster with many servers
+
+## [1.2.2] - 2026-01-19
+
+### Fixed
+
+- Installer now downloads from `main` branch (renamed from `master`)
+
+## [1.2.1] - 2026-01-19
+
+### Added
+
+- **npx installer** - Run `npx pi-mcp-adapter` to install (downloads files, installs deps, configures settings.json)
+
+## [1.1.0] - 2026-01-19
+
+### Changed
+
+- **Search includes schemas by default** - Search results now include parameter schemas, reducing tool calls needed (search + call instead of search + describe + call)
+- **Space-separated search terms match as OR** - `"navigate screenshot"` finds tools matching either word (like most search engines)
+- **Suppress server stderr by default** - MCP server logs no longer clutter terminal on startup
+- Use `includeSchemas: false` for compact output without schemas
+- Use `debug: true` per-server to show stderr when troubleshooting
+
+## [1.0.0] - 2026-01-19
+
+### Added
+
+- **Single unified `mcp` tool** with token-efficient architecture (~200 tokens vs ~15,000 for individual tools)
+- **Five operation modes:**
+  - `mcp({})` - Show server status
+  - `mcp({ server: "name" })` - List tools from a server
+  - `mcp({ search: "query" })` - Search tools by name/description
+  - `mcp({ describe: "tool_name" })` - Show tool details and parameter schema
+  - `mcp({ tool: "name", args: {...} })` - Call a tool
+- **Stdio transport** for local MCP servers (command + args)
+- **HTTP transport** with automatic fallback (StreamableHTTP → SSE)
+- **Config imports** from Cursor, Claude Code, Claude Desktop, VS Code, Windsurf, Codex
+- **Resource tools** - MCP resources exposed as callable tools
+- **OAuth support** - Token file-based authentication
+- **Bearer token auth** - Static or environment variable tokens
+- **Keep-alive connections** with automatic health checks and reconnection
+- **Schema on-demand** - Parameter schemas shown in `describe` mode and error responses
+- **Commands:**
+  - `/mcp` or `/mcp status` - Show server status
+  - `/mcp tools` - List all tools
+  - `/mcp reconnect` - Force reconnect all servers
+  - `/mcp-auth <server>` - Show OAuth setup instructions
+
+### Architecture
+
+- Tools stored in metadata map, not registered individually with Pi
+- MCP server validates arguments (no client-side schema conversion)
+- Reconnect callback updates metadata after auto-reconnect
+- Human-readable schema formatting for LLM consumption

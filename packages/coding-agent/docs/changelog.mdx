@@ -1,0 +1,123 @@
+---
+title: "Changelog"
+description: "What's new in Atomic"
+---
+
+<Update label="July 31, 2026">
+
+## Pi 0.83.0 parity
+
+- **One door prints a stored credential.** `atomic auth print-api-key --model <model>` and `atomic auth print-bearer-token --model <model>` hand a configured credential to an external client. The credential is all that reaches stdout — warnings, provider selection, refresh notices, and help go to stderr — `--model` is required, and each failure has its own exit code, with stdout empty on every non-zero exit. `--min-expiry` accepts `ms`, `s`, `m`, or `h`, defaults to `30m`, and is a usage error on `print-api-key`, which has no expiry to wait for. See [Usage](/usage#credential-commands) and [Security](/security#credential-export).
+- **Extensions can read the session's model scope.** `ctx.scopedModels` reports the models scoped to the current session — the set `/scoped-models` shows — resolved at access time and correct under the isolated engine. It reports the scope and cannot widen it: the accessor is read-only, and every read hands back a frozen copy of the array, its entries, and their models, so neither pushing an entry nor swapping one in place reaches the session. `ScopedModel` and `ExtensionScopedModels` are exported so an extension can name what it read. See [Extensions](/extensions#ctxmodelregistry--ctxmodel--ctxscopedmodels).
+- **An unrecognised stop reason is now an error.** A provider that ends a turn with a terminal reason the mapping does not know surfaces a provider error naming the raw value instead of an ordinary successful stop, so a new truncation or safety signal is visible rather than silent. Streaming partials carry the new `pending` reason until the terminal event replaces it; a stream that ends still `pending` is an error. See [Providers](/providers#stop-reasons) and [Custom Providers](/custom-provider#stop-reasons).
+- **OAuth tokens refresh before they expire.** A stored token with under five minutes of validity left is refreshed rather than used, so a long turn does not start on a credential that dies mid-request. The refresh runs under the `auth.json` lock and re-checks expiry inside it, so concurrent sessions sharing one credential file refresh it once between them. See [Providers](/providers#token-refresh).
+- **Remote OpenRouter logins have a way through.** When the browser cannot reach the loopback callback — over SSH, or on a headless host — the OpenRouter login accepts the final redirect URL, or the authorization code alone, pasted into the prompt. See [Providers](/providers#subscriptions).
+
+</Update>
+<Update label="July 26, 2026">
+
+## Pi 0.82.1 parity
+
+- **Constrained tool sampling is public end to end.** Extensions and SDK tools can request strict JSON Schema (`prefer` or `require`) or OpenAI Lark/regex grammars. Atomic preserves exact optional-property identity during public inspection, and typed RPC model listings expose all four enforcement flags through optional `ModelInfo.compat`. Unsupported models never claim required enforcement. See [Extensions](/extensions#constrained-sampling), [Models](/models#constrained-tool-sampling), and [RPC](/rpc#get_available_models).
+- **Authentication and flagship catalogs expanded.** `/login openrouter` uses provider-owned browser PKCE with optional key minting, `/login kimi-coding` uses device authorization with automatic refresh, and isolated engine-only extension OAuth now supports safe descriptor discovery, correlated UI callbacks/cancellation, transactional engine persistence/refresh/rollback/logout, and no credential or executable-function transport. Intentional Escape/Ctrl+C/native-abort cancellation is quiet; genuine provider, network, token, storage, and refresh failures remain visible. Claude Opus 5 is available through Anthropic and Bedrock, while bearer-only `ANTHROPIC_AUTH_TOKEN` remains selectable across normal and isolated/RPC catalogs without emitting an API key or `x-api-key`. See [Providers](/providers) and [Custom Providers](/custom-provider#oauth-support).
+- **Catalogs and model configuration stay resilient.** Remote catalogs use ETag revalidation and accept empty `304` responses, newer bundled data beats stale overlays, and a validated persisted llama.cpp catalog remains selectable when the first online refresh after restart fails while Atomic still reports the original error; a later success replaces it. Opening `/model` reloads layered legacy `.pi` then primary `.atomic` configuration. See [Models](/models#catalog-freshness-and-precedence) and [llama.cpp](/llama-cpp).
+- **Bash integrations are session-aware and stream precisely.** Commands receive Atomic and exact Pi session/model environment aliases; unsaved sessions omit the file path. Direct RPC bash streams request-correlated stdout/stderr deltas, targeted/legacy cancellation, one terminal response, and exactly-once starting-session persistence across new/switch/import/fork/clone replacement; RPC shutdown drains active owners. See [Environment Variables](/environment-variables#bash-session-environment) and [RPC](/rpc#bash).
+- **Coding-agent parity fixes landed.** Custom message renderers receive `outputPad` in normal and isolated rendering; summaries use fresh routing IDs without prompt-cache writes; complete literal IDs win before thinking-suffix/glob parsing; unavailable scoped entries remain removable; shared async Ctrl+G editing uses a private exact `prompt.md`, configured/environment/platform precedence, and recursive cleanup across main and extension editors; `/copy` falls back after `wl-copy` failure; explicit update checks bypass startup-skip settings; configured agent directories own TUI logs; and context discovery ignores directories named like context files.
+
+</Update>
+<Update label="July 18, 2026">
+
+## Model catalogs and provider authentication
+
+- **Dynamic provider catalogs stay current.** The model picker renders its cached snapshot immediately and reports concise success, partial-failure, or timeout status. Run `atomic update --models` to force-refresh authenticated dynamic provider catalogs.
+- **Complete authentication reaches provider requests.** API keys, provider headers, and credential-specific enterprise endpoints are preserved across normal chat and SDK requests.
+- **Interaction reliability improved.** Adjacent thinking blocks render as one section, Windows startup restores Atomic's terminal title after package checks, standalone Bun binaries include every interactive OAuth adapter, and early clone/fork attempts explain that the first assistant response must save the session.
+
+See [SDK](/sdk) and [Custom providers](/custom-provider).
+
+</Update>
+<Update label="July 10, 2026">
+
+## Pi 0.80.6 compatibility
+
+- **Synced through upstream Pi 0.80.6.** Atomic and its bundled extensions now use the 0.80.6 Pi runtime packages, including signed empty Anthropic thinking preservation, request-wide GPT-5.4/5.5 long-context pricing, and corrected GPT-5.6 catalog/backend metadata.
+- **Model controls are current.** Atomic accepts `max` wherever the active model advertises it, applies the active agent directory's single `models.json` overrides to matching extension-registered models and built-ins, and falls back instead of synthesizing removed catalog IDs on resume. See [Models](/models).
+- **Custom pricing tiers are preserved.** Custom `models.json` entries and extension providers can declare complete request-wide `cost.tiers`; matching `modelOverrides` can update scalar rates without losing inherited tiers or replace/clear the tier array explicitly. See [Models](/models#request-wide-cost-tiers) and [Custom Providers](/custom-provider#usage-and-cost).
+- **Safer session and tool behavior.** Invalid explicit bash timeouts fail instead of being clamped; missing exact session IDs warn before creation; lax null or omitted message content is normalized; auth writes surface persistence failures; Windows context traversal terminates at drive roots; and duplicate fork selections are ignored. See [Tools](/tools) and [Usage](/usage).
+- **More reliable streaming and binaries.** Visible custom messages stay before the live assistant row, standalone Linux clipboard reads can fall back to xclip with correctly packaged native bindings, caller-relative `TMPDIR` paths work from external directories, and `--skip-deps` tolerates a missing optional clipboard wrapper.
+
+</Update>
+<Update label="July 9, 2026">
+
+## Dependency refresh
+
+- **Synced with upstream Pi 0.80.5.** Atomic's coding-agent package and bundled extensions now depend on `@earendil-works/pi-ai`, `@earendil-works/pi-agent-core`, and `@earendil-works/pi-tui` through `^0.80.5`.
+- **Refreshed runtime dependencies.** The consolidated dependency update also moves `lru-cache` to `11.5.2`, optional `@dbos-inc/dbos-sdk` to `4.23.6`, and native Cargo dependencies `napi`, `napi-derive`, and `tree-sitter` to their latest stable releases.
+
+</Update>
+<Update label="June 29, 2026">
+
+## Upstream Pi sync
+
+- **Synced with upstream Pi 0.80.2.** Atomic's coding-agent fork and bundled extensions are now aligned with upstream Pi through `^0.80.2` for `@earendil-works/pi-ai`, `@earendil-works/pi-agent-core`, and `@earendil-works/pi-tui`. The 0.80.x line is dominated by upstream's "Models runtime migration," which made the `@earendil-works/pi-ai` root entrypoint core-only and moved the legacy global provider/model API (`stream`, `complete`, `registerApiProvider`, `getEnvApiKey`, …) onto a temporary `@earendil-works/pi-ai/compat` entrypoint.
+- **Extensions keep working unchanged.** Atomic's extension loader now aliases the `@earendil-works/pi-ai` root specifiers to the `/compat` entrypoint at runtime, so first-party bundled extensions and user-installed extensions that import from the root continue to resolve transparently — no extension code changes required.
+- **Atomic-first compatibility migration.** Atomic's own runtime, tools, tests, and extension examples were retargeted to the `/compat` entrypoint so they resolve the legacy provider/model API at both type-check and runtime, preserving the public extension and SDK surface Atomic's downstream users depend on.
+- **Toolchain and native dependency refresh.** Bundled `@napi-rs/cli`, `@j178/prek`, `actions/checkout`, and transitive Cargo crates (`rustls`, `napi`, `bytes`, `webpki-roots`) were refreshed to current releases, including the latest Mozilla-aligned webpki trust store.
+
+## Fixes
+
+- Inherits upstream 0.80.0–0.80.2 fixes from the external Pi packages (`pi-ai`, `pi-agent-core`, `pi-tui`) that Atomic consumes as dependency bumps. This includes provider-side handling of malformed all-zero usage in OpenAI Responses context/compaction estimates, request-scoped `apiKey`/`env` participation in provider auth resolution, the restored `pi-ai/compat` legacy per-API stream aliases and `detectCompat` fallback, the `ApiKeyCredential` `auth.json`-compatible discriminator, and the renamed `ShellExecOptions` agent-core type.
+- Note that coding-agent forked-source fixes (for example session-name newline normalization and threaded session-tree ordering) are NOT inherited automatically; they require intentional source porting and are tracked separately. Atomic retains its existing compaction guard for all-zero usage, which already aligns with the upstream fix.
+
+</Update>
+<Update label="May 25, 2026" tags={["v0.8.14"]}>
+
+## Stable release
+
+- **0.8.14 is the stable promotion of the 0.8.14 prerelease.** It keeps the upstream Pi sync, bundled workflow documentation refresh, and bundled subagent guidance updates from the prerelease.
+- **Synced with upstream Pi patches.** Atomic's coding-agent fork is now aligned with upstream Pi patches since v0.75.4 and bundles Pi libraries at 0.75.5.
+- **Bundled workflow docs are current.** The docs now cover current workflow inspection and control actions such as `stages`, `stage`, `transcript`, `send`, `pause`, and `reload`. See [Workflows](/workflows).
+- **Bundled subagent guidance is easier to find.** Atomic now documents how to use bundled subagents for delegation, background work, nested fanout boundaries, model fallbacks, and custom agent guardrails. See [Subagents](/subagents).
+
+## Fixes
+
+- Managed extension installs, git package ref reconciliation, async file tools, export HTML escaping, OpenCode session headers, OAuth device-code login, footer path abbreviation, clipboard native loading, and collapsed read output rendering received upstream fixes.
+- The built-in header model label now refreshes when you change models, matching the footer below the chat box.
+
+</Update>
+
+<Update label="May 21, 2026" tags={["v0.8.13"]}>
+
+## Stable release
+
+- **0.8.13 is the stable promotion of the 0.8.13 prerelease.** It keeps the workflow discovery and async subagent widget fixes from the prerelease while updating Atomic agent guidance.
+
+## Fixes
+
+- **Packaged workflow discovery loads reliably.** Package-authored workflow resources load through `jiti`, so SDK imports such as `@bastani/workflows` resolve consistently from the Bun-packaged binary. See [Workflows](/workflows).
+- **Workflow diagnostics are preserved.** Invalid default exports and supported SDK import diagnostics remain visible when workflows are discovered from packaged resources.
+- **Async subagent widget spacing is stable.** Background subagent widgets preserve spacing before the prompt box. See [Subagents](/subagents).
+
+</Update>
+
+<Update label="May 20, 2026" tags={["v0.8.12"]}>
+
+## New features
+
+- **Configurable HTTP idle timeout.** Tune how long Atomic keeps idle HTTP connections open, with presets from 30 seconds through 30 minutes and an option to disable the timeout. See [Settings](/settings).
+- **Workflow documentation and navigation.** Atomic added the Workflows docs page so users can discover built-in workflows, authoring patterns, package setup, and run control from the docs site. See [Workflows](/workflows).
+
+## Updates
+
+- **Model reasoning level in the system prompt.** Atomic now includes the active model's reasoning level in generated system prompts and project context markup. See [Models](/models).
+- **Runtime and extension compatibility.** Internal runtime, tool, TUI, tests, and extension example imports moved to explicit `.ts` specifiers for better raw-TypeScript extension compatibility.
+- **Atomic docs refresh.** Package usage, customization, workflows, and release guidance were refreshed for Atomic branding.
+
+## Fixes
+
+- **Better Windows self-update behavior.** Package-manager installs now handle native dependency cleanup, quarantine cases, and unavailable updates more clearly. See [Windows](/windows).
+- **Smoother subagent rendering.** Live subagent result rendering, async render updates, transient child-error recovery, and live widget animations are more stable. See [Subagents](/subagents).
+- **Workflow stages settle cleanly.** Completed stages detach from run-control tracking, and the empty workflow graph waiting state is centered. See [Workflows](/workflows).
+- **Consistent duration display.** Elapsed times across bash, subagent, and workflow output are shown as whole seconds and never go negative.
+
+</Update>

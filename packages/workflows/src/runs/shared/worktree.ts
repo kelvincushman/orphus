@@ -1,0 +1,21 @@
+export type { GitWorktreeSetupCacheOwner } from "./worktree-cache-lifecycle.js";
+export { createGitWorktreeSetupCacheOwner } from "./worktree-cache-lifecycle.js";
+export { diffWorktrees, formatWorktreeDiffSummary } from "./worktree-diff.js";
+export type { GitWorktreeSetupCache } from "./worktree-git.js";
+export { createGitWorktreeSetupCache, setupGitWorktree, setupGitWorktreeCached } from "./worktree-git.js";
+export {
+	cleanupWorktrees,
+	createWorktrees,
+	findWorktreeTaskCwdConflict,
+	formatWorktreeTaskCwdConflict,
+	resolveExpectedWorktreeAgentCwd,
+} from "./worktree-setup.js";
+export type {
+	CreateWorktreesOptions,
+	GitWorktreeSetupOptions,
+	GitWorktreeSetupResult,
+	WorktreeDiff,
+	WorktreeInfo,
+	WorktreeSetup,
+	WorktreeTaskCwdConflict,
+} from "./worktree-types.js";

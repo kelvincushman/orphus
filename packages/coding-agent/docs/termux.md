@@ -1,0 +1,138 @@
+# Termux (Android) Setup
+
+Atomic runs on Android via [Termux](https://termux.dev/), a terminal emulator and Linux environment for Android.
+
+Termux uses Android's bionic libc, not Alpine's musl libc. Atomic's Alpine musl archives target x64 and arm64 musl Linux only; they are not Termux packages and do not provide an Android target. Android ARM64 still has no Atomic native target, so musl support does not change Termux's native-addon limitations.
+
+## Prerequisites
+
+1. Install [Termux](https://github.com/termux/termux-app#installation) from GitHub or F-Droid (not Google Play, that version is deprecated)
+2. Install [Termux:API](https://github.com/termux/termux-api#installation) from GitHub or F-Droid for clipboard and other device integrations
+
+## Installation
+
+```bash
+# Update packages
+pkg update && pkg upgrade
+
+# Install dependencies
+pkg install nodejs termux-api git
+
+# Install Atomic with npm (included with Termux's nodejs package)
+npm install -g @bastani/atomic
+
+# If you have installed Bun separately in Termux, you can use Bun instead:
+# bun add -g @bastani/atomic
+
+# Create config directory
+mkdir -p ~/.atomic/agent
+
+# Run Atomic
+atomic
+```
+
+Atomic does not require package install scripts. If you want to disable dependency lifecycle scripts during the Atomic install, you can add `--ignore-scripts` to the install command.
+
+## Clipboard Support
+
+Clipboard operations use `termux-clipboard-set` and `termux-clipboard-get` when running in Termux. The Termux:API app must be installed for these to work.
+
+Image clipboard is not supported on Termux (the `ctrl+v` image paste feature will not work).
+
+## Example AGENTS.md for Termux
+
+Create `~/.atomic/agent/AGENTS.md` to help the agent understand the Termux environment:
+
+````markdown
+# Agent Environment: Termux on Android
+
+## Location
+- **OS**: Android (Termux terminal emulator)
+- **Home**: `/data/data/com.termux/files/home`
+- **Prefix**: `/data/data/com.termux/files/usr`
+- **Shared storage**: `/storage/emulated/0` (Downloads, Documents, etc.)
+
+## Opening URLs
+```bash
+termux-open-url "https://example.com"
+```
+
+## Opening Files
+```bash
+termux-open file.pdf          # Opens with default app
+termux-open --chooser image.jpg      # Choose app
+```
+
+## Clipboard
+```bash
+termux-clipboard-set "text"   # Copy
+termux-clipboard-get          # Paste
+```
+
+## Notifications
+```bash
+termux-notification -t "Title" -c "Content"
+```
+
+## Device Info
+```bash
+termux-battery-status         # Battery info
+termux-wifi-connectioninfo    # WiFi info
+termux-telephony-deviceinfo   # Device info
+```
+
+## Sharing
+```bash
+termux-share -a send file.txt # Share file
+```
+
+## Other Useful Commands
+```bash
+termux-toast "message"        # Quick toast popup
+termux-vibrate                # Vibrate device
+termux-tts-speak "hello"      # Text to speech
+termux-camera-photo out.jpg   # Take photo
+```
+
+## Notes
+- Termux:API app must be installed for `termux-*` commands
+- Use `pkg install termux-api` for the command-line tools
+- Storage permission needed for `/storage/emulated/0` access
+````
+
+## Limitations
+
+- **No image clipboard**: Termux clipboard API only supports text
+- **No Atomic native target on Android ARM64**: Termux uses Android's bionic libc rather than Alpine's musl libc, so Alpine musl archives are not usable as Termux targets; optional native dependencies such as the clipboard module are unavailable and skipped during installation
+- **Storage access**: To access files in `/storage/emulated/0` (Downloads, etc.), run `termux-setup-storage` once to grant permissions
+
+## Troubleshooting
+
+### Clipboard not working
+
+Ensure both apps are installed:
+1. Termux (from GitHub or F-Droid)
+2. Termux:API (from GitHub or F-Droid)
+
+Then install the CLI tools:
+```bash
+pkg install termux-api
+```
+
+### Permission denied for shared storage
+
+Run once to grant storage permissions:
+```bash
+termux-setup-storage
+```
+
+### Package installation issues
+
+Termux does not currently provide an official `pkg install bun` package. On a fresh Termux install, use npm from the `nodejs` package; use Bun only if you installed it separately for your device.
+
+If npm fails, try clearing the cache before retrying:
+
+```bash
+npm cache clean --force
+npm install -g @bastani/atomic
+```

@@ -1,0 +1,64 @@
+export interface SessionInfo {
+  id: string;
+  name?: string;
+  cwd: string;
+  model: string;
+  pid: number;
+  startedAt: number;
+  lastActivity: number;
+  status?: string;
+  /** Session's intercom group; undefined is treated as the shared "default" group. */
+  group?: string;
+}
+
+export interface Message {
+  id: string;
+  timestamp: number;
+  replyTo?: string;
+  expectsReply?: boolean;
+  /** Actionable remote failure for a correlated ask reply. */
+  replyError?: string;
+  source?: {
+    subagentRunId: string;
+    subagentAgent?: string;
+    subagentIndex?: number;
+  };
+  content: {
+    text: string;
+    attachments?: Attachment[];
+  };
+}
+
+export interface Attachment {
+  type: "file" | "snippet" | "context";
+  name: string;
+  content: string;
+  language?: string;
+}
+/** Broker capability metadata binding a child registration to its supervisor. */
+export interface SupervisorRegistration {
+  capability: string;
+  supervisorSessionId: string;
+}
+
+
+export type ClientMessage =
+  | { type: "register"; session: Omit<SessionInfo, "id">; supervisor?: SupervisorRegistration; supervisorOwnerToken?: string }
+  | { type: "unregister" }
+  | { type: "list"; requestId: string; group?: string }
+  | { type: "authorize_supervisor"; requestId: string; childName: string; capability?: string }
+  | { type: "send" | "supervisor_send"; to: string; message: Message; attemptId?: string }
+  | { type: "presence"; name?: string; status?: string; model?: string };
+
+export type BrokerMessage =
+  | { type: "registered"; sessionId: string; supervisorSessionId?: string }
+  | { type: "registration_failed"; reason: string }
+  | { type: "sessions"; requestId: string; sessions: SessionInfo[] }
+  | { type: "supervisor_authorized"; requestId: string; capability: string; supervisorSessionId: string; childName: string }
+  | { type: "message"; from: SessionInfo; message: Message; channel?: "supervisor" }
+  | { type: "presence_update"; session: SessionInfo }
+  | { type: "session_joined"; session: SessionInfo }
+  | { type: "session_left"; sessionId: string }
+  | { type: "error"; error: string }
+  | { type: "delivered"; messageId: string; attemptId?: string }
+  | { type: "delivery_failed"; messageId: string; reason: string; attemptId?: string };

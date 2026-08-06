@@ -1,0 +1,43 @@
+import type { RunOpts } from "../runs/foreground/executor-types.js";
+
+export type EngineStageRuntimeOptions = Pick<
+	RunOpts,
+	| "continuation"
+	| "models"
+	| "executionMode"
+	| "defaultSessionDir"
+	| "persistence"
+	| "onStageStart"
+	| "onStageEnd"
+	| "onStageSession"
+	| "confirmStageReadiness"
+	| "usePromptNodesForUi"
+>;
+
+export type EngineWorkflowBoundaryOptions = Pick<RunOpts, "persistence" | "onStageStart" | "onStageEnd">;
+
+export type EngineChildRunOptions = Pick<
+	RunOpts,
+	| "adapters"
+	| "ui"
+	| "executionMode"
+	| "defaultSessionDir"
+	| "usePromptNodesForUi"
+	| "confirmStageReadiness"
+	| "store"
+	| "persistence"
+	| "mcp"
+	| "cancellation"
+	| "overlay"
+	| "config"
+	| "models"
+	| "registry"
+	| "stageControlRegistry"
+	| "toolControlRegistry"
+	| "toolAdmissionBoundary"
+	| "onStageStart"
+	| "onStageEnd"
+	| "onStageSession"
+	| "durableBackend"
+	| "durableRootBackend"
+>;

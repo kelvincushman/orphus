@@ -1,0 +1,122 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Atomic",
+  "logo": "/logo.svg",
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#2563EB",
+    "light": "#60A5FA",
+    "dark": "#1D4ED8"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Start here",
+        "pages": [
+          "index",
+          "quickstart",
+          "usage",
+          "providers",
+          "environment-variables",
+          "llama-cpp",
+          "containerization",
+          "security",
+          "settings",
+          "keybindings",
+          "sessions",
+          "compaction"
+        ]
+      },
+      {
+        "group": "Customization",
+        "pages": [
+          "extensions",
+          "skills",
+          "subagents",
+          "intercom",
+          "workflows",
+          "prompt-templates",
+          "themes",
+          "packages",
+          {
+            "group": "Models",
+            "pages": [
+              "models",
+              "models/model-selection",
+              "models/pareto-efficiency",
+              "models/artificial-analysis-index"
+            ]
+          },
+          "custom-provider"
+        ]
+      },
+      {
+        "group": "Reference",
+        "pages": [
+          "tools",
+          "session-format"
+        ]
+      },
+      {
+        "group": "Programmatic Usage",
+        "pages": [
+          "sdk",
+          "rpc",
+          "json",
+          "tui"
+        ]
+      },
+      {
+        "group": "Platform Setup",
+        "pages": [
+          "windows",
+          "termux",
+          "tmux",
+          "terminal-setup",
+          "shell-aliases"
+        ]
+      },
+      {
+        "group": "Development",
+        "pages": [
+          "development"
+        ]
+      },
+      {
+        "group": "Changelog",
+        "pages": [
+          "changelog"
+        ]
+      }
+    ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/bastani-inc/atomic"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get started",
+      "href": "/quickstart"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/bastani-inc/atomic"
+    }
+  },
+  "redirects": [
+    {
+      "source": "/session",
+      "destination": "/session-format"
+    },
+    {
+      "source": "/tree",
+      "destination": "/sessions"
+    }
+  ]
+}
