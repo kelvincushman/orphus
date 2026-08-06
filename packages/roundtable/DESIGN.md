@@ -7,7 +7,7 @@ cost. The bound must be enforced by the runtime, not by prompt discipline.
 
 ## Architecture
 
-```
+```text
 ┌──────────┐   post/digest    ┌────────────────────┐
 │ session A │◄───────────────►│  roundtable broker  │
 └──────────┘   (tool calls)   │  (unix socket /     │
@@ -39,12 +39,16 @@ Three delivery tiers, each with a hard bound:
 |---|---|---|
 | Activity ping | "#design: 3 new (planner, critic)" | one line per quiet period |
 | Digest | newest verbatim → headlines → collapsed count | `budget` chars (default 2000) |
-| Explicit fetch | raw messages by seq range | caller-chosen limit |
+| Explicit replay | complete raw messages by seq range | 8000 chars/page and 100 messages/page |
 
 `buildDigest` (digest.ts) is deterministic and model-free: budget is spent on
 newest messages first, rendered chronologically. A hostile or verbose peer
 cannot inflate another agent's context — oversized messages are capped with
-truncation markers, overflow collapses to a count line.
+truncation markers, overflow collapses to a count line. A digest may advance
+past collapsed older messages because `replay` provides an explicit,
+cursor-neutral sequence-range recovery path. Replay returns only complete
+messages, advertises the last returned sequence when more remain, and rejects
+posts over 4000 characters so every retained message fits a bounded page.
 
 ## Decisions and trade-offs
 

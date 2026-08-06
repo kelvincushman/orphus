@@ -1,10 +1,14 @@
-import { mkdtempSync, rmSync } from "fs";
+import { once } from "node:events";
+import { mkdtempSync, readFileSync, rmSync } from "fs";
+import net from "net";
 import { tmpdir } from "os";
 import { join } from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { RoundtableBroker } from "../../packages/roundtable/broker/broker.ts";
 import { RoundtableClient } from "../../packages/roundtable/broker/client.ts";
+import { createMessageReader, writeMessage } from "../../packages/roundtable/broker/framing.ts";
 import { getBrokerPidPath, getBrokerSocketPath, getRoundtableDirPath } from "../../packages/roundtable/broker/paths.ts";
+import type { RoundtableBrokerMessage } from "../../packages/roundtable/types.ts";
 
 describe("roundtable broker and client over a real socket", () => {
 	let agentDir: string;
@@ -16,12 +20,13 @@ describe("roundtable broker and client over a real socket", () => {
 		agentDir = mkdtempSync(join(tmpdir(), "roundtable-test-"));
 		socketPath = getBrokerSocketPath(process.platform, agentDir);
 		broker = new RoundtableBroker(socketPath, getBrokerPidPath(agentDir), getRoundtableDirPath(agentDir));
-		await new Promise<void>((resolve) => broker.start(resolve));
+		await broker.start();
 	});
 
 	afterEach(() => {
 		for (const client of clients.splice(0)) client.disconnect();
 		broker.shutdown();
+		expect((broker as unknown as { shutdownTimer: NodeJS.Timeout | null }).shutdownTimer).toBeNull();
 		rmSync(agentDir, { recursive: true, force: true });
 	});
 
@@ -61,7 +66,10 @@ describe("roundtable broker and client over a real socket", () => {
 		planner.onActivity((event) => plannerEvents.push(event));
 
 		await planner.post("design", "hello");
-		await new Promise((resolve) => setTimeout(resolve, 100));
+		const deadline = Date.now() + 2000;
+		while (!criticEvents.some((event) => event.seq === 1) && Date.now() < deadline) {
+			await new Promise((resolve) => setTimeout(resolve, 10));
+		}
 
 		expect(criticEvents.some((e) => e.room === "design" && e.from === "planner" && e.seq === 1)).toBe(true);
 		expect(plannerEvents.filter((e) => e.seq === 1)).toHaveLength(0);
@@ -80,9 +88,137 @@ describe("roundtable broker and client over a real socket", () => {
 		expect(cursor).toBe(2);
 	});
 
-	it("rejects posting to a room the session has not joined", async () => {
+	it("distinguishes a missing room from a room the session has not joined", async () => {
 		const outsider = await connect("outsider");
-		await expect(outsider.post("nowhere", "hi")).rejects.toThrow(/does not exist|join it first/);
+		await expect(outsider.post("nowhere", "hi")).rejects.toThrow(/does not exist/);
+
+		const member = await connect("member");
+		await member.join("design");
+		await expect(outsider.post("design", "hi")).rejects.toThrow(/Not a member/);
+	});
+
+	it("keeps the live broker reachable when a second broker races for its socket", async () => {
+		const contender = new RoundtableBroker(socketPath, getBrokerPidPath(agentDir), getRoundtableDirPath(agentDir));
+		await expect(contender.start()).rejects.toThrow(/already listening/);
+		contender.shutdown();
+		expect(readFileSync(getBrokerPidPath(agentDir), "utf8")).toBe(String(process.pid));
+
+		const client = await connect("still-alive");
+		expect(client.connected).toBe(true);
+	});
+
+	it("creates the parent directory for a custom socket path", async () => {
+		const customSocket = join(agentDir, "missing", "custom.sock");
+		const customBroker = new RoundtableBroker(customSocket, join(agentDir, "custom.pid"), agentDir);
+		await customBroker.start();
+		const client = new RoundtableClient("custom", customSocket);
+		await client.connect();
+		expect(client.connected).toBe(true);
+		client.disconnect();
+		customBroker.shutdown();
+	});
+
+	it("rejects repeated registration on one socket without replacing the session", async () => {
+		const socket = net.createConnection(socketPath);
+		await once(socket, "connect");
+		const nextMessage = () =>
+			new Promise<RoundtableBrokerMessage>((resolve, reject) => {
+				const reader = createMessageReader((message) => {
+					socket.off("data", reader);
+					resolve(message as RoundtableBrokerMessage);
+				}, reject);
+				socket.on("data", reader);
+			});
+
+		const first = nextMessage();
+		writeMessage(socket, { type: "register", name: "raw", pid: process.pid, cwd: process.cwd() });
+		expect((await first).type).toBe("registered");
+
+		const second = nextMessage();
+		writeMessage(socket, { type: "register", name: "raw-again", pid: process.pid, cwd: process.cwd() });
+		const response = await second;
+		expect(response.type).toBe("error");
+		if (response.type === "error") expect(response.error).toMatch(/already registered/);
+		socket.destroy();
+	});
+
+	it("can retry the same client after an initial connection failure", async () => {
+		const retryAgentDir = join(agentDir, "retry");
+		const retrySocket = getBrokerSocketPath(process.platform, retryAgentDir);
+		const retryClient = new RoundtableClient("retry", retrySocket);
+		await expect(retryClient.connect()).rejects.toThrow();
+
+		const retryBroker = new RoundtableBroker(
+			retrySocket,
+			getBrokerPidPath(retryAgentDir),
+			getRoundtableDirPath(retryAgentDir),
+		);
+		await retryBroker.start();
+		await retryClient.connect();
+		expect(retryClient.connected).toBe(true);
+		retryClient.disconnect();
+		retryBroker.shutdown();
+	});
+
+	it("shares registration work across concurrent connect callers", async () => {
+		const client = new RoundtableClient("concurrent", socketPath);
+		const first = client.connect();
+		const second = client.connect();
+		expect(second).toBe(first);
+		await second;
+		expect(client.connected).toBe(true);
+		client.disconnect();
+	});
+
+	it("rejects pending requests immediately on an intentional disconnect", async () => {
+		const pendingSocket = join(agentDir, "pending.sock");
+		const acceptedSockets: net.Socket[] = [];
+		const silentServer = net.createServer((socket) => {
+			acceptedSockets.push(socket);
+			const reader = createMessageReader(
+				(message) => {
+					if ((message as { type?: string }).type === "register") {
+						writeMessage(socket, { type: "registered", sessionId: "pending-session" });
+					}
+				},
+				() => socket.destroy(),
+			);
+			socket.on("data", reader);
+		});
+		await new Promise<void>((resolve) => silentServer.listen(pendingSocket, resolve));
+		const client = new RoundtableClient("pending", pendingSocket, 2000);
+		await client.connect();
+		const pending = client.fetch("design", 0);
+		client.disconnect();
+		await expect(pending).rejects.toThrow(/connection closed/);
+		for (const socket of acceptedSockets) socket.destroy();
+		await new Promise<void>((resolve, reject) => silentServer.close((error) => (error ? reject(error) : resolve())));
+	});
+
+	it("does not let an old registration timeout clear a replacement connection", async () => {
+		const retrySocket =
+			process.platform === "win32"
+				? getBrokerSocketPath("win32", `${agentDir}-stale`)
+				: join(agentDir, "stale.sock");
+		const silentServer = net.createServer();
+		await new Promise<void>((resolve) => silentServer.listen(retrySocket, resolve));
+		const accepted = once(silentServer, "connection");
+		const retryClient = new RoundtableClient("retry", retrySocket, 250);
+		const staleFailure = retryClient.connect().catch((error: unknown) => error);
+		const [acceptedSocket] = (await accepted) as [net.Socket];
+		const acceptedClose = once(acceptedSocket, "close");
+		retryClient.disconnect();
+		await acceptedClose;
+		await new Promise<void>((resolve, reject) => silentServer.close((error) => (error ? reject(error) : resolve())));
+
+		const retryBroker = new RoundtableBroker(retrySocket, join(agentDir, "stale.pid"), agentDir);
+		await retryBroker.start();
+		await retryClient.connect();
+		expect(retryClient.connected).toBe(true);
+		expect(await staleFailure).toBeInstanceOf(Error);
+		expect(retryClient.connected).toBe(true);
+		retryClient.disconnect();
+		retryBroker.shutdown();
 	});
 });
 
@@ -103,5 +239,10 @@ describe("windows broker pipe naming", () => {
 
 	it("is deterministic for the same agent dir", () => {
 		expect(getBrokerSocketPath("win32", "C:\\agents\\x")).toBe(getBrokerSocketPath("win32", "C:\\agents\\x"));
+	});
+
+	it("normalizes trailing separators and bounds the readable pipe name", () => {
+		expect(getBrokerSocketPath("win32", "C:\\agents\\x\\")).toBe(getBrokerSocketPath("win32", "C:\\agents\\x"));
+		expect(getBrokerSocketPath("win32", `C:\\agents\\${"nested\\".repeat(100)}x`).length).toBeLessThan(128);
 	});
 });

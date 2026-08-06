@@ -17,6 +17,7 @@
     "*.ts",
     "broker/**/*.ts",
     "bin/**/*.ts",
+    "memory/**/*.ts",
     "roles/**/*.ts",
     "demo/**/*.ts",
     "skills/**/*",

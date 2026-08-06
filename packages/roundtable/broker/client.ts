@@ -26,6 +26,8 @@ const REQUEST_TIMEOUT_MS = 10_000;
 /** Promise-based roundtable broker client with a tiny activity event stream. */
 export class RoundtableClient {
   private socket: net.Socket | null = null;
+  private connecting: Promise<void> | null = null;
+  private cancelConnect: (() => void) | null = null;
   private pending = new Map<string, PendingResolver>();
   private activityListeners = new Set<(event: ActivityEvent) => void>();
   sessionId: string | null = null;
@@ -33,6 +35,7 @@ export class RoundtableClient {
   constructor(
     readonly name: string,
     private socketPath: string = getBrokerSocketPath(),
+    private requestTimeoutMs: number = REQUEST_TIMEOUT_MS,
   ) {}
 
   onActivity(listener: (event: ActivityEvent) => void): () => void {
@@ -40,13 +43,33 @@ export class RoundtableClient {
     return () => this.activityListeners.delete(listener);
   }
 
-  async connect(): Promise<void> {
-    if (this.socket) return;
+  connect(): Promise<void> {
+    if (this.connected) return Promise.resolve();
+    if (this.connecting) return this.connecting;
+    const attempt = this.doConnect();
+    this.connecting = attempt;
+    attempt.then(
+      () => {
+        if (this.connecting === attempt) this.connecting = null;
+      },
+      () => {
+        if (this.connecting === attempt) this.connecting = null;
+      },
+    );
+    return attempt;
+  }
+
+  private async doConnect(): Promise<void> {
     const socket = net.createConnection(this.socketPath);
     this.socket = socket;
+    let cancelAttempt!: () => void;
+    const cancelled = new Promise<never>((_, reject) => {
+      cancelAttempt = () => reject(new Error("Roundtable connection cancelled"));
+      this.cancelConnect = cancelAttempt;
+    });
 
     const registered = new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("Roundtable registration timed out")), REQUEST_TIMEOUT_MS);
+      const timer = setTimeout(() => reject(new Error("Roundtable registration timed out")), this.requestTimeoutMs);
       const reader = createMessageReader(
         (raw) => {
           const msg = raw as RoundtableBrokerMessage;
@@ -54,6 +77,11 @@ export class RoundtableClient {
             this.sessionId = msg.sessionId;
             clearTimeout(timer);
             resolve();
+            return;
+          }
+          if (msg.type === "error" && !this.sessionId) {
+            clearTimeout(timer);
+            reject(new Error(msg.error));
             return;
           }
           this.dispatch(msg);
@@ -68,25 +96,66 @@ export class RoundtableClient {
       socket.on("error", (error) => {
         clearTimeout(timer);
         reject(error);
-        this.failAllPending(error);
+        if (this.socket === socket) this.failAllPending(error);
       });
       socket.on("close", () => {
+        clearTimeout(timer);
+        reject(new Error("Roundtable broker connection closed"));
+        if (this.socket !== socket) return;
         this.socket = null;
         this.sessionId = null;
         this.failAllPending(new Error("Roundtable broker connection closed"));
       });
     });
+    // The transport connection can fail before the registration await below.
+    // Mark this branch handled immediately so its parallel rejection cannot
+    // become an unhandled rejection while connect() reports the socket error.
+    registered.catch(() => {});
 
-    await new Promise<void>((resolve, reject) => {
-      socket.once("connect", resolve);
-      socket.once("error", reject);
-    });
+    try {
+      const connected = new Promise<void>((resolve, reject) => {
+        const cleanup = () => {
+          socket.off("connect", onConnect);
+          socket.off("error", onError);
+          socket.off("close", onClose);
+        };
+        const onConnect = () => {
+          cleanup();
+          resolve();
+        };
+        const onError = (error: Error) => {
+          cleanup();
+          reject(error);
+        };
+        const onClose = () => {
+          cleanup();
+          reject(new Error("Roundtable broker connection closed before registration"));
+        };
+        socket.once("connect", onConnect);
+        socket.once("error", onError);
+        socket.once("close", onClose);
+      });
+      await Promise.race([connected, cancelled]);
 
-    this.write({ type: "register", name: this.name, pid: process.pid, cwd: process.cwd() });
-    await registered;
+      this.write({ type: "register", name: this.name, pid: process.pid, cwd: process.cwd() });
+      await Promise.race([registered, cancelled]);
+    } catch (error) {
+      socket.destroy();
+      if (this.socket === socket) {
+        this.socket = null;
+        this.sessionId = null;
+      }
+      throw error;
+    } finally {
+      if (this.cancelConnect === cancelAttempt) this.cancelConnect = null;
+    }
   }
 
   disconnect(): void {
+    this.cancelConnect?.();
+    this.cancelConnect = null;
+    this.connecting = null;
+    this.failAllPending(new Error("Roundtable broker connection closed"));
     this.socket?.destroy();
     this.socket = null;
     this.sessionId = null;
@@ -136,7 +205,7 @@ export class RoundtableClient {
       const timer = setTimeout(() => {
         this.pending.delete(requestId);
         reject(new Error("Roundtable request timed out"));
-      }, REQUEST_TIMEOUT_MS);
+      }, this.requestTimeoutMs);
       this.pending.set(requestId, {
         resolve: (msg) => {
           if (msg.type === expected) {

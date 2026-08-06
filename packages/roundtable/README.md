@@ -21,7 +21,8 @@ Roundtable inverts delivery:
 - **Pull is budgeted.** `digest` renders unread messages into a fixed character
   budget: newest verbatim, older as one-line headlines, the rest collapsed to a
   count. The bound holds no matter what peers post. Read cursors are kept
-  broker-side, keyed by member name, so they survive restarts.
+  broker-side, keyed by member name, so they survive session reconnects while
+  the broker remains running.
 
 An agent in a 200-message discussion pays ~2000 characters to catch up, and
 chooses when to pay it.
@@ -37,6 +38,7 @@ roundtable({ action: "post", room: "design", message: "Proposal: ..." })
 roundtable({ action: "digest", room: "design" })            // bounded catch-up, marks read
 roundtable({ action: "peek", room: "design" })              // same, cursor unchanged
 roundtable({ action: "digest", room: "design", budget: 4000 })
+roundtable({ action: "replay", room: "design", afterSeq: 0, limit: 20 }) // bounded raw page; continue after lastReturnedSeq
 ```
 
 See `skills/roundtable/SKILL.md` for discussion patterns and

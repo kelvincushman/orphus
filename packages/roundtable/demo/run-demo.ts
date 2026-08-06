@@ -31,7 +31,7 @@ const SCRIPT: Array<{ agent: "planner" | "researcher" | "critic"; text: string }
 async function main(): Promise<void> {
   const socketPath = getBrokerSocketPath();
   const broker = new RoundtableBroker();
-  await new Promise<void>((resolve) => broker.start(resolve));
+  await broker.start();
   console.log(`Broker listening at ${socketPath}\n`);
 
   const agents = {

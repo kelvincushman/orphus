@@ -148,12 +148,14 @@ describe("plan formats", () => {
 // `tmux` on PATH (so `set -e` does not abort before the trailing echo) and assert
 // no injected side effect fires.
 describe("tmux script injection safety", () => {
-	function withStubTmux(): string {
+	function withStubCommands(): string {
 		const binDir = join(dir, "bin");
 		mkdirSync(binDir, { recursive: true });
-		const tmux = join(binDir, "tmux");
-		writeFileSync(tmux, "#!/bin/sh\nexit 0\n");
-		chmodSync(tmux, 0o755);
+		for (const command of ["tmux", "orca"]) {
+			const path = join(binDir, command);
+			writeFileSync(path, "#!/bin/sh\nexit 0\n");
+			chmodSync(path, 0o755);
+		}
 		return binDir;
 	}
 
@@ -168,7 +170,7 @@ describe("tmux script injection safety", () => {
 	}
 
 	it("blocks command injection through the echo line's session name", () => {
-		const binDir = withStubTmux();
+		const binDir = withStubCommands();
 		const marker = join(dir, "PWNED");
 		const script = formatPlan(plan(), "tmux", { sessionName: `x'; touch ${marker}; echo '` });
 		const result = runScript(script, binDir);
@@ -177,7 +179,7 @@ describe("tmux script injection safety", () => {
 	});
 
 	it("blocks command injection through a newline in the session name", () => {
-		const binDir = withStubTmux();
+		const binDir = withStubCommands();
 		const marker = join(dir, "PWNED2");
 		const script = formatPlan(plan(), "tmux", { sessionName: `a\ntouch ${marker}` });
 		const result = runScript(script, binDir);
@@ -189,6 +191,31 @@ describe("tmux script injection safety", () => {
 		const script = formatPlan(plan(), "tmux", { sessionName: "O'Brien" });
 		const check = spawnSync("sh", ["-n"], { input: script, encoding: "utf8" });
 		expect(check.status).toBe(0);
+	});
+
+	it("blocks command injection through dynamic shell-comment text", () => {
+		const binDir = withStubCommands();
+		const marker = join(dir, "COMMENT_PWNED");
+		const unsafe = plan();
+		const injected = `safe\ntouch ${marker}`;
+		const unsafePlan: LaunchPlan = {
+			...unsafe,
+			task: injected,
+			room: injected,
+			launches: unsafe.launches.map((launch) => ({
+				...launch,
+				role: injected,
+				room: injected,
+				command: "true",
+				args: [],
+			})),
+		};
+
+		for (const format of ["sh", "tmux", "orca"] as const) {
+			const result = runScript(formatPlan(unsafePlan, format, { sessionName: "safe" }), binDir);
+			expect(result.status).toBe(0);
+			expect(existsSync(marker)).toBe(false);
+		}
 	});
 });
 

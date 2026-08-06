@@ -37,6 +37,11 @@ function indent(text: string, prefix: string): string {
     .join("\n");
 }
 
+/** Keep untrusted display text inside one shell-comment line. */
+function commentText(value: string): string {
+  return value.replace(/[\r\n]/g, " ");
+}
+
 function renderHuman(plan: LaunchPlan): string {
   const lines: string[] = [
     `task: ${plan.task}`,
@@ -63,12 +68,12 @@ function renderHuman(plan: LaunchPlan): string {
 function renderSh(plan: LaunchPlan): string {
   const lines = [
     "#!/bin/sh",
-    `# Orphus roundtable — task "${plan.task}", room #${plan.room}`,
+    `# Orphus roundtable — task "${commentText(plan.task)}", room #${commentText(plan.room)}`,
     "# Each role is an interactive session: run one line per terminal.",
     "",
   ];
   for (const launch of plan.launches) {
-    lines.push(`# ${launch.role} → #${launch.room}`);
+    lines.push(`# ${commentText(launch.role)} → #${commentText(launch.room)}`);
     lines.push(shellCommand(launch));
     lines.push("");
   }
@@ -84,7 +89,7 @@ function renderTmux(plan: LaunchPlan, sessionName: string): string {
   const lines = [
     "#!/bin/sh",
     "set -e",
-    `# Orphus roundtable — task "${plan.task}", room #${plan.room}`,
+    `# Orphus roundtable — task "${commentText(plan.task)}", room #${commentText(plan.room)}`,
     // sessionName is unvalidated operator input (--session-name), so it is never
     // interpolated raw: a quote or newline would break or inject the piped-to-sh
     // script. The attach command is printed by the quoted echo on the last line.
@@ -117,7 +122,7 @@ function renderOrca(plan: LaunchPlan): string {
   const lines = [
     "#!/bin/sh",
     "set -e",
-    `# Orphus roundtable — task "${plan.task}", room #${plan.room}`,
+    `# Orphus roundtable — task "${commentText(plan.task)}", room #${commentText(plan.room)}`,
     "# Worktrees must already exist; create them with `orca worktree create --name <role>`.",
     "",
   ];

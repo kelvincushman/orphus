@@ -1,5 +1,14 @@
 import { randomUUID } from "crypto";
-import type { RoomInfo, RoomMember, RoomMessage } from "../types.ts";
+import {
+  MAX_MEMBER_NAME_CHARS,
+  MAX_REPLY_TO_CHARS,
+  MAX_ROOM_MESSAGE_CHARS,
+  MAX_ROOM_NAME_CHARS,
+  MAX_ROOM_TOPIC_CHARS,
+  type RoomInfo,
+  type RoomMember,
+  type RoomMessage,
+} from "../types.ts";
 
 /** Per-room message cap; older messages are dropped ring-buffer style. */
 export const DEFAULT_ROOM_CAPACITY = 500;
@@ -51,6 +60,15 @@ export class RoomStore {
   }
 
   join(room: string, member: { sessionId: string; name: string }, topic?: string): { room: RoomInfo; cursor: number } {
+    if (typeof room !== "string" || room.length === 0 || room.length > MAX_ROOM_NAME_CHARS) {
+      throw new Error(`Room names must contain 1-${MAX_ROOM_NAME_CHARS} characters`);
+    }
+    if (typeof member.name !== "string" || member.name.length === 0 || member.name.length > MAX_MEMBER_NAME_CHARS) {
+      throw new Error(`Member names must contain 1-${MAX_MEMBER_NAME_CHARS} characters`);
+    }
+    if (topic !== undefined && (typeof topic !== "string" || topic.length > MAX_ROOM_TOPIC_CHARS)) {
+      throw new Error(`Room topics cannot exceed ${MAX_ROOM_TOPIC_CHARS} characters`);
+    }
     let state = this.rooms.get(room);
     if (!state) {
       state = {
@@ -87,7 +105,9 @@ export class RoomStore {
   evictSession(sessionId: string): string[] {
     const left: string[] = [];
     for (const [name, state] of this.rooms) {
-      if (state.members.delete(sessionId)) left.push(name);
+      if (!state.members.delete(sessionId)) continue;
+      left.push(name);
+      if (state.members.size === 0 && state.messages.length === 0) this.rooms.delete(name);
     }
     return left;
   }
@@ -101,6 +121,12 @@ export class RoomStore {
     const state = this.rooms.get(room);
     if (!state) throw new Error(`Room "${room}" does not exist; join it first`);
     if (!state.members.has(from.sessionId)) throw new Error(`Not a member of room "${room}"; join it first`);
+    if (typeof text !== "string" || text.length > MAX_ROOM_MESSAGE_CHARS) {
+      throw new Error(`Room messages cannot exceed ${MAX_ROOM_MESSAGE_CHARS} characters`);
+    }
+    if (replyTo !== undefined && (typeof replyTo !== "string" || replyTo.length > MAX_REPLY_TO_CHARS)) {
+      throw new Error(`Reply ids cannot exceed ${MAX_REPLY_TO_CHARS} characters`);
+    }
     const message: RoomMessage = {
       id: randomUUID(),
       seq: state.nextSeq++,
@@ -125,7 +151,8 @@ export class RoomStore {
   fetch(room: string, afterSeq: number, limit = 200): { messages: RoomMessage[]; lastSeq: number } {
     const state = this.rooms.get(room);
     if (!state) throw new Error(`Room "${room}" does not exist`);
-    const messages = state.messages.filter((m) => m.seq > afterSeq).slice(0, Math.max(1, limit));
+    if (!Number.isSafeInteger(limit) || limit < 0) throw new Error("Fetch limit must be a non-negative safe integer");
+    const messages = state.messages.filter((m) => m.seq > afterSeq).slice(0, limit);
     return { messages, lastSeq: state.nextSeq - 1 };
   }
 

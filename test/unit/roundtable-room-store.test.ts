@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { MAX_MESSAGE_BYTES } from "../../packages/roundtable/broker/framing.ts";
 import { RoomStore } from "../../packages/roundtable/broker/room-store.ts";
+import { MAX_ROOM_MESSAGE_CHARS } from "../../packages/roundtable/types.ts";
 
 const alice = { sessionId: "s-alice", name: "alice" };
 const bob = { sessionId: "s-bob", name: "bob" };
@@ -24,6 +26,23 @@ describe("roundtable room store", () => {
 		expect(second.seq).toBe(2);
 	});
 
+	it("rejects oversized posts before committing them", () => {
+		const store = new RoomStore();
+		store.join("design", alice);
+		expect(() => store.post("design", alice, "x".repeat(MAX_ROOM_MESSAGE_CHARS + 1))).toThrow(/cannot exceed/);
+		expect(store.fetch("design", 0)).toEqual({ messages: [], lastSeq: 0 });
+	});
+
+	it("keeps a maximum fetch response within the transport frame bound", () => {
+		const store = new RoomStore();
+		store.join("design", alice);
+		for (let index = 0; index < 200; index++) {
+			store.post("design", alice, "x".repeat(MAX_ROOM_MESSAGE_CHARS));
+		}
+		const response = { type: "messages", requestId: "request", room: "design", ...store.fetch("design", 0) };
+		expect(Buffer.byteLength(JSON.stringify(response), "utf8")).toBeLessThan(MAX_MESSAGE_BYTES);
+	});
+
 	it("rejects posts from non-members", () => {
 		const store = new RoomStore();
 		store.join("design", alice);
@@ -39,6 +58,15 @@ describe("roundtable room store", () => {
 		const { messages, lastSeq } = store.fetch("design", 1);
 		expect(messages.map((m) => m.text)).toEqual(["two", "three"]);
 		expect(lastSeq).toBe(3);
+	});
+
+	it("honors a zero fetch limit and rejects invalid limits", () => {
+		const store = new RoomStore();
+		store.join("design", alice);
+		store.post("design", alice, "one");
+		expect(store.fetch("design", 0, 0).messages).toEqual([]);
+		expect(() => store.fetch("design", 0, -1)).toThrow(/non-negative safe integer/);
+		expect(() => store.fetch("design", 0, 1.5)).toThrow(/non-negative safe integer/);
 	});
 
 	it("keeps cursors per member name and marks own posts read", () => {
@@ -84,5 +112,7 @@ describe("roundtable room store", () => {
 		store.post("design", alice, "keep room alive");
 		const left = store.evictSession(alice.sessionId);
 		expect(left.sort()).toEqual(["design", "infra"]);
+		expect(store.getRoom("design")?.members).toEqual([]);
+		expect(store.getRoom("infra")).toBeUndefined();
 	});
 });
