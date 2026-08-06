@@ -1,6 +1,16 @@
 import { RoundtableBroker } from "./broker.ts";
+import { dirname } from "path";
+import { getBrokerPidPathForSocket, getBrokerSocketPath, getRoundtableDirPath } from "./paths.ts";
 
-const broker = new RoundtableBroker(process.env.ORPHUS_ROUNDTABLE_SOCKET_PATH);
+const socketOverride = process.env.ORPHUS_ROUNDTABLE_SOCKET_PATH;
+const broker =
+  socketOverride && socketOverride !== getBrokerSocketPath()
+    ? new RoundtableBroker(
+        socketOverride,
+        getBrokerPidPathForSocket(socketOverride),
+        process.platform === "win32" ? getRoundtableDirPath() : dirname(socketOverride),
+      )
+    : new RoundtableBroker();
 broker
   .start(() => {
     console.log(`Roundtable broker started (pid: ${process.pid})`);

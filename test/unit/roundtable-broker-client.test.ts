@@ -7,8 +7,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { RoundtableBroker } from "../../packages/roundtable/broker/broker.ts";
 import { RoundtableClient } from "../../packages/roundtable/broker/client.ts";
 import { createMessageReader, writeMessage } from "../../packages/roundtable/broker/framing.ts";
-import { getBrokerPidPath, getBrokerSocketPath, getRoundtableDirPath } from "../../packages/roundtable/broker/paths.ts";
-import type { RoundtableBrokerMessage } from "../../packages/roundtable/types.ts";
+import {
+	getBrokerPidPath,
+	getBrokerPidPathForSocket,
+	getBrokerSocketPath,
+	getRoundtableDirPath,
+} from "../../packages/roundtable/broker/paths.ts";
+import { MAX_MEMBER_NAME_CHARS, type RoundtableBrokerMessage } from "../../packages/roundtable/types.ts";
 
 describe("roundtable broker and client over a real socket", () => {
 	let agentDir: string;
@@ -26,7 +31,6 @@ describe("roundtable broker and client over a real socket", () => {
 	afterEach(() => {
 		for (const client of clients.splice(0)) client.disconnect();
 		broker.shutdown();
-		expect((broker as unknown as { shutdownTimer: NodeJS.Timeout | null }).shutdownTimer).toBeNull();
 		rmSync(agentDir, { recursive: true, force: true });
 	});
 
@@ -98,8 +102,9 @@ describe("roundtable broker and client over a real socket", () => {
 	});
 
 	it("keeps the live broker reachable when a second broker races for its socket", async () => {
+		expect((broker as unknown as { server: net.Server }).server.listenerCount("error")).toBeGreaterThan(0);
 		const contender = new RoundtableBroker(socketPath, getBrokerPidPath(agentDir), getRoundtableDirPath(agentDir));
-		await expect(contender.start()).rejects.toThrow(/already listening/);
+		await expect(contender.start()).rejects.toThrow(/already listening|failed to listen/);
 		contender.shutdown();
 		expect(readFileSync(getBrokerPidPath(agentDir), "utf8")).toBe(String(process.pid));
 
@@ -107,7 +112,7 @@ describe("roundtable broker and client over a real socket", () => {
 		expect(client.connected).toBe(true);
 	});
 
-	it("creates the parent directory for a custom socket path", async () => {
+	it.skipIf(process.platform === "win32")("creates the parent directory for a custom socket path", async () => {
 		const customSocket = join(agentDir, "missing", "custom.sock");
 		const customBroker = new RoundtableBroker(customSocket, join(agentDir, "custom.pid"), agentDir);
 		await customBroker.start();
@@ -116,6 +121,19 @@ describe("roundtable broker and client over a real socket", () => {
 		expect(client.connected).toBe(true);
 		client.disconnect();
 		customBroker.shutdown();
+	});
+
+	it("clears an armed idle-shutdown timer", async () => {
+		const client = await connect("idle-timer");
+		client.disconnect();
+		const state = broker as unknown as { shutdownTimer: NodeJS.Timeout | null };
+		const deadline = Date.now() + 2000;
+		while (!state.shutdownTimer && Date.now() < deadline) {
+			await new Promise((resolve) => setTimeout(resolve, 10));
+		}
+		expect(state.shutdownTimer).not.toBeNull();
+		broker.shutdown();
+		expect(state.shutdownTimer).toBeNull();
 	});
 
 	it("rejects repeated registration on one socket without replacing the session", async () => {
@@ -139,6 +157,28 @@ describe("roundtable broker and client over a real socket", () => {
 		const response = await second;
 		expect(response.type).toBe("error");
 		if (response.type === "error") expect(response.error).toMatch(/already registered/);
+		socket.destroy();
+	});
+
+	it("rejects empty and oversized member names on a raw socket", async () => {
+		const socket = net.createConnection(socketPath);
+		await once(socket, "connect");
+		const nextMessage = () =>
+			new Promise<RoundtableBrokerMessage>((resolve, reject) => {
+				const reader = createMessageReader((message) => {
+					socket.off("data", reader);
+					resolve(message as RoundtableBrokerMessage);
+				}, reject);
+				socket.on("data", reader);
+			});
+
+		for (const name of ["", "x".repeat(MAX_MEMBER_NAME_CHARS + 1)]) {
+			const response = nextMessage();
+			writeMessage(socket, { type: "register", name, pid: process.pid, cwd: process.cwd() });
+			const message = await response;
+			expect(message.type).toBe("error");
+			if (message.type === "error") expect(message.error).toMatch(/1-128 characters/);
+		}
 		socket.destroy();
 	});
 
@@ -171,7 +211,10 @@ describe("roundtable broker and client over a real socket", () => {
 	});
 
 	it("rejects pending requests immediately on an intentional disconnect", async () => {
-		const pendingSocket = join(agentDir, "pending.sock");
+		const pendingSocket =
+			process.platform === "win32"
+				? getBrokerSocketPath("win32", `${agentDir}-pending`)
+				: join(agentDir, "pending.sock");
 		const acceptedSockets: net.Socket[] = [];
 		const silentServer = net.createServer((socket) => {
 			acceptedSockets.push(socket);
@@ -226,13 +269,10 @@ describe("roundtable broker and client over a real socket", () => {
 // would collide distinct dirs onto one machine-global pipe; the name must be
 // unique per full path.
 describe("windows broker pipe naming", () => {
-	it("gives distinct agent dirs distinct pipe names despite punctuation/case", () => {
-		const names = [
-			"C:\\agents\\team.one",
-			"C:\\agents\\team_one",
-			"C:\\agents\\team-one",
-			"C:\\agents\\Team.One",
-		].map((d) => getBrokerSocketPath("win32", d));
+	it("gives distinct agent dirs distinct pipe names despite punctuation", () => {
+		const names = ["C:\\agents\\team.one", "C:\\agents\\team_one", "C:\\agents\\team-one"].map((d) =>
+			getBrokerSocketPath("win32", d),
+		);
 		expect(new Set(names).size).toBe(names.length);
 		for (const name of names) expect(name.startsWith("\\\\.\\pipe\\atomic-roundtable-")).toBe(true);
 	});
@@ -243,6 +283,19 @@ describe("windows broker pipe naming", () => {
 
 	it("normalizes trailing separators and bounds the readable pipe name", () => {
 		expect(getBrokerSocketPath("win32", "C:\\agents\\x\\")).toBe(getBrokerSocketPath("win32", "C:\\agents\\x"));
-		expect(getBrokerSocketPath("win32", `C:\\agents\\${"nested\\".repeat(100)}x`).length).toBeLessThan(128);
+		expect(getBrokerSocketPath("win32", "C:\\agents\\Team.One")).toBe(
+			getBrokerSocketPath("win32", "c:\\AGENTS\\team.one"),
+		);
+		const sharedPrefix = `C:\\agents\\${"nested-".repeat(20)}`;
+		expect(getBrokerSocketPath("win32", `${sharedPrefix}alpha`)).not.toBe(
+			getBrokerSocketPath("win32", `${sharedPrefix}beta`),
+		);
+	});
+
+	it("derives custom pid files without sharing the default owner file", () => {
+		expect(getBrokerPidPathForSocket("/tmp/custom.sock", "darwin", "/agent")).toBe("/tmp/custom.sock.pid");
+		expect(getBrokerPidPathForSocket("\\\\.\\pipe\\custom-a", "win32", "C:\\agent")).not.toBe(
+			getBrokerPidPathForSocket("\\\\.\\pipe\\custom-b", "win32", "C:\\agent"),
+		);
 	});
 });

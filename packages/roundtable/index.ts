@@ -18,6 +18,8 @@ const NOTIFY_COALESCE_MS = 1500;
 export default function roundtableExtension(pi: ExtensionAPI): void {
   let client: RoundtableClient | null = null;
   let connecting: Promise<RoundtableClient> | null = null;
+  let connectingClient: RoundtableClient | null = null;
+  let shuttingDown = false;
   let pendingActivity = new Map<string, { count: number; from: Set<string> }>();
   let notifyTimer: NodeJS.Timeout | null = null;
 
@@ -40,23 +42,34 @@ export default function roundtableExtension(pi: ExtensionAPI): void {
   };
 
   const ensureConnected = (): Promise<RoundtableClient> => {
+    if (shuttingDown) return Promise.reject(new Error("Roundtable session is shutting down"));
     if (client?.connected) return Promise.resolve(client);
     if (connecting) return connecting;
     const current = (async () => {
       await ensureBrokerRunning();
+      if (shuttingDown) throw new Error("Roundtable session is shutting down");
       const name = pi.getSessionName() ?? `session-${process.pid}`;
       const fresh = new RoundtableClient(typeof name === "string" && name.trim() ? name.trim() : `session-${process.pid}`);
-      await fresh.connect();
-      fresh.onActivity((event) => {
-        if (event.seq === 0) return; // membership churn, not content
-        const entry = pendingActivity.get(event.room) ?? { count: 0, from: new Set<string>() };
-        entry.count += 1;
-        entry.from.add(event.from);
-        pendingActivity.set(event.room, entry);
-        if (!notifyTimer) notifyTimer = setTimeout(flushActivity, NOTIFY_COALESCE_MS);
-      });
-      client = fresh;
-      return fresh;
+      connectingClient = fresh;
+      try {
+        await fresh.connect();
+        if (shuttingDown) {
+          fresh.disconnect();
+          throw new Error("Roundtable session is shutting down");
+        }
+        fresh.onActivity((event) => {
+          if (event.seq === 0) return; // membership churn, not content
+          const entry = pendingActivity.get(event.room) ?? { count: 0, from: new Set<string>() };
+          entry.count += 1;
+          entry.from.add(event.from);
+          pendingActivity.set(event.room, entry);
+          if (!notifyTimer) notifyTimer = setTimeout(flushActivity, NOTIFY_COALESCE_MS);
+        });
+        client = fresh;
+        return fresh;
+      } finally {
+        if (connectingClient === fresh) connectingClient = null;
+      }
     })();
     connecting = current;
     void current.then(
@@ -85,7 +98,10 @@ export default function roundtableExtension(pi: ExtensionAPI): void {
   });
 
   pi.on("session_shutdown", () => {
+    shuttingDown = true;
     if (notifyTimer) clearTimeout(notifyTimer);
+    connectingClient?.disconnect();
+    connectingClient = null;
     client?.disconnect();
     client = null;
   });

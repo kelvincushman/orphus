@@ -3,7 +3,8 @@ import type { RoomMessage } from "./types.ts";
 /**
  * Token-budget protection for inter-agent chat.
  *
- * A digest is the ONLY way room content enters an agent's context window.
+ * A digest is the default way room content enters an agent's context window;
+ * explicit replay is separately bounded and paginated.
  * It renders unread messages newest-first into three tiers until the character
  * budget is spent:
  *
