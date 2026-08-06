@@ -1,6 +1,8 @@
 import type { ExtensionAPI } from "@bastani/atomic";
 import { RoundtableClient } from "./broker/client.ts";
 import { ensureBrokerRunning } from "./broker/spawn.ts";
+import { resolveMemoryConfig } from "./memory/dossier.ts";
+import { registerMemoryTool } from "./memory-tool.ts";
 import { registerRoundtableTool } from "./roundtable-tool.ts";
 
 const NOTIFY_COALESCE_MS = 1500;
@@ -55,6 +57,18 @@ export default function roundtableExtension(pi: ExtensionAPI): void {
   };
 
   registerRoundtableTool(pi, { ensureConnected });
+
+  // Durable memory (HMLR-Wiki / Dossier) is a sibling of rooms: rooms are the
+  // ephemeral working set, memory is the compiled long-term store. Config is
+  // read once from the environment; the role is read lazily per call because a
+  // session's name can be set after the extension registers. See docs/memory.md.
+  registerMemoryTool(pi, {
+    config: resolveMemoryConfig(),
+    currentRole: () => {
+      const name = pi.getSessionName();
+      return typeof name === "string" && name.trim() ? name.trim() : undefined;
+    },
+  });
 
   pi.on("session_shutdown", () => {
     if (notifyTimer) clearTimeout(notifyTimer);

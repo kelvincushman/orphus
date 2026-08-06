@@ -113,6 +113,7 @@ packages/roundtable/          The Orphus contribution — rooms and the context-
   roles/                        Role manifest → launch plan (parse, plan, format, CLI)
   bin/orphus-roles.ts           The launcher entrypoint
   roundtable-tool.ts, index.ts  The `roundtable` tool and extension
+  memory-tool.ts, memory/       The `memory` tool → HMLR-Wiki/Dossier (docs/memory.md)
   demo/run-demo.ts              The scripted discussion demo
   skills/                       Discussion etiquette, shipped as an agent skill
 packages/coding-agent/        The `orphus` binary (Atomic-derived)

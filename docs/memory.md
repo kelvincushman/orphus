@@ -51,13 +51,43 @@ agent needs history                  ──tool call───►  dossier query 
    (`python -m dossier query|ingest|gardener`) rather than porting it — a port
    would drift from the code the RAGAS results were measured on.
 
-Tool sketch (Phase 3):
+## The tool (shipped)
+
+`packages/roundtable/memory-tool.ts` registers a `memory` tool alongside
+`roundtable`, wired in `packages/roundtable/index.ts`:
 
 ```typescript
 memory({ action: "query",  question: "what did we decide about rate limiting?" })
-memory({ action: "ingest", source: "<path or room transcript>" })   // librarian only
-memory({ action: "gardener" })                                      // librarian only
+memory({ action: "doctor" })                                        // is the backend reachable?
+memory({ action: "ingest", source: "<path>" })                     // librarian only
+memory({ action: "gardener" })                                     // librarian only
 ```
+
+It shells out to the Dossier CLI, configured entirely by environment:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `ORPHUS_MEMORY_COMMAND` | `python -m dossier` | Base command, split on whitespace |
+| `ORPHUS_MEMORY_DIR` | *(unset)* | Dossier project dir — where `raw/` and `wiki/` live |
+| `ORPHUS_MEMORY_WRITER_ROLE` | `librarian` | The one role allowed to write |
+
+The design keeps the contract mechanical:
+
+- **The gate runs before any subprocess.** `gateAction` in
+  `packages/roundtable/memory/dossier.ts` decides read-vs-write purely from the
+  action and the session's role (`pi.getSessionName()`); a non-writer is refused
+  before Dossier is ever spawned.
+- **argv is a real vector, never a shell string.** `runDossier` passes the
+  question or source path as separate `spawn` arguments with no shell, so
+  agent-supplied text is data, not a command — no injection surface.
+- **Reads are inherently explicit-fetch.** A tool call is a deliberate act by
+  the agent; nothing here pushes into a ping or a digest, so the bound holds.
+- **A missing backend is a clear notice, not a crash.** If Dossier is not
+  installed, the tool returns a "configure `ORPHUS_MEMORY_COMMAND`" message.
+
+Ingest takes a file path (matching `python -m dossier ingest <path>`). To
+capture a concluded room, the librarian dumps the transcript under `raw/` first,
+then ingests that file — post-task, never live.
 
 ## What the benchmark does and does not show
 
