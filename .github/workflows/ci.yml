@@ -16,3 +16,5 @@ jobs:
       - run: bun run typecheck
       - run: bun run test
       - run: bun run demo
+      # The example manifest ships as a template; keep it parseable and planable.
+      - run: bun run roles --format json

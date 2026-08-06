@@ -1,0 +1,40 @@
+# Orphus role manifest — the reproducibility artifact for a deliberation.
+#
+#   orphus-roles                     # review the plan
+#   orphus-roles --format tmux | sh  # fan out locally, one window per role
+#   orphus-roles --format orca  | sh # fan out across Orca worktrees
+#
+# Roles are model-agnostic: rooms key cursors and attribution by role name, so
+# any model can sit behind any role. Mixing families is the point — distinct
+# models disagree more usefully, which is exactly what you want from a critic.
+
+task: rate-limiter-design
+room: design
+
+roles:
+  planner:
+    provider: anthropic
+    model: claude-opus
+    brief: roles/planner.md
+
+  researcher:
+    provider: openai
+    model: gpt-fast
+    brief: roles/researcher.md
+
+  critic:
+    provider: xai
+    model: grok
+    brief: roles/critic.md
+
+# Defaults the roles are instructed to use. The hard bound is enforced per call
+# by the digest algorithm; recording the budgets here is what makes a rerun
+# comparable.
+budgets:
+  digest: 2000
+  perMessage: 600
+
+# Optional per-role keys:
+#   room:     join a different room than the manifest default
+#   cwd:      working directory for the session (default: manifest directory)
+#   worktree: Orca selector for --format orca (default: active)

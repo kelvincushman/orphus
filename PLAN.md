@@ -53,6 +53,12 @@ Fork Atomic → rename/brand as Orphus. Add a `rooms` package (broker, client, `
 
 Run 3–5 Orphus sessions as Orca worktree agents sharing one broker (same machine = same trust boundary, so this needs configuration, not code): shared agent dir, role names per worktree (`planner`, `researcher`, `critic`), a room per task (`#orca-task-123`). Demo choreography: fan one prompt across worktrees in Orca, open any agent's transcript, show it contains only pings and small digests while the room holds the full deliberation. Exit criteria: a screen-recordable live demo.
 
+**Landed: the role manifest and launcher.** `orphus.roles.yaml` declares task, room, per-role provider/model/brief, and digest budgets; `orphus-roles` turns it into launch commands in five formats (`plan`, `json`, `sh`, `tmux`, `orca`). It emits rather than spawns — every role is a billable session, so the fan-out stays explicit, and the whole path stays deterministic and testable without a model. 32 tests cover parsing, validation, plan construction, shell quoting, and the CLI; the tmux fan-out is verified end to end against a stub binary. See [docs/roles.md](docs/roles.md).
+
+Two things the implementation pinned down that the sketch had wrong: the session-name flag is `--name` (not `--session-name`), and it is load-bearing — the roundtable extension reads `pi.getSessionName()` for room identity and silently falls back to `session-<pid>`, costing the role its broker-side cursor. `--append-system-prompt` also treats a non-existent path as literal prompt text, so a typo'd brief becomes the system prompt; the manifest loader checks brief existence up front.
+
+Still open for the live demo: real Orca worktrees driven end to end with models attached, and the screen recording.
+
 ### Phase 3 — The self-improvement loop
 
 Two axes, both gated by evidence, never self-report:

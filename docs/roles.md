@@ -37,11 +37,21 @@ orphus --provider xai --model grok \
 
 Each role brief ends with the same coordination footer:
 
-> Join roundtable room `#<task>`. Post conclusions, not transcripts. Pull a
+> Join roundtable room `#<room>`. Post conclusions, not transcripts. Pull a
 > digest before major decisions. Your role name is `<role>`.
 
-Sessions inherit role names via `--session-name` or the `ORPHUS_INTERCOM_GROUP` /
-room-join prompt; in Orca, name each worktree after its role.
+**`--name` is what makes a role a role.** The roundtable extension takes its room
+identity from the session name (`pi.getSessionName()`), and falls back to
+`session-<pid>` when none is set — which silently costs the role its broker-side
+cursor across restarts. Always pass `--name <role>`; in Orca, name each worktree
+after its role too.
+
+`--append-system-prompt` accepts *either* a file path or literal text and may be
+repeated, so the brief and the generated footer go in as two separate flags —
+the brief stays a file you edit, the footer stays generated. One caveat worth
+knowing: a path that does not exist is treated as literal prompt text (with a
+warning), so a typo'd brief path becomes the role's system prompt instead of
+failing. The manifest loader checks brief existence up front for that reason.
 
 ## Example role briefs
 
@@ -54,24 +64,79 @@ options. Post findings as conclusions with file references, never raw dumps."
 **critic.md** — "You attack proposals: edge cases, failure modes, unstated
 assumptions. A proposal you cannot break earns an explicit pass."
 
-## Where this is going (phase 2)
+## The role manifest
 
-A declarative role manifest the orchestration reads directly:
+Writing those command lines by hand is how a deliberation stops being
+reproducible. `orphus.roles.yaml` declares the whole roundtable:
 
 ```yaml
-# orphus.roles.yaml
 task: rate-limiter-design
 room: design
+
 roles:
-  planner:    { provider: anthropic, model: claude-opus,  brief: roles/planner.md }
-  researcher: { provider: openai,    model: gpt-fast,     brief: roles/researcher.md }
-  critic:     { provider: xai,       model: grok,         brief: roles/critic.md }
+  planner:    { provider: anthropic, model: claude-opus, brief: roles/planner.md }
+  researcher: { provider: openai,    model: gpt-fast,    brief: roles/researcher.md }
+  critic:     { provider: xai,       model: grok,        brief: roles/critic.md }
+
 budgets:
   digest: 2000
   perMessage: 600
 ```
 
-One command fans this out across Orca worktrees (or plain terminals), each
-session launched with its model and brief, all joined to the room. The manifest
-is also the reproducibility artifact for the book: same roles, same models,
-same budgets — rerun the deliberation.
+`orphus-roles` turns it into launch commands:
+
+```bash
+orphus-roles                      # review the plan (default)
+orphus-roles --format tmux | sh   # fan out locally, one window per role
+orphus-roles --format orca | sh   # fan out across Orca worktrees
+orphus-roles --format json        # for your own orchestrator
+orphus-roles --format sh          # one line per role, paste into terminals
+```
+
+Each role becomes:
+
+```bash
+orphus --name planner --provider anthropic --model claude-opus \
+  --append-system-prompt /abs/path/roles/planner.md \
+  --append-system-prompt '<generated coordination footer>'
+```
+
+### Fields
+
+| Key | Required | Meaning |
+|---|---|---|
+| `task` | yes | Names the run; also the default tmux session name |
+| `room` | yes | Room every role joins unless it overrides |
+| `roles.<name>.provider` / `.model` | yes | The model behind the role |
+| `roles.<name>.brief` | no | Path to the brief, relative to the manifest |
+| `roles.<name>.room` | no | Join a different room than the default |
+| `roles.<name>.cwd` | no | Working directory (default: manifest directory) |
+| `roles.<name>.worktree` | no | Orca selector for `--format orca` (default: `active`) |
+| `budgets.digest` / `.perMessage` | no | Defaults 2000 / 600 |
+
+Role and room names must be alphanumeric (with `-`/`_`): they key broker-side
+cursors, so a renamed role is a *new* role that has read nothing.
+
+### What the budgets do, precisely
+
+The budgets are the defaults each role is *instructed* to use in its footer.
+They are not a runtime ceiling — the hard bound lives in `buildDigest`, which
+the `roundtable` tool applies per call, and which no prompt can talk its way
+past. Recording the budgets in the manifest is what makes two runs comparable.
+Wiring the tool to read a manifest default directly is the natural next step.
+
+### Design notes
+
+- **The planner emits, it does not spawn.** Every role is an interactive model
+  session with real cost, so the fan-out stays an explicit act — you pipe to
+  `sh`. It also keeps the launcher deterministic and testable end to end.
+- **Brief paths are emitted absolute**, because Orca worktrees each have their
+  own working directory and a relative path would resolve differently (or, worse,
+  become literal prompt text) in each one.
+- **Brief first, footer last**, so the room rules are the last word in the prompt.
+- **Everything is shell-quoted.** Footers are multi-line prose containing quotes
+  and `#`; unquoted they would truncate at the first space and silently change a
+  role's instructions.
+
+The manifest is the reproducibility artifact for the book: same roles, same
+models, same budgets — rerun the deliberation.

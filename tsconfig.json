@@ -15,6 +15,6 @@
         "isolatedModules": true,
         "verbatimModuleSyntax": true
     },
-    "include": ["src/**/*", "demo/**/*", "test/**/*"],
+    "include": ["src/**/*", "demo/**/*", "test/**/*", "bin/**/*"],
     "exclude": ["node_modules", "integrations"]
 }

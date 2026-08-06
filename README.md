@@ -91,8 +91,10 @@ src/digest.ts            The budgeted digest algorithm (the core idea, ~130 line
 src/broker/room-store.ts Room state: members, ring buffers, read cursors
 src/broker/broker.ts     Local socket room server (auto-spawn, idle shutdown)
 src/broker/client.ts     Promise-based client + tiny activity event stream
+src/roles/               Role manifest → launch plan (parse, plan, format, CLI)
+orphus.roles.yaml        Example role manifest; roles/ holds the example briefs
 demo/run-demo.ts         The scripted discussion demo
-test/                    Digest bound, room store, real-socket integration tests
+test/                    Digest bound, room store, socket integration, roles
 integrations/atomic/     Extension + `roundtable` tool for Atomic-based harnesses
 patches/atomic/          Ready-to-`git am` patch series for an Atomic fork
 docs/                    Orca orchestration guide, self-improvement loop design
@@ -115,6 +117,39 @@ roundtable({ action: "digest", room: "design", budget: 4000 }) // bigger budget 
 
 Discussion etiquette for agents ships as a skill (`integrations/atomic/skills/`):
 post conclusions not transcripts, digest before deciding, one room per concern.
+
+## Declaring a roundtable (`orphus.roles.yaml`)
+
+Deliberation improves when roles run on different models — distinct models
+disagree more usefully, which is exactly what you want from a critic. Rooms key
+everything by role name, so any model can sit behind any role. Declare the fleet
+once:
+
+```yaml
+task: rate-limiter-design
+room: design
+roles:
+  planner:    { provider: anthropic, model: claude-opus, brief: roles/planner.md }
+  researcher: { provider: openai,    model: gpt-fast,    brief: roles/researcher.md }
+  critic:     { provider: xai,       model: grok,        brief: roles/critic.md }
+budgets:
+  digest: 2000
+  perMessage: 600
+```
+
+```bash
+orphus-roles                      # review the plan
+orphus-roles --format tmux | sh   # fan out locally, one window per role
+orphus-roles --format orca | sh   # fan out across Orca worktrees
+orphus-roles --format json        # for your own orchestrator
+```
+
+Each role launches with its own model, its brief, and a generated coordination
+footer naming its role and room. The launcher emits commands rather than
+spawning them — every role is a real, billable session, so the fan-out stays an
+explicit act. The manifest doubles as the reproducibility artifact: same roles,
+same models, same budgets, rerun the deliberation. Full reference:
+[docs/roles.md](docs/roles.md).
 
 ## Install into an Atomic fork
 
