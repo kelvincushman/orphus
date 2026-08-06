@@ -155,6 +155,13 @@ roles:
 		expect(() => loadRoleManifest(join(dir, "nope.yaml"))).toThrow(/manifest not found/);
 	});
 
+	it("wraps manifest read failures in RoleManifestError", () => {
+		const directoryPath = join(dir, "manifest-directory");
+		mkdirSync(directoryPath);
+		expect(() => loadRoleManifest(directoryPath)).toThrow(RoleManifestError);
+		expect(() => loadRoleManifest(directoryPath)).toThrow(/unable to read manifest/);
+	});
+
 	// existsSync is true for a directory, which would then become the role's
 	// literal system prompt via --append-system-prompt. The brief must be a file.
 	it("rejects a brief that resolves to a directory", () => {

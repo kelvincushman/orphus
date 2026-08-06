@@ -10,7 +10,7 @@ import {
 	parseCommand,
 	resolveMemoryConfig,
 } from "../../packages/roundtable/memory/dossier.ts";
-import { runDossier } from "../../packages/roundtable/memory/run.ts";
+import { MAX_CAPTURE_BYTES, runDossier } from "../../packages/roundtable/memory/run.ts";
 import { registerMemoryTool } from "../../packages/roundtable/memory-tool.ts";
 
 let dir: string;
@@ -23,7 +23,9 @@ let stub: string;
 //   selfkill — die by signal (close fires with code=null)
 //   split    — write one UTF-8 char as two separate byte writes across chunks
 const STUB = `#!/usr/bin/env node
+import { writeFileSync } from "node:fs";
 const args = process.argv.slice(2);
+if (process.env.ORPHUS_MEMORY_TEST_MARKER) writeFileSync(process.env.ORPHUS_MEMORY_TEST_MARKER, "invoked");
 if (args[0] === "boom") {
 	process.stderr.write("stub failure");
 	process.exit(3);
@@ -34,6 +36,8 @@ if (args[0] === "boom") {
 	// force two 'data' events) splits the sequence across chunk boundaries.
 	process.stdout.write(Buffer.from([0xe6]));
 	setTimeout(() => process.stdout.write(Buffer.from([0x97, 0xa5])), 15);
+} else if (args[0] === "flood") {
+	process.stdout.write(Buffer.alloc(${MAX_CAPTURE_BYTES + 1024}, 120));
 } else {
 	process.stdout.write(JSON.stringify({ args, cwd: process.cwd() }));
 }
@@ -161,6 +165,13 @@ describe("runDossier against a stub backend", () => {
 		expect(result.stdout).not.toContain("�");
 	});
 
+	it("terminates a backend that exceeds the shared output capture limit", async () => {
+		const result = await runDossier(stubConfig(), ["flood"]);
+		expect(result.code).not.toBe(0);
+		expect(Buffer.byteLength(result.stdout)).toBeLessThanOrEqual(MAX_CAPTURE_BYTES);
+		expect(result.stderr).toMatch(/captured output exceeded/);
+	});
+
 	it("rejects when the backend command is missing", async () => {
 		await expect(runDossier({ command: [], writerRole: "librarian" }, ["doctor"])).rejects.toThrow();
 		await expect(
@@ -191,14 +202,22 @@ describe("memory tool", () => {
 		const { run } = captureMemoryTool(stubConfig({ cwd: dir }), "planner");
 		const result = await run({ action: "query", question: "status?" });
 		expect(result.isError).toBe(false);
-		expect(result.content[0]?.text).toContain("query");
+		const parsed = JSON.parse(result.content[0]!.text) as { args: string[] };
+		expect(parsed.args).toEqual(["query", "status?"]);
 	});
 
 	it("blocks a non-librarian from ingesting, before spawning anything", async () => {
-		const { run } = captureMemoryTool(stubConfig(), "planner");
-		const result = await run({ action: "ingest", source: "raw/x.md" });
-		expect(result.isError).toBe(true);
-		expect(result.content[0]?.text).toContain("librarian");
+		const marker = join(dir, "backend-invoked");
+		process.env.ORPHUS_MEMORY_TEST_MARKER = marker;
+		try {
+			const { run } = captureMemoryTool(stubConfig(), "planner");
+			const result = await run({ action: "ingest", source: "raw/x.md" });
+			expect(result.isError).toBe(true);
+			expect(result.content[0]?.text).toContain("librarian");
+			expect(() => realpathSync(marker)).toThrow();
+		} finally {
+			delete process.env.ORPHUS_MEMORY_TEST_MARKER;
+		}
 	});
 
 	it("lets the librarian ingest", async () => {

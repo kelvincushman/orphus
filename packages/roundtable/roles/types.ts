@@ -69,8 +69,8 @@ export interface LaunchPlan {
 
 /** Thrown for any malformed manifest; message names the file and the key path. */
 export class RoleManifestError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = "RoleManifestError";
   }
 }

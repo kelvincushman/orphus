@@ -19,13 +19,17 @@ function sleep(ms: number): Promise<void> {
 function canConnect(socketPath: string): Promise<boolean> {
   return new Promise((resolve) => {
     const socket = net.createConnection(socketPath);
+    let settled = false;
+    const timer = setTimeout(() => finish(false), 1000);
     const finish = (result: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
       socket.destroy();
       resolve(result);
     };
     socket.once("connect", () => finish(true));
     socket.once("error", () => finish(false));
-    setTimeout(() => finish(false), 1000);
   });
 }
 
@@ -58,12 +62,25 @@ export async function ensureBrokerRunning(socketPath: string = getBrokerSocketPa
   const child = spawn(command, args, {
     detached: true,
     stdio: "ignore",
-    env: process.env,
+    env: { ...process.env, ORPHUS_ROUNDTABLE_SOCKET_PATH: socketPath },
+  });
+  const launchState: { error: Error | null } = { error: null };
+  let notifyLaunchError: () => void = () => {};
+  const launchFailed = new Promise<void>((resolve) => {
+    notifyLaunchError = resolve;
+  });
+  child.on("error", (error) => {
+    launchState.error = error;
+    notifyLaunchError();
   });
   child.unref();
 
   for (let attempt = 0; attempt < SPAWN_WAIT_ATTEMPTS; attempt++) {
-    await sleep(SPAWN_WAIT_INTERVAL_MS);
+    await Promise.race([sleep(SPAWN_WAIT_INTERVAL_MS), launchFailed]);
+    const launchError = launchState.error;
+    if (launchError) {
+      throw new Error(`Failed to launch roundtable broker: ${launchError.message}`, { cause: launchError });
+    }
     if (await canConnect(socketPath)) return;
   }
   throw new Error("Roundtable broker did not start in time");

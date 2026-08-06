@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDigest } from "../../packages/roundtable/digest.ts";
+import { buildDigest, MAX_DIGEST_BUDGET } from "../../packages/roundtable/digest.ts";
 import type { RoomMessage } from "../../packages/roundtable/types.ts";
 
 function message(seq: number, text: string, name = "agent"): RoomMessage {
@@ -29,6 +29,11 @@ describe("roundtable digest", () => {
 		expect(digest.consumedSeq).toBe(2);
 		expect(digest.text).toContain("hello");
 		expect(digest.text).toContain("world");
+	});
+
+	it("renders timestamps in UTC", () => {
+		const atUtc = { ...message(1, "utc"), timestamp: Date.UTC(2026, 0, 2, 3, 4) };
+		expect(buildDigest([atUtc]).text).toContain("[03:04]");
 	});
 
 	it("renders chronologically but budgets newest-first", () => {
@@ -64,10 +69,18 @@ describe("roundtable digest", () => {
 		expect(digest.text).toContain("chars)");
 	});
 
-	it("collapses everything to a count line under a tiny budget", () => {
+	it("collapses older messages at the minimum digest budget", () => {
 		const messages = Array.from({ length: 30 }, (_, i) => message(i + 1, `msg ${i}: ${"z".repeat(200)}`));
 		const digest = buildDigest(messages, { budget: 200 });
 		expect(digest.collapsed).toBeGreaterThan(0);
 		expect(digest.text).toMatch(/collapsed/);
+	});
+
+	it("clamps finite budgets and falls back for non-finite values", () => {
+		const messages = Array.from({ length: 50 }, (_, i) => message(i + 1, "x".repeat(500)));
+		const clamped = buildDigest(messages, { budget: MAX_DIGEST_BUDGET * 10 });
+		expect(clamped.chars).toBeLessThanOrEqual(MAX_DIGEST_BUDGET + 120);
+		const fallback = buildDigest(messages, { budget: Number.POSITIVE_INFINITY });
+		expect(fallback.chars).toBeLessThanOrEqual(2000 + 120);
 	});
 });

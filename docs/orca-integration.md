@@ -37,7 +37,7 @@ whichever worktree that role selects:
 orphus-roles --format orca | sh
 ```
 
-```
+```sh
 orca terminal create --worktree 'name:planner' --title 'planner' --command 'orphus --name planner …'
 ```
 

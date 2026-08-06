@@ -16,7 +16,9 @@ digests when they need to catch up.
 2. **Digest, don't peek repeatedly.** `digest` marks messages read; `peek` does
    not. Peeking in a loop re-pays the same context cost every time.
 3. **Default budget first.** Only raise `budget` when the digest tells you
-   messages were collapsed AND you actually need them.
+   messages were collapsed AND you actually need them. Use `replay` with an
+   explicit `afterSeq` only when you need a raw collapsed range. When `hasMore`
+   is true, continue from `lastReturnedSeq` to keep every replay page bounded.
 4. **One room per concern.** `#design`, `#review`, `#incident-123`. Cross-posting
    multiplies everyone's digest cost.
 
@@ -30,7 +32,7 @@ roundtable({ action: "post", room: "design", message: "Proposal: GCRA locally, a
 // ... do other work; activity notifications arrive as one-liners ...
 roundtable({ action: "digest", room: "design" })   // catch up, bounded
 roundtable({ action: "post", room: "design", message: "Adopted with a 2x fair-share node ceiling. Objections before I implement?" })
-```
+```text
 
 ### Handoff with evidence
 

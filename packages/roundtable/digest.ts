@@ -36,13 +36,14 @@ export interface Digest {
 }
 
 const DEFAULT_BUDGET = 2000;
+export const MAX_DIGEST_BUDGET = 8000;
 const DEFAULT_PER_MESSAGE_CAP = 600;
 const DEFAULT_HEADLINE_CAP = 100;
 
 function clock(timestamp: number): string {
   const d = new Date(timestamp);
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
   return `${hh}:${mm}`;
 }
 
@@ -71,7 +72,10 @@ function renderHeadline(message: RoomMessage, headlineCap: number): string {
  * Deterministic and model-free: the bound holds no matter what peers post.
  */
 export function buildDigest(messages: readonly RoomMessage[], options: DigestOptions = {}): Digest {
-  const budget = Math.max(options.budget ?? DEFAULT_BUDGET, 200);
+  const requestedBudget = options.budget ?? DEFAULT_BUDGET;
+  const budget = Number.isFinite(requestedBudget)
+    ? Math.min(Math.max(requestedBudget, 200), MAX_DIGEST_BUDGET)
+    : DEFAULT_BUDGET;
   const perMessageCap = Math.max(options.perMessageCap ?? DEFAULT_PER_MESSAGE_CAP, 80);
   const headlineCap = Math.max(options.headlineCap ?? DEFAULT_HEADLINE_CAP, 40);
 
@@ -109,7 +113,7 @@ export function buildDigest(messages: readonly RoomMessage[], options: DigestOpt
 
   const parts: string[] = [];
   if (collapsed > 0) {
-    parts.push(`(${collapsed} older message${collapsed === 1 ? "" : "s"} collapsed — raise budget or fetch by seq to expand)`);
+    parts.push(`(${collapsed} older message${collapsed === 1 ? "" : "s"} collapsed — raise budget or replay by seq to expand)`);
   }
   // Tiers were filled newest-first; render oldest-first for chronological reading.
   parts.push(...headlineLines.reverse());

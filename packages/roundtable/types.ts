@@ -1,3 +1,10 @@
+/** Maximum text accepted for one room message, keeping replay pages bounded. */
+export const MAX_ROOM_MESSAGE_CHARS = 4000;
+export const MAX_MEMBER_NAME_CHARS = 128;
+export const MAX_ROOM_NAME_CHARS = 128;
+export const MAX_ROOM_TOPIC_CHARS = 1000;
+export const MAX_REPLY_TO_CHARS = 128;
+
 /** A single message posted to a roundtable room. */
 export interface RoomMessage {
   /** Broker-assigned unique id. */

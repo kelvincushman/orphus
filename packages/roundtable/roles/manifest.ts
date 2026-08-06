@@ -154,5 +154,14 @@ export function parseRoleManifest(text: string, manifestPath: string): RoleManif
 export function loadRoleManifest(manifestPath: string): RoleManifest {
   const path = resolve(manifestPath);
   if (!existsSync(path)) throw new RoleManifestError(`manifest not found: ${path}`);
-  return parseRoleManifest(readFileSync(path, "utf8"), path);
+  let text: string;
+  try {
+    text = readFileSync(path, "utf8");
+  } catch (error) {
+    throw new RoleManifestError(
+      `${path}: unable to read manifest — ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
+  }
+  return parseRoleManifest(text, path);
 }
