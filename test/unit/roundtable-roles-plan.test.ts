@@ -2,10 +2,10 @@ import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { parseCliArgs, runCli } from "../../packages/roundtable/roles/cli.ts";
 import { formatPlan, shellQuote } from "../../packages/roundtable/roles/format.ts";
 import { parseRoleManifest } from "../../packages/roundtable/roles/manifest.ts";
 import { buildLaunchPlan } from "../../packages/roundtable/roles/plan.ts";
-import { parseCliArgs, runCli } from "../../packages/roundtable/roles/cli.ts";
 import type { LaunchPlan } from "../../packages/roundtable/roles/types.ts";
 
 let dir: string;

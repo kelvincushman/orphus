@@ -552,13 +552,19 @@ test("Blacksmith runners are used everywhere they are supported", async () => {
 			hosted.push(...jobRunners(`${file} ${name}`, job).filter((runner) => !runner.startsWith("blacksmith-")));
 		}
 	}
-	// Only two jobs may stay GitHub-hosted, and each for a reason that a future
+	// Only these jobs may stay GitHub-hosted, and each for a reason that a future
 	// "move everything to Blacksmith" pass must not quietly undo:
 	//   macos-26-intel - Blacksmith macOS is Apple Silicon only, so this is the
 	//     only runner that can produce the darwin x64 native binding.
-	//   ubuntu-latest  - npm trusted publishing rejects self-hosted runners, and
-	//     Blacksmith registers through GitHub's org-level registration API.
-	assert.deepEqual(hosted.sort(), ["macos-26-intel", "ubuntu-latest"]);
+	//   ubuntu-latest  - publish.yml: npm trusted publishing rejects self-hosted
+	//     runners, and Blacksmith registers through GitHub's org-level API.
+	//   ubuntu-latest  - ci.yml, the Orphus gate. Orphus-specific divergence from
+	//     upstream: Blacksmith runners are registered to the upstream org and
+	//     never pick up jobs on this repository, so a Blacksmith-hosted gate here
+	//     would queue until it expired rather than report. The inherited Atomic
+	//     workflows keep their Blacksmith runners untouched and are disabled at
+	//     the repository level; their suites run through the prek hooks instead.
+	assert.deepEqual(hosted.sort(), ["macos-26-intel", "ubuntu-latest", "ubuntu-latest"]);
 	assert.match(publish, /# Blacksmith macOS is Apple Silicon only[^\n]*\n\s+- \{ runner: macos-26-intel/u);
 	assert.match(publish, /npm trusted publishing rejects self-hosted runners[\s\S]{0,160}?runs-on: ubuntu-latest/u);
 	// ubuntu-latest is only ever acceptable on the OIDC publish job.

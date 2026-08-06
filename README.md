@@ -65,11 +65,15 @@ messages intact verbatim and only early exploration collapsed.
 
 ```bash
 git clone https://github.com/kelvincushman/orphus.git orphus && cd orphus
-bun install
-bun run demo        # scripted 3-agent discussion + late-joining reviewer, no model needed
-bun run test        # 19 tests: digest bound, room store, real-socket integration
-bun run typecheck
+npm ci --ignore-scripts
+npm run demo        # scripted 3-agent discussion + late-joining reviewer, no model needed
+npm run roles       # the role manifest, turned into launch commands
+npx vitest --run --project unit test/unit/roundtable-   # 52 rooms + role-launcher tests
 ```
+
+`package-lock.json` is the only lockfile — see [AGENTS.md](AGENTS.md) before reaching for
+`bun install`, `yarn`, or `pnpm`. Bun is still required for the demo, the role launcher, the
+repository scripts, and compiling release binaries.
 
 The demo runs three scripted agents (planner, researcher, critic) through a rate-limiter
 design discussion over the real broker socket, then shows each agent — and a late-joining
@@ -84,27 +88,45 @@ reviewer joins late — unread: 9 (entire discussion, 2413 chars)
 No model is involved anywhere in the demo: it proves the transport and the bound.
 Attach real agents for the live version (below).
 
+## How Orphus works
+
+Orphus is the runtime: a fork of [Atomic](https://github.com/bastani-inc/atomic), which is
+itself a fork of Pi, so it works with the providers, tools, MCP servers, skills, and
+extensions already in your Pi stack. Workflows encode durable processes through stages,
+tools, prompts, checks, artifacts, gates, and approvals. Skills supply reusable expert
+instructions. Specialized subagents handle focused work while a parent agent or workflow
+controls the larger task. Rooms — the part that is ours — hold the discussion *between*
+those agents, outside their context windows.
+
+<!-- Kept on one line: test/unit/execution-routing-guidance.test.ts asserts these phrases
+     verbatim against this file, and a wrapped line breaks the literal match. -->
+Workflow stage dependencies must form a directed acyclic graph. Because imperative `workflow({ run })` definitions materialize topology from runtime branches, loops, and nested calls, module discovery cannot prove arbitrary acyclicity. Cyclic workflow graphs are unsupported: authored loop and repair iterations must create distinct tracked work per iteration and must never create self-edges or back-edges to ancestors. Retries within one `ctx.tool(...)` call remain attempts on that tool node rather than separate graph work.
+
 ## What's in the box
 
 ```
-src/digest.ts            The budgeted digest algorithm (the core idea, ~130 lines)
-src/broker/room-store.ts Room state: members, ring buffers, read cursors
-src/broker/broker.ts     Local socket room server (auto-spawn, idle shutdown)
-src/broker/client.ts     Promise-based client + tiny activity event stream
-src/roles/               Role manifest → launch plan (parse, plan, format, CLI)
-orphus.roles.yaml        Example role manifest; roles/ holds the example briefs
-demo/run-demo.ts         The scripted discussion demo
-test/                    Digest bound, room store, socket integration, roles
-integrations/atomic/     Extension + `roundtable` tool for Atomic-based harnesses
-patches/atomic/          Ready-to-`git am` patch series for an Atomic fork
-docs/                    Orca orchestration guide, self-improvement loop design
-PLAN.md · DESIGN.md      Project plan and architecture decisions
+packages/roundtable/          The Orphus contribution — rooms and the context-window contract
+  digest.ts                     The budgeted digest algorithm (the core idea, ~130 lines)
+  broker/room-store.ts          Room state: members, ring buffers, read cursors
+  broker/broker.ts              Local socket room server (auto-spawn, idle shutdown)
+  broker/client.ts              Promise-based client + tiny activity event stream
+  roles/                        Role manifest → launch plan (parse, plan, format, CLI)
+  bin/orphus-roles.ts           The launcher entrypoint
+  roundtable-tool.ts, index.ts  The `roundtable` tool and extension
+  demo/run-demo.ts              The scripted discussion demo
+  skills/                       Discussion etiquette, shipped as an agent skill
+packages/coding-agent/        The `orphus` binary (Atomic-derived)
+packages/{workflows,subagents,intercom,mcp,web-access,natives}
+orphus.roles.yaml · roles/    Example role manifest and briefs — copy-me templates
+test/unit/roundtable-*        52 tests: digest bound, room store, socket, role launcher
+patches/atomic/               The 0001–0004 series, as applied to upstream `d84fc43`
+docs/                         Orca orchestration, roles, self-improvement loop
+PLAN.md · DESIGN.md · AGENTS.md
 ```
 
 ## Using it from an agent (the `roundtable` tool)
 
-Inside an [Atomic](https://github.com/bastani-inc/atomic) fork (see
-`integrations/atomic/`), every session gets:
+Every session in this runtime gets:
 
 ```typescript
 roundtable({ action: "rooms" })                                // list rooms
@@ -115,8 +137,9 @@ roundtable({ action: "peek", room: "design" })                 // same, cursor u
 roundtable({ action: "digest", room: "design", budget: 4000 }) // bigger budget when justified
 ```
 
-Discussion etiquette for agents ships as a skill (`integrations/atomic/skills/`):
-post conclusions not transcripts, digest before deciding, one room per concern.
+Discussion etiquette for agents ships as a skill
+(`packages/roundtable/skills/`): post conclusions not transcripts, digest before
+deciding, one room per concern.
 
 ## Declaring a roundtable (`orphus.roles.yaml`)
 
@@ -151,26 +174,41 @@ explicit act. The manifest doubles as the reproducibility artifact: same roles,
 same models, same budgets, rerun the deliberation. Full reference:
 [docs/roles.md](docs/roles.md).
 
-## Install into an Atomic fork
+## Relationship to Atomic
+
+This repository *is* the Orphus runtime — you do not need to apply anything to get it. The
+tree is Atomic at `d84fc43` plus four commits, and `patches/atomic/` keeps that delta as a
+standalone series for anyone who would rather add rooms to their own Atomic checkout:
 
 ```bash
 cd your-atomic-fork
 git am path/to/orphus/patches/atomic/*.patch
-bun install && bun run typecheck
+npm ci --ignore-scripts && npm run typecheck
 ```
 
-Four patches, applied in order: `0001` adds the full `packages/roundtable`
-package with 20 repo-root tests and tsconfig wiring; `0002` is the complete
-Orphus rebrand (terminal branding, `orphus` binary, `/orphus` guide command,
-`ORPHUS_*` env vars, `.orphus` config dir — with Atomic and Pi manifests,
-config dirs, and env names still accepted as legacy fallbacks); `0003` is the
-ORPHUS wordmark startup banner; `0004` closes the gaps the rebrand left
-against upstream's own gates (fork-legacy `.atomic` agent-dir fallback,
-first-run skip for existing installs, per-source workflow path resolution,
-CI env renames, lockfile sync). Verified against atomic `d84fc43`: strict
-typecheck clean; unit (5,844), integration (485), and CI-contract (40)
-suites all passing. This series is live at
-[kelvincushman/orphus-harness](https://github.com/kelvincushman/orphus-harness).
+`0001` adds the `packages/roundtable` package with its tests and tsconfig wiring; `0002` is
+the complete Orphus rebrand (terminal branding, `orphus` binary, `/orphus` guide command,
+`ORPHUS_*` env vars, `.orphus` config dir — with Atomic and Pi manifests, config dirs, and
+env names still accepted as legacy fallbacks); `0003` is the ORPHUS wordmark startup banner;
+`0004` closes the gaps the rebrand left against upstream's own gates (fork-legacy `.atomic`
+agent-dir fallback, first-run skip for existing installs, per-source workflow path
+resolution, CI env renames, lockfile sync).
+
+To track upstream, add it as a remote and merge — the full Atomic history is preserved here:
+
+```bash
+git remote add upstream https://github.com/bastani-inc/atomic.git
+git fetch upstream && git merge upstream/main
+```
+
+### CI
+
+`.github/workflows/ci.yml` is the Orphus gate: typecheck, the rooms and role-launcher tests,
+the demo, and the manifest plan. The inherited Atomic workflows are kept byte-identical to
+upstream — `test/ci/test-workflow-topology.test.ts` pins their Blacksmith runner names, which
+only exist on the upstream org — so they are disabled at the repository level rather than
+rewritten. Their full suites (unit 5,878 · integration 485 · CI contracts 40) run locally on
+every commit and push through the prek hooks in `prek.toml`.
 
 ## Orchestrating a fleet with Orca
 

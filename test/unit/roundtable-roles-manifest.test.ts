@@ -131,9 +131,9 @@ roles:
 
 	it("rejects non-positive or fractional budgets", () => {
 		for (const budget of ["0", "-5", "1.5"]) {
-			expect(() =>
-				parseRoleManifest(`${MINIMAL}\nbudgets:\n  digest: ${budget}\n`, manifestPath()),
-			).toThrow(/budgets\.digest — expected a positive integer/);
+			expect(() => parseRoleManifest(`${MINIMAL}\nbudgets:\n  digest: ${budget}\n`, manifestPath())).toThrow(
+				/budgets\.digest — expected a positive integer/,
+			);
 		}
 	});
 
@@ -141,9 +141,7 @@ roles:
 		expect(() => parseRoleManifest("task: demo\nroom: design\nroles: {}\n", manifestPath())).toThrow(
 			/roles — at least one role is required/,
 		);
-		expect(() => parseRoleManifest("task: demo\nroom: design\n", manifestPath())).toThrow(
-			/roles — expected a map/,
-		);
+		expect(() => parseRoleManifest("task: demo\nroom: design\n", manifestPath())).toThrow(/roles — expected a map/);
 	});
 
 	it("reports invalid YAML against the manifest path", () => {
