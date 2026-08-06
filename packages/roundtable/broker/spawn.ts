@@ -73,6 +73,12 @@ export async function ensureBrokerRunning(socketPath: string = getBrokerSocketPa
     launchState.error = error;
     notifyLaunchError();
   });
+  child.once("exit", (code, signal) => {
+    if (launchState.error) return;
+    const status = signal ? `signal ${signal}` : `code ${code ?? "unknown"}`;
+    launchState.error = new Error(`broker process exited before becoming reachable (${status})`);
+    notifyLaunchError();
+  });
   child.unref();
 
   for (let attempt = 0; attempt < SPAWN_WAIT_ATTEMPTS; attempt++) {

@@ -38,6 +38,10 @@ if (args[0] === "boom") {
 	setTimeout(() => process.stdout.write(Buffer.from([0x97, 0xa5])), 15);
 } else if (args[0] === "flood") {
 	process.stdout.write(Buffer.alloc(${MAX_CAPTURE_BYTES + 1024}, 120));
+	setInterval(() => {}, 1_000);
+} else if (args[0] === "flood-stderr") {
+	process.stderr.write(Buffer.alloc(${MAX_CAPTURE_BYTES + 1024}, 120));
+	setInterval(() => {}, 1_000);
 } else {
 	process.stdout.write(JSON.stringify({ args, cwd: process.cwd() }));
 }
@@ -165,11 +169,13 @@ describe("runDossier against a stub backend", () => {
 		expect(result.stdout).not.toContain("�");
 	});
 
-	it("terminates a backend that exceeds the shared output capture limit", async () => {
-		const result = await runDossier(stubConfig(), ["flood"]);
-		expect(result.code).not.toBe(0);
-		expect(Buffer.byteLength(result.stdout)).toBeLessThanOrEqual(MAX_CAPTURE_BYTES);
-		expect(result.stderr).toMatch(/captured output exceeded/);
+	it("terminates a backend when either output stream exceeds the shared capture limit", async () => {
+		for (const mode of ["flood", "flood-stderr"]) {
+			const result = await runDossier(stubConfig(), [mode]);
+			expect(result.code).toBe(1);
+			expect(Buffer.byteLength(result.stdout)).toBeLessThanOrEqual(MAX_CAPTURE_BYTES);
+			expect(result.stderr).toMatch(/captured output exceeded/);
+		}
 	});
 
 	it("rejects when the backend command is missing", async () => {
