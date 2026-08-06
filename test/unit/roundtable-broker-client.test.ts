@@ -253,12 +253,15 @@ describe("roundtable broker and client over a real socket", () => {
 		retryClient.disconnect();
 		await acceptedClose;
 		await new Promise<void>((resolve, reject) => silentServer.close((error) => (error ? reject(error) : resolve())));
+		const staleError = await staleFailure;
+		expect(staleError).toBeInstanceOf(Error);
 
 		const retryBroker = new RoundtableBroker(retrySocket, join(agentDir, "stale.pid"), agentDir);
 		await retryBroker.start();
 		await retryClient.connect();
-		expect(retryClient.connected).toBe(true);
-		expect(await staleFailure).toBeInstanceOf(Error);
+		// Wait beyond the first attempt's registration deadline: none of its
+		// cleanup may clear the replacement connection.
+		await new Promise((resolve) => setTimeout(resolve, 300));
 		expect(retryClient.connected).toBe(true);
 		retryClient.disconnect();
 		retryBroker.shutdown();

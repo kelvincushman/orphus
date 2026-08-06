@@ -158,8 +158,17 @@ roles:
 	it("wraps manifest read failures in RoleManifestError", () => {
 		const directoryPath = join(dir, "manifest-directory");
 		mkdirSync(directoryPath);
-		expect(() => loadRoleManifest(directoryPath)).toThrow(RoleManifestError);
-		expect(() => loadRoleManifest(directoryPath)).toThrow(/unable to read manifest/);
+		let captured: unknown;
+		try {
+			loadRoleManifest(directoryPath);
+		} catch (error) {
+			captured = error;
+		}
+		expect(captured).toBeInstanceOf(RoleManifestError);
+		expect(captured).toBeInstanceOf(Error);
+		if (!(captured instanceof Error)) throw new Error("expected a manifest read error");
+		expect(captured.message).toMatch(/unable to read manifest/);
+		expect(captured.cause).toBeInstanceOf(Error);
 	});
 
 	// existsSync is true for a directory, which would then become the role's

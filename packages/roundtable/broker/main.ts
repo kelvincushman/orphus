@@ -16,6 +16,9 @@ broker
     console.log(`Roundtable broker started (pid: ${process.pid})`);
   })
   .catch((error) => {
-    console.error(error instanceof Error ? error.message : String(error));
+    const message = error instanceof Error ? error.message : String(error);
+    const cause = error instanceof Error ? error.cause : undefined;
+    const causeMessage = cause instanceof Error ? `\nCaused by: ${cause.message}` : "";
+    console.error(`${message}${causeMessage}`);
     process.exit(1);
   });
