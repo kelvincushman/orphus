@@ -280,8 +280,10 @@ describe("windows broker pipe naming", () => {
 		for (const name of names) expect(name.startsWith("\\\\.\\pipe\\atomic-roundtable-")).toBe(true);
 	});
 
-	it("is deterministic for the same agent dir", () => {
-		expect(getBrokerSocketPath("win32", "C:\\agents\\x")).toBe(getBrokerSocketPath("win32", "C:\\agents\\x"));
+	it("builds a stable pipe name with the expected readable segment and digest", () => {
+		expect(getBrokerSocketPath("win32", "C:\\agents\\x")).toBe(
+			"\\\\.\\pipe\\atomic-roundtable-c-agents-x-86a9ca30d1e6",
+		);
 	});
 
 	it("normalizes trailing separators and bounds the readable pipe name", () => {
