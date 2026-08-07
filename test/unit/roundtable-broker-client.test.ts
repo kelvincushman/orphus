@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -5,6 +6,26 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { RoundtableBroker } from "../../packages/roundtable/broker/broker.ts";
 import { RoundtableClient } from "../../packages/roundtable/broker/client.ts";
 import { getBrokerPidPath, getBrokerSocketPath, getRoundtableDirPath } from "../../packages/roundtable/broker/paths.ts";
+import { registerRoundtableTool } from "../../packages/roundtable/roundtable-tool.ts";
+import { readText } from "../helpers/runtime.ts";
+
+interface CapturedToolResult {
+	isError: boolean;
+	content: Array<{ text: string }>;
+	details: Record<string, unknown>;
+}
+
+function captureRoundtableTool(client: RoundtableClient, exportRoot: string) {
+	let tool: { execute: (...args: unknown[]) => Promise<CapturedToolResult> } | undefined;
+	const pi = {
+		registerTool: (definition: typeof tool) => {
+			tool = definition;
+		},
+	} as unknown as Parameters<typeof registerRoundtableTool>[0];
+	registerRoundtableTool(pi, { ensureConnected: async () => client, exportRoot });
+	if (!tool) throw new Error("roundtable tool was not registered");
+	return (params: Record<string, unknown>) => tool!.execute("call-1", params, undefined, undefined, undefined);
+}
 
 describe("roundtable broker and client over a real socket", () => {
 	let agentDir: string;
@@ -82,24 +103,61 @@ describe("roundtable broker and client over a real socket", () => {
 
 	// The ingest path for memory: a digest collapses older messages, so memory must
 	// be fed from the broker directly. Export must be lossless and leave cursors alone.
-	it("exports the full transcript losslessly without consuming unread state", async () => {
+	it("exports the retained transcript without consuming unread state", async () => {
 		const planner = await connect("planner");
 		const critic = await connect("critic");
 		await planner.join("design");
 		await critic.join("design");
-		for (let i = 1; i <= 12; i++) await planner.post("design", `message ${i}`);
+		const posted = [];
+		for (let i = 1; i <= 12; i++) posted.push(await planner.post("design", `message ${i}`));
+		const exportRoot = join(agentDir, "memory");
+		const run = captureRoundtableTool(critic, exportRoot);
 
-		// The critic has read nothing. Exporting must return every message...
-		const { messages, cursor } = await critic.fetch("design", 0);
-		expect(messages).toHaveLength(12);
-		expect(messages[0]?.text).toBe("message 1"); // the one a digest would collapse
-		expect(messages[11]?.text).toBe("message 12");
-		expect(cursor).toBe(0);
+		const missingPath = await run({ action: "export", room: "design" });
+		assert.equal(missingPath.isError, true);
+		const escapedPath = await run({ action: "export", room: "design", path: "../escape.md" });
+		assert.equal(escapedPath.isError, true);
 
-		// ...and must leave the critic's unread state untouched, so a librarian can
+		const relativePath = "raw/nested/design.md";
+		const target = join(exportRoot, relativePath);
+		const result = await run({ action: "export", room: "design", path: relativePath });
+		assert.equal(result.isError, false);
+		assert.equal(result.details.path, target);
+		assert.equal(result.details.messages, 12);
+		assert.equal(result.details.firstSeq, 1);
+		assert.equal(result.details.lastSeq, 12);
+		assert.equal(result.details.truncated, false);
+		assert.equal(
+			await readText(target),
+			`${posted.map((message) => `[${new Date(message.timestamp).toISOString()}] planner#${message.seq}: ${message.text}`).join("\n")}\n`,
+		);
+
+		// Exporting must leave the critic's unread state untouched, so a librarian can
 		// export a room at any time without stealing another role's catch-up.
 		const after = await critic.fetch("design", 0);
-		expect(after.cursor).toBe(0);
+		assert.equal(after.cursor, 0);
+		assert.equal(after.messages.length, 12);
+		assert.equal(after.messages[0]?.text, "message 1");
+		assert.equal(after.messages[11]?.text, "message 12");
+	});
+
+	it("reports when an export starts after older messages rotated out", async () => {
+		const planner = await connect("planner");
+		await planner.join("design");
+		for (let i = 1; i <= 501; i++) await planner.post("design", `message ${i}`);
+		const exportRoot = join(agentDir, "memory");
+		const run = captureRoundtableTool(planner, exportRoot);
+		const target = join(exportRoot, "raw", "truncated.md");
+		const result = await run({ action: "export", room: "design", path: "raw/truncated.md" });
+
+		assert.equal(result.isError, false);
+		assert.equal(result.details.messages, 500);
+		assert.equal(result.details.firstSeq, 2);
+		assert.equal(result.details.lastSeq, 501);
+		assert.equal(result.details.droppedBefore, 1);
+		assert.equal(result.details.truncated, true);
+		assert.match(result.content[0]?.text ?? "", /1 older message/);
+		assert.match((await readText(target)).split("\n")[0] ?? "", /planner#2: message 2$/);
 	});
 
 	it("rejects posting to a room the session has not joined", async () => {

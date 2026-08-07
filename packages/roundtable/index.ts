@@ -70,14 +70,14 @@ export default function roundtableExtension(pi: ExtensionAPI): void {
     return connecting;
   };
 
-  registerRoundtableTool(pi, { ensureConnected });
-
   // Durable memory (HMLR-Wiki / Dossier) is a sibling of rooms: rooms are the
   // ephemeral working set, memory is the compiled long-term store. Config is
   // read once from the environment; the role is read lazily per call because a
   // session's name can be set after the extension registers. See docs/memory.md.
+  const memoryConfig = resolveMemoryConfig();
+  registerRoundtableTool(pi, { ensureConnected, exportRoot: memoryConfig.cwd });
   registerMemoryTool(pi, {
-    config: resolveMemoryConfig(),
+    config: memoryConfig,
     currentRole: () => {
       const name = pi.getSessionName();
       return typeof name === "string" && name.trim() ? name.trim() : undefined;

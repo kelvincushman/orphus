@@ -1,7 +1,9 @@
+import assert from "node:assert/strict";
 import { chmodSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { getAgentDir } from "../../packages/roundtable/broker/paths.ts";
 import {
 	buildDossierArgs,
 	gateAction,
@@ -61,10 +63,12 @@ describe("memory config", () => {
 
 	it("defaults command, writer role, and anchors cwd under the agent dir", () => {
 		const config = resolveMemoryConfig({});
-		expect(config.command).toEqual(["python", "-m", "dossier"]);
-		expect(config.writerRole).toBe("librarian");
+		assert.deepEqual(config.command, ["python", "-m", "dossier"]);
+		assert.equal(config.writerRole, "librarian");
 		// Anchored, not cwd-relative: this is what makes Orca worktrees share one wiki.
-		expect(config.cwd).toMatch(/[/\\]memory$/);
+		const expected = join(getAgentDir({}), "memory");
+		assert.equal(config.cwd, expected);
+		assert.equal(resolveMemoryConfig({ ORPHUS_MEMORY_DIR: "   " }).cwd, expected);
 	});
 
 	// Each Orca role runs in its own worktree. If the wiki were cwd-relative, every
@@ -74,7 +78,7 @@ describe("memory config", () => {
 		const a = resolveMemoryConfig({}).cwd;
 		process.chdir(tmpdir());
 		try {
-			expect(resolveMemoryConfig({}).cwd).toBe(a);
+			assert.equal(resolveMemoryConfig({}).cwd, a);
 		} finally {
 			process.chdir(original);
 		}
@@ -145,6 +149,14 @@ describe("argument building", () => {
 });
 
 describe("runDossier against a stub backend", () => {
+	it("creates a missing configured memory directory before spawning", async () => {
+		const cwd = join(dir, "new", "memory");
+		const result = await runDossier(stubConfig({ cwd }), ["doctor"]);
+		assert.equal(result.code, 0);
+		const parsed = JSON.parse(result.stdout) as { cwd: string };
+		assert.equal(realpathSync(parsed.cwd), realpathSync(cwd));
+	});
+
 	it("passes argv through and runs in the configured cwd", async () => {
 		const result = await runDossier(stubConfig({ cwd: dir }), ["query", "hi"]);
 		expect(result.code).toBe(0);

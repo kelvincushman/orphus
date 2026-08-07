@@ -1,5 +1,5 @@
-import { mkdirSync, writeFileSync } from "fs";
-import { dirname, resolve } from "path";
+import { mkdir, writeFile } from "fs/promises";
+import { dirname, isAbsolute, relative, resolve, sep } from "path";
 import type { ExtensionAPI } from "@bastani/atomic";
 import { Type } from "typebox";
 import { buildDigest, type DigestOptions } from "./digest.ts";
@@ -8,6 +8,8 @@ import { DEFAULT_ROOM_CAPACITY } from "./broker/room-store.ts";
 
 interface RoundtableToolDeps {
   ensureConnected(): Promise<RoundtableClient>;
+  /** Shared Dossier project root. Exports are restricted to its raw/ directory. */
+  exportRoot: string;
 }
 
 function errorResult(text: string) {
@@ -20,6 +22,22 @@ function okResult(text: string, details: Record<string, unknown> = {}) {
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function resolveExportTarget(exportRoot: string, requestedPath: string): string {
+  if (isAbsolute(requestedPath)) throw new Error("Export path must be relative to the memory directory");
+  const rawRoot = resolve(exportRoot, "raw");
+  const target = resolve(exportRoot, requestedPath);
+  const relativeTarget = relative(rawRoot, target);
+  if (
+    relativeTarget === "" ||
+    relativeTarget === ".." ||
+    relativeTarget.startsWith(`..${sep}`) ||
+    isAbsolute(relativeTarget)
+  ) {
+    throw new Error("Export path must name a file under the memory raw/ directory");
+  }
+  return target;
 }
 
 export function registerRoundtableTool(pi: ExtensionAPI, deps: RoundtableToolDeps): void {
@@ -37,17 +55,17 @@ Usage:
   roundtable({ action: "digest", room: "design", budget: 4000 })→ Same with a larger character budget
   roundtable({ action: "peek", room: "design" })                → Digest WITHOUT marking read
   roundtable({ action: "leave", room: "design" })               → Leave the room
-  roundtable({ action: "export", room: "design", path: "…" })   → Write the FULL transcript to a file (for memory ingest)
+  roundtable({ action: "export", room: "design", path: "raw/design.md" }) → Write retained messages for memory ingest
 
 Prefer digest over repeated peeks; keep budgets small and raise them only when you truly need history.
-'export' writes to disk and returns only a path and counts — the transcript never enters your context, so it is safe on a long room.`,
+'export' writes only under the shared memory raw/ directory and returns a path plus counts. Room retention is 500 messages; export reports if older messages already rotated out.`,
     promptSnippet:
       "Group discussion rooms with other local agent sessions. Post findings, then pull bounded digests to catch up — the full transcript stays out of your context window.",
     parameters: Type.Object({
       action: Type.String({
         description: "Action: 'rooms', 'join', 'leave', 'post', 'digest', 'peek', or 'export'",
       }),
-      path: Type.Optional(Type.String({ description: "File to write the transcript to (for 'export')" })),
+      path: Type.Optional(Type.String({ description: "Relative file under the memory raw/ directory (for 'export')" })),
       room: Type.Optional(Type.String({ description: "Room name (required for all actions except 'rooms')" })),
       message: Type.Optional(Type.String({ description: "Message to post (for 'post')" })),
       replyTo: Type.Optional(Type.String({ description: "Message id to reply to (for 'post')" })),
@@ -114,25 +132,36 @@ Prefer digest over repeated peeks; keep budgets small and raise them only when y
             });
           }
           case "export": {
-            if (!room || !path) return errorResult("Missing 'room' or 'path' parameter");
+            const requestedPath = path?.trim();
+            if (!room || !requestedPath) return errorResult("Missing 'room' or 'path' parameter");
             // Straight from the broker to disk, bypassing the digest entirely: a
             // digest collapses older messages, so a digest-derived file would be a
             // lossy source for memory. Cursors are untouched, so exporting never
             // consumes anyone's unread state.
-            const { messages } = await client.fetch(room, 0, DEFAULT_ROOM_CAPACITY);
+            const { messages, lastSeq } = await client.fetch(room, 0, DEFAULT_ROOM_CAPACITY);
             const transcript = messages
               .map((m) => `[${new Date(m.timestamp).toISOString()}] ${m.from.name}#${m.seq}: ${m.text}`)
               .join("\n");
-            const target = resolve(path);
-            mkdirSync(dirname(target), { recursive: true });
-            writeFileSync(target, transcript ? `${transcript}\n` : "", "utf8");
+            const target = resolveExportTarget(deps.exportRoot, requestedPath);
+            await mkdir(dirname(target), { recursive: true });
+            await writeFile(target, transcript ? `${transcript}\n` : "", "utf8");
+            const firstSeq = messages[0]?.seq ?? 0;
+            const droppedBefore = Math.max(0, firstSeq - 1);
+            const truncationNote = droppedBefore > 0 ? ` ${droppedBefore} older message(s) were no longer retained.` : "";
             // Return metadata only — the transcript stays out of the context window.
-            return okResult(`Exported ${messages.length} message(s) from #${room} to ${target} (${transcript.length} chars).`, {
-              room,
-              path: target,
-              messages: messages.length,
-              chars: transcript.length,
-            });
+            return okResult(
+              `Exported ${messages.length} retained message(s) from #${room} to ${target} (${transcript.length} chars).${truncationNote}`,
+              {
+                room,
+                path: target,
+                messages: messages.length,
+                chars: transcript.length,
+                firstSeq,
+                lastSeq,
+                droppedBefore,
+                truncated: droppedBefore > 0,
+              },
+            );
           }
           default:
             return errorResult(`Unknown action: ${action}`);

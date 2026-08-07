@@ -77,7 +77,7 @@ It shells out to the Dossier CLI, configured entirely by environment:
 | Variable | Default | Meaning |
 |---|---|---|
 | `ORPHUS_MEMORY_COMMAND` | `python -m dossier` | Base command, split on whitespace |
-| `ORPHUS_MEMORY_DIR` | *(unset)* | Dossier project dir — where `raw/` and `wiki/` live |
+| `ORPHUS_MEMORY_DIR` | `<agent dir>/memory` | Dossier project dir — where `raw/` and `wiki/` live; created on first use |
 | `ORPHUS_MEMORY_WRITER_ROLE` | `librarian` | The one role allowed to write |
 
 The design keeps the contract mechanical:
@@ -103,11 +103,15 @@ roundtable({ action: "export", room: "design", path: "raw/design.md" })
 memory({ action: "ingest", source: "raw/design.md" })
 ```
 
-`export` goes broker → disk, deliberately bypassing the digest: a digest collapses
-older messages, so a digest-derived file would be a lossy source for permanent
-memory. It returns only the path and counts, so the transcript never enters the
-librarian's context window, and it never touches read cursors — exporting a room
-cannot steal another role's catch-up.
+The export path is relative to the shared memory project and must stay under its
+`raw/` directory, so the following `memory ingest` resolves the same file in every
+worktree. `export` goes broker → disk, deliberately bypassing the digest: a digest
+collapses older messages, so a digest-derived file would be a lossy source for
+permanent memory. It returns only the path and counts, so the transcript never
+enters the librarian's context window, and it never touches read cursors —
+exporting a room cannot steal another role's catch-up. Rooms retain 500 messages;
+if earlier messages have rotated out, export reports the omitted count instead of
+claiming the retained transcript is complete.
 
 ## What the benchmark does and does not show
 
