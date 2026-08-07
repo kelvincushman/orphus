@@ -2,29 +2,25 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { RoundtableBroker } from "../../packages/roundtable/broker/broker.ts";
-import { RoundtableClient } from "../../packages/roundtable/broker/client.ts";
-import { getBrokerPidPath, getBrokerSocketPath, getRoundtableDirPath } from "../../packages/roundtable/broker/paths.ts";
-import { registerRoundtableTool } from "../../packages/roundtable/roundtable-tool.ts";
-import { readText } from "../helpers/runtime.ts";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { RoundtableBroker } from "../../packages/roundtable/broker/broker.js";
+import { RoundtableClient } from "../../packages/roundtable/broker/client.js";
+import { getBrokerPidPath, getBrokerSocketPath, getRoundtableDirPath } from "../../packages/roundtable/broker/paths.js";
+import { createRoundtableTool, type RoundtableToolParams } from "../../packages/roundtable/roundtable-tool.js";
+import { fileExists, readText } from "../helpers/runtime.js";
 
-interface CapturedToolResult {
-	isError: boolean;
-	content: Array<{ text: string }>;
-	details: Record<string, unknown>;
-}
+type ExportToolParams = Omit<RoundtableToolParams, "action"> & { action: "export" };
 
-function captureRoundtableTool(client: RoundtableClient, exportRoot: string) {
-	let tool: { execute: (...args: unknown[]) => Promise<CapturedToolResult> } | undefined;
-	const pi = {
-		registerTool: (definition: typeof tool) => {
-			tool = definition;
-		},
-	} as unknown as Parameters<typeof registerRoundtableTool>[0];
-	registerRoundtableTool(pi, { ensureConnected: async () => client, exportRoot });
-	if (!tool) throw new Error("roundtable tool was not registered");
-	return (params: Record<string, unknown>) => tool!.execute("call-1", params, undefined, undefined, undefined);
+function captureRoundtableTool(client: RoundtableClient, exportRoot: string, role: string | undefined) {
+	const ensureConnected = vi.fn(async () => client);
+	const tool = createRoundtableTool({
+		ensureConnected,
+		exportRoot,
+		currentRole: () => role,
+		writerRole: "librarian",
+	});
+	const run = (params: ExportToolParams) => tool.execute("call-1", params, undefined, undefined, undefined as never);
+	return { ensureConnected, run };
 }
 
 describe("roundtable broker and client over a real socket", () => {
@@ -105,18 +101,25 @@ describe("roundtable broker and client over a real socket", () => {
 	// be fed from the broker directly. Export must be lossless and leave cursors alone.
 	it("exports the retained transcript without consuming unread state", async () => {
 		const planner = await connect("planner");
-		const critic = await connect("critic");
+		const librarian = await connect("librarian");
 		await planner.join("design");
-		await critic.join("design");
+		await librarian.join("design");
 		const posted = [];
 		for (let i = 1; i <= 12; i++) posted.push(await planner.post("design", `message ${i}`));
 		const exportRoot = join(agentDir, "memory");
-		const run = captureRoundtableTool(critic, exportRoot);
+		const { run } = captureRoundtableTool(librarian, exportRoot, "librarian");
 
 		const missingPath = await run({ action: "export", room: "design" });
 		assert.equal(missingPath.isError, true);
 		const escapedPath = await run({ action: "export", room: "design", path: "../escape.md" });
 		assert.equal(escapedPath.isError, true);
+		const absolutePath = join(exportRoot, "raw", "absolute.md");
+		const absolute = await run({ action: "export", room: "design", path: absolutePath });
+		assert.equal(absolute.isError, true);
+		assert.equal(await fileExists(absolutePath), false);
+		const outsideRaw = await run({ action: "export", room: "design", path: "design.md" });
+		assert.equal(outsideRaw.isError, true);
+		assert.equal(await fileExists(join(exportRoot, "design.md")), false);
 
 		const relativePath = "raw/nested/design.md";
 		const target = join(exportRoot, relativePath);
@@ -132,21 +135,37 @@ describe("roundtable broker and client over a real socket", () => {
 			`${posted.map((message) => `[${new Date(message.timestamp).toISOString()}] planner#${message.seq}: ${message.text}`).join("\n")}\n`,
 		);
 
-		// Exporting must leave the critic's unread state untouched, so a librarian can
+		// Exporting must leave the librarian's unread state untouched, so that role can
 		// export a room at any time without stealing another role's catch-up.
-		const after = await critic.fetch("design", 0);
+		const after = await librarian.fetch("design", 0);
 		assert.equal(after.cursor, 0);
 		assert.equal(after.messages.length, 12);
 		assert.equal(after.messages[0]?.text, "message 1");
 		assert.equal(after.messages[11]?.text, "message 12");
 	});
 
-	it("reports when an export starts after older messages rotated out", async () => {
+	it("blocks non-librarians before exporting a room into shared memory", async () => {
 		const planner = await connect("planner");
 		await planner.join("design");
-		for (let i = 1; i <= 501; i++) await planner.post("design", `message ${i}`);
+		await planner.post("design", "do not export me");
 		const exportRoot = join(agentDir, "memory");
-		const run = captureRoundtableTool(planner, exportRoot);
+		const target = join(exportRoot, "raw", "unauthorized.md");
+		const { ensureConnected, run } = captureRoundtableTool(planner, exportRoot, "planner");
+
+		const result = await run({ action: "export", room: "design", path: "raw/unauthorized.md" });
+
+		assert.equal(result.isError, true);
+		assert.match(result.content[0]?.text ?? "", /Only the "librarian" role/);
+		expect(ensureConnected).not.toHaveBeenCalled();
+		assert.equal(await fileExists(target), false);
+	});
+
+	it("reports when an export starts after older messages rotated out", async () => {
+		const librarian = await connect("librarian");
+		await librarian.join("design");
+		for (let i = 1; i <= 501; i++) await librarian.post("design", `message ${i}`);
+		const exportRoot = join(agentDir, "memory");
+		const { run } = captureRoundtableTool(librarian, exportRoot, "librarian");
 		const target = join(exportRoot, "raw", "truncated.md");
 		const result = await run({ action: "export", room: "design", path: "raw/truncated.md" });
 
@@ -157,7 +176,7 @@ describe("roundtable broker and client over a real socket", () => {
 		assert.equal(result.details.droppedBefore, 1);
 		assert.equal(result.details.truncated, true);
 		assert.match(result.content[0]?.text ?? "", /1 older message/);
-		assert.match((await readText(target)).split("\n")[0] ?? "", /planner#2: message 2$/);
+		assert.match((await readText(target)).split("\n")[0] ?? "", /librarian#2: message 2$/);
 	});
 
 	it("rejects posting to a room the session has not joined", async () => {

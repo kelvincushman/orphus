@@ -75,13 +75,19 @@ export default function roundtableExtension(pi: ExtensionAPI): void {
   // read once from the environment; the role is read lazily per call because a
   // session's name can be set after the extension registers. See docs/memory.md.
   const memoryConfig = resolveMemoryConfig();
-  registerRoundtableTool(pi, { ensureConnected, exportRoot: memoryConfig.cwd });
+  const currentRole = () => {
+    const name = pi.getSessionName();
+    return typeof name === "string" && name.trim() ? name.trim() : undefined;
+  };
+  registerRoundtableTool(pi, {
+    ensureConnected,
+    exportRoot: memoryConfig.cwd,
+    currentRole,
+    writerRole: memoryConfig.writerRole,
+  });
   registerMemoryTool(pi, {
     config: memoryConfig,
-    currentRole: () => {
-      const name = pi.getSessionName();
-      return typeof name === "string" && name.trim() ? name.trim() : undefined;
-    },
+    currentRole,
   });
 
   pi.on("session_shutdown", () => {

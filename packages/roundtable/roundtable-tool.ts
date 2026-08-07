@@ -1,22 +1,64 @@
 import { mkdir, writeFile } from "fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep } from "path";
-import type { ExtensionAPI } from "@bastani/atomic";
-import { Type } from "typebox";
+import type { ExtensionAPI, ToolDefinition } from "@bastani/atomic";
+import { type Static, Type } from "typebox";
 import { buildDigest, type DigestOptions } from "./digest.ts";
 import type { RoundtableClient } from "./broker/client.ts";
 import { DEFAULT_ROOM_CAPACITY } from "./broker/room-store.ts";
 
-interface RoundtableToolDeps {
+export interface RoundtableToolDeps {
   ensureConnected(): Promise<RoundtableClient>;
   /** Shared Dossier project root. Exports are restricted to its raw/ directory. */
   exportRoot: string;
+  /** Session role used to enforce the single-writer memory contract. */
+  currentRole(): string | undefined;
+  /** The only role allowed to stage transcripts for memory ingest. */
+  writerRole: string;
 }
 
-function errorResult(text: string) {
+const RoundtableParameters = Type.Object({
+  action: Type.String({
+    description: "Action: 'rooms', 'join', 'leave', 'post', 'digest', 'peek', or 'export'",
+  }),
+  path: Type.Optional(Type.String({ description: "Relative file under the memory raw/ directory (for 'export')" })),
+  room: Type.Optional(Type.String({ description: "Room name (required for all actions except 'rooms')" })),
+  message: Type.Optional(Type.String({ description: "Message to post (for 'post')" })),
+  replyTo: Type.Optional(Type.String({ description: "Message id to reply to (for 'post')" })),
+  topic: Type.Optional(Type.String({ description: "Room topic when creating via 'join'" })),
+  budget: Type.Optional(Type.Number({ description: "Digest character budget (default 2000)" })),
+});
+
+export type RoundtableToolParams = Static<typeof RoundtableParameters>;
+
+export interface RoundtableToolDetails {
+  error?: boolean;
+  rooms?: number;
+  room?: string;
+  unread?: number;
+  seq?: number;
+  id?: string;
+  lastSeq?: number;
+  cursorBefore?: number;
+  consumedSeq?: number;
+  path?: string;
+  messages?: number;
+  chars?: number;
+  firstSeq?: number;
+  droppedBefore?: number;
+  truncated?: boolean;
+}
+
+export interface RoundtableToolResult {
+  isError: boolean;
+  content: Array<{ type: "text"; text: string }>;
+  details: RoundtableToolDetails;
+}
+
+function errorResult(text: string): RoundtableToolResult {
   return { content: [{ type: "text" as const, text }], isError: true, details: { error: true } };
 }
 
-function okResult(text: string, details: Record<string, unknown> = {}) {
+function okResult(text: string, details: RoundtableToolDetails = {}): RoundtableToolResult {
   return { content: [{ type: "text" as const, text }], isError: false, details };
 }
 
@@ -40,8 +82,8 @@ function resolveExportTarget(exportRoot: string, requestedPath: string): string 
   return target;
 }
 
-export function registerRoundtableTool(pi: ExtensionAPI, deps: RoundtableToolDeps): void {
-  pi.registerTool({
+export function createRoundtableTool(deps: RoundtableToolDeps) {
+  return {
     name: "roundtable",
     label: "Roundtable",
     description: `Group chat rooms shared with other local agent sessions.
@@ -58,30 +100,31 @@ Usage:
   roundtable({ action: "export", room: "design", path: "raw/design.md" }) → Write retained messages for memory ingest
 
 Prefer digest over repeated peeks; keep budgets small and raise them only when you truly need history.
-'export' writes only under the shared memory raw/ directory and returns a path plus counts. Room retention is 500 messages; export reports if older messages already rotated out.`,
+'export' is restricted to the "${deps.writerRole}" role, writes only under the shared memory raw/ directory, and returns a path plus counts. Room retention is 500 messages; export reports if older messages already rotated out.`,
     promptSnippet:
       "Group discussion rooms with other local agent sessions. Post findings, then pull bounded digests to catch up — the full transcript stays out of your context window.",
-    parameters: Type.Object({
-      action: Type.String({
-        description: "Action: 'rooms', 'join', 'leave', 'post', 'digest', 'peek', or 'export'",
-      }),
-      path: Type.Optional(Type.String({ description: "Relative file under the memory raw/ directory (for 'export')" })),
-      room: Type.Optional(Type.String({ description: "Room name (required for all actions except 'rooms')" })),
-      message: Type.Optional(Type.String({ description: "Message to post (for 'post')" })),
-      replyTo: Type.Optional(Type.String({ description: "Message id to reply to (for 'post')" })),
-      topic: Type.Optional(Type.String({ description: "Room topic when creating via 'join'" })),
-      budget: Type.Optional(Type.Number({ description: "Digest character budget (default 2000)" })),
-    }),
+    parameters: RoundtableParameters,
 
     async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+      const { action, room, message, replyTo, topic, budget, path } = params;
+      if (action === "export") {
+        const role = deps.currentRole();
+        if (role !== deps.writerRole) {
+          const named = role !== undefined && role.trim() !== "";
+          return errorResult(
+            named
+              ? `Only the "${deps.writerRole}" role may export rooms for memory; this session is "${role}". Ask the ${deps.writerRole} to export.`
+              : `Only the "${deps.writerRole}" role may export rooms for memory; this session has no role name (launch it with --name ${deps.writerRole}).`,
+          );
+        }
+      }
+
       let client: RoundtableClient;
       try {
         client = await deps.ensureConnected();
       } catch (error) {
         return errorResult(`Roundtable not connected: ${getErrorMessage(error)}`);
       }
-
-      const { action, room, message, replyTo, topic, budget, path } = params;
 
       try {
         switch (action) {
@@ -170,7 +213,11 @@ Prefer digest over repeated peeks; keep budgets small and raise them only when y
         return errorResult(`Roundtable ${action} failed: ${getErrorMessage(error)}`);
       }
     },
-  });
+  } satisfies ToolDefinition<typeof RoundtableParameters, RoundtableToolDetails>;
+}
+
+export function registerRoundtableTool(pi: ExtensionAPI, deps: RoundtableToolDeps): void {
+  pi.registerTool(createRoundtableTool(deps));
 }
 
 async function cursorFor(client: RoundtableClient, room: string): Promise<number> {
