@@ -84,8 +84,15 @@ Each tier below adds only its own extras. Stop at whichever one you need.
 git clone https://github.com/kelvincushman/orphus.git orphus && cd orphus
 npm ci --ignore-scripts
 npm run demo        # scripted 3-agent discussion + late-joining reviewer
+npm run demo:loop   # the full loop: room → export → memory → later recall
 npm run roles       # the role manifest, turned into launch commands
 ```
+
+`demo:loop` is the whole thesis in one run: four roles deliberate, a late reviewer
+catches up on a bounded digest, the librarian exports the room losslessly, memory ingests
+it behind the role gate, and a **fresh session with no access to the room** recalls the
+decision. No model, no API key. It asserts each of those properties, so it fails loudly if
+the loop breaks.
 
 Nothing else required — no API key, no network. This is the fastest way to see the
 context-window contract actually hold.
