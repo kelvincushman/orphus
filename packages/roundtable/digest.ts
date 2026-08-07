@@ -16,8 +16,10 @@ import type { RoomMessage } from "./types.ts";
  * but budget is always spent on the NEWEST messages first.
  */
 export interface DigestOptions {
-  /** Total character budget for the rendered digest body. Default 2000. */
+  /** Total character budget for the complete digest response. Default 2000. */
   budget?: number;
+  /** Characters reserved by the caller for response framing such as a header. */
+  reservedChars?: number;
   /** Per-message cap for verbatim bodies. Default 600. */
   perMessageCap?: number;
   /** Cap for headline fragments. Default 100. */
@@ -25,7 +27,7 @@ export interface DigestOptions {
 }
 
 export interface Digest {
-  /** Rendered digest body, guaranteed ≤ budget + one overflow marker line. */
+  /** Rendered digest body, guaranteed to fit the unreserved budget. */
   text: string;
   /** Highest seq consumed; pass to set_cursor to mark read. 0 when no messages. */
   consumedSeq: number;
@@ -40,6 +42,12 @@ const DEFAULT_BUDGET = 2000;
 export const MAX_DIGEST_BUDGET = 8000;
 const DEFAULT_PER_MESSAGE_CAP = 600;
 const DEFAULT_HEADLINE_CAP = 100;
+
+export function normalizeDigestBudget(requestedBudget: number = DEFAULT_BUDGET): number {
+  return Number.isFinite(requestedBudget)
+    ? Math.min(Math.max(requestedBudget, 200), MAX_DIGEST_BUDGET)
+    : DEFAULT_BUDGET;
+}
 
 function clock(timestamp: number): string {
   const d = new Date(timestamp);
@@ -73,15 +81,18 @@ function renderHeadline(message: RoomMessage, headlineCap: number): string {
  * Deterministic and model-free: the bound holds no matter what peers post.
  */
 export function buildDigest(messages: readonly RoomMessage[], options: DigestOptions = {}): Digest {
-  const requestedBudget = options.budget ?? DEFAULT_BUDGET;
-  const budget = Number.isFinite(requestedBudget)
-    ? Math.min(Math.max(requestedBudget, 200), MAX_DIGEST_BUDGET)
-    : DEFAULT_BUDGET;
+  const budget = normalizeDigestBudget(options.budget);
+  const requestedReserve = options.reservedChars ?? 0;
+  const reservedChars = Number.isFinite(requestedReserve)
+    ? Math.min(Math.max(Math.floor(requestedReserve), 0), budget)
+    : 0;
+  const bodyBudget = budget - reservedChars;
   const perMessageCap = Math.max(options.perMessageCap ?? DEFAULT_PER_MESSAGE_CAP, 80);
   const headlineCap = Math.max(options.headlineCap ?? DEFAULT_HEADLINE_CAP, 40);
 
   if (messages.length === 0) {
-    return { text: "No new messages.", consumedSeq: 0, total: 0, verbatim: 0, headlines: 0, collapsed: 0, chars: 0 };
+    const text = "No new messages.".slice(0, bodyBudget);
+    return { text, consumedSeq: 0, total: 0, verbatim: 0, headlines: 0, collapsed: 0, chars: text.length };
   }
 
   const newestFirst = [...messages].sort((a, b) => b.seq - a.seq);
@@ -96,7 +107,7 @@ export function buildDigest(messages: readonly RoomMessage[], options: DigestOpt
   for (const message of newestFirst) {
     if (tier === "verbatim") {
       const line = renderVerbatim(message, perMessageCap);
-      if (spent + line.length + 1 <= budget) {
+      if (spent + line.length + 1 <= bodyBudget) {
         verbatimLines.push(line);
         spent += line.length + 1;
         continue;
@@ -104,7 +115,7 @@ export function buildDigest(messages: readonly RoomMessage[], options: DigestOpt
       tier = "headline";
     }
     const headline = renderHeadline(message, headlineCap);
-    if (spent + headline.length + 1 <= budget) {
+    if (spent + headline.length + 1 <= bodyBudget) {
       headlineLines.push(headline);
       spent += headline.length + 1;
     } else {
@@ -112,10 +123,22 @@ export function buildDigest(messages: readonly RoomMessage[], options: DigestOpt
     }
   }
 
-  const parts: string[] = [];
+  let collapseMarker = "";
   if (collapsed > 0) {
-    parts.push(`(${collapsed} older message${collapsed === 1 ? "" : "s"} collapsed — raise budget or replay by seq to expand)`);
+    const compactMarker = () => `(${collapsed} older collapsed)`;
+    while (spent + compactMarker().length + 1 > bodyBudget) {
+      const removed = headlineLines.pop() ?? verbatimLines.pop();
+      if (!removed) break;
+      spent -= removed.length + 1;
+      collapsed += 1;
+    }
+    const detailedMarker = `(${collapsed} older message${collapsed === 1 ? "" : "s"} collapsed — raise budget or replay by seq to expand)`;
+    collapseMarker = spent + detailedMarker.length + 1 <= bodyBudget ? detailedMarker : compactMarker();
+    if (spent + collapseMarker.length + 1 > bodyBudget) collapseMarker = "";
   }
+
+  const parts: string[] = [];
+  if (collapseMarker) parts.push(collapseMarker);
   // Tiers were filled newest-first; render oldest-first for chronological reading.
   parts.push(...headlineLines.reverse());
   parts.push(...verbatimLines.reverse());

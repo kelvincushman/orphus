@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import type { RoundtableClient } from "../../packages/roundtable/broker/client.ts";
+import { MAX_DIGEST_BUDGET } from "../../packages/roundtable/digest.ts";
 import roundtableExtension from "../../packages/roundtable/index.ts";
 import { MAX_REPLAY_CHARS, registerRoundtableTool } from "../../packages/roundtable/roundtable-tool.ts";
 import type { RoomMessage } from "../../packages/roundtable/types.ts";
@@ -20,7 +21,7 @@ describe("roundtable extension surface", () => {
 	});
 
 	it("replays collapsed digest history by sequence without moving the cursor", async () => {
-		const messages: RoomMessage[] = Array.from({ length: 10 }, (_, index) => ({
+		const messages: RoomMessage[] = Array.from({ length: 100 }, (_, index) => ({
 			id: `id-${index + 1}`,
 			seq: index + 1,
 			timestamp: Date.UTC(2026, 0, 1, 0, index),
@@ -50,15 +51,27 @@ describe("roundtable extension surface", () => {
 		registerRoundtableTool(pi, { ensureConnected: async () => client });
 		if (!execute) throw new Error("roundtable tool was not registered");
 
+		const longRoom = "r".repeat(128);
 		const digest = await execute(
 			"digest",
-			{ action: "digest", room: "design", budget: 200 },
+			{ action: "digest", room: longRoom, budget: 200 },
 			undefined,
 			undefined,
 			undefined,
 		);
-		expect(digest.content[0]?.text).toMatch(/collapsed/);
-		expect(setCursor).toHaveBeenCalledWith("design", 10);
+		const digestText = digest.content[0]?.text ?? "";
+		expect(digestText).toMatch(/collapsed/);
+		expect(digestText.length).toBeLessThanOrEqual(200);
+		expect(setCursor).toHaveBeenCalledWith(longRoom, 100);
+
+		const maxDigest = await execute(
+			"peek",
+			{ action: "peek", room: longRoom, budget: MAX_DIGEST_BUDGET * 10 },
+			undefined,
+			undefined,
+			undefined,
+		);
+		expect(maxDigest.content[0]?.text.length).toBeLessThanOrEqual(MAX_DIGEST_BUDGET);
 
 		const replay = await execute(
 			"replay",
