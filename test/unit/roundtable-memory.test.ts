@@ -59,11 +59,25 @@ describe("memory config", () => {
 		expect(parseCommand("  python  -m   dossier ")).toEqual(["python", "-m", "dossier"]);
 	});
 
-	it("defaults command, writer role, and omits cwd", () => {
+	it("defaults command, writer role, and anchors cwd under the agent dir", () => {
 		const config = resolveMemoryConfig({});
 		expect(config.command).toEqual(["python", "-m", "dossier"]);
 		expect(config.writerRole).toBe("librarian");
-		expect(config.cwd).toBeUndefined();
+		// Anchored, not cwd-relative: this is what makes Orca worktrees share one wiki.
+		expect(config.cwd).toMatch(/[/\\]memory$/);
+	});
+
+	// Each Orca role runs in its own worktree. If the wiki were cwd-relative, every
+	// role would silently get its own empty memory and queries would "succeed" empty.
+	it("resolves the same memory dir regardless of process cwd", () => {
+		const original = process.cwd();
+		const a = resolveMemoryConfig({}).cwd;
+		process.chdir(tmpdir());
+		try {
+			expect(resolveMemoryConfig({}).cwd).toBe(a);
+		} finally {
+			process.chdir(original);
+		}
 	});
 
 	it("honors environment overrides", () => {

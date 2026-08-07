@@ -21,7 +21,7 @@ function expandTildePath(path: string): string {
 }
 
 /** Fork lineage: Orphus first, then Atomic, then Pi — matching CONFIG_DIR_NAMES. */
-function getAgentDir(): string {
+export function getAgentDir(): string {
   const orphusAgentDir = process.env.ORPHUS_CODING_AGENT_DIR;
   if (orphusAgentDir) return expandTildePath(orphusAgentDir);
   const atomicAgentDir = process.env.ATOMIC_CODING_AGENT_DIR;

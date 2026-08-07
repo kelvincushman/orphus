@@ -80,6 +80,28 @@ describe("roundtable broker and client over a real socket", () => {
 		expect(cursor).toBe(2);
 	});
 
+	// The ingest path for memory: a digest collapses older messages, so memory must
+	// be fed from the broker directly. Export must be lossless and leave cursors alone.
+	it("exports the full transcript losslessly without consuming unread state", async () => {
+		const planner = await connect("planner");
+		const critic = await connect("critic");
+		await planner.join("design");
+		await critic.join("design");
+		for (let i = 1; i <= 12; i++) await planner.post("design", `message ${i}`);
+
+		// The critic has read nothing. Exporting must return every message...
+		const { messages, cursor } = await critic.fetch("design", 0);
+		expect(messages).toHaveLength(12);
+		expect(messages[0]?.text).toBe("message 1"); // the one a digest would collapse
+		expect(messages[11]?.text).toBe("message 12");
+		expect(cursor).toBe(0);
+
+		// ...and must leave the critic's unread state untouched, so a librarian can
+		// export a room at any time without stealing another role's catch-up.
+		const after = await critic.fetch("design", 0);
+		expect(after.cursor).toBe(0);
+	});
+
 	it("rejects posting to a room the session has not joined", async () => {
 		const outsider = await connect("outsider");
 		await expect(outsider.post("nowhere", "hi")).rejects.toThrow(/does not exist|join it first/);
