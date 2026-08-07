@@ -1,6 +1,6 @@
 import type { ExtensionAPI } from "@bastani/atomic";
 import { Type } from "typebox";
-import { buildDigest, type DigestOptions } from "./digest.ts";
+import { buildDigest, normalizeDigestBudget, type DigestOptions } from "./digest.ts";
 import type { RoundtableClient } from "./broker/client.ts";
 import { MAX_ROOM_MESSAGE_CHARS, type RoomMessage } from "./types.ts";
 
@@ -11,6 +11,15 @@ interface RoundtableToolDeps {
 /** Hard context bound for one explicit replay result. */
 export const MAX_REPLAY_CHARS = 8000;
 const REPLAY_HEADER_RESERVE = 384;
+const DIGEST_ROOM_LABEL_CHARS = 40;
+
+interface DigestHeaderStats {
+  total: number | string;
+  verbatim: number | string;
+  headlines: number | string;
+  collapsed: number | string;
+  chars: number | string;
+}
 
 function errorResult(text: string) {
   return { content: [{ type: "text" as const, text }], isError: true, details: { error: true } };
@@ -32,6 +41,11 @@ function replayLine(message: RoomMessage): string {
   const reply = message.replyTo ? ` (reply to ${clip(message.replyTo, 80)})` : "";
   const text = clip(message.text, MAX_ROOM_MESSAGE_CHARS);
   return `[${new Date(message.timestamp).toISOString()}] ${clip(message.from.name, 80)}#${message.seq}${reply}: ${text}`;
+}
+
+function renderDigestHeader(room: string, stats: DigestHeaderStats, peek: boolean): string {
+  const suffix = peek ? " · peek (cursor unchanged)" : "";
+  return `#${room} · ${stats.total} unread · showing ${stats.verbatim} verbatim, ${stats.headlines} headline(s), ${stats.collapsed} collapsed · ${stats.chars} chars${suffix}`;
 }
 
 export function registerRoundtableTool(pi: ExtensionAPI, deps: RoundtableToolDeps): void {
@@ -111,13 +125,31 @@ Prefer digest over repeated peeks. Use replay only when you explicitly need mess
           case "peek": {
             if (!room) return errorResult("Missing 'room' parameter");
             const { messages, lastSeq, cursor } = await client.fetch(room, await cursorFor(client, room));
-            const options: DigestOptions = budget !== undefined ? { budget } : {};
+            const totalBudget = normalizeDigestBudget(budget);
+            const countPlaceholder = "9".repeat(Math.max(String(messages.length).length, 1));
+            const charsPlaceholder = "9".repeat(String(totalBudget).length);
+            const isPeek = action === "peek";
+            const displayRoom = clip(room, DIGEST_ROOM_LABEL_CHARS);
+            const headerReserve =
+              renderDigestHeader(
+                displayRoom,
+                {
+                  total: countPlaceholder,
+                  verbatim: countPlaceholder,
+                  headlines: countPlaceholder,
+                  collapsed: countPlaceholder,
+                  chars: charsPlaceholder,
+                },
+                isPeek,
+              ).length + 1;
+            const options: DigestOptions = { budget: totalBudget, reservedChars: headerReserve };
             const digest = buildDigest(messages, options);
             if (action === "digest" && digest.consumedSeq > 0) {
               await client.setCursor(room, digest.consumedSeq);
             }
-            const header = `#${room} · ${digest.total} unread · showing ${digest.verbatim} verbatim, ${digest.headlines} headline(s), ${digest.collapsed} collapsed · ${digest.chars} chars${action === "peek" ? " · peek (cursor unchanged)" : ""}`;
-            return okResult(`${header}\n${digest.text}`, {
+            const header = renderDigestHeader(displayRoom, digest, isPeek);
+            const response = digest.text ? `${header}\n${digest.text}` : header;
+            return okResult(response, {
               room,
               lastSeq,
               cursorBefore: cursor,

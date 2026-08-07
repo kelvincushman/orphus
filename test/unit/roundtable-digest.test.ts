@@ -59,13 +59,11 @@ describe("roundtable digest", () => {
 		if (middleIndex !== -1) expect(middleIndex).toBeLessThan(newestIndex);
 	});
 
-	it("never exceeds budget plus one collapse marker line", () => {
+	it("keeps the collapse marker within the digest body budget", () => {
 		const messages = Array.from({ length: 60 }, (_, i) => message(i + 1, `message ${i + 1}: ${"x".repeat(400)}`));
 		const budget = 1500;
 		const digest = buildDigest(messages, { budget });
-		// Collapse marker line is the only allowance beyond the budget.
-		const markerAllowance = 120;
-		expect(digest.chars).toBeLessThanOrEqual(budget + markerAllowance);
+		expect(digest.chars).toBeLessThanOrEqual(budget);
 		expect(digest.collapsed).toBeGreaterThan(0);
 		expect(digest.consumedSeq).toBe(60);
 	});
