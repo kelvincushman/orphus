@@ -16,12 +16,11 @@
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { RoundtableBroker } from "../broker/broker.ts";
-import { RoundtableClient } from "../broker/client.ts";
-import { getBrokerPidPath, getBrokerSocketPath, getRoundtableDirPath } from "../broker/paths.ts";
-import { buildDigest } from "../digest.ts";
-import { runDossier } from "../memory/run.ts";
-import { createRoundtableTool } from "../roundtable-tool.ts";
+import { RoundtableBroker } from "../broker/broker.js";
+import { RoundtableClient } from "../broker/client.js";
+import { getBrokerPidPath, getBrokerSocketPath, getRoundtableDirPath } from "../broker/paths.js";
+import { runDossier } from "../memory/run.js";
+import { createRoundtableTool, type RoundtableToolParams } from "../roundtable-tool.js";
 
 const DIGEST_BUDGET = 700;
 const rule = (title: string) => console.log(`\n${title}\n${"─".repeat(74)}`);
@@ -60,7 +59,7 @@ async function main(): Promise<void> {
   const memoryRoot = join(root, "memory");
   const wiki = join(memoryRoot, "wiki");
   mkdirSync(wiki, { recursive: true });
-  const stub = join(root, "dossier-stub.mjs");
+  const stub = join(root, "dossier-stub.cjs");
   writeFileSync(stub, DOSSIER_STUB);
   chmodSync(stub, 0o755);
 
@@ -81,28 +80,39 @@ async function main(): Promise<void> {
     const transcriptChars = SCRIPT.reduce((sum, [, text]) => sum + text.length, 0);
     console.log(`  ${SCRIPT.length} messages, ${transcriptChars} chars — none of it in any agent's context.`);
 
-    rule("2. A reviewer joins LATE and catches up under a hard character budget");
-    const reviewer = new RoundtableClient("reviewer", socketPath);
-    await reviewer.connect();
-    clients.set("reviewer", reviewer);
-    const joined = await reviewer.join("design");
-    const backlog = await reviewer.fetch("design", joined.cursor);
-    const digest = buildDigest(backlog.messages, { budget: DIGEST_BUDGET });
-    console.log(`  unread ${digest.total} · digest ${digest.chars} chars (budget ${DIGEST_BUDGET})`);
-    console.log(`  verbatim ${digest.verbatim} · headlines ${digest.headlines} · collapsed ${digest.collapsed}`);
-    check("the digest must collapse something for this demo to be meaningful", digest.collapsed > 0);
-
-    // Driven through the REAL roundtable tool, not a hand-rolled fetch, so this
-    // demo fails if the shipped export path breaks.
-    const exportTool = (role: string) =>
+    const roundtableTool = (role: string) =>
       createRoundtableTool({
         ensureConnected: async () => clients.get(role)!,
         exportRoot: memoryRoot,
         currentRole: () => role,
         writerRole: "librarian",
       });
+    const runRoundtable = (role: string, params: RoundtableToolParams) =>
+      roundtableTool(role).execute("demo", params, undefined, undefined, undefined as never);
+
+    rule("2. A reviewer joins LATE and catches up under a hard character budget");
+    const reviewer = new RoundtableClient("reviewer", socketPath);
+    await reviewer.connect();
+    clients.set("reviewer", reviewer);
+    await reviewer.join("design");
+    const digest = await runRoundtable("reviewer", { action: "digest", room: "design", budget: DIGEST_BUDGET });
+    const digestHeader = digest.content[0]?.text.split("\n")[0] ?? "";
+    check("the roundtable digest must succeed", digest.isError === false);
+    check("the digest must stay within budget", typeof digest.details.chars === "number" && digest.details.chars <= DIGEST_BUDGET);
+    check("the digest must advance the reviewer cursor", typeof digest.details.consumedSeq === "number" && digest.details.consumedSeq > 0);
+    check("the digest must collapse something for this demo to be meaningful", /[1-9]\d* collapsed/.test(digestHeader));
+    console.log(`  ${digestHeader}`);
+
+    const afterDigest = await runRoundtable("reviewer", { action: "peek", room: "design" });
+    check("the post-digest peek must succeed", afterDigest.isError === false);
+    check("the digest cursor must be preserved", afterDigest.details.cursorBefore === digest.details.consumedSeq);
+    check("the reviewer must have no unread messages after digest", afterDigest.details.consumedSeq === 0);
+    check("the post-digest peek must report zero unread", /#design · 0 unread/.test(afterDigest.content[0]?.text ?? ""));
+
+    // Driven through the REAL roundtable tool, not a hand-rolled fetch, so this
+    // demo fails if the shipped export path breaks.
     const runExport = (role: string, path: string) =>
-      exportTool(role).execute("demo", { action: "export", room: "design", path }, undefined, undefined, undefined as never);
+      runRoundtable(role, { action: "export", room: "design", path });
 
     rule("3. Export is gated to the librarian — a peer cannot stage memory");
     const denied = await runExport("planner", "raw/design.md");
