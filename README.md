@@ -184,7 +184,7 @@ packages/roundtable/          The Orphus contribution — rooms and the context-
 packages/coding-agent/        The `orphus` binary (Atomic-derived)
 packages/{workflows,subagents,intercom,mcp,web-access,natives}
 orphus.roles.yaml · roles/    Example role manifest and briefs — copy-me templates
-test/unit/roundtable-*        52 tests: digest bound, room store, socket, role launcher
+test/unit/roundtable-*        Rooms, memory, socket, digest, and role-launcher tests
 patches/atomic/               The 0001–0004 series, as applied to upstream `d84fc43`
 docs/                         Orca orchestration, roles, memory, self-improvement loop
 PLAN.md · DESIGN.md · AGENTS.md
