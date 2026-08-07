@@ -61,19 +61,84 @@ session restarts.
 discussion catches up for **33% of the raw transcript cost** — with the decision
 messages intact verbatim and only early exploration collapsed.
 
-## Quickstart
+## Requirements
+
+Everyone needs these two:
+
+| | Version | Why |
+|---|---|---|
+| **Node** | ≥ 22.19 | Runs the agent and every test suite |
+| **Bun** | ≥ 1.3.14 | Runs the demo, the role launcher, `scripts/*.ts`; compiles release binaries |
+
+**Install dependencies with `npm` only.** `package-lock.json` is the single lockfile, and the
+committed `.npmrc` adds a supply-chain gate (`save-exact`, `min-release-age=2`). `pnpm`, `yarn`,
+and `bun install` each write a competing lockfile that `npm ci` neither reads nor verifies, and
+bypass that gate — so they are not merely discouraged, they are wrong here. npm is the task
+runner; Bun is the interpreter the tasks call. See [AGENTS.md](AGENTS.md).
+
+Each tier below adds only its own extras. Stop at whichever one you need.
+
+## Tier 1 — Run the demo (no model, no keys)
 
 ```bash
 git clone https://github.com/kelvincushman/orphus.git orphus && cd orphus
 npm ci --ignore-scripts
-npm run demo        # scripted 3-agent discussion + late-joining reviewer, no model needed
+npm run demo        # scripted 3-agent discussion + late-joining reviewer
 npm run roles       # the role manifest, turned into launch commands
-npx vitest --run --project unit test/unit/roundtable-   # 52 rooms + role-launcher tests
 ```
 
-`package-lock.json` is the only lockfile — see [AGENTS.md](AGENTS.md) before reaching for
-`bun install`, `yarn`, or `pnpm`. Bun is still required for the demo, the role launcher, the
-repository scripts, and compiling release binaries.
+Nothing else required — no API key, no network. This is the fastest way to see the
+context-window contract actually hold.
+
+## Tier 2 — Use Orphus as your agent
+
+Adds: a **Rust toolchain** ([rustup](https://rustup.rs)) for the native bindings, and an
+**API key** for whichever provider you use.
+
+```bash
+npm run build --workspace=@bastani/atomic-natives   # native bindings (needs Rust)
+npm run build --workspace=@bastani/atomic           # builds dist/cli.js
+export ANTHROPIC_API_KEY=...                        # or GEMINI_API_KEY, OPENAI_API_KEY, …
+node packages/coding-agent/dist/cli.js --provider anthropic --model claude-opus
+```
+
+The package declares an `orphus` bin, but it is only on your `PATH` after a global install or
+`npm link`; from a clone, run `dist/cli.js` directly as above. To skip the build while
+developing, `bun packages/coding-agent/src/cli.ts` runs the same CLI from source.
+
+Credentials can also be set from inside a session with `/login`. Provider and model names are
+in [packages/coding-agent/docs/models.md](packages/coding-agent/docs/models.md); every
+supported key is listed in
+[docs/environment-variables.md](packages/coding-agent/docs/environment-variables.md).
+
+Rooms and memory arrive automatically — `packages/roundtable` is a builtin package, so every
+session gets the `roundtable` and `memory` tools with no extra install.
+
+## Tier 3 — Run a fleet
+
+Adds: **[Orca](https://github.com/stablyai/orca)** for worktree fan-out, or **tmux** for a
+local one-window-per-role fan-out.
+
+```bash
+npm run roles -- --format tmux | sh    # one tmux window per role
+npm run roles -- --format orca | sh    # one Orca terminal per role
+```
+
+All roles share one broker automatically because they resolve the same agent dir. See
+[docs/roles.md](docs/roles.md) and [docs/orca-integration.md](docs/orca-integration.md).
+
+## Tier 4 — Enable long-term memory
+
+Adds: **Python** and [HMLR-Wiki / Dossier](https://github.com/kelvincushman/HMLR-Wiki),
+installed separately (it is not vendored here).
+
+```bash
+export ORPHUS_MEMORY_COMMAND="python -m dossier"   # default; use an absolute path for a venv
+node packages/coding-agent/dist/cli.js --name librarian   # the one role allowed to write
+```
+
+The wiki lives at `<agent dir>/memory` by default, so every session and Orca worktree shares
+one memory. Contract and configuration: [docs/memory.md](docs/memory.md).
 
 The demo runs three scripted agents (planner, researcher, critic) through a rate-limiter
 design discussion over the real broker socket, then shows each agent — and a late-joining
