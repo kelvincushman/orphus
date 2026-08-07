@@ -105,3 +105,21 @@ describe("windows broker pipe naming", () => {
 		expect(getBrokerSocketPath("win32", "C:\\agents\\x")).toBe(getBrokerSocketPath("win32", "C:\\agents\\x"));
 	});
 });
+
+// A connect failure must not orphan the internal `registered` promise: an
+// unhandled rejection exits the process under Node.
+describe("client connect failure", () => {
+	it("rejects cleanly with no unhandled rejection when the socket is dead", async () => {
+		const rejections: unknown[] = [];
+		const onRejection = (reason: unknown) => rejections.push(reason);
+		process.on("unhandledRejection", onRejection);
+		try {
+			const client = new RoundtableClient("x", join(tmpdir(), "roundtable-nonexistent.sock"));
+			await expect(client.connect()).rejects.toThrow();
+			await new Promise((resolve) => setTimeout(resolve, 50)); // let any orphan rejection surface
+		} finally {
+			process.off("unhandledRejection", onRejection);
+		}
+		expect(rejections).toEqual([]);
+	});
+});
