@@ -13,6 +13,16 @@ This repo is the private `atomic-monorepo` npm workspace. It currently houses:
 
 Companion packages under `packages/*` ship as **raw TypeScript** (no compile step) and are bundled into `@bastani/atomic` at build time rather than published independently. The coding-agent package follows upstream pi's compiled-package layout.
 
+## Minimal-change principle (KISS) — read this first
+
+Fix the actual problem with the **smallest correct change**. Do not rewrite files, and do not add speculative hardening for issues that cannot occur in this codebase. Don't reinvent the wheel or burn tokens rewriting file after file when the fix is usually a few lines.
+
+- **Verify before fixing.** Reproduce a reported issue, or trace that an existing guard already prevents it — the manifest `NAME_PATTERN` validation, the librarian write-gate, the local same-machine socket trust boundary. Refute non-issues instead of patching them. A review tool flagging something is a hypothesis, not a fact.
+- **Prefer a one-line fix to a subsystem.** Weigh diff size against real risk reduced. The `client.ts` unhandled-rejection fix is `void registered.catch(() => {})`, not a rewrite.
+- **Reuse what exists** — sibling modules (e.g. intercom's reconnect guard), existing helpers, validation already in place — rather than building new machinery.
+- **Don't over-test.** Skip a disproportionate harness for a low-severity edge; a clear comment can be the right call. But every real fix gets a regression test proven to fail without it.
+- **Precedent:** a broad review once flagged 15 issues here; verification confirmed 2. The minimal fix was ~50 lines; the kitchen-sink alternative was ~1,150. Ship the 50.
+
 ## Tech Stack
 
 This repo runs a **hybrid toolchain, matching upstream `earendil-works/pi` task for task**.
