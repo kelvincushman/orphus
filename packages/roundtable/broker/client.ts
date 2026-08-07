@@ -76,6 +76,10 @@ export class RoundtableClient {
         this.failAllPending(new Error("Roundtable broker connection closed"));
       });
     });
+    // If the connect below fails we unwind before awaiting `registered`, leaving it
+    // rejected with no handler — an unhandled rejection that exits the process under
+    // Node. A no-op catch keeps it handled; the real error still surfaces at line 86.
+    void registered.catch(() => {});
 
     await new Promise<void>((resolve, reject) => {
       socket.once("connect", resolve);

@@ -17,6 +17,7 @@ const NOTIFY_COALESCE_MS = 1500;
  */
 export default function roundtableExtension(pi: ExtensionAPI): void {
   let client: RoundtableClient | null = null;
+  let connecting: Promise<RoundtableClient> | null = null;
   let pendingActivity = new Map<string, { count: number; from: Set<string> }>();
   let notifyTimer: NodeJS.Timeout | null = null;
 
@@ -38,22 +39,35 @@ export default function roundtableExtension(pi: ExtensionAPI): void {
     );
   };
 
-  const ensureConnected = async (): Promise<RoundtableClient> => {
-    if (client?.connected) return client;
-    await ensureBrokerRunning();
-    const name = pi.getSessionName() ?? `session-${process.pid}`;
-    const fresh = new RoundtableClient(typeof name === "string" && name.trim() ? name.trim() : `session-${process.pid}`);
-    await fresh.connect();
-    fresh.onActivity((event) => {
-      if (event.seq === 0) return; // membership churn, not content
-      const entry = pendingActivity.get(event.room) ?? { count: 0, from: new Set<string>() };
-      entry.count += 1;
-      entry.from.add(event.from);
-      pendingActivity.set(event.room, entry);
-      if (!notifyTimer) notifyTimer = setTimeout(flushActivity, NOTIFY_COALESCE_MS);
-    });
-    client = fresh;
-    return fresh;
+  // Serialize concurrent first-connect calls (the harness runs tools in parallel):
+  // without this, two roundtable calls in one turn spawn two clients, one orphaned
+  // and still firing activity into pendingActivity. Mirrors intercom's reconnect guard.
+  const ensureConnected = (): Promise<RoundtableClient> => {
+    if (client?.connected) return Promise.resolve(client);
+    if (connecting) return connecting;
+    connecting = (async () => {
+      try {
+        await ensureBrokerRunning();
+        const name = pi.getSessionName() ?? `session-${process.pid}`;
+        const fresh = new RoundtableClient(
+          typeof name === "string" && name.trim() ? name.trim() : `session-${process.pid}`,
+        );
+        await fresh.connect();
+        fresh.onActivity((event) => {
+          if (event.seq === 0) return; // membership churn, not content
+          const entry = pendingActivity.get(event.room) ?? { count: 0, from: new Set<string>() };
+          entry.count += 1;
+          entry.from.add(event.from);
+          pendingActivity.set(event.room, entry);
+          if (!notifyTimer) notifyTimer = setTimeout(flushActivity, NOTIFY_COALESCE_MS);
+        });
+        client = fresh;
+        return fresh;
+      } finally {
+        connecting = null;
+      }
+    })();
+    return connecting;
   };
 
   registerRoundtableTool(pi, { ensureConnected });
