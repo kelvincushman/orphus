@@ -88,7 +88,7 @@ export function buildDigest(messages: readonly RoomMessage[], options: DigestOpt
   let spent = 0;
   let tier: "verbatim" | "headline" = "verbatim";
 
-  for (const message of newestFirst) {
+  for (const [index, message] of newestFirst.entries()) {
     if (tier === "verbatim") {
       const line = renderVerbatim(message, perMessageCap);
       if (spent + line.length + 1 <= budget) {
@@ -102,9 +102,15 @@ export function buildDigest(messages: readonly RoomMessage[], options: DigestOpt
     if (spent + headline.length + 1 <= budget) {
       headlineLines.push(headline);
       spent += headline.length + 1;
-    } else {
-      collapsed += 1;
+      continue;
     }
+    // Once one headline does not fit, everything older than it is collapsed too.
+    // Continuing to try would let a shorter older message win a slot above
+    // messages counted as collapsed, so the "N older messages collapsed" marker
+    // would sit above lines that are newer than some of what it counts. Budget
+    // is spent newest-first; the rendering has to stay consistent with that.
+    collapsed = newestFirst.length - index;
+    break;
   }
 
   const parts: string[] = [];

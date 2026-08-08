@@ -6,6 +6,16 @@ import { buildDigest, type DigestOptions } from "./digest.ts";
 import type { RoundtableClient } from "./broker/client.ts";
 import { DEFAULT_ROOM_CAPACITY } from "./broker/room-store.ts";
 
+/**
+ * Default page size for the raw-fetch tier.
+ *
+ * Small on purpose. Unlike a digest, fetch returns full bodies with no character
+ * budget, so the caller — not the algorithm — is spending context. A modest
+ * default keeps an unqualified `fetch` from undoing the bound the digest exists
+ * to provide; an agent that genuinely wants more asks for it with `limit`.
+ */
+const DEFAULT_FETCH_LIMIT = 20;
+
 export interface RoundtableToolDeps {
   ensureConnected(): Promise<RoundtableClient>;
   /** Shared Dossier project root. Exports are restricted to its raw/ directory. */
@@ -17,15 +27,39 @@ export interface RoundtableToolDeps {
 }
 
 const RoundtableParameters = Type.Object({
-  action: Type.String({
-    description: "Action: 'rooms', 'join', 'leave', 'post', 'digest', 'peek', or 'export'",
-  }),
+  // A literal union rather than a bare string: the model sees the valid set in
+  // the schema instead of discovering it from an "Unknown action" error.
+  action: Type.Union(
+    [
+      Type.Literal("rooms"),
+      Type.Literal("join"),
+      Type.Literal("leave"),
+      Type.Literal("post"),
+      Type.Literal("digest"),
+      Type.Literal("peek"),
+      Type.Literal("fetch"),
+      Type.Literal("export"),
+    ],
+    { description: "Action to perform" },
+  ),
   path: Type.Optional(Type.String({ description: "Relative file under the memory raw/ directory (for 'export')" })),
   room: Type.Optional(Type.String({ description: "Room name (required for all actions except 'rooms')" })),
   message: Type.Optional(Type.String({ description: "Message to post (for 'post')" })),
   replyTo: Type.Optional(Type.String({ description: "Message id to reply to (for 'post')" })),
   topic: Type.Optional(Type.String({ description: "Room topic when creating via 'join'" })),
-  budget: Type.Optional(Type.Number({ description: "Digest character budget (default 2000)" })),
+  budget: Type.Optional(Type.Number({ description: "Digest character budget (default 2000, floored at 200)" })),
+  perMessage: Type.Optional(
+    Type.Number({
+      description:
+        "Per-message cap for verbatim bodies in a digest (default 600, floored at 80). Lower it to fit more messages in the same budget.",
+    }),
+  ),
+  afterSeq: Type.Optional(
+    Type.Number({
+      description: "For 'fetch': return messages with seq greater than this. Defaults to your read cursor.",
+    }),
+  ),
+  limit: Type.Optional(Type.Number({ description: "For 'fetch': maximum messages to return (default 20)" })),
 });
 
 export type RoundtableToolParams = Static<typeof RoundtableParameters>;
@@ -38,6 +72,8 @@ export interface RoundtableToolDetails {
   seq?: number;
   id?: string;
   lastSeq?: number;
+  /** For 'fetch': the sequence the range started after. */
+  afterSeq?: number;
   cursorBefore?: number;
   consumedSeq?: number;
   path?: string;
@@ -96,17 +132,19 @@ Usage:
   roundtable({ action: "digest", room: "design" })              → Pull unread as a bounded digest and mark read
   roundtable({ action: "digest", room: "design", budget: 4000 })→ Same with a larger character budget
   roundtable({ action: "peek", room: "design" })                → Digest WITHOUT marking read
+  roundtable({ action: "fetch", room: "design", afterSeq: 12 }) → Raw messages by sequence, no digest
   roundtable({ action: "leave", room: "design" })               → Leave the room
   roundtable({ action: "export", room: "design", path: "raw/design.md" }) → Write retained messages for memory ingest
 
-Prefer digest over repeated peeks; keep budgets small and raise them only when you truly need history.
+When a digest reports collapsed messages and you need what they said, fetch that seq range rather than
+re-running the digest with a large budget — fetch returns only the range you ask for.
 'export' is restricted to the "${deps.writerRole}" role, writes only under the shared memory raw/ directory, and returns a path plus counts. Room retention is 500 messages; export reports if older messages already rotated out.`,
     promptSnippet:
       "Group discussion rooms with other local agent sessions. Post findings, then pull bounded digests to catch up — the full transcript stays out of your context window.",
     parameters: RoundtableParameters,
 
     async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
-      const { action, room, message, replyTo, topic, budget, path } = params;
+      const { action, room, message, replyTo, topic, budget, path, perMessage, afterSeq, limit } = params;
       if (action === "export") {
         const role = deps.currentRole();
         if (role !== deps.writerRole) {
@@ -133,9 +171,15 @@ Prefer digest over repeated peeks; keep budgets small and raise them only when y
             if (rooms.length === 0) return okResult("No active rooms. Use join to create one.");
             const lines = rooms.map((r) => {
               const members = r.members.map((m) => m.name).join(", ") || "none";
-              return `#${r.name}${r.topic ? ` — ${r.topic}` : ""} · ${r.messageCount} msgs · members: ${members}`;
+              // Unread-for-you first: it is the only field here that tells an
+              // agent whether this room wants its attention. Without it the
+              // only way to find work was to peek every room, which costs a
+              // digest each time and defeats the point of a cheap listing.
+              const unread = r.unread !== undefined ? `${r.unread} unread · ` : "";
+              return `#${r.name}${r.topic ? ` — ${r.topic}` : ""} · ${unread}${r.messageCount} msgs · members: ${members}`;
             });
-            return okResult(lines.join("\n"), { rooms: rooms.length });
+            const totalUnread = rooms.reduce((sum, r) => sum + (r.unread ?? 0), 0);
+            return okResult(lines.join("\n"), { rooms: rooms.length, unread: totalUnread });
           }
           case "join": {
             if (!room) return errorResult("Missing 'room' parameter");
@@ -160,7 +204,10 @@ Prefer digest over repeated peeks; keep budgets small and raise them only when y
           case "peek": {
             if (!room) return errorResult("Missing 'room' parameter");
             const { messages, lastSeq, cursor } = await client.fetch(room, await cursorFor(client, room));
-            const options: DigestOptions = budget !== undefined ? { budget } : {};
+            const options: DigestOptions = {
+              ...(budget !== undefined ? { budget } : {}),
+              ...(perMessage !== undefined ? { perMessageCap: perMessage } : {}),
+            };
             const digest = buildDigest(messages, options);
             if (action === "digest" && digest.consumedSeq > 0) {
               await client.setCursor(room, digest.consumedSeq);
@@ -204,6 +251,32 @@ Prefer digest over repeated peeks; keep budgets small and raise them only when y
                 droppedBefore,
                 truncated: droppedBefore > 0,
               },
+          );
+          }
+          // The third delivery tier from DESIGN.md. The digest's own collapse
+          // marker tells the agent to "fetch by seq to expand", and until now
+          // nothing on this tool could: the tier existed in the client and the
+          // wire protocol but had no way in.
+          case "fetch": {
+            if (!room) return errorResult("Missing 'room' parameter");
+            const from = afterSeq ?? (await cursorFor(client, room));
+            const { messages, lastSeq } = await client.fetch(room, from, limit ?? DEFAULT_FETCH_LIMIT);
+            if (messages.length === 0) {
+              return okResult(`#${room} · nothing after seq ${from} (latest is ${lastSeq}).`, {
+                room,
+                afterSeq: from,
+                lastSeq,
+                messages: 0,
+              });
+            }
+            // Raw bodies, deliberately unbounded by the digest budget — this tier
+            // is the caller choosing to spend context, so it must not silently
+            // truncate a message the way a digest does. `limit` is the control.
+            const rendered = messages.map((m) => `[${m.from.name}#${m.seq}] ${m.text}`).join("\n");
+            const chars = rendered.length;
+            return okResult(
+              `#${room} · ${messages.length} message(s) after seq ${from} (latest is ${lastSeq}) · ${chars} chars · cursor unchanged\n${rendered}`,
+              { room, afterSeq: from, lastSeq, messages: messages.length, chars },
             );
           }
           default:

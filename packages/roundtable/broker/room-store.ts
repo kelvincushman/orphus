@@ -24,19 +24,24 @@ export class RoomStore {
 
   constructor(private capacity: number = DEFAULT_ROOM_CAPACITY) {}
 
-  private roomInfo(state: RoomState): RoomInfo {
+  private roomInfo(state: RoomState, viewer?: string): RoomInfo {
+    const lastSeq = state.nextSeq - 1;
     return {
       name: state.name,
       ...(state.topic !== undefined ? { topic: state.topic } : {}),
       members: [...state.members.values()],
       messageCount: state.messages.length,
-      lastSeq: state.nextSeq - 1,
+      lastSeq,
       lastActivity: state.lastActivity,
+      // Cursors are keyed by role name, so this is answerable without the
+      // caller having joined — which is the point: an agent deciding where to
+      // spend a digest should not have to peek every room to find out.
+      ...(viewer !== undefined ? { unread: Math.max(0, lastSeq - (state.cursors.get(viewer) ?? 0)) } : {}),
     };
   }
 
-  listRooms(): RoomInfo[] {
-    return [...this.rooms.values()].map((state) => this.roomInfo(state));
+  listRooms(viewer?: string): RoomInfo[] {
+    return [...this.rooms.values()].map((state) => this.roomInfo(state, viewer));
   }
 
   getRoom(room: string): RoomInfo | undefined {
