@@ -311,7 +311,7 @@ export class RoundtableBroker {
     try {
       switch (msg.type) {
         case "rooms": {
-          this.send(socket, { type: "rooms", requestId: msg.requestId, rooms: this.store.listRooms() });
+          this.send(socket, { type: "rooms", requestId: msg.requestId, rooms: this.store.listRooms(session.name) });
           break;
         }
         case "join": {
