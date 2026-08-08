@@ -1,0 +1,91 @@
+import assert from "node:assert/strict";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { test } from "vitest";
+import { jobBlock, jobBlocks, readText } from "./workflow-text.js";
+
+/**
+ * Contracts for `.github/workflows/ci.yml` — the gate that actually runs.
+ *
+ * Four contract suites in this directory exhaustively pin `test.yml` and
+ * `publish.yml`, both of which are disabled at the repository level. The one
+ * workflow whose result decides whether a pull request can merge had no
+ * contract of its own: `ci.yml` appeared in `ci-workflow-contracts.test.ts`
+ * only inside a comment. Every assertion below exists because removing the
+ * thing it names would silently shrink the gate while leaving it green.
+ */
+
+const root = fileURLToPath(new URL("../..", import.meta.url));
+const ciPath = join(root, ".github/workflows/ci.yml");
+
+test("the Orphus gate lints, typechecks, and verifies the shrinkwrap", async () => {
+	const verify = jobBlock(await readText(ciPath), "verify", "suites");
+	// `npm run check` is biome --error-on-warnings + tsc --noEmit + the
+	// shrinkwrap check. None of the three ran in CI before; they were enforced
+	// only by prek hooks a `npm ci` clone never installs.
+	assert.match(verify, /run: npm run check\b/u);
+});
+
+test("the Orphus gate typechecks the binary's own source", async () => {
+	const verify = jobBlock(await readText(ciPath), "verify", "suites");
+	// The root tsconfig.json excludes packages/coding-agent, so `npm run check`
+	// cannot see it. Upstream covered it with this build inside test.yml's
+	// `suites` job — which this fork disabled. Without the step, the package the
+	// rebrand touched most heavily is typechecked by nothing.
+	assert.match(verify, /working-directory: packages\/coding-agent\n\s+run: npm run build/u);
+});
+
+test("the Orphus gate runs the inherited unit suite and the CI contracts", async () => {
+	const suites = jobBlock(await readText(ciPath), "suites");
+	assert.match(suites, /run: npm run test:unit\b/u);
+	assert.match(suites, /run: npm run test:ci-contracts\b/u);
+	// The unit suite imports the bundled subagent extension, which loads the
+	// Rust control plane in crates/atomic-natives. Without a binding the import
+	// fails and the whole suite dies, not just the runner tests.
+	assert.match(suites, /npm run build --workspace=@bastani\/atomic-natives/u);
+	// test/unit/pi-0.82.1-artifacts.test.ts degrades to test.skip when
+	// packages/coding-agent/dist is absent — coverage would vanish, silently.
+	assert.match(suites, /working-directory: packages\/coding-agent\n\s+run: npm run build/u);
+});
+
+test("the demo runs as an assertion, not as a smoke test", async () => {
+	const ci = await readText(ciPath);
+	assert.match(ci, /run: bun packages\/roundtable\/demo\/run-demo\.ts/u);
+	// The demo measures the late-joiner ratio, PLAN.md's phase-1 exit criterion.
+	// It has to be able to fail: CI invoking it proves nothing if the script
+	// always exits 0. This asserts the ceiling is declared and enforced at the
+	// source, since the workflow step itself can only ever check an exit code.
+	const demo = await readText(join(root, "packages/roundtable/demo/run-demo.ts"));
+	assert.match(demo, /const LATE_JOINER_BUDGET_RATIO = 0\.4;/u);
+	assert.match(demo, /ratio > LATE_JOINER_BUDGET_RATIO[\s\S]{0,400}?process\.exit\(1\)/u);
+	// A digest that kept nothing would score 0% and pass a ratio check alone.
+	assert.match(demo, /verbatim < 1[\s\S]{0,300}?process\.exit\(1\)/u);
+});
+
+test("every Orphus gate job pins its actions by commit SHA", async () => {
+	const ci = await readText(ciPath);
+	const uses = [...ci.matchAll(/uses: (\S+)/gu)].map(([, ref]) => ref as string);
+	assert.ok(uses.length > 0, "expected the gate to use at least one action");
+	// A moving tag is a supply-chain hole that every inherited workflow already
+	// closes; this one used floating @v5 refs while being the only workflow that
+	// runs. Dependabot's github-actions ecosystem is what moves these pins now.
+	const floating = uses.filter((ref) => !/@[0-9a-f]{40}$/u.test(ref));
+	assert.deepEqual(floating, []);
+});
+
+test("the Orphus gate cancels superseded runs and bounds every job", async () => {
+	const ci = await readText(ciPath);
+	assert.match(ci, /^concurrency:\n\s+group:.*\n\s+cancel-in-progress: true$/mu);
+	for (const [name, block] of jobBlocks(ci)) {
+		assert.match(block, /timeout-minutes: \d+/u, `job ${name} declares no timeout`);
+	}
+});
+
+test("the Orphus gate selects a vitest project rather than restating a timeout", async () => {
+	const ci = await readText(ciPath);
+	// Same rule the inherited contracts enforce on the test:* scripts: the
+	// per-test budget is declared once in vitest.config.ts. A --timeout here
+	// would silently override it for the only suite anyone runs.
+	assert.doesNotMatch(ci, /--timeout\b/u);
+	assert.match(ci, /vitest --run --project unit test\/unit\/roundtable-/u);
+});

@@ -16,6 +16,14 @@ import { getBrokerSocketPath } from "../broker/paths.ts";
 const ROOM = "design";
 const TOPIC = "Rate limiter design for the public API";
 
+/**
+ * The phase-1 exit criterion from PLAN.md: a late joiner catches up for under
+ * 40% of the raw transcript. The demo currently measures 33%, so this is a
+ * regression ceiling rather than a target to tune against — if a change to the
+ * digest pushes the number up, that is the news, and CI should say so.
+ */
+const LATE_JOINER_BUDGET_RATIO = 0.4;
+
 const SCRIPT: Array<{ agent: "planner" | "researcher" | "critic"; text: string }> = [
   { agent: "planner", text: "Kicking off: we need a rate limiter for the public API. Constraints: 10k req/s aggregate, per-key fairness, p99 added latency < 1ms. Proposals welcome." },
   { agent: "researcher", text: "Survey of options:\n1. Token bucket — O(1) memory per key, burst-friendly, easy to reason about. Redis or in-process.\n2. Sliding window log — exact but O(n) memory per key at high rates; rules it out at 10k req/s.\n3. Sliding window counter — approximation of the log with two buckets; good accuracy, O(1).\n4. GCRA (leaky bucket as meter) — single timestamp per key, elegant, precise, slightly harder to explain to ops.\nAt our rate, token bucket or GCRA are the serious candidates. Redis round-trip will eat the 1ms budget unless we use local buckets with async sync." },
@@ -98,6 +106,27 @@ async function main(): Promise<void> {
 
   for (const client of Object.values(agents)) client.disconnect();
   broker.shutdown();
+
+  // The late-joiner ratio is the project's headline claim and PLAN.md's phase-1
+  // exit criterion. CI ran this demo as a smoke test — it passed on exit code
+  // alone, so the number could have regressed to any value without failing
+  // anything. Assert it here, where the measurement already exists.
+  const ratio = reviewerDigest.chars / transcriptChars;
+  if (ratio > LATE_JOINER_BUDGET_RATIO) {
+    console.error(
+      `\nFAIL: a late joiner paid ${Math.round(ratio * 100)}% of the raw transcript ` +
+        `(${reviewerDigest.chars}/${transcriptChars} chars), above the ${Math.round(LATE_JOINER_BUDGET_RATIO * 100)}% ceiling.`,
+    );
+    process.exit(1);
+  }
+  // The bound is worth nothing if the digest achieves it by dropping the
+  // decisions: an empty digest scores 0%. Newest-first spending is what keeps
+  // the conclusions verbatim, so require that at least one survived intact.
+  if (reviewerDigest.verbatim < 1) {
+    console.error("\nFAIL: the late joiner's digest kept no message verbatim; the bound was met by discarding content.");
+    process.exit(1);
+  }
+
   console.log("\nDemo complete: full discussion lived in the broker; each agent paid only its digest.");
   process.exit(0);
 }
