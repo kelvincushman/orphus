@@ -26,6 +26,7 @@ ecosystem is what moves those pins).
 | `npm run build` in `packages/coding-agent` | The root `tsconfig.json` **excludes** that package, so this is the only thing that typechecks the binary's own source |
 | `vitest --run --project unit test/unit/roundtable-` | Rooms, digest, broker lifecycle, memory, role launcher |
 | `bun packages/roundtable/demo/run-demo.ts` | The late-joiner digest ratio, asserted against a 40% ceiling — the demo exits non-zero above it, and also if the digest kept nothing verbatim |
+| `bun packages/roundtable/demo/run-loop-demo.ts` | The whole loop end to end: export gated to the librarian, a collapsed message surviving export, and a fresh session recalling the decision from memory |
 | `bun packages/roundtable/bin/orphus-roles.ts --format json` | The example manifest stays parseable and planable |
 
 ### `suites` — the inherited tests
@@ -37,11 +38,40 @@ without a binding, taking the whole suite with it), then the coding-agent build
 (`test/unit/pi-0.82.1-artifacts.test.ts` degrades to `test.skip` when `dist/` is
 absent), then `npm run test:unit` and `npm run test:ci-contracts`.
 
+It also fetches the **inherited upstream tags** before running. `changelog.test.ts`
+compares each released changelog section against the git tag that released it,
+and this fork has no tags of its own — so without that step the test cannot
+resolve a tag and fails on a repository with a perfectly good changelog. Fetching
+Atomic's tags lets it do real work rather than being excluded.
+
 This job exists because the previous arrangement — "the inherited suites run
 locally via the prek hooks" — was honour-system. `scripts/install-hooks.mjs`
 exits early under `CI`, `GITHUB_ACTIONS`, or `PREK_DISABLE_INSTALL`, and
 `npm ci` never runs the `prepare` script that installs them, so a fresh clone
 following the documented install ran none of them.
+
+### Quarantined tests
+
+One file is excluded from collection, listed by name in `vitest.config.ts` with
+its reason beside it:
+
+| File | Why |
+| --- | --- |
+| `test/unit/interactive-engine-cycle-fallback.test.ts` | Times out waiting for a model-cycle state. Fails on an idle container as readily as on a loaded runner, so it is a genuine pre-existing failure rather than the load sensitivity `AGENTS.md` warns about |
+
+It was already red on `main` when the `suites` job was added — nothing had run
+this suite since the fork, so nobody had seen it. It is excluded at collection
+rather than skipped inside the file, because a soft guard keeps a test's name in
+the pass count while its assertions do nothing; a missing file is countable.
+
+**Deleting that entry is the goal.** Adding one needs the same standard of
+proof: demonstrated failing on a pristine checkout, with the cause understood.
+`test/ci/orphus-gate-contracts.test.ts` asserts the list and that each entry
+carries a stated reason, so growing it shows up in review.
+
+A second file, `changelog.test.ts`, was quarantined for the same reason and has
+since been **un-quarantined** — the tag-fetch step above fixed the cause instead
+of accepting the exclusion, which is the pattern to follow.
 
 ### What this gate does not cover
 
