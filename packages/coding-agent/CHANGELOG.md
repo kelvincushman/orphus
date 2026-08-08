@@ -4,6 +4,19 @@
 
 ### Added
 
+- Rooms and durable memory are reachable from a running session for the first
+  time. The Roundtable extension now ships as a builtin, so every session
+  registers the `roundtable` and `memory` tools; previously the package was
+  present in the tree but absent from the builtin list, and a live agent had
+  neither tool. The extension is also copied into the compiled binary, which
+  needed a separate fix — registering it only in the runtime list worked in
+  development while `dist/builtin/` still lacked it.
+- `roundtable({ action: "export" })` writes a room's retained transcript to a
+  file for memory ingest. It reads from the broker rather than from a digest,
+  so the export is lossless where a digest collapses older messages, and it
+  returns only a path and message counts — the transcript itself never enters
+  the caller's context window. Exports are confined to the shared memory `raw/`
+  directory and leave every member's read cursor untouched.
 - The bundled Roundtable tool now exposes its explicit raw-message tier through
   `fetch` with sequence pagination, accepts a per-message digest budget, and
   reports per-role unread counts when listing rooms. The shipped Roundtable
@@ -14,6 +27,12 @@
 
 ### Changed
 
+- `ORPHUS_MEMORY_DIR` now defaults to a directory under the agent home instead
+  of being unset. Unset, the memory backend inherited each session's working
+  directory, so agents running in separate worktrees each addressed their own
+  empty store — and an empty answer exits zero, so the failure read as success.
+  Worktrees now converge on one store with no configuration, matching how the
+  broker socket is already resolved.
 - Roundtable digest collapse accounting now stays newest-first after the first
   headline that cannot fit, so the collapsed count never interleaves with older
   rendered headlines.
@@ -22,6 +41,29 @@
 
 ### Fixed
 
+- The Roundtable broker no longer exits its host process when an idle check
+  outlives a shutdown. The check that retires an idle broker survived
+  `shutdown()`, then fired into an already-closed broker, found no sessions
+  because the shutdown had just cleared them, and exited the process. Only a
+  broker that owns its process can now exit it, so one embedded in a test or a
+  demo shuts down without taking its host with it.
+- Concurrent sessions no longer split across two brokers with separate room
+  state. A broker starting while another was already serving used to remove the
+  live socket and listen on an empty store, so sessions that connected earlier
+  and later could not see each other — with no error on either side, since each
+  was talking to a healthy broker. Starting a broker now checks whether the
+  path is being served before reclaiming it, and only a socket nothing answers
+  on is removed, so a broker killed without cleanup still cannot strand the
+  fleet.
+- Broker startup failures now report their cause. A failure to bind previously
+  surfaced as an unhandled error inside a detached process, leaving the caller
+  with a five-second timeout and no explanation.
+- Joining a room that already holds messages no longer notifies peers of a
+  message that does not exist. Joins were announced carrying the room's latest
+  sequence number, which every peer counted as new content; a late joiner — the
+  case bounded digests exist to serve — always has history, so this fired on
+  the most common path. Leaving a room is now announced too, which previously
+  happened only when a session died.
 - Roundtable role-manifest validation now explains task-name restrictions in
   terms of the generated tmux session instead of incorrectly claiming tasks key
   broker cursors.
