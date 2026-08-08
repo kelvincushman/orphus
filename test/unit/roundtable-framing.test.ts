@@ -56,11 +56,11 @@ describe("roundtable framing", () => {
 		// reader that assumed the first chunk contained a whole header would throw
 		// or mis-read the length. Loopback almost never produces this; a busy
 		// socket or a large payload does.
-		const encoded = frame({ type: "post", room: "design", text: "x".repeat(500) });
+		const message = { type: "post", room: "design", text: "x".repeat(500) };
+		const encoded = frame(message);
 		for (const byte of encoded) read(Buffer.from([byte]));
 
-		assert.equal(messages.length, 1);
-		expect(messages[0]).toMatchObject({ type: "post", room: "design" });
+		assert.deepEqual(messages, [message]);
 	});
 
 	it("delivers several messages arriving in a single read, in order", () => {

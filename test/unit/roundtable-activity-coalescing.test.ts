@@ -206,8 +206,10 @@ describe("roundtable activity coalescing", () => {
 		await planner.post("design", secret);
 		await sleep(AFTER_FLUSH_MS);
 
-		// The whole contract in one assertion: push is metadata, and content only
-		// enters context when the agent asks for a digest.
+		// Prove the metadata push happened before checking that content only enters
+		// context when the agent asks for a digest.
+		const pings = host.sent.filter((m) => m.customType === "roundtable_activity");
+		assert.equal(pings.length, 1, "no activity ping arrived");
 		for (const message of host.sent) assert.ok(!message.content.includes(secret));
 	});
 
