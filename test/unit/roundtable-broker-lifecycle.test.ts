@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -117,6 +117,9 @@ describe("roundtable broker lifecycle", () => {
 			loser.start(() => reject(new Error("the second broker bound a socket the first one owns")), resolve);
 		});
 		expect(lost.message).toContain("Another roundtable broker is already listening");
+		loser.shutdown();
+		assert.equal(existsSync(getBrokerPidPath(agentDir)), true);
+		assert.equal(readFileSync(getBrokerPidPath(agentDir), "utf8"), String(process.pid));
 
 		// The decisive assertion: a client connecting now must reach the winner,
 		// with the room history intact. A split broker answers with an empty store.
@@ -129,6 +132,28 @@ describe("roundtable broker lifecycle", () => {
 		const { messages } = await critic.fetch("design", 0);
 		assert.equal(messages.length, 1);
 		assert.equal(messages[0]?.text, "GCRA locally");
+	});
+
+	it("serializes simultaneous stale-socket recovery and leaves exactly one broker reachable", async () => {
+		mkdirSync(getRoundtableDirPath(agentDir), { recursive: true });
+		writeFileSync(socketPath, "not a live socket");
+		const contenders = Array.from({ length: 6 }, () => makeBroker(agentDir));
+		started.push(...contenders);
+
+		const outcomes = await Promise.all(
+			contenders.map(
+				(broker) =>
+					new Promise<"started" | "lost">((resolve) => {
+						broker.start(
+							() => resolve("started"),
+							() => resolve("lost"),
+						);
+					}),
+			),
+		);
+
+		assert.equal(outcomes.filter((outcome) => outcome === "started").length, 1);
+		assert.equal(await canConnect(socketPath), true);
 	});
 
 	// The other half of the same decision: refusing to unlink must not strand the

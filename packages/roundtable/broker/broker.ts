@@ -1,5 +1,5 @@
 import net from "net";
-import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, unlinkSync, writeFileSync } from "fs";
 import { randomUUID } from "crypto";
 import { createMessageReader, writeMessage } from "./framing.ts";
 import { getBrokerPidPath, getBrokerSocketPath, getRoundtableDirPath } from "./paths.ts";
@@ -35,6 +35,74 @@ export interface BrokerOptions {
 }
 
 const SHUTDOWN_GRACE_MS = 5000;
+const STARTUP_LOCK_RETRY_MS = 25;
+const STARTUP_LOCK_TIMEOUT_MS = 5000;
+
+export class BrokerAlreadyRunningError extends Error {
+  constructor(socketPath: string) {
+    super(`Another roundtable broker is already listening on ${socketPath}`);
+    this.name = "BrokerAlreadyRunningError";
+  }
+}
+
+type ReleaseStartupLock = () => void;
+
+function processIsAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function acquireStartupLock(lockPath: string): Promise<ReleaseStartupLock> {
+  const token = randomUUID();
+  const deadline = Date.now() + STARTUP_LOCK_TIMEOUT_MS;
+
+  while (Date.now() < deadline) {
+    try {
+      const fd = openSync(lockPath, "wx", 0o600);
+      try {
+        writeFileSync(fd, JSON.stringify({ pid: process.pid, token }));
+      } finally {
+        closeSync(fd);
+      }
+      return () => {
+        try {
+          const owner = JSON.parse(readFileSync(lockPath, "utf8")) as { token?: string };
+          if (owner.token === token) unlinkSync(lockPath);
+        } catch {
+          // The lock was already reclaimed or removed.
+        }
+      };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    }
+
+    let ownerPid: number | undefined;
+    try {
+      ownerPid = (JSON.parse(readFileSync(lockPath, "utf8")) as { pid?: number }).pid;
+    } catch {
+      // A process may still be between the exclusive create and metadata write.
+    }
+    if (typeof ownerPid === "number" && !processIsAlive(ownerPid)) {
+      try {
+        unlinkSync(lockPath);
+      } catch {
+        // Another contender reclaimed it first.
+      }
+      continue;
+    }
+    await sleep(STARTUP_LOCK_RETRY_MS);
+  }
+
+  throw new Error(`Timed out acquiring roundtable broker startup lock ${lockPath}`);
+}
 
 /**
  * The roundtable broker: a small room server over a local socket.
@@ -45,6 +113,9 @@ export class RoundtableBroker {
   private store = new RoomStore();
   private server: net.Server;
   private shutdownTimer: NodeJS.Timeout | null = null;
+  private ownsSocket = false;
+  private signalHandlersRegistered = false;
+  private readonly handleSignal = () => this.shutdown();
 
   constructor(
     private socketPath: string = getBrokerSocketPath(),
@@ -68,45 +139,64 @@ export class RoundtableBroker {
    * invisible to the other.
    */
   start(onListening?: () => void, onLost?: (reason: Error) => void): void {
-    // Without this, a listen failure throws an unhandled 'error' event in a
-    // detached, stdio:"ignore" process, and the only symptom the caller ever
-    // sees is "broker did not start in time" five seconds later.
-    this.server.on("error", (error: NodeJS.ErrnoException) => {
-      if (error.code === "EADDRINUSE") {
-        onLost?.(new Error(`Another roundtable broker is already listening on ${this.socketPath}`));
-        return;
-      }
-      onLost?.(error);
-    });
     void this.listenWhenPathIsFree(onListening, onLost);
-    process.on("SIGTERM", () => this.shutdown());
-    process.on("SIGINT", () => this.shutdown());
+    if (this.options.exitWhenIdle && !this.signalHandlersRegistered) {
+      process.on("SIGTERM", this.handleSignal);
+      process.on("SIGINT", this.handleSignal);
+      this.signalHandlersRegistered = true;
+    }
   }
 
   private async listenWhenPathIsFree(onListening?: () => void, onLost?: (reason: Error) => void): Promise<void> {
-    // Windows named pipes are not filesystem entries and leave nothing stale.
-    if (process.platform !== "win32" && existsSync(this.socketPath)) {
-      if (await canConnect(this.socketPath)) {
-        onLost?.(new Error(`Another roundtable broker is already listening on ${this.socketPath}`));
-        return;
+    let releaseLock: ReleaseStartupLock;
+    try {
+      releaseLock = await acquireStartupLock(`${this.pidPath}.startup.lock`);
+      // Windows named pipes are not filesystem entries and leave nothing stale.
+      if (process.platform !== "win32" && existsSync(this.socketPath)) {
+        if (await canConnect(this.socketPath)) {
+          releaseLock();
+          onLost?.(new BrokerAlreadyRunningError(this.socketPath));
+          return;
+        }
+        try {
+          unlinkSync(this.socketPath);
+        } catch {
+          // A stale path may disappear between the probe and cleanup.
+        }
       }
-      try {
-        unlinkSync(this.socketPath);
-      } catch {
-        // Raced with another broker's cleanup; listen() reports the real state.
-      }
+    } catch (error) {
+      onLost?.(error instanceof Error ? error : new Error(String(error)));
+      return;
     }
+
+    const onError = (error: NodeJS.ErrnoException) => {
+      releaseLock();
+      onLost?.(error.code === "EADDRINUSE" ? new BrokerAlreadyRunningError(this.socketPath) : error);
+    };
+    this.server.once("error", onError);
     this.server.listen(this.socketPath, () => {
+      this.server.off("error", onError);
+      this.ownsSocket = true;
       // Diagnostic only — `ps` against a broker whose socket looks wedged. It is
       // deliberately not a lock: pids are reused, and a lock file cannot say
       // whether the holder is still serving. The socket answers that directly,
       // so the socket is the lock.
-      writeFileSync(this.pidPath, String(process.pid));
+      try {
+        writeFileSync(this.pidPath, String(process.pid));
+      } catch {
+        // Serving the socket is authoritative; the pid file is diagnostic only.
+      }
+      releaseLock();
       onListening?.();
     });
   }
 
   shutdown(): void {
+    if (this.signalHandlersRegistered) {
+      process.off("SIGTERM", this.handleSignal);
+      process.off("SIGINT", this.handleSignal);
+      this.signalHandlersRegistered = false;
+    }
     // An idle check armed by the last disconnect outlives shutdown() otherwise,
     // and fires into a broker that is already closed — with sessions cleared
     // below, its emptiness test passes and it exits the process. In a vitest
@@ -117,18 +207,21 @@ export class RoundtableBroker {
     }
     for (const session of this.sessions.values()) session.socket.destroy();
     this.sessions.clear();
-    this.server.close();
-    if (process.platform !== "win32") {
+    if (this.server.listening) this.server.close();
+    if (this.ownsSocket && process.platform !== "win32") {
       try {
         unlinkSync(this.socketPath);
       } catch {
         // Already removed.
       }
     }
-    try {
-      unlinkSync(this.pidPath);
-    } catch {
-      // Already removed.
+    if (this.ownsSocket) {
+      try {
+        unlinkSync(this.pidPath);
+      } catch {
+        // Already removed.
+      }
+      this.ownsSocket = false;
     }
   }
 
