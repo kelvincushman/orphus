@@ -81,6 +81,11 @@ jobs:
         env:
           ORPHUS_CODING_AGENT_DIR: ${{ runner.temp }}/orphus-agent
 
+      # Asserts the properties it prints, so a broken loop fails the build.
+      # Hermetic: builds its own broker and wiki under a temp dir.
+      - name: Demo — the full loop (room → export → memory → later recall)
+        run: npm run demo:loop
+
       # The example manifest ships as a template; keep it parseable and planable.
       - name: Role manifest plans
         run: bun packages/roundtable/bin/orphus-roles.ts --format json

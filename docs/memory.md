@@ -26,7 +26,16 @@ agent needs history                  ──tool call───►  dossier query 
    explicitly calls the memory tool, never via activity pings and never inside a
    digest. The provable-bound story stays clean.
 
-2. **One writer: the `librarian` role.** Concurrent agents writing shared memory
+2. **One writer: the `librarian` role — a coordination convention, not a
+   security boundary.** Be precise about what this is: the gate is an in-process
+   check comparing the session's role name to the configured writer role. It
+   prevents *accidental* concurrent writes, which is the failure it exists to
+   stop. It is not enforcement — any same-user session has a shell tool and could
+   run `python -m dossier ingest` directly, so no in-process check could ever be
+   a boundary. That is consistent with the project's stated trust model
+   (local machine, same user), and building cross-process enforcement — writer
+   leases, signed role tokens — would be hardening against an attacker who has
+   already won. Concurrent agents writing shared memory
    is the classic failure mode (write contention, conflicting facts, unclear
    provenance). The role model already provides the answer: exactly one role
    owns `ingest` and the gardener/consolidation pass; every other role is
@@ -68,7 +77,7 @@ It shells out to the Dossier CLI, configured entirely by environment:
 | Variable | Default | Meaning |
 |---|---|---|
 | `ORPHUS_MEMORY_COMMAND` | `python -m dossier` | Base command, split on whitespace |
-| `ORPHUS_MEMORY_DIR` | *(unset)* | Dossier project dir — where `raw/` and `wiki/` live |
+| `ORPHUS_MEMORY_DIR` | `<agent dir>/memory` | Dossier project dir — where `raw/` and `wiki/` live; created on first use |
 | `ORPHUS_MEMORY_WRITER_ROLE` | `librarian` | The one role allowed to write |
 
 The design keeps the contract mechanical:
@@ -85,9 +94,24 @@ The design keeps the contract mechanical:
 - **A missing backend is a clear notice, not a crash.** If Dossier is not
   installed, the tool returns a "configure `ORPHUS_MEMORY_COMMAND`" message.
 
-Ingest takes a file path (matching `python -m dossier ingest <path>`). To
-capture a concluded room, the librarian dumps the transcript under `raw/` first,
-then ingests that file — post-task, never live.
+Ingest takes a file path (matching `python -m dossier ingest <path>`). To capture
+a concluded room, the librarian exports it and then ingests that file — post-task,
+never live:
+
+```typescript
+roundtable({ action: "export", room: "design", path: "raw/design.md" })
+memory({ action: "ingest", source: "raw/design.md" })
+```
+
+The export path is relative to the shared memory project and must stay under its
+`raw/` directory, so the following `memory ingest` resolves the same file in every
+worktree. `export` goes broker → disk, deliberately bypassing the digest: a digest
+collapses older messages, so a digest-derived file would be a lossy source for
+permanent memory. It returns only the path and counts, so the transcript never
+enters the librarian's context window, and it never touches read cursors —
+exporting a room cannot steal another role's catch-up. Rooms retain 500 messages;
+if earlier messages have rotated out, export reports the omitted count instead of
+claiming the retained transcript is complete.
 
 ## What the benchmark does and does not show
 
