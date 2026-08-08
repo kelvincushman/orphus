@@ -1,8 +1,64 @@
 # CI/CD Pipeline
 
+> **Read this first.** Everything below the "Inherited Atomic pipeline" heading
+> describes workflows that **do not run in this repository**. They target
+> Blacksmith runners registered to the upstream organization, which never pick
+> up jobs here, so `test.yml`, `publish.yml`, and `warm-toolchain-cache.yml` are
+> kept byte-identical to upstream and disabled at the repository level rather
+> than rewritten. They are documented as a record of upstream's topology — and
+> because `test/ci/` still asserts their shape — not as this project's gate.
+>
+> The gate that actually decides whether a pull request can merge is
+> [`ci.yml`](#the-orphus-gate-ciyml), documented immediately below.
+
+## The Orphus gate (`ci.yml`)
+
+One workflow, two `ubuntu-latest` jobs, running on every pull request and every
+push to `main`. A `concurrency` group cancels a run superseded by a newer push,
+and every action is pinned by commit SHA (Dependabot's `github-actions`
+ecosystem is what moves those pins).
+
+### `verify` — the fast gate
+
+| Step | What it protects |
+| --- | --- |
+| `npm run check` | biome `--error-on-warnings`, `tsc --noEmit`, and the published-shrinkwrap check |
+| `npm run build` in `packages/coding-agent` | The root `tsconfig.json` **excludes** that package, so this is the only thing that typechecks the binary's own source |
+| `vitest --run --project unit test/unit/roundtable-` | Rooms, digest, broker lifecycle, memory, role launcher |
+| `bun packages/roundtable/demo/run-demo.ts` | The late-joiner digest ratio, asserted against a 40% ceiling — the demo exits non-zero above it, and also if the digest kept nothing verbatim |
+| `bun packages/roundtable/bin/orphus-roles.ts --format json` | The example manifest stays parseable and planable |
+
+### `suites` — the inherited tests
+
+Runs the upstream recipe on a standard runner: a Rust toolchain and
+`npm run build --workspace=@bastani/atomic-natives` (the bundled subagent
+extension loads the control plane in `crates/atomic-natives` and fails at import
+without a binding, taking the whole suite with it), then the coding-agent build
+(`test/unit/pi-0.82.1-artifacts.test.ts` degrades to `test.skip` when `dist/` is
+absent), then `npm run test:unit` and `npm run test:ci-contracts`.
+
+This job exists because the previous arrangement — "the inherited suites run
+locally via the prek hooks" — was honour-system. `scripts/install-hooks.mjs`
+exits early under `CI`, `GITHUB_ACTIONS`, or `PREK_DISABLE_INSTALL`, and
+`npm ci` never runs the `prepare` script that installs them, so a fresh clone
+following the documented install ran none of them.
+
+### What this gate does not cover
+
+- **No Windows leg.** The inherited matrix had one; this fork does not.
+  `prek.toml` records a Windows-only line-ending bug that reached main.
+- **No integration suite** (`npm run test:integration`) and no coding-agent
+  package suite. Both run locally.
+- **No Rust tests.** `cargo fmt` and `cargo clippy` exist only as prek hooks.
+
+`test/ci/orphus-gate-contracts.test.ts` pins each of the guarantees above, so
+removing a step fails a test rather than silently shrinking the gate.
+
+## Inherited Atomic pipeline (disabled — reference only)
+
 Atomic publishes `@bastani/atomic` from `packages/coding-agent` and `@bastani/atomic-natives` from `packages/natives`. The other workspace packages remain private and are bundled into the coding-agent package.
 
-## Workflow overview
+### Workflow overview
 
 ```text
 Pull request / selected branch push

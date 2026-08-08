@@ -1,6 +1,17 @@
-# Atomic Monorepo — Development Setup
+# Orphus — Development Setup
 
-This document covers setup, the local dev loop, testing patterns, and project layout for working on the Atomic Bun workspace. The workflow extension lives at [`packages/workflows`](./packages/workflows/README.md), and the Atomic-branded coding-agent fork lives at [`packages/coding-agent`](./packages/coding-agent/README.md).
+This document covers setup, the local dev loop, testing patterns, and project layout.
+
+Orphus is a fork of [Atomic](https://github.com/bastani-inc/atomic) (itself a fork of pi), so most of this tree is vendored upstream code. The part this project authors is [`packages/roundtable`](./packages/roundtable/README.md) — rooms, the budgeted digest, the role launcher, and the memory tool. The coding-agent fork that builds the `orphus` binary lives at [`packages/coding-agent`](./packages/coding-agent/README.md), and the workflow extension at [`packages/workflows`](./packages/workflows/README.md).
+
+**If you only want to see it work,** the two demos need no model and no API key:
+
+```bash
+npm ci --ignore-scripts
+npm run demo        # three scripted agents; a late joiner catches up for ~33% of the transcript
+npm run demo:loop   # the same, through export -> memory ingest -> recall by a fresh session
+npm run roles       # turn orphus.roles.yaml into launch commands
+```
 
 ---
 
@@ -19,8 +30,8 @@ This repo runs a hybrid toolchain matching upstream `earendil-works/pi`: **npm**
 ## Setup
 
 ```bash
-git clone --recurse-submodules git@github.com:bastani-inc/atomic.git
-cd atomic
+git clone git@github.com:kelvincushman/orphus.git
+cd orphus
 npm ci --ignore-scripts
 npm run build --workspace=@bastani/atomic-natives
 ```
@@ -35,7 +46,7 @@ resolution fall back to slower JS paths, and several `packages/coding-agent`
 tests fail (`bash-pty-native`, `search-tool-*`, `hashline-tools`). CI builds the
 module explicitly for the same reason (see `.github/workflows/test.yml`).
 
-The committed `.npmrc` applies a three-day minimum release age to anything you add with
+The committed `.npmrc` applies a two-day minimum release age to anything you add with
 `npm install`, and pins exact versions. `package-lock.json` is the only lockfile.
 
 If you cloned without submodules, initialize them before running evals or touching vendored benchmark harnesses:
@@ -86,9 +97,18 @@ The root `package.json` is a private workspace package named `atomic-monorepo`. 
 
 ---
 
-## Running the Atomic coding-agent from source
+## Running the coding agent from source
 
-The `packages/coding-agent` package is the Atomic-branded fork of pi's coding-agent CLI. In this repo its CLI name is `atomic`, its config directory is `~/.atomic/agent`, and its environment variable prefix is `ATOMIC_`.
+The `packages/coding-agent` package is the coding-agent CLI that builds the `orphus`
+binary. Its CLI name is `orphus`, its config directory is `~/.orphus/agent`, and its
+environment variable prefix is `ORPHUS_`.
+
+The Atomic and pi names are retained only as *legacy fallbacks*, so an existing install
+keeps working: the binary is also linked as `atomic`, and `.atomic` is still read as a
+config directory if `.orphus` is absent. A fresh checkout uses the Orphus names, and new
+code and docs should assume them. Getting this backwards matters more than it looks —
+pointing a fleet at `~/.atomic/agent` sends each worktree to a different broker, silently,
+because each one finds a perfectly healthy broker of its own.
 
 For most local development, run the TypeScript entrypoint directly with Bun from the workspace root:
 
@@ -285,9 +305,16 @@ Examples import the workspace package `@bastani/workflows`.
 
 ```text
 .
-├── package.json                         # private workspace root: atomic-monorepo
+├── package.json                         # private workspace root
 ├── packages/
-│   ├── coding-agent/                    # @bastani/atomic CLI fork
+│   ├── roundtable/                      # THE ORPHUS CONTRIBUTION
+│   │   ├── digest.ts                    # the budgeted digest algorithm
+│   │   ├── broker/                      # local-socket room server, client, framing
+│   │   ├── roles/                       # role manifest -> launch plan
+│   │   ├── memory/                      # HMLR-Wiki / Dossier adapter
+│   │   ├── demo/                        # the no-model demos
+│   │   └── skills/                      # discussion etiquette, as an agent skill
+│   ├── coding-agent/                    # @bastani/atomic CLI fork; builds the orphus binary
 │   └── workflows/
 │       ├── package.json                 # private bundled @bastani/workflows metadata
 │       ├── src/
