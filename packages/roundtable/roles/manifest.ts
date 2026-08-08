@@ -52,13 +52,15 @@ function requireString(value: unknown, manifestPath: string, keyPath: string): s
   return value.trim();
 }
 
-function requireName(value: unknown, manifestPath: string, keyPath: string): string {
+function requireName(value: unknown, manifestPath: string, keyPath: string, because: string): string {
   const text = requireString(value, manifestPath, keyPath);
   if (!NAME_PATTERN.test(text)) {
-    fail(manifestPath, keyPath, `"${text}" must be alphanumeric with - or _ (it keys broker-side cursors)`);
+    fail(manifestPath, keyPath, `"${text}" must be alphanumeric with - or _ (${because})`);
   }
   return text;
 }
+
+const KEYS_CURSORS = "it keys broker-side cursors";
 
 function describe(value: unknown): string {
   if (value === undefined) return "nothing";
@@ -96,10 +98,10 @@ function parseRole(name: string, raw: unknown, manifestPath: string, dir: string
   rejectUnknownKeys(raw, ["provider", "model", "room", "cwd", "worktree", "brief"], manifestPath, keyPath);
 
   const spec: RoleSpec = {
-    name: requireName(name, manifestPath, `${keyPath} (role name)`),
+    name: requireName(name, manifestPath, `${keyPath} (role name)`, KEYS_CURSORS),
     provider: requireString(raw.provider, manifestPath, `${keyPath}.provider`),
     model: requireString(raw.model, manifestPath, `${keyPath}.model`),
-    room: raw.room === undefined ? defaultRoom : requireName(raw.room, manifestPath, `${keyPath}.room`),
+    room: raw.room === undefined ? defaultRoom : requireName(raw.room, manifestPath, `${keyPath}.room`, KEYS_CURSORS),
     cwd: raw.cwd === undefined ? dir : resolveFrom(dir, requireString(raw.cwd, manifestPath, `${keyPath}.cwd`)),
     worktree:
       raw.worktree === undefined ? DEFAULT_WORKTREE : requireString(raw.worktree, manifestPath, `${keyPath}.worktree`),
@@ -137,8 +139,10 @@ export function parseRoleManifest(text: string, manifestPath: string): RoleManif
   if (!isRecord(raw)) fail(path, "(document)", `expected a map at the top level, got ${describe(raw)}`);
   rejectUnknownKeys(raw, ["task", "room", "roles", "budgets"], path, "");
 
-  const task = requireName(raw.task, path, "task");
-  const room = requireName(raw.room, path, "room");
+  // `task` keys nothing broker-side — only room and role names do. It names the
+  // generated tmux session, which is where the character restriction comes from.
+  const task = requireName(raw.task, path, "task", "it names the generated tmux session");
+  const room = requireName(raw.room, path, "room", KEYS_CURSORS);
   const budgets = parseBudgets(raw.budgets, path);
 
   if (!isRecord(raw.roles)) fail(path, "roles", `expected a map of role name to settings, got ${describe(raw.roles)}`);
