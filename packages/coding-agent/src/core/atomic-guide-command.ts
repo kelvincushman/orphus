@@ -83,7 +83,7 @@ Where to next:
 
 const EXAMPLE = `# Practical example
 
-This example shows a spec-driven development process whose clearly delegated autonomous implementation benefits from durable workflow execution. For interactive or conversation-led work, stay inline or use bounded subagents while the parent remains in control. Type the examples below into the Orphus TUI chat after starting \`atomic\` in your project.
+This example shows a spec-driven development process whose clearly delegated autonomous implementation benefits from durable workflow execution. For interactive or conversation-led work, stay inline or use bounded subagents while the parent remains in control. Type the examples below into the Orphus TUI chat after starting \`orphus\` in your project.
 
 ## 1. Research what exists
 
@@ -215,7 +215,7 @@ Workflows run as background tasks. Use F2 or \`/workflow connect <run-id>\` for 
 
 ## Author your own
 
-Describe your workflow in plain chat — say what you want the workflow to accomplish, what inputs it should accept, what stages should run, and what final output or decision it should return. Orphus will use the workflow docs to scaffold a reusable definition under \`.atomic/workflows/\`, ask clarifying questions when stage purpose, models, or handoffs are ambiguous, and run \`/workflow reload\` so you can launch it immediately.
+Describe your workflow in plain chat — say what you want the workflow to accomplish, what inputs it should accept, what stages should run, and what final output or decision it should return. Orphus will use the workflow docs to scaffold a reusable definition under \`.orphus/workflows/\`, ask clarifying questions when stage purpose, models, or handoffs are ambiguous, and run \`/workflow reload\` so you can launch it immediately.
 
 ─────────────────────────────────────────────────────────────────
 

@@ -1,18 +1,21 @@
-# Running this fork under Orca
+# Running Orphus under Orca
 
 [Orca](https://github.com/stablyai/orca) orchestrates CLI agents in parallel
-git worktrees and already ships a Pi integration (`src/main/pi/`), which this
-fork remains compatible with.
+git worktrees and already ships a Pi integration (`src/main/pi/`). Orphus keeps
+Atomic's Pi-compatible extension points, so it works with that integration as-is.
 
 ## Setup
 
-1. Install the fork globally so Orca's PATH lookup finds it:
+1. Build the `orphus` binary from your checkout and put it on `PATH`, so Orca's
+   lookup finds it:
    ```bash
-   bun add -g @bastani/atomic   # or npm/pnpm from your fork checkout
+   npm ci --ignore-scripts
+   npm run build --workspace=@bastani/atomic
    ```
+   Orphus is not published to npm, so there is no global install to run — see
+   the README for the current install story.
 2. In Orca, add the agent as a Pi-compatible CLI agent (Settings → Agents).
-   Atomic keeps Pi-compatible extension points, and Orca's Pi status extension
-   reads the same session state files.
+   Orca's Pi status extension reads the same session state files.
 3. Launch multiple worktrees from one prompt as usual.
 
 ## Making Orca worktrees deliberate with each other
@@ -22,7 +25,15 @@ exactly roundtable's trust boundary. To have a fleet of Orca-spawned sessions
 share a discussion room:
 
 - Set a shared agent dir so all worktrees hit the same broker:
-  `ORPHUS_CODING_AGENT_DIR=~/.atomic/agent` (the default already is shared).
+  `ORPHUS_CODING_AGENT_DIR=~/.orphus/agent`.
+
+  This step is load-bearing, and the value matters. The broker socket lives
+  under the agent dir, so worktrees that resolve different agent dirs get
+  different brokers and cannot see each other — with no error, because each one
+  is talking to a perfectly healthy broker of its own. `~/.orphus/agent` is the
+  default (`configDir: ".orphus"` in the coding-agent manifest), so exporting it
+  is belt-and-braces rather than a change; `.atomic` is only a legacy fallback
+  for existing installs and is *not* where a fresh checkout looks.
 - Give each worktree a role name (`--name planner`, etc.) so cursors and
   attribution are stable. Without it the session falls back to `session-<pid>`
   and loses its cursor on restart.

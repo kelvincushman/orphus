@@ -41,7 +41,7 @@ Three delivery tiers, each with a hard bound enforced by the runtime, not by pro
 
 Key properties: digests are deterministic and model-free (a verbose or hostile peer cannot inflate your context); read cursors live broker-side keyed by role name, so they survive session restarts; the full transcript is always available but never *imposed*.
 
-**Validated:** before the plan-only instruction arrived I had a working proof-of-concept of exactly this running in the sandbox against the real Atomic codebase — broker, client, tool, and demo; strict typecheck clean; 20 tests passing including real-socket integration. In the demo, a late-joining reviewer catches up on a 9-message design discussion for **33% of the raw transcript cost**, with decision messages intact verbatim. The mechanism works; it's parked as staged changes you can take or leave.
+**Validated, and landed.** The broker, client, tool, and demo are in this repository, not staged elsewhere: strict typecheck clean, the roundtable suite green including real-socket integration, and the demo showing a late-joining reviewer catching up on a 9-message design discussion for **33% of the raw transcript cost** with decision messages intact verbatim. That ratio is now asserted by the demo against a 40% ceiling rather than merely printed, so a regression fails CI.
 
 ## Phases
 
@@ -53,7 +53,7 @@ Fork Atomic → rename/brand as Orphus. Add a `rooms` package (broker, client, `
 
 Run 3–5 Orphus sessions as Orca worktree agents sharing one broker (same machine = same trust boundary, so this needs configuration, not code): shared agent dir, role names per worktree (`planner`, `researcher`, `critic`), a room per task (`#orca-task-123`). Demo choreography: fan one prompt across worktrees in Orca, open any agent's transcript, show it contains only pings and small digests while the room holds the full deliberation. Exit criteria: a screen-recordable live demo.
 
-**Landed: the role manifest and launcher.** `orphus.roles.yaml` declares task, room, per-role provider/model/brief, and digest budgets; `orphus-roles` turns it into launch commands in five formats (`plan`, `json`, `sh`, `tmux`, `orca`). It emits rather than spawns — every role is a billable session, so the fan-out stays explicit, and the whole path stays deterministic and testable without a model. 32 tests cover parsing, validation, plan construction, shell quoting, and the CLI; the tmux fan-out is verified end to end against a stub binary. See [docs/roles.md](docs/roles.md).
+**Landed: the role manifest and launcher.** `orphus.roles.yaml` declares task, room, per-role provider/model/brief, and digest budgets; `orphus-roles` turns it into launch commands in five formats (`plan`, `json`, `sh`, `tmux`, `orca`). It emits rather than spawns — every role is a billable session, so the fan-out stays explicit, and the whole path stays deterministic and testable without a model. 38 tests cover parsing, validation, plan construction, shell quoting, and the CLI; the tmux fan-out is verified end to end against a stub binary. See [docs/roles.md](docs/roles.md).
 
 Two things the implementation pinned down that the sketch had wrong: the session-name flag is `--name` (not `--session-name`), and it is load-bearing — the roundtable extension reads `pi.getSessionName()` for room identity and silently falls back to `session-<pid>`, costing the role its broker-side cursor. `--append-system-prompt` also treats a non-existent path as literal prompt text, so a typo'd brief becomes the system prompt; the manifest loader checks brief existence up front.
 
@@ -99,6 +99,8 @@ Demo assets: the live Orca fan-out, the no-model scripted demo (works offline on
 - One self-authored, human-approved improvement in each axis with evidence trail
 - A demo runnable offline in under 3 minutes
 
-## What exists already (take it or leave it)
+## Status of the open decisions
 
-Staged in the sandbox clone of Atomic: the rooms package (~1,100 lines: broker, client, digest algorithm, tool, extension, skill), 20 passing tests, the scripted demo, and drafts of `DESIGN.md`, `orca-integration.md`, and `self-improvement-loop.md`. It validates Phase 1 end-to-end. Say the word and I'll export it as patches for your Orphus fork — or archive it and we refine this plan first.
+- **Naming (from the risks above).** Unresolved, and now explicit rather than implied: the package is `@bastani/roundtable` in `packages/roundtable`, still on the upstream npm scope. Renaming to `@orphus/rooms` touches the workspace, the lockfile, the builtin lists, and the shrinkwrap, so it wants to be one deliberate change rather than a side effect of another. Nothing blocks on it.
+- **Phase 2's live demo.** The launcher and manifest landed; real Orca worktrees driven end to end with models attached, and the screen recording, have not.
+- **Phase 3's exit criteria.** The `memory` tool ships and rooms can now export a transcript, so the export → ingest → recall path runs end to end in `npm run demo:loop`. What remains is doing it once for real — one room transcript ingested and queryable — plus the two accepted self-authored improvements, one per axis.

@@ -68,7 +68,7 @@ git clone https://github.com/kelvincushman/orphus.git orphus && cd orphus
 npm ci --ignore-scripts
 npm run demo        # scripted 3-agent discussion + late-joining reviewer, no model needed
 npm run roles       # the role manifest, turned into launch commands
-npx vitest --run --project unit test/unit/roundtable-   # 52 rooms + role-launcher tests
+npx vitest --run --project unit test/unit/roundtable-   # rooms, memory, and role-launcher tests
 ```
 
 `package-lock.json` is the only lockfile — see [AGENTS.md](AGENTS.md) before reaching for
@@ -119,10 +119,10 @@ packages/roundtable/          The Orphus contribution — rooms and the context-
 packages/coding-agent/        The `orphus` binary (Atomic-derived)
 packages/{workflows,subagents,intercom,mcp,web-access,natives}
 orphus.roles.yaml · roles/    Example role manifest and briefs — copy-me templates
-test/unit/roundtable-*        52 tests: digest bound, room store, socket, role launcher
+test/unit/roundtable-*        digest bound, room store, socket, broker lifecycle, memory, role launcher
 patches/atomic/               The 0001–0004 series, as applied to upstream `d84fc43`
 docs/                         Orca orchestration, roles, memory, self-improvement loop
-PLAN.md · DESIGN.md · AGENTS.md
+PLAN.md · AGENTS.md · packages/roundtable/DESIGN.md
 ```
 
 ## Using it from an agent (the `roundtable` tool)
@@ -257,7 +257,10 @@ phases: [PLAN.md](PLAN.md)
 
 Why cursors are keyed by role name, why the broker is separate from intercom's, why
 there's no model-side summarization in v1 (so the bound stays provable), and the
-security posture: [DESIGN.md](DESIGN.md).
+security posture: [packages/roundtable/DESIGN.md](packages/roundtable/DESIGN.md).
+
+(The `DESIGN.md` at the repository root is a different document — Atomic's inherited
+TUI design-token spec. It has nothing to say about rooms.)
 
 ## Lineage and thanks
 
