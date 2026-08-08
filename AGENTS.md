@@ -35,8 +35,8 @@ into a knowledge graph and serves it over MCP; it is declared in the committed
 per checkout:
 
 ```sh
-npx gitnexus analyze .        # writes .gitnexus/ (gitignored); ~3 min for this tree
-npx gitnexus status           # re-run analyze when this reports "stale"
+npx gitnexus@1.6.9 analyze .        # writes .gitnexus/ (gitignored); ~3 min for this tree
+npx gitnexus@1.6.9 status           # re-run analyze when this reports "stale"
 ```
 
 Before adding a function, a helper, or a module:
@@ -48,7 +48,7 @@ Before adding a function, a helper, or a module:
    the location property is `filePath` (not `path` or `file_path`):
 
    ```sh
-   npx gitnexus cypher "MATCH (m:Method) WHERE m.filePath CONTAINS 'roundtable/broker/' \
+   npx gitnexus@1.6.9 cypher "MATCH (m:Method) WHERE m.filePath CONTAINS 'roundtable/broker/' \
      RETURN m.name AS name, m.filePath AS file, m.startLine AS line ORDER BY file, line"
    ```
 
