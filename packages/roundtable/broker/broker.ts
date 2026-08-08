@@ -84,15 +84,16 @@ async function acquireStartupLock(lockPath: string): Promise<ReleaseStartupLock>
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
     }
 
-    let ownerPid: number | undefined;
+    let owner: { pid?: number; token?: string } = {};
     try {
-      ownerPid = (JSON.parse(readFileSync(lockPath, "utf8")) as { pid?: number }).pid;
+      owner = JSON.parse(readFileSync(lockPath, "utf8")) as { pid?: number; token?: string };
     } catch {
       // A process may still be between the exclusive create and metadata write.
     }
-    if (typeof ownerPid === "number" && !processIsAlive(ownerPid)) {
+    if (typeof owner.pid === "number" && typeof owner.token === "string" && !processIsAlive(owner.pid)) {
       try {
-        unlinkSync(lockPath);
+        const current = JSON.parse(readFileSync(lockPath, "utf8")) as { pid?: number; token?: string };
+        if (current.pid === owner.pid && current.token === owner.token) unlinkSync(lockPath);
       } catch {
         // Another contender reclaimed it first.
       }
