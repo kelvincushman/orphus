@@ -57,6 +57,10 @@ git submodule update --init --recursive
 
 Current submodules include `evals/deep-swe` and `evals/vendor/pier`; the evals package points `datacurve-pier` at the local editable `evals/vendor/pier` checkout.
 
+**Both are optional** and are left uninitialized in a default clone. Nothing outside `evals/` depends on them — no workflow, script, hook, or test — so skip this step entirely unless you are running Python evals. If you do run them, `evals/vendor/pier` is required rather than convenient: `evals/pyproject.toml` declares `datacurve-pier` as an editable path dependency, so `uv sync` fails outright when the directory is empty. `evals/deep-swe` is dataset content only and is never imported.
+
+Do not substitute the published `datacurve-pier` from PyPI for the submodule. It shares a version number with the vendored fork but is not the same tree, so swapping it would silently change behaviour while reporting no version change.
+
 The eval harness is Python-based and uses [`uv`](https://docs.astral.sh/uv/) from the `evals/` directory:
 
 ```bash

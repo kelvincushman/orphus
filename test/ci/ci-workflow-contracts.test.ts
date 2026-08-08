@@ -570,7 +570,17 @@ test("Blacksmith runners are used everywhere they are supported", async () => {
 	//     early under CI/GITHUB_ACTIONS/PREK_DISABLE_INSTALL, and `npm ci` never
 	//     runs the `prepare` script that installs them, so a clone could run none
 	//     of them. Same Blacksmith reasoning as `verify`.
-	assert.deepEqual(hosted.sort(), ["macos-26-intel", "ubuntu-latest", "ubuntu-latest", "ubuntu-latest"]);
+	//   ubuntu-latest  - release.yml, which builds the downloadable binary. Same
+	//     Blacksmith reasoning again. It is one job rather than a per-platform
+	//     matrix because every extra target needs its own napi-slug .node staged
+	//     first, so each is a deliberate addition here as well as there.
+	assert.deepEqual(hosted.sort(), [
+		"macos-26-intel",
+		"ubuntu-latest",
+		"ubuntu-latest",
+		"ubuntu-latest",
+		"ubuntu-latest",
+	]);
 	assert.match(publish, /# Blacksmith macOS is Apple Silicon only[^\n]*\n\s+- \{ runner: macos-26-intel/u);
 	assert.match(publish, /npm trusted publishing rejects self-hosted runners[\s\S]{0,160}?runs-on: ubuntu-latest/u);
 	// ubuntu-latest is only ever acceptable on the OIDC publish job.

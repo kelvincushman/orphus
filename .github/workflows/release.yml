@@ -1,0 +1,133 @@
+name: Release
+
+# Builds a downloadable binary and attaches it to a GitHub Release.
+#
+# The README describes compiling release binaries, and until now nothing
+# automated it: publish.yml is disabled at the repository level, targets
+# Blacksmith runners registered to the upstream organization, and would publish
+# to npm under the upstream package name. This workflow does the one part this
+# fork actually needs — produce something a user can download — and deliberately
+# does not publish to any registry.
+#
+# Linux x64 only, on purpose. Every platform needs its own napi-slug `.node`
+# staged before scripts/build-binaries.sh will run (it exits 1 rather than
+# warning), so each additional target is another job. Start with the one that
+# builds on its host with no cross-compilation toolchain, and add targets as
+# they are actually wanted.
+#
+# Two things this does NOT match about upstream's publish.yml, stated so nobody
+# assumes otherwise:
+#
+#   * No glibc floor. publish.yml routes glibc Linux targets through
+#     cargo-zigbuild with GLIBC_FLOOR=2.17. A plain host build on ubuntu-latest
+#     links against that runner's glibc (2.39), so the archive will not run on
+#     older distributions. Restoring the floor means adding zig and
+#     cargo-zigbuild; until then, do not advertise the artifact as portable.
+#   * scripts/build-binaries.sh emits an `atomic` archive. The packaging step
+#     below renames both the archive root and executable to `orphus` before the
+#     release is staged; the shared upstream build script remains unchanged.
+
+on:
+  push:
+    # `v`-prefixed so it can never collide with the bare numeric tags that
+    # publish.yml triggers on, which the release-cutting script produces.
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      # Only to create the draft release; nothing here needs id-token.
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # .gitmodules declares two eval submodules that are not needed to build
+          # and are not initialized in this repository.
+          submodules: false
+      # The fork inherited this pointer without its LFS object. Fetch the exact
+      # release asset from the public upstream and prove its content hash before
+      # the build can copy it into an archive.
+      - name: Hydrate the interactive release asset
+        env:
+          ASSET: packages/coding-agent/src/modes/interactive/assets/clankolas.png
+          ASSET_SHA256: 169acd0dfe6fbb8d8742ed24a3fc654fd0b2e2d4223c733249c5493723f1b72d
+        run: |
+          set -euo pipefail
+          git lfs install --local
+          git remote add upstream-lfs https://github.com/bastani-inc/atomic.git
+          git lfs fetch upstream-lfs HEAD --include="$ASSET" --exclude=''
+          git lfs checkout "$ASSET"
+          test "$(sha256sum "$ASSET" | cut -d' ' -f1)" = "$ASSET_SHA256"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          # Required once pinned by SHA: the version otherwise comes from the ref.
+          toolchain: stable
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Validate and stamp the release version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG#v}"
+          [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-alpha\.[1-9][0-9]*)?$ ]]
+          [[ "$VERSION" != "0.0.0" ]]
+          bun run scripts/bump-version.ts "$VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      # build-binaries.sh hard-fails per platform when the matching .node is
+      # absent. No CROSS_TARGET is set, so this is a host build and needs no zig.
+      - name: Build native bindings
+        run: bun run --cwd packages/natives build
+
+      - name: Build the Linux x64 archive
+        run: ./scripts/build-binaries.sh --skip-deps --skip-install --platform linux-x64
+
+      - name: Package and verify the Orphus archive
+        working-directory: packages/coding-agent/binaries
+        run: |
+          set -euo pipefail
+          mkdir release
+          tar -xzf atomic-linux-x64.tar.gz -C release
+          mv release/atomic release/orphus
+          mv release/orphus/atomic release/orphus/orphus
+          test "$(release/orphus/orphus --version)" = "$VERSION"
+          tar -czf orphus-linux-x64.tar.gz -C release orphus
+          rm -rf release atomic-linux-x64.tar.gz
+
+      - name: Checksum
+        working-directory: packages/coding-agent/binaries
+        run: sha256sum orphus-linux-x64.tar.gz > SHA256SUMS
+
+      # Draft, so a human decides whether the artifact is worth publishing —
+      # matching publish.yml's staging behaviour, which never undrafts until the
+      # rest of a release has succeeded.
+      - name: Stage a draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          cd packages/coding-agent/binaries
+          gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes \
+            'Linux x64 build. Not glibc-floored — see .github/workflows/release.yml.' \
+            orphus-linux-x64.tar.gz SHA256SUMS

@@ -1,9 +1,8 @@
 /**
  * Project workflow fixture for the issue #2074 end-to-end scenario.
  *
- * Both drivers — `test/integration/workflow-stage-steering-queue-cli.test.ts`
- * and `scripts/e2e/issue-2074-evidence.sh` — copy this file into a scratch
- * project's `.atomic/workflows/` and let the real Atomic CLI discover it, so it
+ * `test/integration/workflow-stage-steering-queue-cli.test.ts` copies this file
+ * into a scratch project's `.atomic/workflows/` and lets the real Atomic CLI discover it, so it
  * has to stay self-contained: no relative imports survive the copy.
  *
  * One stage, one prompt. The stand-in model endpoint
