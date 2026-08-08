@@ -114,7 +114,7 @@ async function main(): Promise<void> {
   const ratio = reviewerDigest.chars / transcriptChars;
   if (ratio > LATE_JOINER_BUDGET_RATIO) {
     console.error(
-      `\nFAIL: a late joiner paid ${Math.round(ratio * 100)}% of the raw transcript ` +
+      `\nFAIL: a late joiner paid ${(ratio * 100).toFixed(1)}% of the raw transcript ` +
         `(${reviewerDigest.chars}/${transcriptChars} chars), above the ${Math.round(LATE_JOINER_BUDGET_RATIO * 100)}% ceiling.`,
     );
     process.exit(1);

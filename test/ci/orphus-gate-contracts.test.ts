@@ -46,6 +46,13 @@ test("the Orphus gate runs the inherited unit suite and the CI contracts", async
 	// test/unit/pi-0.82.1-artifacts.test.ts degrades to test.skip when
 	// packages/coding-agent/dist is absent — coverage would vanish, silently.
 	assert.match(suites, /working-directory: packages\/coding-agent\n\s+run: npm run build/u);
+	// The fork has no tags, but changelog immutability is anchored to Atomic's
+	// inherited release tags. Fetch them instead of quarantining that test file.
+	assert.match(
+		suites,
+		/git fetch --no-tags https:\/\/github\.com\/bastani-inc\/atomic\.git 'refs\/tags\/\*:refs\/tags\/\*'/u,
+	);
+	assert.doesNotMatch(suites, /lfs:\s*true/u);
 });
 
 test("the demo runs as an assertion, not as a smoke test", async () => {
@@ -94,13 +101,10 @@ test("the quarantine list stays small, justified, and visible", async () => {
 	const config = (await import("../../vitest.config.js")) as { QUARANTINED_TESTS: readonly string[] };
 	const quarantined = config.QUARANTINED_TESTS;
 
-	// Two entries, both demonstrated failing on a pristine checkout before being
+	// One entry, demonstrated failing on a pristine checkout before being
 	// listed. This assertion exists so growing the list is a deliberate act that
 	// shows up in review rather than a quiet way to make CI green.
-	assert.deepEqual([...quarantined].sort(), [
-		"**/test/unit/changelog.test.ts",
-		"**/test/unit/interactive-engine-cycle-fallback.test.ts",
-	]);
+	assert.deepEqual([...quarantined].sort(), ["**/test/unit/interactive-engine-cycle-fallback.test.ts"]);
 
 	// Each entry must carry its reason in the config, next to the entry itself —
 	// a bare list of paths decays into folklore about why they are there.
@@ -112,6 +116,12 @@ test("the quarantine list stays small, justified, and visible", async () => {
 		const preceding = source.slice(Math.max(0, index - 600), index);
 		assert.match(preceding, /\/\/ .+/u, `${file} is quarantined with no stated reason`);
 	}
+});
+
+test("diagnostics upload survives failures but not workflow cancellation", async () => {
+	const suites = jobBlock(await readText(ciPath), "suites");
+	assert.match(suites, /name: Upload test diagnostics\n\s+if: \$\{\{ !cancelled\(\) \}\}/u);
+	assert.doesNotMatch(suites, /if: always\(\)/u);
 });
 
 test("quarantined tests are excluded from collection, not skipped inside their files", async () => {
