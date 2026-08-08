@@ -11,6 +11,10 @@ Atomic's Pi-compatible extension points, so it works with that integration as-is
    ```bash
    npm ci --ignore-scripts
    npm run build --workspace=@bastani/atomic
+   mkdir -p "$HOME/.local/bin"
+   ln -sf "$PWD/packages/coding-agent/dist/cli.js" "$HOME/.local/bin/orphus"
+   export PATH="$HOME/.local/bin:$PATH"
+   command -v orphus
    ```
    Orphus is not published to npm, so there is no global install to run — see
    the README for the current install story.
@@ -25,7 +29,7 @@ exactly roundtable's trust boundary. To have a fleet of Orca-spawned sessions
 share a discussion room:
 
 - Set a shared agent dir so all worktrees hit the same broker:
-  `ORPHUS_CODING_AGENT_DIR=~/.orphus/agent`.
+  `export ORPHUS_CODING_AGENT_DIR="$HOME/.orphus/agent"`.
 
   This step is load-bearing, and the value matters. The broker socket lives
   under the agent dir, so worktrees that resolve different agent dirs get
