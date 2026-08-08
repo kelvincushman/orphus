@@ -20,7 +20,8 @@ cost. The bound must be enforced by the runtime, not by prompt discipline.
 ```
 
 - **Broker** (`broker/broker.ts`): one per machine per agent dir, auto-spawned
-  detached on first tool use, exits 5s after the last session disconnects.
+  detached on first tool use, exits after a configurable idle grace period
+  (5s by default) once the last session disconnects.
   Length-prefixed JSON framing, identical to intercom's.
 - **RoomStore** (`broker/room-store.ts`): pure in-memory state — rooms, ring
   buffers (500 msgs/room), per-member-name read cursors. No sockets; unit-tested
@@ -60,8 +61,18 @@ truncation markers, overflow collapses to a count line.
   in behind `buildDigest` without protocol changes; kept out of v1 so the bound
   is provable.
 - **Ephemeral rooms** — in-memory only. JSONL persistence under
-  `~/.atomic/agent/roundtable/rooms/` is a straightforward follow-up if
+  `~/.orphus/agent/roundtable/rooms/` is a straightforward follow-up if
   discussions must survive broker restarts.
+
+  Membership is part of that state, so a session outliving a broker loses its
+  rooms along with the transcript: the broker exits after its configured idle
+  grace period (five seconds by default) once the last session disconnects, and
+  the extension reconnects with a fresh client that
+  does not replay joins. The next `post` then fails with `Not a member of room
+  "…"; join it first`, which is the correct outcome — the room really is gone —
+  and an agent can act on it by rejoining. Replaying memberships against a
+  broker whose transcript is empty would be worse: it would restore the
+  appearance of continuity while every peer's history had vanished.
 
 ## Security posture
 
