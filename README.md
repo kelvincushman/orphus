@@ -58,8 +58,18 @@ session restarts.
 ```
 
 **Measured:** in the bundled demo, a reviewer joining *after* a 9-message design
-discussion catches up for **33% of the raw transcript cost** — with the decision
+discussion catches up for **32% of the raw transcript cost** — with the decision
 messages intact verbatim and only early exploration collapsed.
+
+## Documentation
+
+| | |
+| --- | --- |
+| **[Getting started](docs/getting-started.md)** | Clone to working fleet, in five tiers. The first needs no model and no API key. |
+| **[The `roundtable` tool](docs/roundtable-tool.md)** | Every action, parameter, and default, with the reasoning. |
+| **[Architecture](docs/architecture.md)** | What runs where, and what the bound actually guarantees. |
+| **[Troubleshooting](docs/troubleshooting.md)** | The three failures that look like success. |
+| **[All documentation](docs/README.md)** | Roles, memory, Orca, CI, design decisions. |
 
 ## Requirements
 
@@ -153,7 +163,7 @@ reviewer — catching up under budget:
 
 ```
 reviewer joins late — unread: 9 (entire discussion, 2413 chars)
-  digest: 804 chars (budget 800) = 33% of the raw transcript
+  digest: 767 chars (budget 800) = 32% of the raw transcript
   verbatim 3 · headlines 1 · collapsed 5
 ```
 
@@ -193,7 +203,10 @@ packages/{workflows,subagents,intercom,mcp,web-access,natives}
 orphus.roles.yaml · roles/    Example role manifest and briefs — copy-me templates
 test/unit/roundtable-*        Rooms, memory, socket, digest, broker lifecycle, and role-launcher tests
 patches/atomic/               The 0001–0004 series, as applied to upstream `d84fc43`
-docs/                         Orca orchestration, roles, memory, self-improvement loop
+docs/                         Getting started, tool reference, architecture, troubleshooting,
+                                roles, memory, Orca, CI (start at docs/README.md)
+archive/upstream/             Atomic's inherited working notes — nothing reads them
+.github/workflows/ci.yml      The gate that runs; release.yml builds the binary on a v* tag
 PLAN.md · AGENTS.md · packages/roundtable/DESIGN.md
 ```
 
@@ -202,13 +215,23 @@ PLAN.md · AGENTS.md · packages/roundtable/DESIGN.md
 Every session in this runtime gets:
 
 ```typescript
-roundtable({ action: "rooms" })                                // list rooms
-roundtable({ action: "join", room: "design", topic: "…" })     // join / create
-roundtable({ action: "post", room: "design", message: "…" })   // post
-roundtable({ action: "digest", room: "design" })               // bounded catch-up, marks read
-roundtable({ action: "peek", room: "design" })                 // same, cursor unchanged
-roundtable({ action: "digest", room: "design", budget: 4000 }) // bigger budget when justified
+roundtable({ action: "rooms" })                                 // rooms, with YOUR unread count
+roundtable({ action: "join", room: "design", topic: "…" })      // join / create
+roundtable({ action: "post", room: "design", message: "…" })    // post
+roundtable({ action: "digest", room: "design" })                // bounded catch-up, marks read
+roundtable({ action: "peek", room: "design" })                  // same, cursor unchanged
+roundtable({ action: "fetch", room: "design", afterSeq: 12 })   // raw messages, no digest
+roundtable({ action: "export", room: "design", path: "raw/…" }) // lossless, for memory ingest
+roundtable({ action: "leave", room: "design" })                 // leave
 ```
+
+Digests take `budget` (total characters) and `perMessage` (how hard each body is
+truncated). Lowering `perMessage` fits more messages into the same budget — the
+better lever when you want the shape of a discussion rather than exact wording.
+
+When a digest reports collapsed messages, `fetch` that range rather than raising
+the budget: it costs less and does not re-pay for everything newer you have
+already read. Full reference: [docs/roundtable-tool.md](docs/roundtable-tool.md).
 
 Discussion etiquette for agents ships as a skill
 (`packages/roundtable/skills/`): post conclusions not transcripts, digest before
@@ -234,11 +257,14 @@ budgets:
 ```
 
 ```bash
-orphus-roles                      # review the plan
-orphus-roles --format tmux | sh   # fan out locally, one window per role
-orphus-roles --format orca | sh   # fan out across Orca worktrees
-orphus-roles --format json        # for your own orchestrator
+npm run roles                             # review the plan
+npm run roles -- --format tmux | sh       # fan out locally, one window per role
+npm run roles -- --format orca | sh       # fan out across Orca worktrees
+npm run roles -- --format json            # for your own orchestrator
 ```
+
+(The package also installs an `orphus-roles` binary; from a clone, `npm run
+roles` is the invocation that works without a global install.)
 
 Each role launches with its own model, its brief, and a generated coordination
 footer naming its role and room. The launcher emits commands rather than
@@ -276,12 +302,23 @@ git fetch upstream && git merge upstream/main
 
 ### CI
 
-`.github/workflows/ci.yml` is the Orphus gate: typecheck, the rooms and role-launcher tests,
-the demo, and the manifest plan. The inherited Atomic workflows are kept byte-identical to
-upstream — `test/ci/test-workflow-topology.test.ts` pins their Blacksmith runner names, which
-only exist on the upstream org — so they are disabled at the repository level rather than
-rewritten. Their full suites (unit 5,878 · integration 485 · CI contracts 40) run locally on
-every commit and push through the prek hooks in `prek.toml`.
+`.github/workflows/ci.yml` is the Orphus gate, and the only workflow that runs. Two jobs:
+
+- **`verify`** — biome, `tsc --noEmit`, the shrinkwrap check, a build of the coding-agent
+  package (the root tsconfig excludes it, so nothing else typechecks the binary's own
+  source), the rooms and role-launcher tests, both demos, and the manifest plan. The demo
+  step *asserts* the late-joiner ratio against a 40% ceiling rather than merely printing
+  it, so a digest regression fails rather than reporting a worse number.
+- **`suites`** — native bindings, the package build, then the full inherited unit suite and
+  the CI contract tests.
+
+The inherited Atomic workflows (`test.yml`, `publish.yml`, `warm-toolchain-cache.yml`) are
+kept byte-identical to upstream and disabled at the repository level: they target Blacksmith
+runners registered to the upstream org, which never pick up jobs here. Read them as a record
+of upstream's topology, not as this repository's gate.
+
+One test file is quarantined by name in `vitest.config.ts`, with its reason — a pre-existing
+timeout in vendored code. Deleting that entry is the goal. Details: [docs/ci.md](docs/ci.md).
 
 ## Orchestrating a fleet with Orca
 

@@ -73,6 +73,37 @@ Two limits worth knowing before you trust an empty result:
 - **Files over 512 KB are skipped** (currently one: the `0002` rebrand patch).
   Raise `GITNEXUS_MAX_FILE_SIZE` if you need them indexed.
 
+## Definition of done — housekeeping is part of the change
+
+A change is not finished when the code works. It is finished when the repository
+is in a state the next person can pick up without archaeology. Every piece of
+work closes with these, in order:
+
+1. **Clean up after yourself.** Delete the scratch file, the debug logging, the
+   commented-out alternative, the branch you no longer need, the dependency you
+   stopped using. If the change made something obsolete — a script nothing calls,
+   a doc describing a path that moved — remove it in the same change rather than
+   leaving it for someone to discover and be unsure about.
+2. **Update the documentation the change invalidates.** Not "add docs" as a
+   ritual: find what is now *wrong*. A renamed flag, a changed default, a new
+   action on a tool, a step that is no longer needed. Stale documentation is
+   worse than none, because it is trusted. The relevant files are usually
+   `docs/`, the tool reference, and `packages/coding-agent/docs` for anything
+   user-facing.
+3. **Update the README if the change alters what Orphus is or how it is run.**
+   Not every change touches it. A new tool action, a changed command, a moved
+   directory, or a different install step does.
+4. **Record user-visible changes in the changelog** — `packages/*/CHANGELOG.md`,
+   under `[Unreleased]`. CI configuration, repository automation, agent
+   instructions, and documentation-only work are infrastructure and stay out of
+   it. See the Changelog section below.
+5. **Verify, and say what you ran.** `npm run check` plus the suites your change
+   touches, with the actual output — not the commands you intended to run.
+
+The test for whether documentation needed updating is not "did I add a feature".
+It is: **would someone following the current docs now be misled?** If yes, that
+is part of this change, not a follow-up.
+
 ## Tech Stack
 
 This repo runs a **hybrid toolchain, matching upstream `earendil-works/pi` task for task**.

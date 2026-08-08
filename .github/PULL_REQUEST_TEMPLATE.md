@@ -42,4 +42,15 @@ Add the work-package-specific commands below.
 - [ ] Smallest correct change — no speculative hardening, no rewrites (AGENTS.md, "Minimal-change principle")
 - [ ] Reused existing helpers where they exist; checked the GitNexus graph before adding new code
 - [ ] Every behavioural fix has a regression test proven to fail without it
+
+## Housekeeping
+
+<!--
+AGENTS.md, "Definition of done". The test for the docs box is not "did I add a
+feature" — it is "would someone following the current docs now be misled?"
+-->
+
+- [ ] Cleaned up after the change — scratch files, dead code, obsolete scripts or docs the change made redundant, branches no longer needed
+- [ ] Updated the documentation this change **invalidates** (`docs/`, the tool reference, `packages/coding-agent/docs`), or confirmed none was
+- [ ] Updated the README if this changes what Orphus is or how it is run, or confirmed it does not
 - [ ] Changelog: user-facing package changes recorded in `packages/*/CHANGELOG.md`; CI, tooling, and docs-only changes deliberately not recorded there
