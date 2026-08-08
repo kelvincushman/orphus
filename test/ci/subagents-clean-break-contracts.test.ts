@@ -117,7 +117,11 @@ function guardedSource(file: string): string {
 }
 
 function scanPath(file: string): boolean {
-	if (file === guardPath || file.startsWith("specs/") || file.startsWith("research/")) return false;
+	// The archived upstream notes describe the pre-clean-break design, so they
+	// mention the removed env names by construction. They are excluded explicitly
+	// rather than relying on the allowlist below, so moving them again cannot
+	// quietly turn 383 historical documents into contract failures.
+	if (file === guardPath || file.startsWith("archive/")) return false;
 	if (file.startsWith("packages/coding-agent/dist/")) return false;
 	if (file.includes("/test/") || file.startsWith("test/")) return false;
 	return file.startsWith("packages/") || file.startsWith("scripts/");
