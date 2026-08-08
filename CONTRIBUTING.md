@@ -1,6 +1,8 @@
-# Contributing to Atomic
+# Contributing to Orphus
 
-Thanks for your interest in contributing to Atomic. This guide explains how to prepare a local checkout, make changes, and submit them for review.
+Thanks for your interest in contributing to Orphus. This guide explains how to prepare a local checkout, make changes, and submit them for review.
+
+Orphus is a fork of [Atomic](https://github.com/bastani-inc/atomic) (itself a fork of pi), so most of this tree is vendored upstream code. The part this project authors is `packages/roundtable` — rooms, the budgeted digest, the role launcher, and the memory tool — plus `test/unit/roundtable-*`, `docs/`, and `.github/workflows/ci.yml`. A change to the vendored tree is worth a sentence in the pull request explaining why it could not live in the Orphus packages.
 
 ## Getting started
 
@@ -11,8 +13,10 @@ Thanks for your interest in contributing to Atomic. This guide explains how to p
    npm ci --ignore-scripts
    ```
 
-   The committed `.npmrc` applies a three-day minimum release age to anything you
-   add with `npm install`, and pins exact versions.
+   The committed `.npmrc` applies a two-day minimum release age to anything you
+   add with `npm install`, and pins exact versions. That cooldown only binds on
+   npm 11.6 or newer, which is where npm implements it; on the npm 10 that Node
+   22 ships, the setting is accepted and ignored.
 
 3. Read [`DEV_SETUP.md`](DEV_SETUP.md) for the full development setup, local CLI workflow, testing notes, and repository layout.
 
@@ -71,10 +75,8 @@ When opening a PR:
 - Include test output or explain why tests were not run.
 - Call out breaking changes, migration steps, or follow-up work.
 
-## Workflows contributions
-
-Looking to contribute workflows? Check out the atomic-workflows repo [here](https://github.com/lavaman131/atomic-workflows).
-
 ## Questions
 
-For questions, help, feedback, or feature ideas, join the [Atomic Discord community](https://discord.gg/9CvdXUGXR4).
+Open a [GitHub issue](https://github.com/kelvincushman/orphus/issues) for questions, help, feedback, or feature ideas.
+
+Questions about the vendored harness itself — workflows, subagents, MCP, the TUI — are often better answered upstream at [Atomic](https://github.com/bastani-inc/atomic), since Orphus inherits that code rather than maintaining it.

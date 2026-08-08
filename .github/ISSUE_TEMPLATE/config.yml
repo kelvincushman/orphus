@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Questions
-    url: https://discord.gg/9CvdXUGXR4
-    about: Ask questions on Discord instead of opening an issue
+    - name: Questions about Orphus
+      url: https://github.com/kelvincushman/orphus/issues
+      about: Ask about rooms, digests, roles, or memory by opening an issue here
+    - name: Questions about the underlying harness
+      url: https://github.com/bastani-inc/atomic
+      about: Orphus inherits its harness from Atomic — workflows, subagents, MCP, and the TUI are maintained upstream
