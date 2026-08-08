@@ -300,3 +300,8 @@ evals/jobs/
 
 # subagent test scratch
 .atomic/subagents/
+
+# GitNexus knowledge graph. The MCP server declaration in .mcp.json is committed;
+# the index it builds is a local derivative of the working tree, regenerated with
+# `npx gitnexus analyze .`, and must never be tracked.
+.gitnexus/

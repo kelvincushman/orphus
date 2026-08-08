@@ -29,6 +29,50 @@ Fix the actual problem with the **smallest correct change**. Do not rewrite file
 - **Don't over-test.** Skip a disproportionate harness for a low-severity edge; a clear comment can be the right call. But every real fix gets a regression test proven to fail without it.
 - **Precedent:** a broad review once flagged 15 issues here; verification confirmed 2. The minimal fix was ~50 lines; the kitchen-sink alternative was ~1,150. Ship the 50.
 
+### Reuse check — query the graph before you write
+
+"Reuse what exists" is only enforceable if you can find what exists. This tree is
+large (a vendored Atomic/Pi fork plus the Orphus packages), so grepping for a
+plausible function name is not evidence that one does not already exist.
+
+[GitNexus](https://github.com/abhigyanpatwari/GitNexus) indexes the repository
+into a knowledge graph and serves it over MCP; it is declared in the committed
+`.mcp.json`, so any agent session that reads that file gets the tools. Index once
+per checkout:
+
+```sh
+npx gitnexus@1.6.9 analyze .        # writes .gitnexus/ (gitignored); ~3 min for this tree
+npx gitnexus@1.6.9 status           # re-run analyze when this reports "stale"
+```
+
+Before adding a function, a helper, or a module:
+
+1. `context <symbol>` — who calls it, what it calls, which flows it sits in.
+2. `impact <symbol>` — blast radius, before changing anything shared.
+3. `cypher "<query>"` — when you need to search rather than start from a known
+   symbol. Node tables are `Function`, `Method`, `Class`, `Interface`, `File`, and
+   the location property is `filePath` (not `path` or `file_path`):
+
+   ```sh
+   npx gitnexus@1.6.9 cypher "MATCH (m:Method) WHERE m.filePath CONTAINS 'roundtable/broker/' \
+     RETURN m.name AS name, m.filePath AS file, m.startLine AS line ORDER BY file, line"
+   ```
+
+The graph is the anti-duplication gate: **nothing gets recreated that the tree
+already has.** It is a lookup tool, not an authority — it can be stale, and a
+confident-looking answer still needs the file read before you act on it. When the
+graph and the source disagree, the source wins and the index needs a re-run.
+
+Two limits worth knowing before you trust an empty result:
+
+- **`query` needs the LadybugDB FTS extension**, which `analyze` downloads on
+  first use. Behind a proxy that blocks it, indexing still succeeds and the graph
+  is complete, but `query` silently returns zero matches with a `warning` field
+  rather than an error — which reads exactly like "no such code exists". Use
+  `cypher` for search in that case, and check `doctor` if you are unsure.
+- **Files over 512 KB are skipped** (currently one: the `0002` rebrand patch).
+  Raise `GITNEXUS_MAX_FILE_SIZE` if you need them indexed.
+
 ## Tech Stack
 
 This repo runs a **hybrid toolchain, matching upstream `earendil-works/pi` task for task**.

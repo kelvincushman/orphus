@@ -558,13 +558,19 @@ test("Blacksmith runners are used everywhere they are supported", async () => {
 	//     only runner that can produce the darwin x64 native binding.
 	//   ubuntu-latest  - publish.yml: npm trusted publishing rejects self-hosted
 	//     runners, and Blacksmith registers through GitHub's org-level API.
-	//   ubuntu-latest  - ci.yml, the Orphus gate. Orphus-specific divergence from
-	//     upstream: Blacksmith runners are registered to the upstream org and
-	//     never pick up jobs on this repository, so a Blacksmith-hosted gate here
-	//     would queue until it expired rather than report. The inherited Atomic
-	//     workflows keep their Blacksmith runners untouched and are disabled at
-	//     the repository level; their suites run through the prek hooks instead.
-	assert.deepEqual(hosted.sort(), ["macos-26-intel", "ubuntu-latest", "ubuntu-latest"]);
+	//   ubuntu-latest  - ci.yml `verify`, the fast Orphus gate. Orphus-specific
+	//     divergence from upstream: Blacksmith runners are registered to the
+	//     upstream org and never pick up jobs on this repository, so a
+	//     Blacksmith-hosted gate here would queue until it expired rather than
+	//     report. The inherited Atomic workflows keep their Blacksmith runners
+	//     untouched and are disabled at the repository level.
+	//   ubuntu-latest  - ci.yml `suites`, which runs the inherited unit suite and
+	//     these contract tests. It exists because "the inherited suites run
+	//     locally via the prek hooks" was honour-system: install-hooks.mjs exits
+	//     early under CI/GITHUB_ACTIONS/PREK_DISABLE_INSTALL, and `npm ci` never
+	//     runs the `prepare` script that installs them, so a clone could run none
+	//     of them. Same Blacksmith reasoning as `verify`.
+	assert.deepEqual(hosted.sort(), ["macos-26-intel", "ubuntu-latest", "ubuntu-latest", "ubuntu-latest"]);
 	assert.match(publish, /# Blacksmith macOS is Apple Silicon only[^\n]*\n\s+- \{ runner: macos-26-intel/u);
 	assert.match(publish, /npm trusted publishing rejects self-hosted runners[\s\S]{0,160}?runs-on: ubuntu-latest/u);
 	// ubuntu-latest is only ever acceptable on the OIDC publish job.

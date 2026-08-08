@@ -1,9 +1,10 @@
 import net from "net";
-import { mkdirSync, unlinkSync, writeFileSync } from "fs";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, unlinkSync, writeFileSync } from "fs";
 import { randomUUID } from "crypto";
 import { createMessageReader, writeMessage } from "./framing.ts";
 import { getBrokerPidPath, getBrokerSocketPath, getRoundtableDirPath } from "./paths.ts";
 import { RoomStore } from "./room-store.ts";
+import { canConnect } from "./socket-probe.ts";
 import type { RoundtableBrokerMessage, RoundtableClientMessage } from "../types.ts";
 
 interface ConnectedSession {
@@ -14,7 +15,101 @@ interface ConnectedSession {
   socket: net.Socket;
 }
 
+export interface BrokerOptions {
+  /**
+   * Exit the process once the broker has been idle for the grace period.
+   *
+   * Only the broker that owns its process (broker/main.ts) may do this. A broker
+   * embedded in a test or in the demo shares the process with its host, so
+   * exiting would take the host down with it.
+   */
+  exitWhenIdle?: boolean;
+  /**
+   * How long the last session may stay away before the broker gives up on it.
+   *
+   * The default suits a real fleet, where a session reconnecting between tool
+   * calls is routine. Lifecycle tests set it low so they assert on the timer
+   * actually firing rather than on a five-second wait.
+   */
+  idleGraceMs?: number;
+}
+
 const SHUTDOWN_GRACE_MS = 5000;
+const STARTUP_LOCK_RETRY_MS = 25;
+const STARTUP_LOCK_TIMEOUT_MS = 5000;
+
+export class BrokerAlreadyRunningError extends Error {
+  constructor(socketPath: string) {
+    super(`Another roundtable broker is already listening on ${socketPath}`);
+    this.name = "BrokerAlreadyRunningError";
+  }
+}
+
+export class StaleBrokerStartupLockError extends Error {
+  constructor(lockPath: string, pid: number) {
+    super(`Stale roundtable broker startup lock ${lockPath} belongs to dead pid ${pid}; remove it and retry`);
+    this.name = "StaleBrokerStartupLockError";
+  }
+}
+
+type ReleaseStartupLock = () => void;
+
+function processIsAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function acquireStartupLock(lockPath: string): Promise<ReleaseStartupLock> {
+  const token = randomUUID();
+  const deadline = Date.now() + STARTUP_LOCK_TIMEOUT_MS;
+
+  while (Date.now() < deadline) {
+    try {
+      const fd = openSync(lockPath, "wx", 0o600);
+      try {
+        writeFileSync(fd, JSON.stringify({ pid: process.pid, token }));
+      } finally {
+        closeSync(fd);
+      }
+      return () => {
+        try {
+          const owner = JSON.parse(readFileSync(lockPath, "utf8")) as { token?: string };
+          if (owner.token === token) unlinkSync(lockPath);
+        } catch {
+          // The lock was already removed.
+        }
+      };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    }
+
+    let owner: { pid?: number; token?: string } = {};
+    try {
+      owner = JSON.parse(readFileSync(lockPath, "utf8")) as { pid?: number; token?: string };
+    } catch {
+      // A process may still be between the exclusive create and metadata write.
+    }
+    if (typeof owner.pid === "number" && typeof owner.token === "string" && !processIsAlive(owner.pid)) {
+      // POSIX has no compare-and-unlink primitive. Re-reading identity before
+      // unlinking is still racy: another contender can replace the stale file
+      // between those operations, and this process would delete the live lock.
+      // Fail closed instead; the lock is held only during bind, so this path is
+      // limited to a process dying inside that short startup window.
+      throw new StaleBrokerStartupLockError(lockPath, owner.pid);
+    }
+    await sleep(STARTUP_LOCK_RETRY_MS);
+  }
+
+  throw new Error(`Timed out acquiring roundtable broker startup lock ${lockPath}`);
+}
 
 /**
  * The roundtable broker: a small room server over a local socket.
@@ -25,47 +120,115 @@ export class RoundtableBroker {
   private store = new RoomStore();
   private server: net.Server;
   private shutdownTimer: NodeJS.Timeout | null = null;
+  private ownsSocket = false;
+  private signalHandlersRegistered = false;
+  private readonly handleSignal = () => this.shutdown();
 
   constructor(
     private socketPath: string = getBrokerSocketPath(),
     private pidPath: string = getBrokerPidPath(),
     private dirPath: string = getRoundtableDirPath(),
+    private options: BrokerOptions = {},
   ) {
     mkdirSync(this.dirPath, { recursive: true });
-    if (process.platform !== "win32") {
-      try {
-        unlinkSync(this.socketPath);
-      } catch {
-        // A clean startup has no stale socket to remove.
-      }
-    }
     this.server = net.createServer(this.handleConnection.bind(this));
   }
 
-  start(onListening?: () => void): void {
+  /**
+   * Bind the socket.
+   *
+   * `onLost` is called instead of `onListening` when another broker already owns
+   * the path. That is a normal outcome, not a failure: `orphus-roles --format
+   * tmux | sh` starts several sessions at once and each one calls
+   * `ensureBrokerRunning`, so losing the race is the common case for all but the
+   * first. The loser must leave the winner's socket alone — unlinking it is what
+   * used to split the fleet across two brokers with disjoint room state, each
+   * invisible to the other.
+   */
+  start(onListening?: () => void, onLost?: (reason: Error) => void): void {
+    void this.listenWhenPathIsFree(onListening, onLost);
+    if (this.options.exitWhenIdle && !this.signalHandlersRegistered) {
+      process.on("SIGTERM", this.handleSignal);
+      process.on("SIGINT", this.handleSignal);
+      this.signalHandlersRegistered = true;
+    }
+  }
+
+  private async listenWhenPathIsFree(onListening?: () => void, onLost?: (reason: Error) => void): Promise<void> {
+    let releaseLock: ReleaseStartupLock;
+    try {
+      releaseLock = await acquireStartupLock(`${this.pidPath}.startup.lock`);
+      // Windows named pipes are not filesystem entries and leave nothing stale.
+      if (process.platform !== "win32" && existsSync(this.socketPath)) {
+        if (await canConnect(this.socketPath)) {
+          releaseLock();
+          onLost?.(new BrokerAlreadyRunningError(this.socketPath));
+          return;
+        }
+        try {
+          unlinkSync(this.socketPath);
+        } catch {
+          // A stale path may disappear between the probe and cleanup.
+        }
+      }
+    } catch (error) {
+      onLost?.(error instanceof Error ? error : new Error(String(error)));
+      return;
+    }
+
+    const onError = (error: NodeJS.ErrnoException) => {
+      releaseLock();
+      onLost?.(error.code === "EADDRINUSE" ? new BrokerAlreadyRunningError(this.socketPath) : error);
+    };
+    this.server.once("error", onError);
     this.server.listen(this.socketPath, () => {
-      writeFileSync(this.pidPath, String(process.pid));
+      this.server.off("error", onError);
+      this.ownsSocket = true;
+      // Diagnostic only — `ps` against a broker whose socket looks wedged. It is
+      // deliberately not a lock: pids are reused, and a lock file cannot say
+      // whether the holder is still serving. The socket answers that directly,
+      // so the socket is the lock.
+      try {
+        writeFileSync(this.pidPath, String(process.pid));
+      } catch {
+        // Serving the socket is authoritative; the pid file is diagnostic only.
+      }
+      releaseLock();
       onListening?.();
     });
-    process.on("SIGTERM", () => this.shutdown());
-    process.on("SIGINT", () => this.shutdown());
   }
 
   shutdown(): void {
+    if (this.signalHandlersRegistered) {
+      process.off("SIGTERM", this.handleSignal);
+      process.off("SIGINT", this.handleSignal);
+      this.signalHandlersRegistered = false;
+    }
+    // An idle check armed by the last disconnect outlives shutdown() otherwise,
+    // and fires into a broker that is already closed — with sessions cleared
+    // below, its emptiness test passes and it exits the process. In a vitest
+    // worker that is a silent exit code 0 five seconds after the suite moved on.
+    if (this.shutdownTimer) {
+      clearTimeout(this.shutdownTimer);
+      this.shutdownTimer = null;
+    }
     for (const session of this.sessions.values()) session.socket.destroy();
     this.sessions.clear();
-    this.server.close();
-    if (process.platform !== "win32") {
+    if (this.server.listening) this.server.close();
+    if (this.ownsSocket && process.platform !== "win32") {
       try {
         unlinkSync(this.socketPath);
       } catch {
         // Already removed.
       }
     }
-    try {
-      unlinkSync(this.pidPath);
-    } catch {
-      // Already removed.
+    if (this.ownsSocket) {
+      try {
+        unlinkSync(this.pidPath);
+      } catch {
+        // Already removed.
+      }
+      this.ownsSocket = false;
     }
   }
 
@@ -73,11 +236,15 @@ export class RoundtableBroker {
     if (this.shutdownTimer) return;
     this.shutdownTimer = setTimeout(() => {
       this.shutdownTimer = null;
-      if (this.sessions.size === 0) {
-        this.shutdown();
-        process.exit(0);
-      }
-    }, SHUTDOWN_GRACE_MS);
+      if (this.sessions.size > 0) return;
+      this.shutdown();
+      // Only a broker that owns its process may exit it. Embedded in a test or
+      // in the demo, the host owns the process and shutdown() alone is correct.
+      if (this.options.exitWhenIdle) process.exit(0);
+    }, this.options.idleGraceMs ?? SHUTDOWN_GRACE_MS);
+    // The listening server already holds the event loop open, so the timer does
+    // not need to; unref'd, it cannot keep a host process alive on its own.
+    this.shutdownTimer.unref?.();
   }
 
   private handleConnection(socket: net.Socket): void {
@@ -150,12 +317,20 @@ export class RoundtableBroker {
         case "join": {
           const { room, cursor } = this.store.join(msg.room, { sessionId, name: session.name }, msg.topic);
           this.send(socket, { type: "joined", requestId: msg.requestId, room, cursor });
-          this.notifyRoom(msg.room, { type: "activity", room: msg.room, from: session.name, seq: room.lastSeq }, sessionId);
+          // seq 0 marks membership churn: the extension filters those out rather
+          // than counting them as content (index.ts). Sending room.lastSeq here
+          // announced a join as a new message, so joining a room with history
+          // pinged every peer about a message that does not exist — and a late
+          // joiner, the case the digest exists for, always has history.
+          this.notifyRoom(msg.room, { type: "activity", room: msg.room, from: session.name, seq: 0 }, sessionId);
           break;
         }
         case "leave": {
           this.store.leave(msg.room, sessionId);
           this.send(socket, { type: "left", requestId: msg.requestId, room: msg.room });
+          // Matches the disconnect path, which already announces departures.
+          // Without this, peers saw a role leave only when its session died.
+          this.notifyRoom(msg.room, { type: "activity", room: msg.room, from: "(left)", seq: 0 }, sessionId);
           break;
         }
         case "post": {

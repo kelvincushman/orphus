@@ -1,0 +1,29 @@
+# Dependabot, scoped to GitHub Actions only.
+#
+# The inherited config covered every ecosystem and opened eleven weekly PRs, so
+# it was removed in 01faaae. That reasoning holds for npm: this fork takes its
+# npm dependencies from upstream Atomic merges, and a bot bumping them in
+# parallel is noise that fights the merge.
+#
+# It does not hold for Actions. The workflows in .github/ are this fork's own —
+# upstream merges never touch ci.yml — and they are pinned by commit SHA, which
+# is the right call for supply-chain but means a pin has no way to move on its
+# own. Nothing else in the repository will notice a pinned action going stale or
+# gaining a security fix. That is one PR every few weeks, not eleven a week.
+#
+# `cooldown` mirrors the release-age gate in the committed .npmrc: the two
+# express the same policy from opposite sides and must stay in step.
+
+version: 2
+updates:
+    - package-ecosystem: "github-actions"
+      directory: "/"
+      schedule:
+          interval: "weekly"
+      cooldown:
+          default-days: 2
+      commit-message:
+          prefix: "ci"
+      labels:
+          - "dependencies"
+          - "github-actions"

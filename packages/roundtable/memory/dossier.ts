@@ -1,3 +1,6 @@
+import { join } from "path";
+import { getAgentDir } from "../broker/paths.ts";
+
 /**
  * Long-term memory via HMLR-Wiki / Dossier — the pure boundary.
  *
@@ -28,6 +31,10 @@ export interface MemoryConfig {
   readonly writerRole: string;
 }
 
+export interface ResolvedMemoryConfig extends MemoryConfig {
+  readonly cwd: string;
+}
+
 const DEFAULT_COMMAND = "python -m dossier";
 const DEFAULT_WRITER_ROLE = "librarian";
 
@@ -56,11 +63,14 @@ export function parseCommand(command: string): string[] {
  *   ORPHUS_MEMORY_DIR          Dossier project directory (optional)
  *   ORPHUS_MEMORY_WRITER_ROLE  role allowed to write (default "librarian")
  */
-export function resolveMemoryConfig(env: NodeJS.ProcessEnv = process.env): MemoryConfig {
+export function resolveMemoryConfig(env: NodeJS.ProcessEnv = process.env): ResolvedMemoryConfig {
   const command = parseCommand(env.ORPHUS_MEMORY_COMMAND ?? DEFAULT_COMMAND);
   const writerRole = (env.ORPHUS_MEMORY_WRITER_ROLE ?? "").trim() || DEFAULT_WRITER_ROLE;
-  const cwd = env.ORPHUS_MEMORY_DIR?.trim();
-  return cwd ? { command, writerRole, cwd } : { command, writerRole };
+  // Anchored under the agent dir, like the broker socket, so every Orca worktree
+  // resolves the SAME wiki. Defaulting to the process cwd would silently give each
+  // worktree its own empty memory, and an empty answer reads as success.
+  const cwd = env.ORPHUS_MEMORY_DIR?.trim() || join(getAgentDir(env), "memory");
+  return { command, writerRole, cwd };
 }
 
 export interface MemoryParams {
