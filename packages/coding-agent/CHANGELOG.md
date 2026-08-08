@@ -4,16 +4,27 @@
 
 ### Added
 
+- The bundled Roundtable tool now exposes its explicit raw-message tier through
+  `fetch` with sequence pagination, accepts a per-message digest budget, and
+  reports per-role unread counts when listing rooms. The shipped Roundtable
+  package also includes its memory implementation and an `orphus-roles`
+  executable for role-manifest launch plans.
 - `CreateAgentSessionOptions` and `ExtensionContext` now carry an immutable typed subagent child capability policy for in-process tool registration ([#2188](https://github.com/bastani-inc/atomic/issues/2188)).
 - `CreateAgentSessionOptions` now supports construction-time system-prompt and inherited-context transforms, allowing in-process child sessions to apply typed policy without extension injection ([#2188](https://github.com/bastani-inc/atomic/issues/2188)).
 
 ### Changed
 
+- Roundtable digest collapse accounting now stays newest-first after the first
+  headline that cannot fit, so the collapsed count never interleaves with older
+  rendered headlines.
 - Typed child policy now includes MCP direct-tool selection and admission-issued Intercom identity/capability, allowing in-process extensions to consume child policy without inheritable environment state ([#2188](https://github.com/bastani-inc/atomic/issues/2188)).
 - Bundled subagent launches now use in-process `AgentSession` children with typed admission, canonical identities, and live async continuation; `async: true` work is owned by the parent process and does not survive parent exit ([#2188](https://github.com/bastani-inc/atomic/issues/2188)).
 
 ### Fixed
 
+- Roundtable role-manifest validation now explains task-name restrictions in
+  terms of the generated tmux session instead of incorrectly claiming tasks key
+  broker cursors.
 - Workflow runs awaiting human input now use the blue `？` indicator in the BACKGROUND panel, `/workflow connect` picker, and `/workflow status` listing, including prompts raised by hidden nested workflow children; the indicator returns to the run's current state when the prompt resolves.
 - Fixed main-chat model fallback to classify provider failures consistently with workflows, advance rejected credentials and incompatible or unavailable models to the next candidate, and restore the user-selected model at the next turn without overriding an explicit `/model` choice. A failure that requesting the same model again cannot repair now takes that model out of the chain for the rest of the turn at every reasoning level, so a fallback entry differing only by its `:low`/`:high` suffix is skipped instead of retrying the same dead credential; transient rate-limit and transport failures keep those reasoning variants ([#2170](https://github.com/bastani-inc/atomic/issues/2170)).
 - Fixed a context overflow that compaction cannot resolve to advance the configured `fallbackModels` chain instead of ending the turn, so a larger-context candidate can answer. Compaction still runs first, and a compactable overflow spends no fallback candidate ([#2170](https://github.com/bastani-inc/atomic/issues/2170)).

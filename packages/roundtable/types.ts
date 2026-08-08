@@ -30,6 +30,11 @@ export interface RoomInfo {
   /** Highest sequence number in the room; 0 when empty. */
   lastSeq: number;
   lastActivity: number;
+  /**
+   * Messages the *requesting* role has not read, when the listing was built for
+   * a named viewer. Absent when the store was asked for a viewer-agnostic list.
+   */
+  unread?: number;
 }
 
 /** Client → broker protocol. */

@@ -174,7 +174,7 @@ describe("roundtable broker and client over a real socket", () => {
 		const result = await run({ action: "export", room: "design", path: "raw/escape/transcript.md" });
 
 		assert.equal(result.isError, true);
-		assert.match(result.content[0]?.text ?? "", /symlink outside/);
+		assert.match(result.content[0]?.text ?? "", /symlink outside/u);
 		assert.equal(await fileExists(join(outside, "transcript.md")), false);
 	});
 
