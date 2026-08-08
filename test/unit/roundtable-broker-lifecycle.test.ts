@@ -117,9 +117,10 @@ describe("roundtable broker lifecycle", () => {
 			loser.start(() => reject(new Error("the second broker bound a socket the first one owns")), resolve);
 		});
 		expect(lost.message).toContain("Another roundtable broker is already listening");
+		const winnerPid = readFileSync(getBrokerPidPath(agentDir), "utf8");
 		loser.shutdown();
 		assert.equal(existsSync(getBrokerPidPath(agentDir)), true);
-		assert.equal(readFileSync(getBrokerPidPath(agentDir), "utf8"), String(process.pid));
+		assert.equal(readFileSync(getBrokerPidPath(agentDir), "utf8"), winnerPid);
 
 		// The decisive assertion: a client connecting now must reach the winner,
 		// with the room history intact. A split broker answers with an empty store.
@@ -154,6 +155,21 @@ describe("roundtable broker lifecycle", () => {
 
 		assert.equal(outcomes.filter((outcome) => outcome === "started").length, 1);
 		assert.equal(await canConnect(socketPath), true);
+	});
+
+	it("fails closed instead of deleting a stale startup lock that another contender could replace", async () => {
+		mkdirSync(getRoundtableDirPath(agentDir), { recursive: true });
+		const lockPath = `${getBrokerPidPath(agentDir)}.startup.lock`;
+		writeFileSync(lockPath, JSON.stringify({ pid: Number.MAX_SAFE_INTEGER, token: "dead-owner" }));
+
+		const broker = makeBroker(agentDir);
+		started.push(broker);
+		const lost = await new Promise<Error>((resolve, reject) => {
+			broker.start(() => reject(new Error("a broker must not reclaim a stale startup lock automatically")), resolve);
+		});
+
+		assert.match(lost.message, /Stale roundtable broker startup lock/u);
+		assert.equal(existsSync(lockPath), true);
 	});
 
 	// The other half of the same decision: refusing to unlink must not strand the

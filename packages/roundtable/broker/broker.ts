@@ -45,6 +45,13 @@ export class BrokerAlreadyRunningError extends Error {
   }
 }
 
+export class StaleBrokerStartupLockError extends Error {
+  constructor(lockPath: string, pid: number) {
+    super(`Stale roundtable broker startup lock ${lockPath} belongs to dead pid ${pid}; remove it and retry`);
+    this.name = "StaleBrokerStartupLockError";
+  }
+}
+
 type ReleaseStartupLock = () => void;
 
 function processIsAlive(pid: number): boolean {
@@ -77,7 +84,7 @@ async function acquireStartupLock(lockPath: string): Promise<ReleaseStartupLock>
           const owner = JSON.parse(readFileSync(lockPath, "utf8")) as { token?: string };
           if (owner.token === token) unlinkSync(lockPath);
         } catch {
-          // The lock was already reclaimed or removed.
+          // The lock was already removed.
         }
       };
     } catch (error) {
@@ -91,13 +98,12 @@ async function acquireStartupLock(lockPath: string): Promise<ReleaseStartupLock>
       // A process may still be between the exclusive create and metadata write.
     }
     if (typeof owner.pid === "number" && typeof owner.token === "string" && !processIsAlive(owner.pid)) {
-      try {
-        const current = JSON.parse(readFileSync(lockPath, "utf8")) as { pid?: number; token?: string };
-        if (current.pid === owner.pid && current.token === owner.token) unlinkSync(lockPath);
-      } catch {
-        // Another contender reclaimed it first.
-      }
-      continue;
+      // POSIX has no compare-and-unlink primitive. Re-reading identity before
+      // unlinking is still racy: another contender can replace the stale file
+      // between those operations, and this process would delete the live lock.
+      // Fail closed instead; the lock is held only during bind, so this path is
+      // limited to a process dying inside that short startup window.
+      throw new StaleBrokerStartupLockError(lockPath, owner.pid);
     }
     await sleep(STARTUP_LOCK_RETRY_MS);
   }
