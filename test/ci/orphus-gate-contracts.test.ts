@@ -80,6 +80,17 @@ test("every Orphus gate job pins its actions by commit SHA", async () => {
 	assert.deepEqual(floating, []);
 });
 
+test("checkout credentials are not persisted into repository-controlled steps", async () => {
+	const ci = await readText(ciPath);
+	for (const [name, block] of jobBlocks(ci)) {
+		assert.match(
+			block,
+			/actions\/checkout@[0-9a-f]{40}[^\n]*\n\s+with:\n\s+persist-credentials: false/u,
+			`job ${name} leaves checkout credentials available to later commands`,
+		);
+	}
+});
+
 test("the Orphus gate cancels superseded runs and bounds every job", async () => {
 	const ci = await readText(ciPath);
 	assert.match(ci, /^concurrency:\n\s+group:.*\n\s+cancel-in-progress: true$/mu);

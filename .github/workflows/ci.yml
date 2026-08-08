@@ -40,6 +40,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
@@ -94,6 +96,8 @@ jobs:
       # not. This fork cannot fetch them anyway — four LFS objects 404 against
       # its own server, so requesting them fails checkout before any test runs.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       # The fork has no local tags, while the inherited changelog suite compares
       # released sections with Atomic's immutable release tags.
       - name: Fetch inherited release tags
