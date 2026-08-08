@@ -16,6 +16,17 @@ Atomic accepts environment variables for configuration, provider credentials, an
 
 `PI_CACHE_RETENTION=long` is a provider/upstream prompt-cache option and intentionally has no Atomic-prefixed alias. `VISUAL` and `EDITOR` select the Ctrl+G external editor when `externalEditor` is unset.
 
+### Roundtable memory
+
+The bundled Roundtable extension shares one Dossier project across sessions and
+worktrees. Its directory is created on first use.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `ORPHUS_MEMORY_COMMAND` | `python -m dossier` | Dossier command, split into an argument vector |
+| `ORPHUS_MEMORY_DIR` | `<agent dir>/memory` | Shared Dossier project containing `raw/` and `wiki/` |
+| `ORPHUS_MEMORY_WRITER_ROLE` | `librarian` | Session role allowed to ingest and run the gardener |
+
 ## Provider credentials
 
 Provider keys include `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, `GEMINI_API_KEY`, AWS/Bedrock credentials, and the variables listed in [Providers](/providers#environment-variables-or-auth-file). `ANTHROPIC_AUTH_TOKEN` is a distinct header-only bearer credential for Anthropic-compatible gateways: Atomic sends `Authorization: Bearer …` without requiring or inventing an API key, including normal turns, isolated execution, branch summaries, and Verbatim Compaction. Custom headers remain independent.

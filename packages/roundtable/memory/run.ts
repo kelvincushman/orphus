@@ -1,4 +1,5 @@
 import { spawn } from "child_process";
+import { mkdirSync } from "fs";
 import type { MemoryConfig } from "./dossier.ts";
 
 /**
@@ -25,6 +26,7 @@ export function runDossier(
   if (!command) return Promise.reject(new Error("memory command is empty; set ORPHUS_MEMORY_COMMAND"));
 
   return new Promise((resolve, reject) => {
+    if (config.cwd) mkdirSync(config.cwd, { recursive: true });
     let settled = false;
     const child = spawn(command, [...baseArgs, ...argv], {
       cwd: config.cwd,
