@@ -1,7 +1,14 @@
 ## Design Context
 
+> Inherited from [Atomic](https://github.com/bastani-inc/atomic) and lightly adapted.
+> This describes the *harness* Orphus is built on — its TUI voice, tone, and visual
+> restraint — which Orphus keeps. What Orphus adds on top is the deliberation layer,
+> and its product argument lives in [PLAN.md](PLAN.md) and
+> [packages/roundtable/DESIGN.md](packages/roundtable/DESIGN.md).
+
+
 ### Users
-Developers and engineering teams who orchestrate AI coding agents (Claude Code, OpenCode, GitHub Copilot CLI) through a unified terminal interface. They are technical, keyboard-first users who value efficiency and clarity. They use Atomic to run autonomous multi-hour coding sessions — researching codebases, generating specs, and shipping code. Their primary job: trust the system to do complex multi-agent work correctly, then review results.
+Developers and engineering teams who orchestrate AI coding agents (Claude Code, OpenCode, GitHub Copilot CLI) through a unified terminal interface. They are technical, keyboard-first users who value efficiency and clarity. They use Orphus to run autonomous multi-hour coding sessions — researching codebases, generating specs, and shipping code. Their primary job: trust the system to do complex multi-agent work correctly, then review results.
 
 ### Brand Personality
 **Reliable, Minimal, Powerful**
@@ -38,8 +45,11 @@ Developers and engineering teams who orchestrate AI coding agents (Claude Code, 
 
 **Anti-references (what to avoid):**
 - Cluttered dashboards — no information overload or enterprise-style complexity
-- Generic/bland CLI output — Atomic should feel crafted, not boilerplate
-- Flashy/gimmicky UI — no gratuitous animations or ASCII art overload; function over novelty
+- Generic/bland CLI output — Orphus should feel crafted, not boilerplate
+- Flashy/gimmicky UI — no gratuitous animations, and no ASCII art *overload*; function over novelty.
+  (Orphus ships a single wordmark banner at startup and one in the README. One mark that
+  tells you which tool you launched is identity; a decorated interface is the thing this
+  rules out.)
 - Slow/heavy interfaces — rendering must be instant; no unnecessary loading states
 
 ### Design Principles

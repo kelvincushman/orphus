@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        **Before you start:** Read [CONTRIBUTING.md](https://github.com/bastani-inc/atomic/blob/main/CONTRIBUTING.md).
+        **Before you start:** Read [CONTRIBUTING.md](https://github.com/kelvincushman/orphus/blob/main/CONTRIBUTING.md).
 
         Use this form to propose a focused change or feature enhancement. If you need help, have a question, or are unsure whether this belongs here, please ask on [Discord](https://discord.gg/9CvdXUGXR4) instead.
 

@@ -2,9 +2,15 @@
 
 ## Overview
 
-This repo is the private `atomic-monorepo` npm workspace. It currently houses:
+This repo is **Orphus**: an agent harness whose agents deliberate in rooms that live outside their context windows. It is a fork of [Atomic](https://github.com/bastani-inc/atomic), itself a fork of pi, so most of the tree is vendored upstream code and the package names are still `@bastani/*`. Renaming the npm scope is an open decision, not an oversight — see PLAN.md.
 
-- `@bastani/atomic` in `packages/coding-agent` — the Atomic-branded fork of pi's coding-agent CLI and the only independently published package.
+The package this project exists for:
+
+- `@bastani/roundtable` in `packages/roundtable` — **the Orphus contribution.** Rooms and the context-window contract: the budgeted digest algorithm (`digest.ts`), the local-socket broker and its client (`broker/`), the `roundtable` and `memory` tools, the declarative role manifest and launcher (`roles/`, `bin/orphus-roles.ts`), the discussion-etiquette skill, and the no-model demos. When a change here is not obviously about rooms, digests, roles, or memory, it probably belongs in the vendored tree instead.
+
+Inherited from Atomic, and mostly left alone:
+
+- `@bastani/atomic` in `packages/coding-agent` — the coding-agent CLI, which builds the `orphus` binary. The only independently published package.
 - `@bastani/workflows` in `packages/workflows` — a first-party extension for Atomic/pi that brings multi-stage, DAG-driven workflow execution to agent sessions.
 - `@bastani/subagents` in `packages/subagents` — builtin subagent orchestration, reusable agent definitions, skills, prompts, chains, and foreground/background execution.
 - `@bastani/mcp` in `packages/mcp` — builtin MCP adapter extension that exposes MCP servers as agent tools.
@@ -17,11 +23,55 @@ Companion packages under `packages/*` ship as **raw TypeScript** (no compile ste
 
 Fix the actual problem with the **smallest correct change**. Do not rewrite files, and do not add speculative hardening for issues that cannot occur in this codebase. Don't reinvent the wheel or burn tokens rewriting file after file when the fix is usually a few lines.
 
-- **Verify before fixing.** Reproduce a reported issue, or trace that an existing guard already prevents it — the manifest `NAME_PATTERN` validation, the librarian write-gate, the local same-machine socket trust boundary. Refute non-issues instead of patching them. A review tool flagging something is a hypothesis, not a fact.
+- **Verify before fixing.** Reproduce a reported issue, or trace that an existing guard already prevents it — the manifest `NAME_PATTERN` validation, the librarian writer convention (a coordination check against accidental concurrent writes, *not* a security boundary — see `docs/memory.md`), the local same-machine socket trust boundary. Refute non-issues instead of patching them. A review tool flagging something is a hypothesis, not a fact.
 - **Prefer a one-line fix to a subsystem.** Weigh diff size against real risk reduced. The `client.ts` unhandled-rejection fix is `void registered.catch(() => {})`, not a rewrite.
 - **Reuse what exists** — sibling modules (e.g. intercom's reconnect guard), existing helpers, validation already in place — rather than building new machinery.
 - **Don't over-test.** Skip a disproportionate harness for a low-severity edge; a clear comment can be the right call. But every real fix gets a regression test proven to fail without it.
 - **Precedent:** a broad review once flagged 15 issues here; verification confirmed 2. The minimal fix was ~50 lines; the kitchen-sink alternative was ~1,150. Ship the 50.
+
+### Reuse check — query the graph before you write
+
+"Reuse what exists" is only enforceable if you can find what exists. This tree is
+large (a vendored Atomic/Pi fork plus the Orphus packages), so grepping for a
+plausible function name is not evidence that one does not already exist.
+
+[GitNexus](https://github.com/abhigyanpatwari/GitNexus) indexes the repository
+into a knowledge graph and serves it over MCP; it is declared in the committed
+`.mcp.json`, so any agent session that reads that file gets the tools. Index once
+per checkout:
+
+```sh
+npx gitnexus@1.6.9 analyze .        # writes .gitnexus/ (gitignored); ~3 min for this tree
+npx gitnexus@1.6.9 status           # re-run analyze when this reports "stale"
+```
+
+Before adding a function, a helper, or a module:
+
+1. `context <symbol>` — who calls it, what it calls, which flows it sits in.
+2. `impact <symbol>` — blast radius, before changing anything shared.
+3. `cypher "<query>"` — when you need to search rather than start from a known
+   symbol. Node tables are `Function`, `Method`, `Class`, `Interface`, `File`, and
+   the location property is `filePath` (not `path` or `file_path`):
+
+   ```sh
+   npx gitnexus@1.6.9 cypher "MATCH (m:Method) WHERE m.filePath CONTAINS 'roundtable/broker/' \
+     RETURN m.name AS name, m.filePath AS file, m.startLine AS line ORDER BY file, line"
+   ```
+
+The graph is the anti-duplication gate: **nothing gets recreated that the tree
+already has.** It is a lookup tool, not an authority — it can be stale, and a
+confident-looking answer still needs the file read before you act on it. When the
+graph and the source disagree, the source wins and the index needs a re-run.
+
+Two limits worth knowing before you trust an empty result:
+
+- **`query` needs the LadybugDB FTS extension**, which `analyze` downloads on
+  first use. Behind a proxy that blocks it, indexing still succeeds and the graph
+  is complete, but `query` silently returns zero matches with a `warning` field
+  rather than an error — which reads exactly like "no such code exists". Use
+  `cypher` for search in that case, and check `doctor` if you are unsure.
+- **Files over 512 KB are skipped** (currently one: the `0002` rebrand patch).
+  Raise `GITNEXUS_MAX_FILE_SIZE` if you need them indexed.
 
 ## Tech Stack
 
@@ -32,7 +82,7 @@ everywhere. Where the split differs from pi, the reason is written down.
 | Task | Tool | Why |
 | --- | --- | --- |
 | Dependency install | `npm ci --ignore-scripts` | `package-lock.json` is the single verified lockfile. `npm ci` refuses to install when it and `package.json` disagree; nothing enforced that while two lockfiles coexisted |
-| Supply-chain gate | committed `.npmrc` | Byte-identical to pi's: `save-exact=true` and `min-release-age=2`. Binds every contributor's install, not just CI. `.github/dependabot.yml` carries the matching `cooldown` |
+| Supply-chain gate | committed `.npmrc` | `save-exact=true`, plus a 2-day release-age cooldown declared under both `min-release-age` (pi's spelling, which npm 10 ignores) and `minimumReleaseAge` (npm's own key, npm 11.6+). `.github/dependabot.yml` carries the matching `cooldown`, scoped to the `github-actions` ecosystem |
 | Build | `npm run build` | tsgo, not Bun; no behaviour change |
 | Lint / format | `biome check` (`npm run check`, `npm run format`) | pi's rule set exactly: recommended preset plus the same six overrides. Tab indent width 3, line width 120 |
 | Typecheck / check | `npm run check` (biome + `tsc --noEmit` + shrinkwrap check) | pi runs biome + tsgo here |
@@ -44,12 +94,22 @@ everywhere. Where the split differs from pi, the reason is written down.
 | npm-package smoke tests | Node (`node-version: 22` in CI, matching pi) | `test/integration/installed-package-node-extensions.test.ts` verifies the shipped `atomic` bin under `#!/usr/bin/env node`, which is how npm installs run it |
 | Registry publish | `npm publish --provenance` | npm's OIDC-signed provenance lives in the npm CLI, and npm trusted publishing requires a GitHub-hosted runner |
 
-**Where this repository deliberately declines pi's shape:** pi's CI is one `ubuntu-latest`
-job with no matrix and no `timeout-minutes`. Do not copy it. This workflow produces nine
-check contexts including full Windows coverage, runs on Blacksmith runners, and carries
-per-job timeout budgets that `test/ci/test-workflow-topology.test.ts` asserts. Adopting pi's
-topology would delete Windows coverage and orphan the two required check contexts. Parity is
-a *toolchain* goal, not a CI-topology goal.
+**What actually gates a pull request here.** `.github/workflows/ci.yml` — and only that
+file. It runs two `ubuntu-latest` jobs: `verify` (biome, tsc, the shrinkwrap check, the
+coding-agent build, the roundtable tests, the demo's digest bound, the manifest plan) and
+`suites` (the inherited unit suite and the CI contract tests).
+
+The inherited Atomic workflows — `test.yml`, `publish.yml`, `warm-toolchain-cache.yml` —
+describe a nine-context matrix with full Windows coverage on Blacksmith runners, and
+`test/ci/test-workflow-topology.test.ts` still asserts that shape. **None of them run.**
+Blacksmith runners are registered to the upstream organization and never pick up jobs on
+this repository, so those workflows are kept byte-identical to upstream and disabled at the
+repository level rather than rewritten. Read them as a record of upstream's topology, not as
+this repository's gate, and do not optimize for check contexts that will never report.
+
+The practical consequence: **this fork has no Windows CI.** `prek.toml` records a
+Windows-only line-ending bug that reached main because of it. Treat a
+platform-sensitive change as unverified on Windows until someone runs it there.
 
 - TypeScript ≥ 5.x (strict, `noUnusedLocals`, `noUnusedParameters`)
 - `@sinclair/typebox` for schema definitions
@@ -60,8 +120,12 @@ a *toolchain* goal, not a CI-topology goal.
 ### Commands
 
 - `npm ci --ignore-scripts` — install dependencies from `package-lock.json`
-- `npm install <pkg>` — add a dependency; `.npmrc` applies the 3-day release-age gate and `save-exact`
-- `npm run check` — `tsc --noEmit` plus the published-shrinkwrap check. `npm run typecheck` is the typecheck alone
+- `npm install <pkg>` — add a dependency; `.npmrc` applies the 2-day release-age gate and `save-exact`
+- `npm run check` — biome (`--error-on-warnings`), `tsc --noEmit`, and the published-shrinkwrap check. `npm run typecheck` is the typecheck alone
+- `npm run demo` — the scripted three-agent discussion over the real broker socket. No model. Asserts the late-joiner digest stays under 40% of the raw transcript, so it fails rather than merely reporting
+- `npm run demo:loop` — the same, extended through export → memory ingest → recall by a fresh session
+- `npm run roles` — turn `orphus.roles.yaml` into launch commands (`--format plan|json|sh|tmux|orca`)
+- `npx vitest --run --project unit test/unit/roundtable-` — the Orphus tests alone, in seconds
 - `npm run test:unit`, `npm run test:integration`, `npm run test:ci-contracts`, `npm run test:all`
 - `npm run test --workspace=@bastani/atomic` — the coding-agent vitest suite, under Node
 - `npm run test:scripts` — `node --test scripts/*.test.mjs`
@@ -84,7 +148,13 @@ name it.
 
 ## Design Context
 
-Refer to `DESIGN.md` and `PRODUCT.md`.
+For the Orphus contribution — why the digest is extractive and model-free, why cursors are
+keyed by role name, why the broker is separate from intercom's, and the trust boundary —
+read [`packages/roundtable/DESIGN.md`](packages/roundtable/DESIGN.md).
+
+The root `DESIGN.md` is a different document: it is Atomic's inherited TUI design-token
+spec (palette, typography, spacing), and says nothing about rooms. `PRODUCT.md` is likewise
+Atomic's product brief.
 
 ## Issues and pull requests
 

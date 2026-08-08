@@ -21,12 +21,12 @@ function expandTildePath(path: string): string {
 }
 
 /** Fork lineage: Orphus first, then Atomic, then Pi — matching CONFIG_DIR_NAMES. */
-function getAgentDir(): string {
-  const orphusAgentDir = process.env.ORPHUS_CODING_AGENT_DIR;
+export function getAgentDir(env: NodeJS.ProcessEnv = process.env): string {
+  const orphusAgentDir = env.ORPHUS_CODING_AGENT_DIR;
   if (orphusAgentDir) return expandTildePath(orphusAgentDir);
-  const atomicAgentDir = process.env.ATOMIC_CODING_AGENT_DIR;
+  const atomicAgentDir = env.ATOMIC_CODING_AGENT_DIR;
   if (atomicAgentDir) return expandTildePath(atomicAgentDir);
-  const piAgentDir = process.env.PI_CODING_AGENT_DIR;
+  const piAgentDir = env.PI_CODING_AGENT_DIR;
   if (piAgentDir) return expandTildePath(piAgentDir);
   return join(getHomeDir(), ".orphus", "agent");
 }

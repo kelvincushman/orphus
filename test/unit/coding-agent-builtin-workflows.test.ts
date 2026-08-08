@@ -20,6 +20,7 @@ const expectedBuiltinPackages = [
 	resolve("packages/mcp"),
 	resolve("packages/web-access"),
 	resolve("packages/intercom"),
+	resolve("packages/roundtable"),
 ];
 
 const builtinPackageFixtures = [
@@ -28,6 +29,7 @@ const builtinPackageFixtures = [
 	{ packageName: "@bastani/mcp", dirname: "mcp", requiredEntry: "index.ts" },
 	{ packageName: "@bastani/web-access", dirname: "web-access", requiredEntry: "index.ts" },
 	{ packageName: "@bastani/intercom", dirname: "intercom", requiredEntry: "index.ts" },
+	{ packageName: "@bastani/roundtable", dirname: "roundtable", requiredEntry: "index.ts" },
 ] as const;
 
 const fullBuiltinPackageLoadTimeoutMs = 60_000;
@@ -206,10 +208,24 @@ describe("coding-agent builtin resources", () => {
 				"packages/mcp/index.ts",
 				"packages/web-access/index.ts",
 				"packages/intercom/index.ts",
+				"packages/roundtable/index.ts",
 			]) {
 				assert.ok(
 					extensionPaths.some((extensionPath) => extensionPath.endsWith(suffix)),
 					`expected builtin extension path ending in ${suffix}`,
+				);
+			}
+
+			// Rooms and memory are only reachable if the roundtable extension registers
+			// its tools; being on the extension list is not the same as being usable.
+			const roundtableExtension = extensions.extensions.find((extension) =>
+				extension.path.replace(/\\/g, "/").endsWith("packages/roundtable/index.ts"),
+			);
+			assert.ok(roundtableExtension, "expected the roundtable extension to load");
+			for (const toolName of ["roundtable", "memory"]) {
+				assert.ok(
+					roundtableExtension?.tools.has(toolName),
+					`expected roundtable extension to register the ${toolName} tool`,
 				);
 			}
 
