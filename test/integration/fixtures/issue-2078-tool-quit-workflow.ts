@@ -1,9 +1,8 @@
 /**
  * Project workflow fixture for the issue #2078 end-to-end scenario.
  *
- * Both drivers — `test/integration/workflow-tool-node-quit-cli.test.ts` and
- * `scripts/e2e/issue-2078-evidence.sh` — copy this file into a scratch
- * project's `.atomic/workflows/` and let the real Atomic CLI discover it, so it
+ * `test/integration/workflow-tool-node-quit-cli.test.ts` copies this file into
+ * a scratch project's `.atomic/workflows/` and lets the real Atomic CLI discover it, so it
  * has to stay self-contained: no relative imports survive the copy.
  *
  * The run is tool-only on purpose. That is the exact shape issue #2078 reported

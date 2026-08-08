@@ -1,8 +1,7 @@
 /**
  * Stand-in model endpoint for the issue #2074 end-to-end scenario.
  *
- * Both drivers — `test/integration/workflow-stage-steering-queue-cli.test.ts`
- * and `scripts/e2e/issue-2074-evidence.sh` — need a workflow stage that is
+ * `test/integration/workflow-stage-steering-queue-cli.test.ts` needs a workflow stage that is
  * genuinely mid-turn while the user types into its stage chat, detaches, and
  * reattaches. The queue only holds a message while the stage session is
  * streaming, so the turn has to still be open at every step of the scenario.
@@ -13,9 +12,8 @@
  * the scenario waits for the turn to end, and the CLI is killed at the end, so
  * a stream with no terminator is the whole point rather than a leak.
  *
- * It is a separate process on purpose. The vitest driver and the tmux script
- * then drive the same endpoint instead of each modelling one, and the CLI it
- * serves is the real one in both.
+ * It is a separate process on purpose, so the CLI under test talks to the same
+ * endpoint shape as a real session rather than a model mocked in-process.
  *
  * Usage: bun issue-2074-model-server.ts <state-dir>
  * Writes `<state-dir>/model-port` once listening; that file is the readiness
@@ -43,11 +41,10 @@ const HEARTBEAT_MS = 2_000;
 /**
  * Self-destruct deadline.
  *
- * `scripts/e2e/issue-2074-evidence.sh` deliberately leaves this process running
- * when it returns — ending the stage's turn would drain the queue the caller is
- * about to capture — so the process has to bound its own lifetime rather than
- * outlive the scenario. Far longer than any run of that script, far shorter
- * than a session.
+ * The integration driver deliberately leaves this process running while it
+ * captures queued stage-chat state; ending the stage's turn would drain that
+ * queue. The process therefore bounds its own lifetime rather than outliving
+ * the scenario.
  */
 const LIFETIME_MS = Number(process.env.ISSUE_2074_MODEL_SERVER_TTL_MS ?? 15 * 60_000);
 

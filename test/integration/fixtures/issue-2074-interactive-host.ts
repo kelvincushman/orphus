@@ -12,8 +12,6 @@
  * the `Terminal`, because vitest has no TTY to allocate. Everything else is the
  * real thing: the same isolated engine child, the same builtin extension
  * packages, the same workflows overlay, the same stage-chat host.
- * `scripts/e2e/issue-2074-evidence.sh` drives `cli.ts` itself inside a real
- * terminal and reaches the same screens.
  *
  * Protocol: newline-delimited JSON on stdin (`{"type":"input","data":"..."}`,
  * `{"type":"state"}`), `@@ISSUE_2074@@`-prefixed JSON on stdout. Only `state`
