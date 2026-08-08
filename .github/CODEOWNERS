@@ -1,0 +1,19 @@
+# Every path in this repository is owned by the maintainer. GitHub requests a
+# review from the owner automatically on each pull request.
+#
+# The Orphus-authored surfaces are listed separately from the vendored Atomic
+# tree so the intent stays readable if ownership is ever split.
+
+* @kelvincushman
+
+# The Orphus contribution itself.
+/packages/roundtable/ @kelvincushman
+/test/unit/roundtable-* @kelvincushman
+/docs/ @kelvincushman
+/roles/ @kelvincushman
+/orphus.roles.yaml @kelvincushman
+
+# The gate that actually runs, plus the repository contract files.
+/.github/workflows/ci.yml @kelvincushman
+/AGENTS.md @kelvincushman
+/CLAUDE.md @kelvincushman
