@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "fs/promises";
+import { lstat, mkdir, realpath, writeFile } from "fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep } from "path";
 import type { ExtensionAPI, ToolDefinition } from "@bastani/atomic";
 import { type Static, Type } from "typebox";
@@ -66,7 +66,15 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function resolveExportTarget(exportRoot: string, requestedPath: string): string {
+function isWithin(root: string, candidate: string): boolean {
+  const candidateFromRoot = relative(root, candidate);
+  return (
+    candidateFromRoot === "" ||
+    (!candidateFromRoot.startsWith(`..${sep}`) && candidateFromRoot !== ".." && !isAbsolute(candidateFromRoot))
+  );
+}
+
+async function resolveExportTarget(exportRoot: string, requestedPath: string): Promise<string> {
   if (isAbsolute(requestedPath)) throw new Error("Export path must be relative to the memory directory");
   const rawRoot = resolve(exportRoot, "raw");
   const target = resolve(exportRoot, requestedPath);
@@ -78,6 +86,43 @@ function resolveExportTarget(exportRoot: string, requestedPath: string): string 
     isAbsolute(relativeTarget)
   ) {
     throw new Error("Export path must name a file under the memory raw/ directory");
+  }
+
+  await mkdir(rawRoot, { recursive: true });
+  const canonicalExportRoot = await realpath(resolve(exportRoot));
+  const canonicalRawRoot = await realpath(rawRoot);
+  if (!isWithin(canonicalExportRoot, canonicalRawRoot)) {
+    throw new Error("Memory raw directory must not resolve outside the memory directory");
+  }
+
+  const targetParent = dirname(target);
+  let existingAncestor = targetParent;
+  let canonicalAncestor: string;
+  for (;;) {
+    try {
+      canonicalAncestor = await realpath(existingAncestor);
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      const parent = dirname(existingAncestor);
+      if (parent === existingAncestor) throw error;
+      existingAncestor = parent;
+    }
+  }
+  if (!isWithin(canonicalRawRoot, canonicalAncestor)) {
+    throw new Error("Export path must not traverse a symlink outside the memory raw/ directory");
+  }
+
+  await mkdir(targetParent, { recursive: true });
+  if (!isWithin(canonicalRawRoot, await realpath(targetParent))) {
+    throw new Error("Export path must not traverse a symlink outside the memory raw/ directory");
+  }
+  try {
+    if ((await lstat(target)).isSymbolicLink()) {
+      throw new Error("Export target must not be a symbolic link");
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
   return target;
 }
@@ -177,6 +222,12 @@ Prefer digest over repeated peeks; keep budgets small and raise them only when y
           case "export": {
             const requestedPath = path?.trim();
             if (!room || !requestedPath) return errorResult("Missing 'room' or 'path' parameter");
+            let target: string;
+            try {
+              target = await resolveExportTarget(deps.exportRoot, requestedPath);
+            } catch (error) {
+              return errorResult(getErrorMessage(error));
+            }
             // Straight from the broker to disk, bypassing the digest entirely: a
             // digest collapses older messages, so a digest-derived file would be a
             // lossy source for memory. Cursors are untouched, so exporting never
@@ -185,8 +236,6 @@ Prefer digest over repeated peeks; keep budgets small and raise them only when y
             const transcript = messages
               .map((m) => `[${new Date(m.timestamp).toISOString()}] ${m.from.name}#${m.seq}: ${m.text}`)
               .join("\n");
-            const target = resolveExportTarget(deps.exportRoot, requestedPath);
-            await mkdir(dirname(target), { recursive: true });
             await writeFile(target, transcript ? `${transcript}\n` : "", "utf8");
             const firstSeq = messages[0]?.seq ?? 0;
             const droppedBefore = Math.max(0, firstSeq - 1);

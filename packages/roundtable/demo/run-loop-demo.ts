@@ -57,8 +57,7 @@ const SCRIPT: ReadonlyArray<readonly [string, string]> = [
 async function main(): Promise<void> {
   const root = mkdtempSync(join(tmpdir(), "orphus-loop-"));
   const memoryRoot = join(root, "memory");
-  const wiki = join(memoryRoot, "wiki");
-  mkdirSync(wiki, { recursive: true });
+  mkdirSync(memoryRoot, { recursive: true });
   const stub = join(root, "dossier-stub.cjs");
   writeFileSync(stub, DOSSIER_STUB);
   chmodSync(stub, 0o755);
@@ -132,8 +131,8 @@ async function main(): Promise<void> {
 
     rule("5. Ingest the exported transcript into long-term memory");
     console.log("  (Dossier backend stubbed — the real one is a separate install, see docs/memory.md)");
-    const config = { command: [process.execPath, stub], writerRole: "librarian", cwd: wiki };
-    const ingested = await runDossier(config, ["ingest", sourceFile]);
+    const config = { command: [process.execPath, stub], writerRole: "librarian", cwd: memoryRoot };
+    const ingested = await runDossier(config, ["ingest", "raw/design.md"]);
     check("ingest must succeed", ingested.code === 0);
     console.log(`  exit ${ingested.code}`);
 

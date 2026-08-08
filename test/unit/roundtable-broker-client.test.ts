@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -158,6 +158,24 @@ describe("roundtable broker and client over a real socket", () => {
 		assert.match(result.content[0]?.text ?? "", /Only the "librarian" role/);
 		expect(ensureConnected).not.toHaveBeenCalled();
 		assert.equal(await fileExists(target), false);
+	});
+
+	it.skipIf(process.platform === "win32")("rejects export paths through symlinks outside shared memory", async () => {
+		const librarian = await connect("librarian");
+		await librarian.join("design");
+		await librarian.post("design", "do not escape");
+		const exportRoot = join(agentDir, "memory");
+		const outside = join(agentDir, "outside");
+		mkdirSync(join(exportRoot, "raw"), { recursive: true });
+		mkdirSync(outside);
+		symlinkSync(outside, join(exportRoot, "raw", "escape"));
+		const { run } = captureRoundtableTool(librarian, exportRoot, "librarian");
+
+		const result = await run({ action: "export", room: "design", path: "raw/escape/transcript.md" });
+
+		assert.equal(result.isError, true);
+		assert.match(result.content[0]?.text ?? "", /symlink outside/);
+		assert.equal(await fileExists(join(outside, "transcript.md")), false);
 	});
 
 	it("reports when an export starts after older messages rotated out", async () => {
