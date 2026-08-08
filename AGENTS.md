@@ -35,21 +35,37 @@ into a knowledge graph and serves it over MCP; it is declared in the committed
 per checkout:
 
 ```sh
-npx gitnexus analyze .        # writes .gitnexus/ (gitignored); re-run after large merges
-npx gitnexus status           # confirm the index matches the working tree
+npx gitnexus analyze .        # writes .gitnexus/ (gitignored); ~3 min for this tree
+npx gitnexus status           # re-run analyze when this reports "stale"
 ```
 
 Before adding a function, a helper, or a module:
 
 1. `context <symbol>` — who calls it, what it calls, which flows it sits in.
-2. `query "<concept>"` — find an existing implementation of the behaviour you are
-   about to write. If one exists, extend or call it; do not write a second one.
-3. `impact <symbol>` — blast radius, before changing anything shared.
+2. `impact <symbol>` — blast radius, before changing anything shared.
+3. `cypher "<query>"` — when you need to search rather than start from a known
+   symbol. Node tables are `Function`, `Method`, `Class`, `Interface`, `File`, and
+   the location property is `filePath` (not `path` or `file_path`):
+
+   ```sh
+   npx gitnexus cypher "MATCH (m:Method) WHERE m.filePath CONTAINS 'roundtable/broker/' \
+     RETURN m.name AS name, m.filePath AS file, m.startLine AS line ORDER BY file, line"
+   ```
 
 The graph is the anti-duplication gate: **nothing gets recreated that the tree
 already has.** It is a lookup tool, not an authority — it can be stale, and a
 confident-looking answer still needs the file read before you act on it. When the
 graph and the source disagree, the source wins and the index needs a re-run.
+
+Two limits worth knowing before you trust an empty result:
+
+- **`query` needs the LadybugDB FTS extension**, which `analyze` downloads on
+  first use. Behind a proxy that blocks it, indexing still succeeds and the graph
+  is complete, but `query` silently returns zero matches with a `warning` field
+  rather than an error — which reads exactly like "no such code exists". Use
+  `cypher` for search in that case, and check `doctor` if you are unsure.
+- **Files over 512 KB are skipped** (currently one: the `0002` rebrand patch).
+  Raise `GITNEXUS_MAX_FILE_SIZE` if you need them indexed.
 
 ## Tech Stack
 
