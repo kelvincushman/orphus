@@ -89,10 +89,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # Deliberately no `lfs: true`. The upstream job fetches LFS because it runs
+      # the coding-agent suite, which reads LFS fixtures; this job does not. And
+      # this fork cannot fetch them anyway — four LFS objects 404 against its own
+      # server, so requesting them fails checkout before a single test runs.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          # The coding-agent suite reads LFS fixtures.
-          lfs: true
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.3.14
