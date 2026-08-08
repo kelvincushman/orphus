@@ -123,6 +123,11 @@ jobs:
         working-directory: packages/coding-agent
         run: npm run build
 
+      # Two files in this suite were already red on main when this job was
+      # added — nothing had run them since the fork. They are quarantined by
+      # name in vitest.config.ts, with the reason for each, so the exclusion is
+      # visible in the repository rather than buried in a workflow argument and
+      # so a local run and this job agree. The other 622 files gate from here.
       - name: Unit tests
         run: npm run test:unit
 

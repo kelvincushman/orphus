@@ -89,3 +89,43 @@ test("the Orphus gate selects a vitest project rather than restating a timeout",
 	assert.doesNotMatch(ci, /--timeout\b/u);
 	assert.match(ci, /vitest --run --project unit test\/unit\/roundtable-/u);
 });
+
+test("the quarantine list stays small, justified, and visible", async () => {
+	const config = (await import("../../vitest.config.js")) as { QUARANTINED_TESTS: readonly string[] };
+	const quarantined = config.QUARANTINED_TESTS;
+
+	// Two entries, both demonstrated failing on a pristine checkout before being
+	// listed. This assertion exists so growing the list is a deliberate act that
+	// shows up in review rather than a quiet way to make CI green.
+	assert.deepEqual([...quarantined].sort(), [
+		"**/test/unit/changelog.test.ts",
+		"**/test/unit/interactive-engine-cycle-fallback.test.ts",
+	]);
+
+	// Each entry must carry its reason in the config, next to the entry itself —
+	// a bare list of paths decays into folklore about why they are there.
+	const source = await readText(join(root, "vitest.config.ts"));
+	for (const entry of quarantined) {
+		const file = entry.replace("**/", "");
+		const index = source.indexOf(entry);
+		assert.ok(index > 0, `${file} is not listed in vitest.config.ts`);
+		const preceding = source.slice(Math.max(0, index - 600), index);
+		assert.match(preceding, /\/\/ .+/u, `${file} is quarantined with no stated reason`);
+	}
+});
+
+test("quarantined tests are excluded from collection, not skipped inside their files", async () => {
+	const config = (await import("../../vitest.config.js")) as {
+		QUARANTINED_TESTS: readonly string[];
+		default: { test?: { projects?: { test?: { exclude?: string[] } }[] } };
+	};
+	// A soft guard inside a test keeps its name in the pass count while its
+	// assertions do nothing — the exact failure mode the SQLite contract in
+	// ci-workflow-contracts.test.ts exists to prevent. Excluding at collection
+	// makes the file's absence countable instead.
+	for (const project of config.default.test?.projects ?? []) {
+		for (const entry of config.QUARANTINED_TESTS) {
+			assert.ok(project.test?.exclude?.includes(entry), `project does not exclude ${entry}`);
+		}
+	}
+});
