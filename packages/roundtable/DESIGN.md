@@ -60,8 +60,17 @@ truncation markers, overflow collapses to a count line.
   in behind `buildDigest` without protocol changes; kept out of v1 so the bound
   is provable.
 - **Ephemeral rooms** — in-memory only. JSONL persistence under
-  `~/.atomic/agent/roundtable/rooms/` is a straightforward follow-up if
+  `~/.orphus/agent/roundtable/rooms/` is a straightforward follow-up if
   discussions must survive broker restarts.
+
+  Membership is part of that state, so a session outliving a broker loses its
+  rooms along with the transcript: the broker exits five seconds after its last
+  session disconnects, and the extension reconnects with a fresh client that
+  does not replay joins. The next `post` then fails with `Not a member of room
+  "…"; join it first`, which is the correct outcome — the room really is gone —
+  and an agent can act on it by rejoining. Replaying memberships against a
+  broker whose transcript is empty would be worse: it would restore the
+  appearance of continuity while every peer's history had vanished.
 
 ## Security posture
 

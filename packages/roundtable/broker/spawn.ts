@@ -1,10 +1,10 @@
 import { spawn } from "child_process";
 import { existsSync, mkdirSync } from "fs";
-import net from "net";
 import { dirname, join } from "path";
 import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import { getBrokerSocketPath, getRoundtableDirPath } from "./paths.ts";
+import { canConnect } from "./socket-probe.ts";
 
 const EXTENSION_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
 const BROKER_MAIN = join(dirname(fileURLToPath(import.meta.url)), "main.ts");
@@ -14,19 +14,6 @@ const SPAWN_WAIT_INTERVAL_MS = 200;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function canConnect(socketPath: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    const socket = net.createConnection(socketPath);
-    const finish = (result: boolean) => {
-      socket.destroy();
-      resolve(result);
-    };
-    socket.once("connect", () => finish(true));
-    socket.once("error", () => finish(false));
-    setTimeout(() => finish(false), 1000);
-  });
 }
 
 function resolveTsxCliPath(): string | null {
