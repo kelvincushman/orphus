@@ -1,0 +1,58 @@
+# Orphus documentation
+
+Orphus is a coding agent whose agents can hold a discussion that does not live in
+any of their context windows. Start with the first link; the rest are reference.
+
+## Start here
+
+| | |
+| --- | --- |
+| **[Getting started](getting-started.md)** | Clone to working fleet, in five tiers. Tier 1 needs no model and no API key. |
+| **[Troubleshooting](troubleshooting.md)** | The three failures that look like success, and everything else that goes wrong. |
+
+## Using it
+
+| | |
+| --- | --- |
+| **[The `roundtable` tool](roundtable-tool.md)** | Every action, parameter, and default, with the reasoning. |
+| **[Roles and the manifest](roles.md)** | Declaring a fleet in `orphus.roles.yaml` and turning it into launch commands. |
+| **[Memory](memory.md)** | The durable layer: the librarian convention, the export → ingest → query flow, and its contract. |
+| **[Orca integration](orca-integration.md)** | Running a fleet across parallel git worktrees. |
+| **[Workflow playbook](workflow-playbook.md)** | Multi-stage workflow execution, inherited from Atomic. |
+
+## Understanding it
+
+| | |
+| --- | --- |
+| **[Architecture](architecture.md)** | What runs where, what the bound actually guarantees, and where the trust boundary sits. |
+| **[Design decisions](../packages/roundtable/DESIGN.md)** | Why each choice went the way it did, including the alternatives rejected. |
+| **[The self-improvement loop](self-improvement-loop.md)** | The roadmap: a harness that proposes its own improvements, gated by evidence. |
+
+## Working on it
+
+| | |
+| --- | --- |
+| **[AGENTS.md](../AGENTS.md)** | Read before contributing. Also what an agent working on this repository follows — including the minimal-change principle and the definition of done. |
+| **[CONTRIBUTING.md](../CONTRIBUTING.md)** | Issue coordination and pull request guidance. |
+| **[DEV_SETUP.md](../DEV_SETUP.md)** | Local development, the toolchain split, and repository layout. |
+| **[CI](ci.md)** | The gate that runs, what it covers, and what it deliberately does not. |
+| **[SECURITY.md](../SECURITY.md)** | Reporting a vulnerability, and what is in scope. |
+
+## A note on the two halves
+
+Most of this repository is vendored from
+[Atomic](https://github.com/bastani-inc/atomic), itself a fork of pi. The agent
+loop, providers, tools, MCP, subagents, workflows, and the TUI all come from
+there and behave as they do upstream.
+
+What Orphus authors is `packages/roundtable/` — rooms, the budgeted digest, the
+broker, the role launcher, the memory adapter — plus its tests, this
+documentation, and `.github/workflows/ci.yml`.
+
+The practical consequence: a question about *rooms, digests, roles, or memory*
+belongs here. A question about the harness underneath is usually answered
+upstream, and a bug there is worth reporting to both.
+
+The `archive/upstream/` directory holds Atomic's inherited working notes — 383
+files written for a different project. Nothing reads them, and nothing new
+should be added there.
