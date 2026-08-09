@@ -62,6 +62,7 @@ const WORKSPACE_BUILTINS = [
 	{ packageName: "@bastani/web-access", workspaceDirName: "web-access" },
 	{ packageName: "@bastani/intercom", workspaceDirName: "intercom" },
 	{ packageName: "@bastani/roundtable", workspaceDirName: "roundtable" },
+	{ packageName: "@bastani/fleet", workspaceDirName: "fleet" },
 ] as const;
 
 function readPackageName(packageDir: string): string | undefined {
