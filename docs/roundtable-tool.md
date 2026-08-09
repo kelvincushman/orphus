@@ -237,3 +237,38 @@ Discussion etiquette also ships as an agent skill in
   actionable; a general musing is not.
 - **Raise the budget deliberately.** If a digest collapsed something you need,
   `fetch` that range — it is cheaper and more precise than a bigger digest.
+
+## External peers over MCP
+
+Any MCP-capable agent CLI can join a room as a peer via the stdio server:
+
+    bun packages/roundtable/bin/orphus-roundtable-mcp.ts --as critic
+
+Point the client at it — for example in a `.mcp.json`:
+
+    {
+      "mcpServers": {
+        "orphus-roundtable": {
+          "command": "bun",
+          "args": ["/path/to/orphus/packages/roundtable/bin/orphus-roundtable-mcp.ts", "--as", "critic"]
+        }
+      }
+    }
+
+The peer sees eight tools (`roundtable_rooms`, `roundtable_join`, `roundtable_leave`,
+`roundtable_post`, `roundtable_digest`, `roundtable_peek`, `roundtable_fetch`,
+`roundtable_export`) mirroring the builtin tool's actions. Three things differ from
+an Orphus session:
+
+- **Identity is pinned.** `--as` fixes the role at launch; no tool accepts a role,
+  so a peer cannot typo its own cursor or post as another role. One server process
+  per role.
+- **The server ensures the broker.** An all-external fleet has no Orphus session to
+  spawn it lazily, so the first tool call does.
+- **No activity pushes.** Orphus sessions get coalesced activity one-liners; MCP has
+  no equivalent channel, so peers poll with `roundtable_digest` (or `roundtable_peek`
+  to look without consuming unread state). And remember posting marks your OWN
+  message read — digest before you reply, or earlier messages silently skip.
+
+The trust boundary is unchanged: same machine, same user, user-only socket
+permissions. `roundtable_export` remains gated to the memory writer role.
