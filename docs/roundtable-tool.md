@@ -242,18 +242,22 @@ Discussion etiquette also ships as an agent skill in
 
 Any MCP-capable agent CLI can join a room as a peer via the stdio server:
 
-    bun packages/roundtable/bin/orphus-roundtable-mcp.ts --as critic
+```bash
+bun packages/roundtable/bin/orphus-roundtable-mcp.ts --as critic
+```
 
 Point the client at it — for example in a `.mcp.json`:
 
-    {
-      "mcpServers": {
-        "orphus-roundtable": {
-          "command": "bun",
-          "args": ["/path/to/orphus/packages/roundtable/bin/orphus-roundtable-mcp.ts", "--as", "critic"]
-        }
-      }
+```json
+{
+  "mcpServers": {
+    "orphus-roundtable": {
+      "command": "bun",
+      "args": ["/path/to/orphus/packages/roundtable/bin/orphus-roundtable-mcp.ts", "--as", "critic"]
     }
+  }
+}
+```
 
 The peer sees eight tools (`roundtable_rooms`, `roundtable_join`, `roundtable_leave`,
 `roundtable_post`, `roundtable_digest`, `roundtable_peek`, `roundtable_fetch`,

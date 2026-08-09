@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 // Stdio MCP server that lets an external agent CLI join roundtable rooms as a
 // peer. Identity is pinned by --as at launch; see mcp/cli.ts for why.
-import { McpServer } from "@modelcontextprotocol/server";
+import { fromJsonSchema, McpServer } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
-import * as z from "zod";
+import { Type } from "typebox";
 import { createBridgeDeps } from "../mcp/bridge-deps.js";
 import { parseBridgeArgs } from "../mcp/cli.js";
 import { registerBridgeTools, type ToolRegistrar } from "../mcp/register-tools.js";
@@ -25,12 +25,13 @@ const tool = createRoundtableTool(deps);
 const server = new McpServer({ name: "orphus-roundtable", version: "0.0.0" });
 // registerTool's overloads type each tool's callback against its own schema
 // generic; a dynamic fan-in over eight specs cannot carry that relationship, so
-// the adapter narrows through one explicit cast. The SDK still validates every
-// call against the z.object schema at runtime, and the two-peer integration
-// test exercises the registered tools end to end.
+// the adapter narrows through one explicit cast. Schemas are TypeBox (the
+// repo's schema tool) adapted via the SDK's own fromJsonSchema — TypeBox
+// schemas ARE JSON Schema — and the SDK validates every call at runtime; the
+// two-peer integration test exercises the registered tools end to end.
 type DynamicRegisterTool = (
   name: string,
-  config: { description?: string; inputSchema?: z.ZodTypeAny },
+  config: { description?: string; inputSchema?: unknown },
   cb: (args: unknown) => Promise<unknown>,
 ) => unknown;
 const registrar: ToolRegistrar = {
@@ -39,7 +40,9 @@ const registrar: ToolRegistrar = {
       name,
       {
         description: config.description,
-        inputSchema: z.object(config.inputSchema as z.ZodRawShape),
+        inputSchema: fromJsonSchema(
+          Type.Object(config.inputSchema as Parameters<typeof Type.Object>[0], { additionalProperties: false }),
+        ),
       },
       async (args: unknown) => handler((args ?? {}) as Record<string, unknown>),
     );
