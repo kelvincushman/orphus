@@ -20,7 +20,11 @@ teams:
 `;
 
 function tool() {
-	return createFleetTool({ cwd: () => cwd, env: { ORPHUS_CODING_AGENT_DIR: agentDir } });
+	return createFleetTool({
+		cwd: () => cwd,
+		env: { ORPHUS_CODING_AGENT_DIR: agentDir },
+		bundledDir: join(root, "empty-bundled"),
+	});
 }
 
 async function run(params: { action: "list" | "get" | "validate"; name?: string; path?: string }) {
@@ -50,6 +54,9 @@ afterEach(() => {
 
 describe("fleet tool", () => {
 	test("list shows discovered fleets with scope, and says so when none exist", async () => {
+		// With an empty bundled dir nothing is discoverable; the real package
+		// always ships examples, so a fresh install lists six bundled entries
+		// (covered below by the real-bundled test).
 		const empty = await run({ action: "list" });
 		assert.equal(empty.isError, false);
 		assert.match(empty.content[0]!.text, /no fleet blueprints/iu);
@@ -115,6 +122,20 @@ describe("fleet tool", () => {
 		writeFileSync(loose, VALID);
 		const result = await run({ action: "validate", path: loose });
 		assert.equal(result.isError, false);
+	});
+
+	test("the real bundled examples are discoverable with no setup at all", async () => {
+		const fresh = createFleetTool({ cwd: () => cwd, env: { ORPHUS_CODING_AGENT_DIR: agentDir } });
+		const listed = await fresh.execute(
+			"call-b",
+			{ action: "list" },
+			new AbortController().signal,
+			undefined,
+			{} as never,
+		);
+		assert.equal(listed.isError, false);
+		assert.match(listed.content[0]!.text, /coding-team \(bundled\)/u);
+		assert.match(listed.content[0]!.text, /blog-pipeline \(bundled\)/u);
 	});
 
 	test("unknown names error and list what exists", async () => {

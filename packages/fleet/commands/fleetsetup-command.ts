@@ -19,6 +19,8 @@ import { discoverFleets, fleetRoots } from "../blueprint/discovery.ts";
 
 export interface FleetSetupDeps {
   env?: NodeJS.ProcessEnv;
+  /** Test override for the shipped-examples dir. */
+  bundledDir?: string;
 }
 
 interface CommandContextLike {
@@ -76,7 +78,8 @@ export function buildSetupBriefing(inputs: SetupBriefingInputs): string {
 export function createFleetSetupHandler(pi: ExtensionAPI, deps: FleetSetupDeps = {}) {
   return async (_args: string, ctx: CommandContextLike): Promise<void> => {
     const env = deps.env ?? process.env;
-    const roots = fleetRoots(ctx.cwd, env);
+    const baseRoots = fleetRoots(ctx.cwd, env);
+    const roots = deps.bundledDir ? { ...baseRoots, bundledDir: deps.bundledDir } : baseRoots;
     const providers = [...new Set(ctx.modelRegistry.getAll().map((model) => model.provider))];
     const configuredProviders = providers.filter(
       (provider) => ctx.modelRegistry.getProviderAuthStatus(provider).configured,

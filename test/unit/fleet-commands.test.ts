@@ -74,7 +74,7 @@ function stubs(overrides: { configured?: string[]; sessionName?: string; setMode
 }
 
 function handlerDeps() {
-	return { env: { ORPHUS_CODING_AGENT_DIR: agentDir } };
+	return { env: { ORPHUS_CODING_AGENT_DIR: agentDir }, bundledDir: join(root, "empty-bundled") };
 }
 
 beforeEach(() => {

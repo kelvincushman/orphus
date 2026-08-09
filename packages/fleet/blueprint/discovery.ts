@@ -1,6 +1,7 @@
 import { existsSync, readdirSync } from "fs";
 import { homedir } from "os";
-import { join } from "path";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 
 /**
  * Blueprint discovery: project `.orphus/fleets/` (with `.atomic`/`.pi` lineage
@@ -45,13 +46,15 @@ export interface FleetRoots {
   /** Project fleet dirs in precedence order (.orphus, .atomic, .pi). */
   readonly projectDirs: readonly string[];
   readonly userDir: string;
+  /** The package's shipped examples — always discoverable, lowest precedence. */
+  readonly bundledDir: string;
 }
 
 export interface FleetSource {
   /** Blueprint name derived from the filename (`<name>.fleet.yaml`). */
   readonly name: string;
   readonly path: string;
-  readonly scope: "project" | "user";
+  readonly scope: "project" | "user" | "bundled";
   /** True when a higher-precedence source carries the same name. */
   readonly shadowed: boolean;
 }
@@ -60,10 +63,13 @@ export function fleetRoots(cwd: string, env: NodeJS.ProcessEnv = process.env): F
   return {
     projectDirs: CONFIG_DIR_NAMES.map((dirName) => join(cwd, dirName, "fleets")),
     userDir: join(getAgentDir(env), "fleets"),
+    // The shipped starting points. Copy one into a project or user fleets dir
+    // (or reference it by name) and edit from there — /fleetsetup does this.
+    bundledDir: join(dirname(fileURLToPath(import.meta.url)), "..", "examples"),
   };
 }
 
-function fleetsIn(dir: string, scope: "project" | "user"): Omit<FleetSource, "shadowed">[] {
+function fleetsIn(dir: string, scope: FleetSource["scope"]): Omit<FleetSource, "shadowed">[] {
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true })
     .filter((entry) => entry.isFile() && entry.name.endsWith(FLEET_SUFFIX))
@@ -78,9 +84,10 @@ function fleetsIn(dir: string, scope: "project" | "user"): Omit<FleetSource, "sh
 export function discoverFleets(roots: FleetRoots): FleetSource[] {
   const seen = new Set<string>();
   const results: FleetSource[] = [];
-  const scopes: Array<{ dirs: readonly string[]; scope: "project" | "user" }> = [
+  const scopes: Array<{ dirs: readonly string[]; scope: FleetSource["scope"] }> = [
     { dirs: roots.projectDirs, scope: "project" },
     { dirs: [roots.userDir], scope: "user" },
+    { dirs: [roots.bundledDir], scope: "bundled" },
   ];
   for (const { dirs, scope } of scopes) {
     const scopeSeen = new Set<string>();
@@ -97,5 +104,6 @@ export function discoverFleets(roots: FleetRoots): FleetSource[] {
       }
     }
   }
-  return results.sort((a, b) => (a.name === b.name ? (a.scope === "project" ? -1 : 1) : a.name < b.name ? -1 : 1));
+  const rank = { project: 0, user: 1, bundled: 2 } as const;
+  return results.sort((a, b) => (a.name === b.name ? rank[a.scope] - rank[b.scope] : a.name < b.name ? -1 : 1));
 }
