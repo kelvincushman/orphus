@@ -152,7 +152,7 @@ export function renderFleetRunPrompt(blueprint: FleetBlueprint, task: string): s
     ``,
     `Task: ${task}`,
     ``,
-    `You are the fleet orchestrator. Load the "fleet-orchestration" skill now and follow its protocol; the facts below instantiate it for this fleet. Route and verify — do not do the members' work yourself.`,
+    `You are the fleet orchestrator. Load the "fleet-orchestration" skill now and follow its protocol; the facts below instantiate it for this fleet. Direct the work and check the work — do not do the members' work yourself.`,
     ``,
     `Suggested order: ${blueprint.pipeline.join(" → ")}. Adapt if the task demands it.`,
     ``,
