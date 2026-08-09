@@ -1,7 +1,7 @@
 # Roundtable MCP bridge — design
 
 **Date:** 2026-08-09
-**Status:** approved, not yet implemented
+**Status:** implemented (PR #38)
 
 ## Problem
 
@@ -89,8 +89,8 @@ Eight tools, one per broker action, each with its own zod schema:
 | `roundtable_post` | `room`, `message` |
 | `roundtable_digest` | `room`, `budget?` |
 | `roundtable_peek` | `room`, `limit?` |
-| `roundtable_export` | `room` |
-| `roundtable_fetch` | `room`, `seq` |
+| `roundtable_export` | `room`, `path` |
+| `roundtable_fetch` | `room`, `afterSeq?`, `limit?` |
 
 Separate tools rather than one tool with an `action` discriminator: the model sees
 exactly which arguments each action takes, and the SDK validates before the handler

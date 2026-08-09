@@ -1,4 +1,4 @@
-import * as z from "zod";
+import { Type } from "typebox";
 import type { RoundtableToolParams, RoundtableToolResult } from "../roundtable-tool.js";
 
 export interface BridgeToolResult {
@@ -18,11 +18,11 @@ export interface ToolRegistrar {
 interface BridgeToolSpec {
   name: string;
   description: string;
-  inputSchema: Record<string, z.ZodType>;
+  inputSchema: Record<string, unknown>;
   toParams(args: Record<string, unknown>): RoundtableToolParams;
 }
 
-const room = z.string().describe("Room name");
+const room = Type.String({ description: "Room name" });
 
 /**
  * One MCP tool per broker action rather than one tool with an `action`
@@ -40,7 +40,7 @@ const BRIDGE_TOOLS: readonly BridgeToolSpec[] = [
   {
     name: "roundtable_join",
     description: "Join a room (creates it if missing). Cursors and attribution use your pinned role.",
-    inputSchema: { room, topic: z.string().optional().describe("Room topic when creating") },
+    inputSchema: { room, topic: Type.Optional(Type.String({ description: "Room topic when creating" })) },
     toParams: (a) => ({ action: "join", room: a.room as string, ...(a.topic !== undefined ? { topic: a.topic as string } : {}) }),
   },
   {
@@ -54,8 +54,8 @@ const BRIDGE_TOOLS: readonly BridgeToolSpec[] = [
     description: "Post a message to a room. Post conclusions, not transcripts.",
     inputSchema: {
       room,
-      message: z.string().describe("Message to post"),
-      replyTo: z.string().optional().describe("Message id to reply to"),
+      message: Type.String({ description: "Message to post" }),
+      replyTo: Type.Optional(Type.String({ description: "Message id to reply to" })),
     },
     toParams: (a) => ({
       action: "post",
@@ -69,8 +69,8 @@ const BRIDGE_TOOLS: readonly BridgeToolSpec[] = [
     description: "Pull unread as a character-budgeted digest and mark it read. The primary catch-up mechanism.",
     inputSchema: {
       room,
-      budget: z.number().optional().describe("Digest character budget (default 2000, floored at 200)"),
-      perMessage: z.number().optional().describe("Per-message verbatim cap (default 600, floored at 80)"),
+      budget: Type.Optional(Type.Number({ description: "Digest character budget (default 2000, floored at 200)" })),
+      perMessage: Type.Optional(Type.Number({ description: "Per-message verbatim cap (default 600, floored at 80)" })),
     },
     toParams: (a) => ({
       action: "digest",
@@ -84,8 +84,8 @@ const BRIDGE_TOOLS: readonly BridgeToolSpec[] = [
     description: "Digest WITHOUT marking read — look at a room without consuming its unread state.",
     inputSchema: {
       room,
-      budget: z.number().optional().describe("Digest character budget (default 2000, floored at 200)"),
-      perMessage: z.number().optional().describe("Per-message verbatim cap (default 600, floored at 80)"),
+      budget: Type.Optional(Type.Number({ description: "Digest character budget (default 2000, floored at 200)" })),
+      perMessage: Type.Optional(Type.Number({ description: "Per-message verbatim cap (default 600, floored at 80)" })),
     },
     toParams: (a) => ({
       action: "peek",
@@ -99,8 +99,8 @@ const BRIDGE_TOOLS: readonly BridgeToolSpec[] = [
     description: "Raw messages by sequence range, no digest. Use to expand messages a digest collapsed.",
     inputSchema: {
       room,
-      afterSeq: z.number().optional().describe("Return messages with seq greater than this (defaults to your cursor)"),
-      limit: z.number().optional().describe("Maximum messages to return (default 20)"),
+      afterSeq: Type.Optional(Type.Number({ description: "Return messages with seq greater than this (defaults to your cursor)" })),
+      limit: Type.Optional(Type.Number({ description: "Maximum messages to return (default 20)" })),
     },
     toParams: (a) => ({
       action: "fetch",
@@ -113,7 +113,7 @@ const BRIDGE_TOOLS: readonly BridgeToolSpec[] = [
     name: "roundtable_export",
     description:
       "Write a room's retained transcript to the shared memory raw/ directory. Whole-transcript extraction — for catching up, use roundtable_digest instead; export is for staging memory ingest, and only the writer role may call it.",
-    inputSchema: { room, path: z.string().describe("Relative file under the memory raw/ directory") },
+    inputSchema: { room, path: Type.String({ description: "Relative file under the memory raw/ directory" }) },
     toParams: (a) => ({ action: "export", room: a.room as string, path: a.path as string }),
   },
 ];
