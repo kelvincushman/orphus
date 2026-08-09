@@ -8,6 +8,7 @@ import {
 	createAgentSession,
 	DefaultResourceLoader,
 	getAgentDir,
+	getBuiltinPackagePaths,
 	SessionManager,
 	type SessionStats,
 	SettingsManager,
@@ -471,6 +472,33 @@ export class AdmittedChild {
 	}
 }
 
+/**
+ * Build the resource loader for an in-process child session. Children must
+ * pass builtinPackagePaths explicitly — the loader does no builtin discovery
+ * of its own (main sessions get the same list injected in main.ts), so
+ * omitting it silently strips every builtin extension tool (roundtable,
+ * subagent, …) from the child no matter what its tool allowlist grants.
+ */
+export function createChildResourceLoader(
+	agent: AgentConfig,
+	cwd: string,
+	agentDir: string,
+	settingsManager: SettingsManager,
+): DefaultResourceLoader {
+	const agentPrompt = agent.systemPrompt?.trim();
+	return new DefaultResourceLoader({
+		cwd,
+		agentDir,
+		settingsManager,
+		builtinPackagePaths: getBuiltinPackagePaths(),
+		...(agentPrompt && agent.systemPromptMode === "append"
+			? { appendSystemPrompt: [agentPrompt] }
+			: agentPrompt
+				? { systemPrompt: agentPrompt }
+				: {}),
+	});
+}
+
 export interface RunningAttempt {
 	readonly id: number;
 	readonly child: AdmittedChild;
@@ -644,39 +672,37 @@ export class SubagentControlRuntime {
 			// cursors by it, so the name must be durable before the first tool call.
 			if (admitted.spec.sessionName) sessionManager.appendSessionInfo(admitted.spec.sessionName);
 			const settingsManager = SettingsManager.create(admitted.policy.cwd, getAgentDir());
-			const agentPrompt = admitted.spec.agent.systemPrompt?.trim();
-			const resourceLoader = new DefaultResourceLoader({
-				cwd: admitted.policy.cwd,
-				agentDir: getAgentDir(),
-				settingsManager,
-				...(agentPrompt && admitted.spec.agent.systemPromptMode === "append"
-					? { appendSystemPrompt: [agentPrompt] }
-					: agentPrompt
-						? { systemPrompt: agentPrompt }
-						: {}),
-			});
-			await resourceLoader.reload();
 			const promptBehavior = createInProcessChildPromptBehavior(admitted.policy);
+			// Test sessions never reach createAgentSession, so skip resource
+			// loading entirely — reloading builtin extensions there is pure cost.
+			const createRealSession = async () => {
+				const resourceLoader = createChildResourceLoader(
+					admitted.spec.agent,
+					admitted.policy.cwd,
+					getAgentDir(),
+					settingsManager,
+				);
+				await resourceLoader.reload();
+				return createAgentSession({
+					cwd: admitted.policy.cwd,
+					model: candidate.model ?? admitted.policy.model,
+					thinkingLevel: candidate.thinkingLevel ?? admitted.policy.thinkingLevel,
+					...(admitted.spec.fallbackModels?.length ? { fallbackModels: [...admitted.spec.fallbackModels] } : {}),
+					tools: admitted.policy.tools ? [...admitted.policy.tools] : undefined,
+					excludedTools: admitted.policy.excludedTools ? [...admitted.policy.excludedTools] : undefined,
+					customTools: admitted.policy.customTools,
+					resourceLoader,
+					sessionManager,
+					settingsManager,
+					orchestrationContext: admitted.spec.parent?.orchestrationContext,
+					subagentPolicy: admitted.policy,
+					systemPromptTransform: promptBehavior.systemPromptTransform,
+					initialContextTransform: promptBehavior.initialContextTransform,
+				});
+			};
 			const created = admitted.spec.testSession
 				? { session: createTestSession(sessionManager, admitted.spec) }
-				: await createAgentSession({
-						cwd: admitted.policy.cwd,
-						model: candidate.model ?? admitted.policy.model,
-						thinkingLevel: candidate.thinkingLevel ?? admitted.policy.thinkingLevel,
-						...(admitted.spec.fallbackModels?.length
-							? { fallbackModels: [...admitted.spec.fallbackModels] }
-							: {}),
-						tools: admitted.policy.tools ? [...admitted.policy.tools] : undefined,
-						excludedTools: admitted.policy.excludedTools ? [...admitted.policy.excludedTools] : undefined,
-						customTools: admitted.policy.customTools,
-						resourceLoader,
-						sessionManager,
-						settingsManager,
-						orchestrationContext: admitted.spec.parent?.orchestrationContext,
-						subagentPolicy: admitted.policy,
-						systemPromptTransform: promptBehavior.systemPromptTransform,
-						initialContextTransform: promptBehavior.initialContextTransform,
-					});
+				: await createRealSession();
 			session = created.session;
 			if (session.sessionFile) this.sessionFiles.set(admitted.identity.path, session.sessionFile);
 			this.sessions.set(admitted.identity.path, session);
