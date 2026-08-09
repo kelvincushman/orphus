@@ -302,7 +302,7 @@ git fetch upstream && git merge upstream/main
 
 ### CI
 
-`.github/workflows/ci.yml` is the Orphus gate, and the only workflow that runs. Two jobs:
+`.github/workflows/ci.yml` is the Orphus pull-request gate. It has two jobs:
 
 - **`verify`** — biome, `tsc --noEmit`, the shrinkwrap check, a build of the coding-agent
   package (the root tsconfig excludes it, so nothing else typechecks the binary's own
