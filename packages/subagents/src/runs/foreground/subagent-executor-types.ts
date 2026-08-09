@@ -25,6 +25,8 @@ import type { runSync } from "./execution.ts";
 export interface TaskParam {
 	agent: string;
 	task: string;
+	/** Replaces the agent's tool allowlist for this task. */
+	tools?: string[];
 	/** Session name for the child; roundtable room cursors are keyed by it. */
 	name?: string;
 	cwd?: string;
@@ -41,6 +43,8 @@ export interface TaskParam {
 export interface SubagentParamsLike {
 	action?: (typeof SUBAGENT_ACTIONS)[number];
 	id?: string;
+	/** SINGLE mode: replaces the agent's tool allowlist. */
+	tools?: string[];
 	/** SINGLE mode: session name for the child (roundtable identity). */
 	name?: string;
 	runId?: string;

@@ -91,9 +91,10 @@ interview.
 
 - A `skill` list on a dispatch call **replaces** the agent definition's own
   skills; blueprint unions are computed from the blueprint alone.
-- Deliberate-team members need agents whose `tools:` allowlist includes
-  `roundtable` (or omits `tools:` entirely) — otherwise they cannot join the
-  room.
+- Deliberate-team members need `roundtable` in their effective tool allowlist,
+  and most read-only agents exclude it. Grant it per member in the blueprint —
+  `tools: [read, search, find, ls, roundtable]` — which REPLACES the agent's
+  own list for that seat. The shipped examples all carry the grant.
 - Every member is a live model session; `count` and `concurrency` multiply
   real spend. The orchestration skill requires the model to state cost before
   large fan-outs, and caps retries at retry → diagnostic → human.

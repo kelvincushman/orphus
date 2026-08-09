@@ -109,7 +109,7 @@ function checkBriefFile(briefPath: string, path: string, keyPath: string): void 
 
 function parseMember(raw: unknown, path: string, dir: string, keyPath: string): MemberSpec {
   if (!isRecord(raw)) fail(path, keyPath, `expected a member map, got ${describe(raw)}`);
-  rejectUnknownKeys(raw, ["agent", "brief", "briefPath", "skills", "model", "count"], path, keyPath);
+  rejectUnknownKeys(raw, ["agent", "brief", "briefPath", "skills", "tools", "model", "count"], path, keyPath);
 
   const agent = requireString(raw.agent, path, `${keyPath}.agent`);
   if (!AGENT_REF_PATTERN.test(agent)) {
@@ -120,9 +120,11 @@ function parseMember(raw: unknown, path: string, dir: string, keyPath: string): 
     fail(path, keyPath, "brief and briefPath are mutually exclusive — use one");
   }
 
+  const tools = raw.tools === undefined ? undefined : parseSkills(raw.tools, path, `${keyPath}.tools`);
   const member: MemberSpec = {
     agent,
     skills: parseSkills(raw.skills, path, `${keyPath}.skills`),
+    ...(tools !== undefined ? { tools } : {}),
     count: parsePositiveInt(raw.count, path, `${keyPath}.count`, 1),
     ...(raw.model !== undefined ? { model: requireString(raw.model, path, `${keyPath}.model`) } : {}),
     ...(raw.brief !== undefined ? { brief: requireString(raw.brief, path, `${keyPath}.brief`) } : {}),

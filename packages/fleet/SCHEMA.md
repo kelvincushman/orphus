@@ -33,6 +33,8 @@ teams:                     # required; at least one
           One paragraph of role contract.
         briefPath: briefs/x.md   # optional; relative to this file; must exist and be readable
         skills: [coding-standards]  # optional; unioned with team skills
+        tools: [read, roundtable]   # optional; REPLACES the agent's tool allowlist —
+                                    #   deliberate members need "roundtable" in it
         model: openai-codex/gpt-fast # optional; overrides the agent definition's model
         count: 2           # optional; dispatch replication — members get unique session names
 

@@ -17,6 +17,8 @@ export interface AsyncExecutionContext {
 export interface AsyncSingleParams {
 	agent: string;
 	task?: string;
+	/** Replaces the agent's tool allowlist for this child. */
+	tools?: string[];
 	/** Session name for the child; roundtable room cursors are keyed by it. */
 	name?: string;
 	group?: string | true;

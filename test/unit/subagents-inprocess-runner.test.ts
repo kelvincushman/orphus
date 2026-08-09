@@ -307,6 +307,23 @@ test("nested interrupt flushes JSONL and resume reloads the same in-process chil
 	}
 });
 
+test("a tools override in the spec replaces the agent allowlist in the admitted policy", () => {
+	const root = mkdtempSync(join(tmpdir(), "atomic-inprocess-tools-override-"));
+	try {
+		const control = new SubagentControlRuntime({ path: "parent", depth: 0 }, root);
+		const agent = { ...sampleAgent(), tools: ["read", "search"] };
+		control.registerAgents([agent]);
+		const admitted = control.admitChildSession(
+			{ ...sampleSpec(root), agent, tools: ["read", "search", "roundtable"] },
+			{ path: "parent", depth: 0 },
+		).admitted;
+		assert.ok(admitted);
+		assert.deepEqual(admitted.policy.tools, ["read", "search", "roundtable"]);
+	} finally {
+		rmSync(root, { recursive: true, force: true });
+	}
+});
+
 test("a sessionName in the spec names the child's session for broker identity", async () => {
 	const root = mkdtempSync(join(tmpdir(), "atomic-inprocess-session-name-"));
 	clearSubagentControls();

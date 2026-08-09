@@ -9,6 +9,8 @@
 
 ### Added
 
+- Subagent tasks (SINGLE, PARALLEL `tasks[]`, chain parallel steps) accept an optional `tools` array that replaces the agent definition's allowlist for that task, mirroring per-call `skill` semantics. The admitted child policy already honored spec-level tools; this exposes it at the tool surface so orchestrators (fleets in particular) can grant capabilities like `roundtable` per seat.
+
 - Added an optional `name` on subagent tasks (SINGLE mode, PARALLEL `tasks[]`, and chain parallel steps) that names the child's session. Extensions read it via `pi.getSessionName()` — the roundtable broker keys room cursors and attribution by session name, and unnamed in-process children all share the parent's pid-derived identity, so two children joining the same room previously collided on one read cursor. Naming each member gives it its own durable broker identity.
 - Added the in-process subagent control-plane doors and `InProcessChildRunner` foundation backed by the Rust N-API registry, typed statuses, session statistics, and bounded result envelopes ([#2188](https://github.com/bastani-inc/atomic/issues/2188)).
 

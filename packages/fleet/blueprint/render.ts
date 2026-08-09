@@ -57,6 +57,7 @@ interface RecipeTask {
   name: string;
   task: string;
   skill?: string[];
+  tools?: string[];
   model?: string;
 }
 
@@ -73,6 +74,7 @@ function recipeTasks(team: TeamSpec, taskFor: (member: MemberSpec, name: string)
         name,
         task: taskFor(member, name),
         ...(skills.length ? { skill: skills } : {}),
+        ...(member.tools ? { tools: [...member.tools] } : {}),
         ...(member.model ? { model: member.model } : {}),
       });
     }

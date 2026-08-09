@@ -19,8 +19,10 @@ teams:
     rounds: 1
     members:
       - agent: codebase-analyzer
+        tools: [read, search, find, ls, roundtable]
         brief: Diff every documented claim against the code as it is.
       - agent: worker
+        tools: [read, search, find, ls, roundtable]
         brief: Follow the docs cold, as written, and report where they break.
 
 pipeline: [write, fact-check]

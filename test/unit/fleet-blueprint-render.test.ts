@@ -98,6 +98,23 @@ teams:
 		assert.match(section, /dispatch/iu);
 	});
 
+	test("member tools grants reach the recipe so deliberate members can join rooms", () => {
+		const granted = parseFleetBlueprint(
+			`
+name: x
+description: d
+teams:
+  t:
+    mode: deliberate
+    members:
+      - agent: codebase-analyzer
+        tools: [read, search, roundtable]
+`,
+			"/tmp/x.fleet.yaml",
+		);
+		assert.match(renderFleetRunPrompt(granted, "task"), /"tools": \[\s*"read",\s*"search",\s*"roundtable"\s*\]/u);
+	});
+
 	test("a declared gate renders reviewers-then-verdict into the run prompt", () => {
 		const gated = parseFleetBlueprint(
 			`

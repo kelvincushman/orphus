@@ -131,8 +131,13 @@ of the authoring models.
   the names from the run prompt exactly; never send two members into one room
   under the same name.
 - An agent whose `tools:` allowlist omits `roundtable` cannot join rooms —
-  if a deliberate member errors on room actions, that is why; pick another
-  agent or fix the agent definition rather than retrying.
+  and most read-only agents omit it. The fix is the blueprint's member
+  `tools:` grant (it REPLACES the agent's allowlist, like `skill` does):
+  deliberate members carry e.g. `[read, search, find, ls, roundtable]` in the
+  run prompt's recipes. If a member still errors on room actions, the grant is
+  missing — fix the blueprint, don't retry.
+- You must JOIN a room before posting to it — including yourself: join the
+  team's room before posting your synthesis as the decision of record.
 - Members cannot spawn sub-fleets; depth and parallelism caps are enforced by
   the harness. Do not fight the caps — split into sequential waves instead.
 
