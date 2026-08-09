@@ -64,6 +64,7 @@
     "yaml": "^2.9.0"
   },
   "bin": {
-    "orphus-roles": "bin/orphus-roles.ts"
+    "orphus-roles": "bin/orphus-roles.ts",
+    "orphus-roundtable-mcp": "bin/orphus-roundtable-mcp.ts"
   }
 }

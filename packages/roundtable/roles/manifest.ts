@@ -17,7 +17,7 @@ const DEFAULT_PER_MESSAGE_CAP = 600;
 const DEFAULT_WORKTREE = "active";
 
 /** Room and role names key cursors broker-side, so keep them boring and stable. */
-const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]*$/i;
+export const NAME_PATTERN = /^[a-z0-9][a-z0-9_-]*$/i;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
