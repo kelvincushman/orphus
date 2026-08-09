@@ -4,6 +4,7 @@ import { parse as parseYaml } from "yaml";
 import {
   FleetBlueprintError,
   type FleetBlueprint,
+  type FleetGate,
   type FleetBudgets,
   type FleetDefaults,
   type MemberSpec,
@@ -262,7 +263,7 @@ export function parseFleetBlueprint(text: string, blueprintPath: string): FleetB
   }
 
   if (!isRecord(raw)) fail(path, "(document)", `expected a map at the top level, got ${describe(raw)}`);
-  rejectUnknownKeys(raw, ["name", "description", "version", "orchestrator", "defaults", "teams", "pipeline"], path, "");
+  rejectUnknownKeys(raw, ["name", "description", "version", "orchestrator", "defaults", "teams", "pipeline", "gate"], path, "");
 
   const name = requireName(raw.name, path, "name", "it names default rooms and the lead session");
   const description = requireString(raw.description, path, "description");
@@ -279,6 +280,25 @@ export function parseFleetBlueprint(text: string, blueprintPath: string): FleetB
     if (raw.orchestrator.model !== undefined) {
       orchestratorModel = requireString(raw.orchestrator.model, path, "orchestrator.model");
     }
+  }
+
+  let gate: FleetGate | undefined;
+  if (raw.gate !== undefined) {
+    if (!isRecord(raw.gate)) fail(path, "gate", `expected a map, got ${describe(raw.gate)}`);
+    rejectUnknownKeys(raw.gate, ["reviewers", "model"], path, "gate");
+    let reviewers: readonly string[] = [];
+    if (raw.gate.reviewers !== undefined) {
+      if (!Array.isArray(raw.gate.reviewers)) {
+        fail(path, "gate.reviewers", `expected a list of reviewer names, got ${describe(raw.gate.reviewers)}`);
+      }
+      if (raw.gate.reviewers.length === 0) fail(path, "gate.reviewers", "at least one reviewer, or omit the key");
+      reviewers = raw.gate.reviewers.map((entry, index) => requireString(entry, path, `gate.reviewers[${index}]`));
+    }
+    const model = raw.gate.model === undefined ? undefined : requireString(raw.gate.model, path, "gate.model");
+    if (reviewers.length === 0 && model === undefined) {
+      fail(path, "gate", "an empty gate gates nothing — set reviewers, model, or remove the block");
+    }
+    gate = { reviewers, ...(model !== undefined ? { model } : {}) };
   }
 
   const warnings: string[] = [];
@@ -337,6 +357,7 @@ export function parseFleetBlueprint(text: string, blueprintPath: string): FleetB
     dir,
     path,
     ...(orchestratorModel !== undefined ? { orchestratorModel } : {}),
+    ...(gate !== undefined ? { gate } : {}),
   };
 }
 

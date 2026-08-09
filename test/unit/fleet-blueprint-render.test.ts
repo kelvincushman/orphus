@@ -98,6 +98,29 @@ teams:
 		assert.match(section, /dispatch/iu);
 	});
 
+	test("a declared gate renders reviewers-then-verdict into the run prompt", () => {
+		const gated = parseFleetBlueprint(
+			`
+name: x
+description: d
+gate:
+  reviewers: [coderabbit, greptile]
+  model: openai-codex/gpt-5.6-sol
+teams:
+  t:
+    mode: dispatch
+    members:
+      - agent: worker
+`,
+			"/tmp/x.fleet.yaml",
+		);
+		const prompt = renderFleetRunPrompt(gated, "task");
+		assert.match(prompt, /Final gate/u);
+		assert.match(prompt, /coderabbit and greptile/u);
+		assert.match(prompt, /gpt-5\.6-sol/u);
+		assert.doesNotMatch(renderFleetRunPrompt(BLUEPRINT, "task"), /Final gate/u);
+	});
+
 	test("a pinned member model reaches its recipe entry", () => {
 		const pinned = parseFleetBlueprint(
 			`

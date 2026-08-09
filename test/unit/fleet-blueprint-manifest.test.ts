@@ -305,6 +305,23 @@ teams:
 		assert.ok(blueprint.warnings.some((warning) => warning.includes("rounds")));
 	});
 
+	test("parses the final-gate block and defaults to none", () => {
+		const gated = parseFleetBlueprint(
+			`${MINIMAL}gate:\n  reviewers: [coderabbit]\n  model: openai-codex/gpt-5.6-sol\n`,
+			blueprintPath(),
+		);
+		assert.deepEqual(gated.gate, { reviewers: ["coderabbit"], model: "openai-codex/gpt-5.6-sol" });
+		assert.equal(parseFleetBlueprint(MINIMAL, blueprintPath()).gate, undefined);
+	});
+
+	test("rejects unknown gate keys and empty gate values", () => {
+		assert.throws(() => parseFleetBlueprint(`${MINIMAL}gate:\n  robot: yes\n`, blueprintPath()), /gate\.robot/u);
+		assert.throws(
+			() => parseFleetBlueprint(`${MINIMAL}gate:\n  reviewers: []\n`, blueprintPath()),
+			/at least one reviewer|reviewers/u,
+		);
+	});
+
 	test("loadFleetBlueprint reads from disk and names a missing file", () => {
 		writeFileSync(blueprintPath(), MINIMAL);
 		const blueprint = loadFleetBlueprint(blueprintPath());

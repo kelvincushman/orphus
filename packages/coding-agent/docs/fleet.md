@@ -71,6 +71,22 @@ out of the box, and copying an example into a project or user dir (or letting
 `/fleetsetup` start from one) overrides it by name. The `fleet` tool gives the model
 `list`/`get`/`validate` over them — `validate` is the authoring loop's gate.
 
+## The final gate
+
+A blueprint can declare how PR-shaped work gets judged:
+
+```yaml
+gate:
+  reviewers: [coderabbit]          # or greptile, or both — must COMPLETE first
+  model: openai-codex/gpt-5.6-sol  # renders the verdict once they have
+```
+
+The orchestrator waits for the named reviewers to finish, triages their
+findings (fixing what is real, refuting what is not — with evidence), then
+dispatches the gate model in fresh context for a pass / fix-first verdict.
+Green checks alone never merge. `/fleetsetup` asks about this during the
+interview.
+
 ## Sharp edges
 
 - A `skill` list on a dispatch call **replaces** the agent definition's own
