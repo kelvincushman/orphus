@@ -105,7 +105,7 @@ raw record.
 
 The builtin spawns the broker lazily on first use. If every peer is external, no
 Orphus session exists to do that, so the server ensures the broker itself on first
-call, using the existing `socket-probe.ts` and the standalone `broker/main.ts`.
+call, via the existing `ensureBrokerRunning()` in `broker/spawn.ts`.
 
 Connection stays lazy for the same reason it is lazy in the extension: a server
 that is configured but never called should cost nothing.
@@ -166,6 +166,7 @@ The no-model demos stay the proof of the digest contract; this adds no model cal
 
 Per AGENTS.md: `docs/roles.md` and `docs/architecture.md` gain the external-peer
 path; `docs/README.md` indexes it; the README states how to point an MCP client at
-a room; `packages/roundtable/CHANGELOG.md` gets an `Added` entry under
-`[Unreleased]`, because this is user-visible shipped behaviour rather than
+a room; `packages/coding-agent/CHANGELOG.md` gets an `Added` entry under `[Unreleased]`
+(the roundtable package has no changelog; its user-visible entries live in the
+shipping package's), because this is user-visible shipped behaviour rather than
 infrastructure.

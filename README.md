@@ -353,6 +353,20 @@ exactly `GLIBC_2.27`.
 Only Linux x64 is built. Each additional platform needs its own napi-slug `.node` staged
 first, so it is another job rather than another matrix row.
 
+## From another harness (MCP)
+
+Rooms are not Orphus-only. `orphus-roundtable-mcp` is a stdio MCP server any
+MCP-capable CLI can launch — Claude Code, Codex, Gemini CLI, Cursor — joining a
+room as a peer with a pinned role:
+
+    bun packages/roundtable/bin/orphus-roundtable-mcp.ts --as critic
+
+Mixed-model fleets do not need this: the role manifest is model-agnostic, and
+`npm run roles` already launches roles on any configured provider. The bridge is
+for the case providers cannot cover — a whole other agent harness, with its own
+tools and context management, sitting in the discussion. Details:
+[docs/roundtable-tool.md](docs/roundtable-tool.md#external-peers-over-mcp).
+
 ## Fleets: an orchestration in one command
 
 A fleet blueprint (`.orphus/fleets/<name>.fleet.yaml`) binds **teams** of agent

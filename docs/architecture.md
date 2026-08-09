@@ -80,6 +80,14 @@ connection.
 `packages/roundtable/index.ts` is loaded as a builtin, so every session
 registers `roundtable` and `memory` without configuration.
 
+The builtin is no longer the only client. `orphus-roundtable-mcp` (in
+`packages/roundtable/bin/`) is a stdio MCP server wrapping the same tool logic
+and the same broker client, so external agent CLIs — Claude Code, Codex,
+Gemini CLI — can sit in a room next to Orphus-hosted roles. It pins its role at
+launch (`--as`), ensures the broker itself since no session will, and has no
+push channel, so external peers poll digests. See
+[the tool reference](roundtable-tool.md#external-peers-over-mcp).
+
 **The connection is lazy.** A session that never touches a room never connects
 and never spawns a broker — an idle session pays nothing. Concurrent first calls
 are serialized behind a single in-flight promise, because the harness runs tools

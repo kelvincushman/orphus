@@ -4,6 +4,8 @@
 
 ### Added
 
+- Added `orphus-roundtable-mcp`, a stdio MCP server (2026-07-28 protocol, SDK v2) that lets external MCP-capable agent CLIs join roundtable rooms as peers. The role is pinned at launch with `--as` and stamped on every post — no tool accepts a role, so cursors and attribution stay coherent — the eight room actions are exposed as individually-schema'd tools reusing the builtin tool's logic, and the server spawns the room broker on first use so an all-external fleet needs no Orphus session running.
+
 - Added the bundled `@bastani/fleet` extension: community-shareable fleet orchestration. `/fleet <name> <task>` runs a blueprint of teams (agents with pre-assigned skills, per-team dispatch or room-deliberation modes), `/fleetsetup` authors one by interview offering model seats only from configured providers, and the `fleet` tool provides `list`/`get`/`validate`. Ships with the `fleet-orchestration` and `kie-ai-media` skills and six example blueprints.
 
 - Rooms and durable memory are reachable from a running session for the first
