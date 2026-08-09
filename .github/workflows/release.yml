@@ -149,6 +149,14 @@ jobs:
           mv release/atomic release/orphus
           mv release/orphus/atomic release/orphus/orphus
           test "$(release/orphus/orphus --version)" = "$VERSION"
+          highest_glibc="$(
+            find release/orphus -type f \
+              \( -perm -111 -o -name '*.node' -o -name '*.so' -o -name '*.so.*' \) \
+              -exec strings -a {} + \
+              | grep -o "GLIBC_2\.[0-9]*" | sort -u -t. -k2,2n | tail -1
+          )"
+          test "$highest_glibc" = "GLIBC_2.27"
+          echo "Archive glibc floor verified: $highest_glibc"
           tar -czf orphus-linux-x64.tar.gz -C release orphus
           rm -rf release atomic-linux-x64.tar.gz
 
@@ -167,5 +175,5 @@ jobs:
           set -euo pipefail
           cd packages/coding-agent/binaries
           gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes \
-            'Linux x64 build. Not glibc-floored — see .github/workflows/release.yml.' \
+            'Linux x64 build. Requires glibc 2.27 or newer; the archive verifies this exact floor before staging.' \
             orphus-linux-x64.tar.gz SHA256SUMS
