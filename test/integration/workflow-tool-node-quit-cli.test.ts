@@ -345,6 +345,15 @@ async function runScenario(): Promise<Evidence> {
 				`the run ended (${premature.status}) before hang-tool's callback parked: ${premature.error ?? "no error recorded"}`,
 			);
 		}
+		// The RPC transport answers the launch prompt independently of the surface
+		// the command rendered, so the dispatch surface is awaited for the same
+		// reason `statusSurface` awaits its own rather than reading optimistically.
+		// It lands about 1.4 s after the prompt is answered, which is comfortably
+		// inside the hang-tool wait above on an idle machine and not on a busy one.
+		await cli.waitUntil(
+			() => cli.surfaces().some((surface) => surface.details.kind === "dispatch"),
+			"the dispatched run surface",
+		);
 		const dispatched = cli.surfaces().find((surface) => surface.details.kind === "dispatch");
 		const runId = dispatched?.details.runId;
 		if (runId === undefined) throw new Error("the CLI did not render a dispatched run id");
