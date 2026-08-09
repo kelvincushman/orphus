@@ -1,7 +1,19 @@
 import { lstatSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-export const EXPECTED_BUILTIN_DIRECTORY_NAMES = ["intercom", "mcp", "subagents", "web-access", "workflows"] as const;
+// Must equal the `workspaceDirName` set in
+// packages/coding-agent/scripts/copy-builtin-packages.ts, which is what actually
+// lands in the archive. Sorted, because the comparison below is index-wise
+// against a sorted readdir. The contract test in
+// test/unit/assert-builtin-set.test.ts pins the two together.
+export const EXPECTED_BUILTIN_DIRECTORY_NAMES = [
+	"intercom",
+	"mcp",
+	"roundtable",
+	"subagents",
+	"web-access",
+	"workflows",
+] as const;
 
 export function assertExactBuiltinSet(root: string): string[] {
 	const actual = readdirSync(root, { withFileTypes: true })
