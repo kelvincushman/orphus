@@ -42,9 +42,14 @@ into a knowledge graph and serves it over MCP; it is declared in the committed
 per checkout:
 
 ```sh
-npx gitnexus@1.6.9 analyze .        # writes .gitnexus/ (gitignored); ~3 min for this tree
-npx gitnexus@1.6.9 status           # re-run analyze when this reports "stale"
+npx gitnexus@1.6.9 analyze . --skip-agents-md   # writes .gitnexus/ (gitignored); ~3 min for this tree
+npx gitnexus@1.6.9 status                       # re-run analyze when this reports "stale"
 ```
+
+`--skip-agents-md` is not optional politeness: a bare `analyze` appends a
+45-line block to `AGENTS.md` and `CLAUDE.md` whose MUST/NEVER framing
+contradicts this file (the graph is a lookup tool, not an authority), leaving a
+fresh clone with a dirty tree in the two files that define how to work here.
 
 Before adding a function, a helper, or a module:
 
@@ -55,9 +60,13 @@ Before adding a function, a helper, or a module:
    the location property is `filePath` (not `path` or `file_path`):
 
    ```sh
-   npx gitnexus@1.6.9 cypher "MATCH (m:Method) WHERE m.filePath CONTAINS 'roundtable/broker/' \
+   npx gitnexus@1.6.9 cypher --repo orphus "MATCH (m:Method) WHERE m.filePath CONTAINS 'roundtable/broker/' \
      RETURN m.name AS name, m.filePath AS file, m.startLine AS line ORDER BY file, line"
    ```
+
+   `--repo orphus` matters once the machine-wide GitNexus store holds more than
+   one repository: without it the CLI errors with "Multiple repositories
+   indexed" instead of defaulting to the current checkout.
 
 The graph is the anti-duplication gate: **nothing gets recreated that the tree
 already has.** It is a lookup tool, not an authority — it can be stale, and a
