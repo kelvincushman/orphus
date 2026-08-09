@@ -6,6 +6,7 @@ import { readText } from "./workflow-text.js";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const releasePath = join(root, ".github/workflows/release.yml");
+const readmePath = join(root, "README.md");
 
 test("the Orphus release runs only for version tags and verifies the existing tag", async () => {
 	const workflow = await readText(releasePath);
@@ -42,4 +43,21 @@ test("the tag version is stamped and proven by the packaged Orphus executable", 
 	assert.match(workflow, /test "\$\(release\/orphus\/orphus --version\)" = "\$VERSION"/u);
 	assert.match(workflow, /orphus-linux-x64\.tar\.gz SHA256SUMS/u);
 	assert.doesNotMatch(workflow, /gh release create[^\n]*[\s\S]{0,200}?atomic-linux-x64/u);
+});
+
+test("the release glibc contract is wired, measured across every ELF file, and stated coherently", async () => {
+	const workflow = await readText(releasePath);
+	const readme = await readText(readmePath);
+	assert.match(workflow.slice(0, workflow.indexOf("jobs:")), /GLIBC_FLOOR: "2\.17"/u);
+	assert.match(workflow, /CROSS_TARGET: x86_64-unknown-linux-gnu\.\$\{\{ env\.GLIBC_FLOOR \}\}/u);
+	assert.match(workflow, /tool: cargo-zigbuild@0\.23\.0/u);
+	assert.match(workflow, /find release\/orphus -type f/u);
+	assert.match(workflow, /-perm -111/u);
+	assert.match(workflow, /-name '\*\.so\.\*'/u);
+	assert.match(workflow, /test "\$highest_glibc" = "GLIBC_2\.27"/u);
+	assert.doesNotMatch(workflow, /Not glibc-floored/u);
+	assert.match(workflow, /Requires glibc 2\.27 or newer/u);
+	assert.match(readme, /find orphus -type f/u);
+	assert.match(readme, /-perm -111/u);
+	assert.match(readme, /-name '\*\.so\.\*'/u);
 });
