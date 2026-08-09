@@ -88,6 +88,13 @@ export interface RunSyncOptions {
 	index?: number;
 	sessionDir?: string;
 	sessionFile?: string;
+	/**
+	 * Name the child's session (SessionManager session_info). Extensions read it
+	 * via pi.getSessionName() — the roundtable broker keys room cursors and
+	 * attribution by it, and every in-process child shares the parent's pid, so
+	 * without a name all children collide on the same session-<pid> identity.
+	 */
+	sessionName?: string;
 	/** Override the Atomic CLI entrypoint used by foreground child processes. */
 	piArgv1?: string;
 	share?: boolean;

@@ -25,6 +25,8 @@ import type { runSync } from "./execution.ts";
 export interface TaskParam {
 	agent: string;
 	task: string;
+	/** Session name for the child; roundtable room cursors are keyed by it. */
+	name?: string;
 	cwd?: string;
 	count?: number;
 	output?: string | boolean;
@@ -39,6 +41,8 @@ export interface TaskParam {
 export interface SubagentParamsLike {
 	action?: (typeof SUBAGENT_ACTIONS)[number];
 	id?: string;
+	/** SINGLE mode: session name for the child (roundtable identity). */
+	name?: string;
 	runId?: string;
 	dir?: string;
 	index?: number;

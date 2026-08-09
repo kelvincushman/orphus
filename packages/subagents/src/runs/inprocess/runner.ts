@@ -80,6 +80,8 @@ export interface ChildSpec {
 	/** Typed identity/capability resolved by the parent before admission. */
 	readonly intercom?: SubagentIntercomIdentity;
 	readonly sessionFile?: string;
+	/** Session name for the child; broker-side room cursors are keyed by it. */
+	readonly sessionName?: string;
 	readonly testSession?: boolean | TestSessionOptions;
 	readonly structuredOutput?: { readonly schema: JsonSchemaObject; readonly outputPath: string };
 	readonly artifactJsonlPath?: string;
@@ -637,6 +639,10 @@ export class SubagentControlRuntime {
 					);
 			activeSessionManager = sessionManager;
 			if (workflow) sessionManager.markSessionInternal(workflow);
+			// Before the session exists: extensions loaded during createAgentSession
+			// read pi.getSessionName() lazily, and the roundtable broker keys room
+			// cursors by it, so the name must be durable before the first tool call.
+			if (admitted.spec.sessionName) sessionManager.appendSessionInfo(admitted.spec.sessionName);
 			const settingsManager = SettingsManager.create(admitted.policy.cwd, getAgentDir());
 			const agentPrompt = admitted.spec.agent.systemPrompt?.trim();
 			const resourceLoader = new DefaultResourceLoader({

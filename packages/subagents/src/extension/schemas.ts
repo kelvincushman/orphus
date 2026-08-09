@@ -58,6 +58,12 @@ const GroupSchema = Type.Union([Type.String(), Type.Boolean()], {
 const TaskItem = Type.Object({
 	agent: Type.String(),
 	task: Type.String(),
+	name: Type.Optional(
+		Type.String({
+			description:
+				"Session name for this child. Roundtable rooms key cursors and attribution by session name, and unnamed in-process children all collide on the parent's pid — name each member that will join a room.",
+		}),
+	),
 	cwd: Type.Optional(Type.String()),
 	count: Type.Optional(
 		Type.Integer({ minimum: 1, description: "Repeat this parallel task N times with the same settings." }),
@@ -81,6 +87,12 @@ const ParallelTaskSchema = Type.Object({
 	),
 	phase: Type.Optional(Type.String({ description: "Optional phase/group label for status and graph rendering." })),
 	label: Type.Optional(Type.String({ description: "Optional user-facing label for this parallel task." })),
+	name: Type.Optional(
+		Type.String({
+			description:
+				"Session name for this child. Roundtable rooms key cursors and attribution by session name — name each member that will join a room.",
+		}),
+	),
 	as: Type.Optional(
 		Type.String({ description: "Optional safe identifier used as {outputs.name} in later chain steps." }),
 	),
@@ -249,6 +261,12 @@ export const SubagentParams = Type.Object(
 			Type.String({ description: "Agent name (SINGLE mode) or target for management get/update/delete" }),
 		),
 		task: Type.Optional(Type.String({ description: "Task (SINGLE mode, optional for self-contained agents)" })),
+		name: Type.Optional(
+			Type.String({
+				description:
+					"SINGLE mode: session name for the child. Roundtable rooms key cursors and attribution by session name; name a child that will join a room.",
+			}),
+		),
 		// Management action (when present, tool operates in management mode)
 		action: Type.Optional(
 			Type.String({
