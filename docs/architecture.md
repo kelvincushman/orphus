@@ -177,8 +177,10 @@ Everything else — the agent loop, providers, tools, MCP, subagents, workflows,
 the TUI — comes from [Atomic](https://github.com/bastani-inc/atomic) and behaves
 as it does upstream. A bug there is usually worth reporting upstream too.
 
-The inherited `test.yml`, `publish.yml`, and `warm-toolchain-cache.yml` are kept
-byte-identical to upstream and **disabled**: they target Blacksmith runners
-registered to the upstream organization, which never pick up jobs here. Read
+The inherited `test.yml`, `publish.yml`, and `warm-toolchain-cache.yml` are all
+**disabled**: they target Blacksmith runners registered to the upstream
+organization, which never pick up jobs here. `publish.yml` and
+`warm-toolchain-cache.yml` are kept byte-identical to upstream; `test.yml` is
+not, because it carries the rebrand's `ORPHUS_REQUIRE_*` env-var names. Read
 them as a record of upstream's topology, not as this repository's CI. What runs
 here is documented in [`ci.md`](ci.md).

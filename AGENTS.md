@@ -134,9 +134,12 @@ The inherited Atomic workflows — `test.yml`, `publish.yml`, `warm-toolchain-ca
 describe a nine-context matrix with full Windows coverage on Blacksmith runners, and
 `test/ci/test-workflow-topology.test.ts` still asserts that shape. **None of them run.**
 Blacksmith runners are registered to the upstream organization and never pick up jobs on
-this repository, so those workflows are kept byte-identical to upstream and disabled at the
-repository level rather than rewritten. Read them as a record of upstream's topology, not as
-this repository's gate, and do not optimize for check contexts that will never report.
+this repository, so those workflows are disabled at the repository level rather than
+rewritten. `publish.yml` and `warm-toolchain-cache.yml` are kept byte-identical to upstream.
+`test.yml` cannot be: it carries the rebrand's `ORPHUS_REQUIRE_*` env-var names, and it has
+also fallen behind upstream's own later edits to it. Read them as a record of upstream's
+topology, not as this repository's gate, and do not optimize for check contexts that will
+never report.
 
 The practical consequence: **this fork has no Windows CI.** `prek.toml` records a
 Windows-only line-ending bug that reached main because of it. Treat a

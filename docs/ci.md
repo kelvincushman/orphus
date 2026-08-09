@@ -4,9 +4,12 @@
 > describes workflows that **do not run in this repository**. They target
 > Blacksmith runners registered to the upstream organization, which never pick
 > up jobs here, so `test.yml`, `publish.yml`, and `warm-toolchain-cache.yml` are
-> kept byte-identical to upstream and disabled at the repository level rather
-> than rewritten. They are documented as a record of upstream's topology — and
-> because `test/ci/` still asserts their shape — not as this project's gate.
+> disabled at the repository level rather than rewritten. `publish.yml` and
+> `warm-toolchain-cache.yml` are kept byte-identical to upstream; `test.yml`
+> cannot be, because it carries the rebrand's `ORPHUS_REQUIRE_*` env-var names,
+> and it has since fallen behind upstream's own edits to it. They are documented
+> as a record of upstream's topology — and because `test/ci/` still asserts
+> their shape — not as this project's gate.
 >
 > The gate that actually decides whether a pull request can merge is
 > [`ci.yml`](#the-orphus-gate-ciyml), documented immediately below.

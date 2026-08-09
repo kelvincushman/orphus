@@ -5,8 +5,9 @@ name: Orphus
 # The inherited Atomic workflows (test.yml, publish.yml, warm-toolchain-cache.yml)
 # target Blacksmith runners that only exist on the upstream org, and
 # test/ci/test-workflow-topology.test.ts pins their runner names — so they are
-# left byte-identical to upstream and disabled at the repository level rather
-# than rewritten here.
+# disabled at the repository level rather than rewritten here. publish.yml and
+# warm-toolchain-cache.yml are left byte-identical to upstream; test.yml cannot
+# be, because it carries the rebrand's ORPHUS_REQUIRE_* env-var names.
 #
 # Their suites used to be described as "running locally via the prek hooks in
 # prek.toml". That was honour-system: scripts/install-hooks.mjs exits early
