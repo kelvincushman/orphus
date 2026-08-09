@@ -202,6 +202,7 @@ export async function runSinglePath(
 			controlConfig,
 			onControlEvent,
 			intercomSessionName: childIntercomTarget,
+			sessionName: params.name,
 			orchestratorIntercomTarget: data.intercomBridge.active ? data.intercomBridge.orchestratorTarget : undefined,
 			intercomGroup: resolveChildIntercomGroup(params.group, inheritedIntercomGroup(ctx), undefined),
 			nestedRoute: foregroundControl?.nestedRoute,

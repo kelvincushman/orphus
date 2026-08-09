@@ -128,6 +128,7 @@ export async function executeAsyncSingle(id: string, params: AsyncSingleParams):
 		controlConfig,
 		supervisorAuthorization: params.supervisorAuthorization,
 		intercomSessionName: childIntercomTarget?.(agent, 0),
+		sessionName: params.name,
 		orchestratorIntercomTarget: controlIntercomTarget,
 		intercomGroup: resolveChildIntercomGroup(params.group, ctx.intercomGroup, undefined),
 		modelOverride: filteredCandidates.candidates[0] ?? params.modelOverride ?? agentConfig.model,

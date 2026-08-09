@@ -17,6 +17,8 @@ export interface AsyncExecutionContext {
 export interface AsyncSingleParams {
 	agent: string;
 	task?: string;
+	/** Session name for the child; roundtable room cursors are keyed by it. */
+	name?: string;
 	group?: string | true;
 	agentConfig: AgentConfig;
 	ctx: AsyncExecutionContext;

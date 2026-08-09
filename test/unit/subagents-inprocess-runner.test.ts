@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { SessionManager } from "@bastani/atomic";
 import { test } from "vitest";
 import type { AgentConfig } from "../../packages/subagents/src/agents/agent-types.ts";
 import { runSingleInProcess } from "../../packages/subagents/src/runs/foreground/inprocess-run-sync.ts";
@@ -302,6 +303,51 @@ test("nested interrupt flushes JSONL and resume reloads the same in-process chil
 		assert.equal(resumed?.outcome?.path, interrupted.path);
 	} finally {
 		gate.resolve();
+		rmSync(root, { recursive: true, force: true });
+	}
+});
+
+test("a sessionName in the spec names the child's session for broker identity", async () => {
+	const root = mkdtempSync(join(tmpdir(), "atomic-inprocess-session-name-"));
+	clearSubagentControls();
+	try {
+		const sessionDir = join(root, "sessions", "named");
+		const sessionFile = join(sessionDir, "session.jsonl");
+		const result = await runSingleInProcess(root, sampleAgent(), "inspect the fixture", {
+			cwd: root,
+			runId: "named-run",
+			sessionDir,
+			sessionFile,
+			sessionName: "critic",
+			testSession: { output: "done" },
+		});
+		assert.equal(result.status, "ok");
+		// Roundtable identity is pi.getSessionName(), which reads the latest
+		// session_info entry — reopen the persisted session and read it back.
+		const reopened = SessionManager.open(sessionFile, sessionDir, root);
+		assert.equal(reopened.getSessionName(), "critic");
+	} finally {
+		rmSync(root, { recursive: true, force: true });
+	}
+});
+
+test("without a sessionName the child session stays unnamed", async () => {
+	const root = mkdtempSync(join(tmpdir(), "atomic-inprocess-session-unnamed-"));
+	clearSubagentControls();
+	try {
+		const sessionDir = join(root, "sessions", "unnamed");
+		const sessionFile = join(sessionDir, "session.jsonl");
+		const result = await runSingleInProcess(root, sampleAgent(), "inspect the fixture", {
+			cwd: root,
+			runId: "unnamed-run",
+			sessionDir,
+			sessionFile,
+			testSession: { output: "done" },
+		});
+		assert.equal(result.status, "ok");
+		const reopened = SessionManager.open(sessionFile, sessionDir, root);
+		assert.equal(reopened.getSessionName(), undefined);
+	} finally {
 		rmSync(root, { recursive: true, force: true });
 	}
 });

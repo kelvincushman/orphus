@@ -204,6 +204,7 @@ export async function runSingleInProcess(
 		cwd,
 		testSession: testSession,
 		sessionFile: options.sessionFile,
+		...(options.sessionName ? { sessionName: options.sessionName } : {}),
 		structuredOutput: options.structuredOutput
 			? { schema: options.structuredOutput.schema, outputPath: options.structuredOutput.outputPath }
 			: undefined,

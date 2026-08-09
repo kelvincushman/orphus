@@ -129,6 +129,7 @@ export async function runForegroundParallelTasks(input: ForegroundParallelRunInp
 				controlConfig: input.controlConfig,
 				onControlEvent: input.onControlEvent,
 				intercomSessionName: input.childIntercomTarget?.(task.agent, index),
+				sessionName: task.name,
 				orchestratorIntercomTarget: input.orchestratorIntercomTarget,
 				intercomGroup: resolveChildIntercomGroup(
 					task.group ?? input.setIntercomGroup,

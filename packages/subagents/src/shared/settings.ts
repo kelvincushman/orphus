@@ -63,6 +63,8 @@ export interface SequentialStep {
 export interface ParallelTaskItem {
 	agent: string;
 	task?: string;
+	/** Session name for the child; roundtable room cursors are keyed by it. */
+	name?: string;
 	phase?: string;
 	label?: string;
 	as?: string;
