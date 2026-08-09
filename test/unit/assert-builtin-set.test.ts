@@ -27,25 +27,39 @@ const exactNameMismatch = /Builtin entry set mismatch/u;
 const expectedTypeMismatch = /Builtin entry must be a real, non-link directory/u;
 
 /**
- * The guard's expected set and the set the build actually copies are two lists
- * in two files that must agree, and nothing compared them: adding `roundtable`
- * to the copier alone left every `build-binaries.sh` run failing with an entry
- * set mismatch, which `ci.yml` never runs and so never caught.
+ * The builtin manifest is stated three times: the copier decides what the build
+ * puts in the archive, this guard decides what the archive may contain, and the
+ * runtime decides what the shipped binary will load. All three must agree, and
+ * nothing compared them — #17 added `roundtable` to the copier alone, which left
+ * every `build-binaries.sh` run failing with an entry set mismatch until #31.
+ * `ci.yml` does not build binaries, so only a pushed tag ever revealed it.
  *
- * Read as source text rather than imported: copy-builtin-packages.ts emits
+ * Read as source text rather than imported. copy-builtin-packages.ts emits
  * declarations and bundles the workflows extension at module scope with no
- * `import.meta.main` guard, so importing it would run a build.
+ * `import.meta.main` guard, so importing it would run a build; builtin-packages.ts
+ * pulls in the agent's config resolution. Neither list is exported.
  */
+const WORKSPACE_BUILTINS_BLOCK = /const WORKSPACE_BUILTINS[^=]*=\s*\[(.*?)\](?:\s+as\s+const)?;/su;
+
+function declaredBuiltinNames(relativePath: string, field: "workspaceDirName" | "distDirName"): string[] {
+	const source = readFileSync(join(moduleDir(import.meta.url), "../..", relativePath), "utf8");
+	const block = WORKSPACE_BUILTINS_BLOCK.exec(source);
+	assert.ok(block, `WORKSPACE_BUILTINS is no longer a literal array in ${relativePath}`);
+	const names = [...block[1]!.matchAll(new RegExp(`${field}: "([^"]+)"`, "gu"))].map((match) => match[1]!).sort();
+	assert.ok(names.length > 0, `parsed no ${field} entries from ${relativePath}`);
+	return names;
+}
+
+const COPIER = "packages/coding-agent/scripts/copy-builtin-packages.ts";
+const RUNTIME = "packages/coding-agent/src/core/builtin-packages.ts";
+
 test("the expected builtin set matches the workspace builtins the build copies", () => {
-	const copier = readFileSync(
-		join(moduleDir(import.meta.url), "../../packages/coding-agent/scripts/copy-builtin-packages.ts"),
-		"utf8",
-	);
-	const block = /const WORKSPACE_BUILTINS = \[(.*?)\] as const;/su.exec(copier);
-	assert.ok(block, "WORKSPACE_BUILTINS is no longer a literal array in copy-builtin-packages.ts");
-	const copied = [...block[1]!.matchAll(/workspaceDirName: "([^"]+)"/gu)].map((match) => match[1]!).sort();
-	assert.ok(copied.length > 0, "parsed no workspaceDirName entries");
-	assert.deepEqual(copied, [...EXPECTED_BUILTIN_DIRECTORY_NAMES]);
+	assert.deepEqual(declaredBuiltinNames(COPIER, "workspaceDirName"), [...EXPECTED_BUILTIN_DIRECTORY_NAMES]);
+});
+
+test("the expected builtin set matches the builtins the shipped runtime loads", () => {
+	assert.deepEqual(declaredBuiltinNames(RUNTIME, "distDirName"), [...EXPECTED_BUILTIN_DIRECTORY_NAMES]);
+	assert.deepEqual(declaredBuiltinNames(RUNTIME, "workspaceDirName"), [...EXPECTED_BUILTIN_DIRECTORY_NAMES]);
 });
 
 test("accepts exactly the supported builtin directory set", () => {
