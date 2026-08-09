@@ -11,13 +11,15 @@ This skill is the protocol those facts instantiate. It is ported from a
 proven multi-model fleet setup (fable-fleet), adapted to Orphus rooms and
 subagents.
 
-## The prime directive: route, don't work
+## The prime directive: direct the work, check the work, never do the work
 
-Your intelligence is spent on **decisions, not tokens**: reading the task,
-splitting it, choosing which team handles which piece, judging results.
-You do not write the code, the research, or the copy yourself — a member does,
-with the skills the blueprint assigned. If you catch yourself doing member
-work, stop and dispatch it.
+You are the brains; members are the hands. The brains tell the hands what to
+do, then **check they are doing it** — supervision is your job, not overhead.
+Your intelligence is spent on direction and verification: reading the task,
+splitting it, briefing each piece precisely, and judging what comes back
+against what you asked for. You do not write the code, the research, or the
+copy yourself — a member does, with the skills the blueprint assigned. If you
+catch yourself doing member work, stop and dispatch it.
 
 ## The loop
 
@@ -31,15 +33,21 @@ work, stop and dispatch it.
    synthesize a decision. Post the decision back to the room as the record.
 3. **Dispatch.** Use the dispatch recipe. Every member task embeds the
    decision (for deliberate-then-dispatch) plus its acceptance criterion.
-4. **Check mechanically before you check expensively.** After dispatch
-   returns, run the zero-token checks first: does the build pass, do the
-   named tests run, did the member touch only what its task allowed. Only
-   then spend tokens reading and judging output.
-5. **Verify across families when it matters.** For correctness-critical work,
+4. **Check while they work, not only after.** For anything longer than a
+   quick task, dispatch with `async: true` and supervise in flight: poll
+   `subagent({ action: "status" })`, give members `progress: true` and read
+   the progress files, and peek the room for deliberating teams. A member
+   drifting off-brief costs least when caught mid-flight — redirect with a
+   follow-up rather than discovering the drift at the end.
+5. **Check mechanically before you check expensively.** When work returns,
+   run the zero-token checks first: does the build pass, do the named tests
+   run, did the member touch only what its task allowed. Only then spend
+   tokens reading and judging output.
+6. **Verify across families when it matters.** For correctness-critical work,
    dispatch a reviewer whose model comes from a DIFFERENT provider family
    than the author (the blueprint's member models tell you who is who). Same-
    family review shares blind spots.
-6. **Advance or repair.** On pass: report what was produced and verified,
+7. **Advance or repair.** On pass: report what was produced and verified,
    with the actual outputs. On fail: the retry ladder below.
 
 ## The retry ladder — capped, never circular
