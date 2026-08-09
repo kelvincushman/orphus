@@ -186,7 +186,7 @@ function makeRejectingUIContext(msg: (primitive: string) => string): WorkflowUIC
 function makeUnavailableUIContext(): WorkflowUIContext {
 	return makeRejectingUIContext(
 		(primitive) =>
-			`atomic-workflows: HIL ctx.ui.${primitive} is unavailable because Atomic runtime did not provide a UI adapter`,
+			`atomic-workflows: HIL ctx.ui.${primitive} is unavailable because the Orphus runtime did not provide a UI adapter`,
 	);
 }
 

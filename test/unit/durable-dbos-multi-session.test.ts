@@ -283,7 +283,7 @@ describe("shared-database visibility across sessions", () => {
 		});
 
 		assert.equal(result.ok, false);
-		assert.match(result.message, /actively running in another Atomic session/);
+		assert.match(result.message, /actively running in another Orphus session/);
 	});
 });
 

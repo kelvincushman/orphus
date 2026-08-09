@@ -218,7 +218,7 @@ describe("open-claude-design setup", () => {
 
 		test("isUiUnavailableRejection accepts only the executor's unavailable-UI rejections", () => {
 			const unavailableMessages = [
-				"atomic-workflows: HIL ctx.ui.select is unavailable because Atomic runtime did not provide a UI adapter",
+				"atomic-workflows: HIL ctx.ui.select is unavailable because the Orphus runtime did not provide a UI adapter",
 				"atomic-workflows: interactive ctx.ui.select is unavailable in headless (non-interactive) mode; run the workflow in interactive mode or remove the interactive prompt from this stage",
 				"atomic-workflows: ctx.ui.custom prompt node is unavailable",
 			];

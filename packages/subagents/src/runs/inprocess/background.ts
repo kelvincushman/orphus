@@ -65,7 +65,7 @@ export interface AsyncExecutionResult {
 export function formatAsyncStartedMessage(headline: string): string {
 	return [
 		`Launched: ${headline}`,
-		"Completion pending; Atomic will deliver the result when the in-process child finishes.",
+		"Completion pending; Orphus will deliver the result when the in-process child finishes.",
 		"",
 		"The async child is tied to the current parent process and does not survive parent exit.",
 		'Use subagent({ action: "status", id: "..." }) when you need the current status/result.',
