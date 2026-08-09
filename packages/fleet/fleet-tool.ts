@@ -38,6 +38,8 @@ export interface FleetToolResult {
 export interface FleetToolDeps {
   cwd(): string;
   env?: NodeJS.ProcessEnv;
+  /** Test override for the shipped-examples dir; defaults to the package's. */
+  bundledDir?: string;
 }
 
 export interface FleetModelRegistry {
@@ -125,7 +127,8 @@ function okResult(text: string, details: FleetToolDetails = {}): FleetToolResult
 }
 
 function sources(deps: FleetToolDeps): FleetSource[] {
-  return discoverFleets(fleetRoots(deps.cwd(), deps.env ?? process.env));
+  const roots = fleetRoots(deps.cwd(), deps.env ?? process.env);
+  return discoverFleets(deps.bundledDir ? { ...roots, bundledDir: deps.bundledDir } : roots);
 }
 
 /** Resolve a name to its winning (unshadowed) source. */

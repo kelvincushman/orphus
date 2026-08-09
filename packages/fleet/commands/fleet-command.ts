@@ -23,6 +23,8 @@ import {
 
 export interface FleetCommandDeps {
   env?: NodeJS.ProcessEnv;
+  /** Test override for the shipped-examples dir. */
+  bundledDir?: string;
 }
 
 /** Minimal surface of ExtensionCommandContext the handler touches (stub-friendly). */
@@ -44,7 +46,11 @@ function notify(pi: ExtensionAPI, content: string): void {
 export function createFleetCommandHandler(pi: ExtensionAPI, deps: FleetCommandDeps = {}) {
   return async (args: string, ctx: CommandContextLike): Promise<void> => {
     const env = deps.env ?? process.env;
-    const toolDeps: FleetToolDeps = { cwd: () => ctx.cwd, env };
+    const toolDeps: FleetToolDeps = {
+      cwd: () => ctx.cwd,
+      env,
+      ...(deps.bundledDir ? { bundledDir: deps.bundledDir } : {}),
+    };
     const trimmed = args.trim();
 
     if (trimmed === "" || trimmed === "list") {
@@ -72,7 +78,8 @@ export function createFleetCommandHandler(pi: ExtensionAPI, deps: FleetCommandDe
 
     const name = first as string;
     const task = rest.join(" ").trim();
-    const all = discoverFleets(fleetRoots(ctx.cwd, env));
+    const baseRoots = fleetRoots(ctx.cwd, env);
+    const all = discoverFleets(deps.bundledDir ? { ...baseRoots, bundledDir: deps.bundledDir } : baseRoots);
     const source = all.find((entry) => entry.name === name && !entry.shadowed);
     if (!source) {
       const names = all.filter((entry) => !entry.shadowed).map((entry) => entry.name);

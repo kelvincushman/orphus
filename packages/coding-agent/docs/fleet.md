@@ -65,7 +65,10 @@ package, and six example blueprints (coding, design, research, docs/release,
 media via Kie.ai, and a blog pipeline) ship in its `examples/`.
 
 Blueprints live in `.orphus/fleets/` (project) and `<agentDir>/fleets/`
-(user); project shadows user. The `fleet` tool gives the model
+(user); project shadows user, and the six shipped examples are always
+discoverable as a third, lowest-precedence `bundled` scope — so `/fleet` works
+out of the box, and copying an example into a project or user dir (or letting
+`/fleetsetup` start from one) overrides it by name. The `fleet` tool gives the model
 `list`/`get`/`validate` over them — `validate` is the authoring loop's gate.
 
 ## Sharp edges

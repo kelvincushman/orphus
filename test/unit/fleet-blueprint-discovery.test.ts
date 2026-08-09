@@ -45,7 +45,10 @@ describe("fleet discovery", () => {
 		put(join(agentDir, "fleets"), "coding-team.fleet.yaml");
 		put(join(agentDir, "fleets"), "media-team.fleet.yaml");
 
-		const found = discoverFleets(fleetRoots(cwd, { ORPHUS_CODING_AGENT_DIR: agentDir }));
+		const found = discoverFleets({
+			...fleetRoots(cwd, { ORPHUS_CODING_AGENT_DIR: agentDir }),
+			bundledDir: join(root, "empty-bundled"),
+		});
 		assert.deepEqual(
 			found.map((fleet) => [fleet.name, fleet.scope, fleet.shadowed]),
 			[
@@ -58,7 +61,10 @@ describe("fleet discovery", () => {
 
 	test("legacy .atomic project dir is found when .orphus has no entry", () => {
 		put(join(cwd, ".atomic", "fleets"), "legacy.fleet.yaml");
-		const found = discoverFleets(fleetRoots(cwd, { ORPHUS_CODING_AGENT_DIR: agentDir }));
+		const found = discoverFleets({
+			...fleetRoots(cwd, { ORPHUS_CODING_AGENT_DIR: agentDir }),
+			bundledDir: join(root, "empty-bundled"),
+		});
 		assert.deepEqual(
 			found.map((fleet) => fleet.name),
 			["legacy"],
@@ -66,11 +72,37 @@ describe("fleet discovery", () => {
 		assert.equal(found[0]?.scope, "project");
 	});
 
+	test("bundled examples are discovered and shadowed by user and project scopes", () => {
+		const bundledDir = join(root, "bundled");
+		put(bundledDir, "coding-team.fleet.yaml");
+		put(bundledDir, "media-team.fleet.yaml");
+		put(join(agentDir, "fleets"), "media-team.fleet.yaml");
+
+		const roots = { ...fleetRoots(cwd, { ORPHUS_CODING_AGENT_DIR: agentDir }), bundledDir };
+		const found = discoverFleets(roots);
+		assert.deepEqual(
+			found.map((fleet) => [fleet.name, fleet.scope, fleet.shadowed]),
+			[
+				["coding-team", "bundled", false],
+				["media-team", "user", false],
+				["media-team", "bundled", true],
+			],
+		);
+	});
+
+	test("default roots point bundledDir at the package examples", () => {
+		const roots = fleetRoots(cwd, { ORPHUS_CODING_AGENT_DIR: agentDir });
+		assert.match(roots.bundledDir, /packages[/\\]fleet[/\\]examples$|fleet[/\\]examples$/u);
+	});
+
 	test("ignores files without the .fleet.yaml suffix and missing directories", () => {
 		mkdirSync(join(cwd, ".orphus", "fleets"), { recursive: true });
 		writeFileSync(join(cwd, ".orphus", "fleets", "README.md"), "not a fleet\n");
 		writeFileSync(join(cwd, ".orphus", "fleets", "x.yaml"), "not a fleet\n");
-		const found = discoverFleets(fleetRoots(cwd, { ORPHUS_CODING_AGENT_DIR: agentDir }));
+		const found = discoverFleets({
+			...fleetRoots(cwd, { ORPHUS_CODING_AGENT_DIR: agentDir }),
+			bundledDir: join(root, "empty-bundled"),
+		});
 		assert.deepEqual(found, []);
 	});
 });
