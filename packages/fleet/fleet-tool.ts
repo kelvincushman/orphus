@@ -40,6 +40,82 @@ export interface FleetToolDeps {
   env?: NodeJS.ProcessEnv;
 }
 
+export interface FleetModelRegistry {
+  getAll(): ReadonlyArray<{ provider: string; id: string }>;
+  getAvailable(): ReadonlyArray<{ provider: string; id: string }>;
+}
+
+interface FleetModelContext {
+  readonly modelRegistry: FleetModelRegistry;
+  readonly model?: { provider: string; id: string };
+}
+
+const THINKING_SUFFIXES = new Set(["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
+
+function baseModelReference(reference: string): string {
+  const colon = reference.lastIndexOf(":");
+  return colon >= 0 && THINKING_SUFFIXES.has(reference.slice(colon + 1)) ? reference.slice(0, colon) : reference;
+}
+
+function matchingModels(reference: string, models: ReadonlyArray<{ provider: string; id: string }>) {
+  const base = baseModelReference(reference);
+  const slash = base.indexOf("/");
+  if (slash > 0) {
+    const provider = base.slice(0, slash);
+    const id = base.slice(slash + 1);
+    return models.filter((model) => model.provider === provider && model.id === id);
+  }
+  return models.filter((model) => model.id === base);
+}
+
+/** Ensure every pinned member model resolves without the subagent runtime falling back silently. */
+export function validateFleetModelPins(blueprint: FleetBlueprint, ctx: FleetModelContext): string | undefined {
+  const all = ctx.modelRegistry.getAll();
+  const available = ctx.modelRegistry.getAvailable();
+  let preferredProvider = ctx.model?.provider;
+  if (blueprint.orchestratorModel) {
+    const keyPath = "orchestrator.model";
+    const base = baseModelReference(blueprint.orchestratorModel);
+    const slash = base.indexOf("/");
+    if (slash <= 0 || slash === base.length - 1) {
+      return `${blueprint.path}: ${keyPath} — expected provider/model, got "${blueprint.orchestratorModel}"`;
+    }
+    preferredProvider = base.slice(0, slash);
+    if (matchingModels(blueprint.orchestratorModel, available).length === 0) {
+      if (matchingModels(blueprint.orchestratorModel, all).length === 0) {
+        return `${blueprint.path}: ${keyPath} — "${blueprint.orchestratorModel}" is not in the model registry`;
+      }
+      return `${blueprint.path}: ${keyPath} — "${blueprint.orchestratorModel}" has no configured credentials; run /login ${preferredProvider} first`;
+    }
+  }
+  for (const team of blueprint.teams) {
+    for (const [index, member] of team.members.entries()) {
+      if (!member.model) continue;
+      const keyPath = `teams.${team.name}.members[${index}].model`;
+      const availableMatches = matchingModels(member.model, available);
+      if (!member.model.includes("/") && availableMatches.length > 1) {
+        const preferred = availableMatches.find((model) => model.provider === preferredProvider);
+        if (!preferred) {
+          return `${blueprint.path}: ${keyPath} — "${member.model}" is ambiguous across configured providers (${availableMatches
+            .map((model) => model.provider)
+            .join(", ")}); use provider/model`;
+        }
+      }
+      if (availableMatches.length > 0) continue;
+
+      const knownMatches = matchingModels(member.model, all);
+      if (knownMatches.length === 0) {
+        return `${blueprint.path}: ${keyPath} — "${member.model}" is not in the model registry`;
+      }
+      const providers = [...new Set(knownMatches.map((model) => model.provider))];
+      return `${blueprint.path}: ${keyPath} — "${member.model}" has no configured credentials; run ${providers
+        .map((provider) => `/login ${provider}`)
+        .join(" or ")} first`;
+    }
+  }
+  return undefined;
+}
+
 function errorResult(text: string): FleetToolResult {
   return { content: [{ type: "text", text }], isError: true, details: { error: true } };
 }
@@ -97,7 +173,11 @@ export function listFleets(deps: FleetToolDeps): FleetToolResult {
 }
 
 /** Shared by the fleet tool and the /fleet command. */
-export function validateFleet(deps: FleetToolDeps, target: { name?: string; path?: string }): FleetToolResult {
+export function validateFleet(
+  deps: FleetToolDeps,
+  target: { name?: string; path?: string },
+  modelContext?: FleetModelContext,
+): FleetToolResult {
   try {
     let blueprint: FleetBlueprint;
     if (target.path) {
@@ -107,6 +187,8 @@ export function validateFleet(deps: FleetToolDeps, target: { name?: string; path
       if ("isError" in loaded) return loaded;
       blueprint = loaded.blueprint;
     }
+    const modelError = modelContext ? validateFleetModelPins(blueprint, modelContext) : undefined;
+    if (modelError) return errorResult(modelError);
     const warningLines = blueprint.warnings.length
       ? `\nWarnings:\n${blueprint.warnings.map((warning) => `  - ${warning}`).join("\n")}`
       : "";
@@ -143,7 +225,7 @@ export function createFleetTool(deps: FleetToolDeps) {
 Run a fleet with the /fleet command; author one with /fleetsetup.`,
     parameters: FleetParameters,
 
-    async execute(_toolCallId, params, _signal, _onUpdate, _ctx): Promise<FleetToolResult> {
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx): Promise<FleetToolResult> {
       const { action, name, path } = params;
       switch (action) {
         case "list":
@@ -156,7 +238,11 @@ Run a fleet with the /fleet command; author one with /fleetsetup.`,
         }
         case "validate":
           if (!name && !path) return errorResult("Provide 'name' or 'path'");
-          return validateFleet(deps, { ...(name ? { name } : {}), ...(path ? { path } : {}) });
+          return validateFleet(
+            deps,
+            { ...(name ? { name } : {}), ...(path ? { path } : {}) },
+            { modelRegistry: ctx.modelRegistry, ...(ctx.model ? { model: ctx.model } : {}) },
+          );
         default:
           return errorResult(`Unknown action: ${action satisfies never}`);
       }

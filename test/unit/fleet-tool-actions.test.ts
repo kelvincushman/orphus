@@ -24,7 +24,16 @@ function tool() {
 }
 
 async function run(params: { action: "list" | "get" | "validate"; name?: string; path?: string }) {
-	return await tool().execute("call-1", params, new AbortController().signal, undefined, {} as never);
+	return await tool().execute("call-1", params, new AbortController().signal, undefined, {
+		model: { provider: "anthropic", id: "claude-opus" },
+		modelRegistry: {
+			getAll: () => [
+				{ provider: "anthropic", id: "claude-opus" },
+				{ provider: "openai-codex", id: "gpt-fast" },
+			],
+			getAvailable: () => [{ provider: "anthropic", id: "claude-opus" }],
+		},
+	} as never);
 }
 
 beforeEach(() => {
@@ -76,6 +85,29 @@ describe("fleet tool", () => {
 		const result = await run({ action: "validate", name: "bad" });
 		assert.equal(result.isError, true);
 		assert.match(result.content[0]!.text, /description/u);
+	});
+
+	test("validate rejects a member model that would silently fall back at runtime", async () => {
+		writeFileSync(
+			join(cwd, ".orphus", "fleets", "coding-team.fleet.yaml"),
+			VALID.replace("- agent: worker", "- agent: worker\n        model: openai-codex/gpt-fast"),
+		);
+		const result = await run({ action: "validate", name: "coding-team" });
+		assert.equal(result.isError, true);
+		assert.match(result.content[0]!.text, /members\[0\]\.model.*\/login openai-codex/su);
+	});
+
+	test("validate applies the same registry preflight to the orchestrator model", async () => {
+		writeFileSync(
+			join(cwd, ".orphus", "fleets", "coding-team.fleet.yaml"),
+			VALID.replace(
+				"description: A team that codes.",
+				"description: A team that codes.\norchestrator: { model: unknown/nope }",
+			),
+		);
+		const result = await run({ action: "validate", name: "coding-team" });
+		assert.equal(result.isError, true);
+		assert.match(result.content[0]!.text, /orchestrator\.model.*not in the model registry/su);
 	});
 
 	test("validate accepts an explicit path outside the discovery roots", async () => {

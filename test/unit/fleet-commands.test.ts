@@ -54,11 +54,17 @@ function stubs(overrides: { configured?: string[]; sessionName?: string; setMode
 	const ctx = {
 		cwd,
 		hasUI: false,
+		model: { provider: "anthropic", id: "claude-opus" },
 		modelRegistry: {
 			getAll: () => [
 				{ provider: "anthropic", id: "claude-opus" },
 				{ provider: "openai-codex", id: "gpt-fast" },
 			],
+			getAvailable: () =>
+				[
+					{ provider: "anthropic", id: "claude-opus" },
+					{ provider: "openai-codex", id: "gpt-fast" },
+				].filter((model) => configured.includes(model.provider)),
 			find: (provider: string, id: string) =>
 				provider === "anthropic" && id === "claude-opus" ? { provider, id } : undefined,
 			getProviderAuthStatus: (provider: string) => ({ configured: configured.includes(provider) }),
@@ -113,6 +119,18 @@ describe("/fleet", () => {
 		await createFleetCommandHandler(pi as never, handlerDeps())("coding-team do it", ctx as never);
 		assert.equal(sent.userMessages.length, 0);
 		assert.match(sent.messages.join("\n"), /\/login anthropic/u);
+	});
+
+	test("an unavailable member model aborts before switching the orchestrator or triggering a turn", async () => {
+		writeFileSync(
+			join(cwd, ".orphus", "fleets", "coding-team.fleet.yaml"),
+			VALID.replace("- agent: worker", "- agent: worker\n        model: openai-codex/gpt-fast"),
+		);
+		const { sent, pi, ctx } = stubs({ configured: ["anthropic"] });
+		await createFleetCommandHandler(pi as never, handlerDeps())("coding-team do it", ctx as never);
+		assert.equal(sent.userMessages.length, 0);
+		assert.deepEqual(sent.setModelCalls, []);
+		assert.match(sent.messages.join("\n"), /members\[0\]\.model.*\/login openai-codex/su);
 	});
 
 	test("unknown blueprint errors and lists what exists; missing task shows usage", async () => {

@@ -3,7 +3,12 @@ import { discoverFleets, fleetRoots } from "../blueprint/discovery.ts";
 import { loadFleetBlueprint } from "../blueprint/manifest.ts";
 import { renderFleetRunPrompt } from "../blueprint/render.ts";
 import { FleetBlueprintError } from "../blueprint/types.ts";
-import { type FleetToolDeps, listFleets, validateFleet } from "../fleet-tool.ts";
+import {
+  type FleetToolDeps,
+  listFleets,
+  validateFleet,
+  validateFleetModelPins,
+} from "../fleet-tool.ts";
 
 /**
  * `/fleet` — run a blueprint. The handler wires context and hands off: it
@@ -24,9 +29,12 @@ export interface FleetCommandDeps {
 interface CommandContextLike {
   cwd: string;
   modelRegistry: {
+    getAll(): Array<{ provider: string; id: string }>;
+    getAvailable(): Array<{ provider: string; id: string }>;
     find(provider: string, modelId: string): unknown;
     getProviderAuthStatus(provider: string): { configured: boolean };
   };
+  model?: { provider: string; id: string };
 }
 
 function notify(pi: ExtensionAPI, content: string): void {
@@ -51,7 +59,14 @@ export function createFleetCommandHandler(pi: ExtensionAPI, deps: FleetCommandDe
         notify(pi, "usage: /fleet validate <name>");
         return;
       }
-      notify(pi, validateFleet(toolDeps, { name }).content[0]?.text ?? "");
+      notify(
+        pi,
+        validateFleet(
+          toolDeps,
+          { name },
+          { modelRegistry: ctx.modelRegistry, ...(ctx.model ? { model: ctx.model } : {}) },
+        ).content[0]?.text ?? "",
+      );
       return;
     }
 
@@ -81,6 +96,15 @@ export function createFleetCommandHandler(pi: ExtensionAPI, deps: FleetCommandDe
         return;
       }
       throw error;
+    }
+
+    const memberModelError = validateFleetModelPins(blueprint, {
+      modelRegistry: ctx.modelRegistry,
+      ...(ctx.model ? { model: ctx.model } : {}),
+    });
+    if (memberModelError) {
+      notify(pi, `Blueprint failed model preflight:\n${memberModelError}`);
+      return;
     }
 
     // Pin the orchestrator model the user chose at setup. A model that is not

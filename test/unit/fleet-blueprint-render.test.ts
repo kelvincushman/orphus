@@ -45,6 +45,25 @@ describe("fleet render", () => {
 		assert.deepEqual(memberNames(design), ["architect", "worker"]);
 	});
 
+	test("memberNames avoid collisions with declared agent names", () => {
+		const collision = parseFleetBlueprint(
+			`
+name: collision
+description: d
+teams:
+  t:
+    mode: deliberate
+    members:
+      - agent: worker
+        count: 2
+      - agent: worker-1
+`,
+			"/tmp/collision.fleet.yaml",
+		).teams[0]!;
+		assert.deepEqual(memberNames(collision), ["worker-2", "worker-3", "worker-1"]);
+		assert.equal(new Set(memberNames(collision)).size, 3);
+	});
+
 	test("the run prompt carries task, rooms, budgets, and the skill-load instruction", () => {
 		const prompt = renderFleetRunPrompt(BLUEPRINT, "add a --version flag");
 		assert.match(prompt, /add a --version flag/u);

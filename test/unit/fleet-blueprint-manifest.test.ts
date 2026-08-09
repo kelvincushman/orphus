@@ -187,6 +187,10 @@ describe("fleet blueprint parsing", () => {
 		);
 	});
 
+	test("load rejects a directory with a blueprint error instead of leaking a filesystem exception", () => {
+		assert.throws(() => loadFleetBlueprint(dir), /not a regular file/u);
+	});
+
 	test("rejects an empty team and an empty fleet", () => {
 		assert.throws(
 			() => parseFleetBlueprint("name: x\ndescription: d\nteams: {}\n", blueprintPath()),
@@ -212,6 +216,58 @@ describe("fleet blueprint parsing", () => {
 	test("rejects a version other than 1 and a pipeline naming an unknown team", () => {
 		assert.throws(() => parseFleetBlueprint(`${MINIMAL}version: 2\n`, blueprintPath()), /version/u);
 		assert.throws(() => parseFleetBlueprint(`${MINIMAL}pipeline: [ghost]\n`, blueprintPath()), /ghost/u);
+	});
+
+	test("requires an explicit pipeline to name every team exactly once", () => {
+		const twoTeams = MINIMAL.replace(
+			"teams:\n",
+			"teams:\n  design:\n    mode: deliberate\n    members:\n      - agent: architect\n",
+		);
+		assert.throws(
+			() => parseFleetBlueprint(`${twoTeams}pipeline: []\n`, blueprintPath()),
+			/missing: design, implementation/u,
+		);
+		assert.throws(
+			() => parseFleetBlueprint(`${twoTeams}pipeline: [design, design, implementation]\n`, blueprintPath()),
+			/appears more than once/u,
+		);
+		assert.throws(
+			() => parseFleetBlueprint(`${twoTeams}pipeline: [implementation]\n`, blueprintPath()),
+			/missing: design/u,
+		);
+	});
+
+	test("applies the documented default concurrency warning and hard ceiling", () => {
+		const warned = parseFleetBlueprint(
+			MINIMAL.replace(
+				"description: A minimal fleet.",
+				"description: A minimal fleet.\ndefaults: { concurrency: 9 }",
+			),
+			blueprintPath(),
+		);
+		assert.match(warned.warnings.join("\n"), /defaults\.concurrency 9/u);
+		assert.throws(
+			() =>
+				parseFleetBlueprint(
+					MINIMAL.replace(
+						"description: A minimal fleet.",
+						"description: A minimal fleet.\ndefaults: { concurrency: 51 }",
+					),
+					blueprintPath(),
+				),
+			/parallel-task ceiling of 50/u,
+		);
+	});
+
+	test("warns when an explicit room collides with another team's default room", () => {
+		const blueprint = parseFleetBlueprint(
+			MINIMAL.replace(
+				"teams:\n",
+				"teams:\n  design:\n    mode: deliberate\n    room: fleet-coding-team-implementation\n    members:\n      - agent: architect\n",
+			),
+			blueprintPath(),
+		);
+		assert.match(blueprint.warnings.join("\n"), /design and implementation share room/u);
 	});
 
 	test("warns without failing on concurrency above the default", () => {

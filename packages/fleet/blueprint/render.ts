@@ -19,15 +19,26 @@ export function memberNames(team: TeamSpec): string[] {
   for (const member of team.members) {
     totals.set(member.agent, (totals.get(member.agent) ?? 0) + member.count);
   }
+  const reservedSingles = new Set(
+    team.members.filter((member) => (totals.get(member.agent) ?? 0) === 1).map((member) => member.agent),
+  );
   const counters = new Map<string, number>();
+  const used = new Set<string>();
   const names: string[] = [];
   for (const member of team.members) {
     for (let i = 0; i < member.count; i++) {
       if ((totals.get(member.agent) ?? 0) > 1) {
-        const next = (counters.get(member.agent) ?? 0) + 1;
+        let next = counters.get(member.agent) ?? 0;
+        let candidate: string;
+        do {
+          next += 1;
+          candidate = `${member.agent}-${next}`;
+        } while (used.has(candidate) || reservedSingles.has(candidate));
         counters.set(member.agent, next);
-        names.push(`${member.agent}-${next}`);
+        used.add(candidate);
+        names.push(candidate);
       } else {
+        used.add(member.agent);
         names.push(member.agent);
       }
     }

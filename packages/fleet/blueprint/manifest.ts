@@ -135,7 +135,6 @@ function parseMember(raw: unknown, path: string, dir: string, keyPath: string): 
 
 interface TeamParseResult {
   readonly team: TeamSpec;
-  readonly explicitRoom: boolean;
 }
 
 function parseTeam(
@@ -177,8 +176,7 @@ function parseTeam(
     );
   }
 
-  const explicitRoom = raw.room !== undefined;
-  const room = explicitRoom
+  const room = raw.room !== undefined
     ? requireName(raw.room, path, `${keyPath}.room`, KEYS_CURSORS)
     : `fleet-${fleetName}-${teamName}`;
 
@@ -216,10 +214,10 @@ function parseTeam(
     ...(group !== undefined ? { group } : {}),
     ...(concurrency !== undefined ? { concurrency } : {}),
   };
-  return { team, explicitRoom };
+  return { team };
 }
 
-function parseDefaults(raw: unknown, path: string): FleetDefaults {
+function parseDefaults(raw: unknown, path: string, warnings: string[]): FleetDefaults {
   const fallbackBudgets: FleetBudgets = { digest: DEFAULT_DIGEST_BUDGET, perMessage: DEFAULT_PER_MESSAGE_CAP };
   if (raw === undefined) return { concurrency: DEFAULT_CONCURRENCY, budgets: fallbackBudgets };
   if (!isRecord(raw)) fail(path, "defaults", `expected a map, got ${describe(raw)}`);
@@ -239,10 +237,16 @@ function parseDefaults(raw: unknown, path: string): FleetDefaults {
       ),
     };
   }
-  return {
-    concurrency: parsePositiveInt(raw.concurrency, path, "defaults.concurrency", DEFAULT_CONCURRENCY),
-    budgets,
-  };
+  const concurrency = parsePositiveInt(raw.concurrency, path, "defaults.concurrency", DEFAULT_CONCURRENCY);
+  if (concurrency > MAX_TEAM_MEMBERS) {
+    fail(path, "defaults.concurrency", `${concurrency} exceeds the parallel-task ceiling of ${MAX_TEAM_MEMBERS}`);
+  }
+  if (concurrency > DEFAULT_CONCURRENCY) {
+    warnings.push(
+      `defaults.concurrency ${concurrency} is above the default ${DEFAULT_CONCURRENCY} — every slot is a live model session`,
+    );
+  }
+  return { concurrency, budgets };
 }
 
 /** Parse blueprint text. `blueprintPath` is used for path resolution and errors. */
@@ -277,29 +281,28 @@ export function parseFleetBlueprint(text: string, blueprintPath: string): FleetB
     }
   }
 
-  const defaults = parseDefaults(raw.defaults, path);
+  const warnings: string[] = [];
+  const defaults = parseDefaults(raw.defaults, path, warnings);
 
   if (!isRecord(raw.teams)) fail(path, "teams", `expected a map of team name to settings, got ${describe(raw.teams)}`);
   const teamEntries = Object.entries(raw.teams);
   if (teamEntries.length === 0) fail(path, "teams", "at least one team is required");
 
-  const warnings: string[] = [];
   const parsed = teamEntries.map(([teamName, value]) => parseTeam(name, teamName, value, path, dir, warnings));
   const teams = parsed.map((entry) => entry.team);
 
-  // Two teams sharing an EXPLICIT room merge their deliberations broker-side.
-  // That can be intent (a joint room), so it warns rather than fails; default
-  // rooms embed the team name and cannot collide.
-  const explicitRooms = new Map<string, string>();
+  // Two teams sharing a room merge their deliberations broker-side. That can
+  // be intent (a joint room), so it warns rather than fails. Default rooms do
+  // not collide with each other, but an explicit room can equal a default.
+  const rooms = new Map<string, string>();
   for (const entry of parsed) {
-    if (!entry.explicitRoom) continue;
-    const previous = explicitRooms.get(entry.team.room);
+    const previous = rooms.get(entry.team.room);
     if (previous !== undefined) {
       warnings.push(
         `teams ${previous} and ${entry.team.name} share room "${entry.team.room}" — their deliberations will merge`,
       );
     } else {
-      explicitRooms.set(entry.team.room, entry.team.name);
+      rooms.set(entry.team.room, entry.team.name);
     }
   }
 
@@ -309,11 +312,18 @@ export function parseFleetBlueprint(text: string, blueprintPath: string): FleetB
   } else {
     if (!Array.isArray(raw.pipeline)) fail(path, "pipeline", `expected a list of team names, got ${describe(raw.pipeline)}`);
     const known = new Set(teams.map((team) => team.name));
+    const seen = new Set<string>();
     pipeline = raw.pipeline.map((entry, index) => {
       const teamName = requireString(entry, path, `pipeline[${index}]`);
       if (!known.has(teamName)) fail(path, `pipeline[${index}]`, `"${teamName}" is not a declared team`);
+      if (seen.has(teamName)) fail(path, `pipeline[${index}]`, `"${teamName}" appears more than once`);
+      seen.add(teamName);
       return teamName;
     });
+    const missing = teams.map((team) => team.name).filter((teamName) => !seen.has(teamName));
+    if (missing.length > 0) {
+      fail(path, "pipeline", `must name every declared team exactly once; missing: ${missing.join(", ")}`);
+    }
   }
 
   return {
@@ -334,5 +344,13 @@ export function parseFleetBlueprint(text: string, blueprintPath: string): FleetB
 export function loadFleetBlueprint(blueprintPath: string): FleetBlueprint {
   const path = resolve(blueprintPath);
   if (!existsSync(path)) throw new FleetBlueprintError(`blueprint not found: ${path}`);
-  return parseFleetBlueprint(readFileSync(path, "utf8"), path);
+  if (!statSync(path).isFile()) throw new FleetBlueprintError(`blueprint is not a regular file: ${path}`);
+  try {
+    return parseFleetBlueprint(readFileSync(path, "utf8"), path);
+  } catch (error) {
+    if (error instanceof FleetBlueprintError) throw error;
+    throw new FleetBlueprintError(
+      `blueprint could not be read: ${path} — ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
