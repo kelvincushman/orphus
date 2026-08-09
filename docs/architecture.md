@@ -169,7 +169,8 @@ Most of this repository is vendored upstream. What Orphus authors:
 | Path | What it is |
 | --- | --- |
 | `packages/roundtable/` | Rooms, digest, broker, roles, memory adapter — everything above |
-| `test/unit/roundtable-*` | Its tests |
+| `packages/fleet/` | Fleet blueprints, `/fleet` + `/fleetsetup`, the orchestration and kie-ai-media skills |
+| `test/unit/roundtable-*`, `test/unit/fleet-*` | Their tests |
 | `docs/`, `roles/`, `orphus.roles.yaml` | This documentation and the example manifest |
 | `.github/workflows/ci.yml` | The gate that actually runs |
 

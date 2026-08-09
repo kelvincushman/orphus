@@ -47,12 +47,13 @@ loop, providers, tools, MCP, subagents, workflows, and the TUI all come from
 there and behave as they do upstream.
 
 What Orphus authors is `packages/roundtable/` — rooms, the budgeted digest, the
-broker, the role launcher, the memory adapter — plus its tests, this
-documentation, and `.github/workflows/ci.yml`.
+broker, the role launcher, the memory adapter — and `packages/fleet/` — the
+blueprint loader, `/fleet` and `/fleetsetup`, and the orchestration skills —
+plus their tests, this documentation, and `.github/workflows/ci.yml`.
 
-The practical consequence: a question about *rooms, digests, roles, or memory*
-belongs here. A question about the harness underneath is usually answered
-upstream, and a bug there is worth reporting to both.
+The practical consequence: a question about *rooms, digests, roles, memory, or
+fleets* belongs here. A question about the harness underneath is usually
+answered upstream, and a bug there is worth reporting to both.
 
 The `archive/upstream/` directory holds Atomic's inherited working notes — 383
 files written for a different project. Nothing reads them, and nothing new

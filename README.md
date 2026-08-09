@@ -198,6 +198,8 @@ packages/roundtable/          The Orphus contribution — rooms and the context-
   memory-tool.ts, memory/       The `memory` tool → HMLR-Wiki/Dossier (docs/memory.md)
   demo/run-demo.ts              The scripted discussion demo
   skills/                       Discussion etiquette, shipped as an agent skill
+packages/fleet/               Fleet blueprints: /fleet, /fleetsetup, the fleet tool, SCHEMA.md,
+                                six examples, and the orchestration + kie-ai-media skills
 packages/coding-agent/        The `orphus` binary (Atomic-derived)
 packages/{workflows,subagents,intercom,mcp,web-access,natives}
 orphus.roles.yaml · roles/    Example role manifest and briefs — copy-me templates

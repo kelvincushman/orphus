@@ -4,9 +4,10 @@
 
 This repo is **Orphus**: an agent harness whose agents deliberate in rooms that live outside their context windows. It is a fork of [Atomic](https://github.com/bastani-inc/atomic), itself a fork of pi, so most of the tree is vendored upstream code and the package names are still `@bastani/*`. Renaming the npm scope is an open decision, not an oversight — see PLAN.md.
 
-The package this project exists for:
+The packages this project exists for:
 
 - `@bastani/roundtable` in `packages/roundtable` — **the Orphus contribution.** Rooms and the context-window contract: the budgeted digest algorithm (`digest.ts`), the local-socket broker and its client (`broker/`), the `roundtable` and `memory` tools, the declarative role manifest and launcher (`roles/`, `bin/orphus-roles.ts`), the discussion-etiquette skill, and the no-model demos. When a change here is not obviously about rooms, digests, roles, or memory, it probably belongs in the vendored tree instead.
+- `@bastani/fleet` in `packages/fleet` — **Orphus-authored orchestration on top of rooms and subagents.** Shareable fleet blueprints (`*.fleet.yaml`: teams of agent definitions with pre-assigned skills and a delegation mode each), the `/fleet` and `/fleetsetup` commands, the `fleet` introspection tool, and the `fleet-orchestration` and `kie-ai-media` skills. It executes nothing itself — members run via the `subagent` tool and deliberate in roundtable rooms. When a change is about *how members run* rather than *how a fleet is described and briefed*, it belongs in `packages/subagents` or the vendored tree.
 
 Inherited from Atomic, and mostly left alone:
 
