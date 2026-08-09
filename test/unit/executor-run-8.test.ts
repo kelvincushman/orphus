@@ -146,7 +146,7 @@ describe("executor.run", () => {
 		assert.equal(result.status, "failed");
 		assert.match(
 			result.error ?? "",
-			/HIL ctx\.ui\.custom is unavailable because Atomic runtime did not provide a UI adapter/,
+			/HIL ctx\.ui\.custom is unavailable because the Orphus runtime did not provide a UI adapter/,
 		);
 		assert.equal(st.runs().find((candidate) => candidate.id === result.runId)?.stages.length, 0);
 	});

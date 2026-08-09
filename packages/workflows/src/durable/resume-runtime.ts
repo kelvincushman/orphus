@@ -271,7 +271,7 @@ function foreignRunningResult(name: string, workflowId: string): ResumeDurableRe
 		ok: false,
 		reason: "not_resumable",
 		message:
-			`Workflow "${name}" (${workflowId}) is actively running in another Atomic session. ` +
+			`Workflow "${name}" (${workflowId}) is actively running in another Orphus session. ` +
 			"Control it from that session; it becomes resumable here only after that session pauses, quits, or crashes.",
 	};
 }

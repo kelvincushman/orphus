@@ -130,7 +130,7 @@ export async function handleDurableResume(
 
 	if (allOpenable.length === 0) {
 		fail(
-			"No resumable or completed durable workflows found. Usage: /workflow resume <id> (or /resume for Atomic sessions).",
+			"No resumable or completed durable workflows found. Usage: /workflow resume <id> (or /resume for Orphus sessions).",
 		);
 		return true;
 	}

@@ -87,7 +87,7 @@ export default function workflowCommandExtension(api: ExtensionAPI): void {
 	});
 
 	api.registerCommand("workflow", {
-		description: "Run or inspect Atomic workflows. Usage: /workflow <name> [key=value…] | /workflow [list|status]",
+		description: "Run or inspect Orphus workflows. Usage: /workflow <name> [key=value…] | /workflow [list|status]",
 		getArgumentCompletions: (prefix: string) => {
 			if (prefix.includes(" ")) return null;
 			return [

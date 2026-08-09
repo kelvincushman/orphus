@@ -58,7 +58,7 @@ export function registerWorkflowSlashCommand(
 		"workflow",
 		{
 			description:
-				"Run or inspect Atomic workflows. Usage: /workflow <name> [key=value…] | /workflow [list|status|connect|attach|interrupt|quit|pause|resume|inputs|reload] [args]",
+				"Run or inspect Orphus workflows. Usage: /workflow <name> [key=value…] | /workflow [list|status|connect|attach|interrupt|quit|pause|resume|inputs|reload] [args]",
 			handler: (args, ctx) => workflowSlashHandler(args, ctx, pi, deps),
 			getArgumentCompletions: (
 				partial: string,

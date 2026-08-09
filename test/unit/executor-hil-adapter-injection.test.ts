@@ -378,7 +378,7 @@ describe("executor.run — HIL adapter injection", () => {
 		assert.equal(wfResult.status, "failed");
 		assert.equal(
 			wfResult.error,
-			"atomic-workflows: HIL ctx.ui.custom is unavailable because Atomic runtime did not provide a UI adapter",
+			"atomic-workflows: HIL ctx.ui.custom is unavailable because the Orphus runtime did not provide a UI adapter",
 		);
 	});
 
@@ -399,7 +399,7 @@ describe("executor.run — HIL adapter injection", () => {
 		assert.equal(wfResult.status, "failed");
 		assert.equal(
 			wfResult.error,
-			"atomic-workflows: HIL ctx.ui.input is unavailable because Atomic runtime did not provide a UI adapter",
+			"atomic-workflows: HIL ctx.ui.input is unavailable because the Orphus runtime did not provide a UI adapter",
 		);
 	});
 
@@ -420,7 +420,7 @@ describe("executor.run — HIL adapter injection", () => {
 		assert.equal(wfResult.status, "failed");
 		assert.equal(
 			wfResult.error,
-			"atomic-workflows: HIL ctx.ui.confirm is unavailable because Atomic runtime did not provide a UI adapter",
+			"atomic-workflows: HIL ctx.ui.confirm is unavailable because the Orphus runtime did not provide a UI adapter",
 		);
 	});
 
@@ -441,7 +441,7 @@ describe("executor.run — HIL adapter injection", () => {
 		assert.equal(wfResult.status, "failed");
 		assert.equal(
 			wfResult.error,
-			"atomic-workflows: HIL ctx.ui.select is unavailable because Atomic runtime did not provide a UI adapter",
+			"atomic-workflows: HIL ctx.ui.select is unavailable because the Orphus runtime did not provide a UI adapter",
 		);
 	});
 
@@ -462,7 +462,7 @@ describe("executor.run — HIL adapter injection", () => {
 		assert.equal(wfResult.status, "failed");
 		assert.equal(
 			wfResult.error,
-			"atomic-workflows: HIL ctx.ui.editor is unavailable because Atomic runtime did not provide a UI adapter",
+			"atomic-workflows: HIL ctx.ui.editor is unavailable because the Orphus runtime did not provide a UI adapter",
 		);
 	});
 

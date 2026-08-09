@@ -32,7 +32,7 @@ export class DbosShutdownError extends DbosDurabilityError {
 	constructor() {
 		super(
 			"DBOS workflow durability has been shut down in this process. " +
-				"Durable workflows can no longer start; restart Atomic to restore durability.",
+				"Durable workflows can no longer start; restart Orphus to restore durability.",
 		);
 		this.name = "DbosShutdownError";
 	}

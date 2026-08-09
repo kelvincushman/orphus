@@ -222,7 +222,7 @@ async function withSetupLock(lockDir: string, fn: () => Promise<void>): Promise<
 			}
 			await delay(READY_DELAY_MS);
 			if (attempt === READY_ATTEMPTS - 1)
-				throw new Error(`Timed out waiting for another Atomic process to finish Postgres setup (${lockDir}).`);
+				throw new Error(`Timed out waiting for another Orphus process to finish Postgres setup (${lockDir}).`);
 		}
 	}
 	try {
