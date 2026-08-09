@@ -336,4 +336,6 @@ export const BUNDLED_EXTENSION_SLASH_COMMANDS: ReadonlyArray<BuiltinSlashCommand
 	{ name: "search", description: "Browse stored web search results" },
 	{ name: "websearch", description: "Open web search curator" },
 	{ name: "intercom", description: "Open session intercom overlay" },
+	{ name: "fleet", description: "Run a fleet blueprint: /fleet <name> <task> — or list (bare) / validate <name>" },
+	{ name: "fleetsetup", description: "Create or edit a fleet blueprint through an interview" },
 ];

@@ -1,0 +1,29 @@
+# Media fleet: generation through the Kie.ai unified API (bundled kie-ai-media
+# skill). Requires KIE_AI_API_KEY in the environment — see the skill for setup.
+name: media-team
+description: Brief-driven media generation via Kie.ai, with an art-direction pass.
+version: 1
+
+teams:
+  art-direction:
+    mode: deliberate
+    topic: Visual direction before any credits are spent
+    rounds: 1
+    members:
+      - agent: worker
+        brief: |
+          Art director. Turn the request into concrete generation briefs:
+          subject, composition, palette, aspect ratio, and which model family
+          on https://kie.ai/market fits each asset.
+
+  generate:
+    mode: dispatch
+    skills: [kie-ai-media]
+    members:
+      - agent: worker
+        count: 2
+        brief: |
+          Execute your assigned generation brief exactly. Download every
+          result into the project before reporting — Kie.ai files expire.
+
+pipeline: [art-direction, generate]

@@ -36,6 +36,7 @@
           "subagents",
           "intercom",
           "workflows",
+          "fleet",
           "prompt-templates",
           "themes",
           "packages",

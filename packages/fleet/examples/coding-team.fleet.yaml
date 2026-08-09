@@ -1,0 +1,37 @@
+# Coding fleet: deliberate the design, dispatch the implementation, review it.
+# All members are builtin agents, so this works with no extra setup.
+# Pin an orchestrator model at setup if you want one, e.g.:
+#   orchestrator: { model: anthropic/claude-opus }
+name: coding-team
+description: Design deliberation, bounded implementation dispatch, adversarial review.
+version: 1
+
+teams:
+  design:
+    mode: deliberate
+    topic: Architecture and interface decisions before any code
+    rounds: 2
+    members:
+      - agent: codebase-analyzer
+      - agent: worker
+        brief: |
+          You are the critic. Argue for the smallest change that works, cite
+          files rather than vibes, and attack hidden coupling in any proposal.
+
+  implementation:
+    mode: dispatch
+    skills: [tdd]
+    group: true
+    members:
+      - agent: worker
+        count: 2
+      - agent: debugger
+
+  review:
+    mode: deliberate-then-dispatch
+    topic: Does the implementation match the decision of record?
+    members:
+      - agent: code-simplifier
+      - agent: codebase-pattern-finder
+
+pipeline: [design, implementation, review]

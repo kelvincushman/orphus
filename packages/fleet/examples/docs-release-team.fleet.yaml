@@ -1,0 +1,26 @@
+# Docs/release fleet: write the docs, then fact-check them against the code —
+# stale documentation is worse than none, because it is trusted.
+name: docs-release-team
+description: Documentation writing with an adversarial fact-check pass.
+version: 1
+
+teams:
+  write:
+    mode: dispatch
+    members:
+      - agent: worker
+        brief: |
+          Write for the reader who follows instructions literally. Every
+          command you document must be one you actually ran.
+
+  fact-check:
+    mode: deliberate
+    topic: Would someone following these docs now be misled?
+    rounds: 1
+    members:
+      - agent: codebase-analyzer
+        brief: Diff every documented claim against the code as it is.
+      - agent: worker
+        brief: Follow the docs cold, as written, and report where they break.
+
+pipeline: [write, fact-check]

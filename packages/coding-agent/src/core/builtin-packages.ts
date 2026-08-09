@@ -60,6 +60,12 @@ const WORKSPACE_BUILTINS: readonly WorkspaceBuiltinSpec[] = [
 		distDirName: "roundtable",
 		requiredEntry: "index.ts",
 	},
+	{
+		packageName: "@bastani/fleet",
+		workspaceDirName: "fleet",
+		distDirName: "fleet",
+		requiredEntry: "index.ts",
+	},
 ];
 
 const BUILTIN_PACKAGES: readonly BuiltinPackageDescriptor[] = WORKSPACE_BUILTINS.map(

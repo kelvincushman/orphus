@@ -198,6 +198,8 @@ packages/roundtable/          The Orphus contribution — rooms and the context-
   memory-tool.ts, memory/       The `memory` tool → HMLR-Wiki/Dossier (docs/memory.md)
   demo/run-demo.ts              The scripted discussion demo
   skills/                       Discussion etiquette, shipped as an agent skill
+packages/fleet/               Fleet blueprints: /fleet, /fleetsetup, the fleet tool, SCHEMA.md,
+                                six examples, and the orchestration + kie-ai-media skills
 packages/coding-agent/        The `orphus` binary (Atomic-derived)
 packages/{workflows,subagents,intercom,mcp,web-access,natives}
 orphus.roles.yaml · roles/    Example role manifest and briefs — copy-me templates
@@ -350,6 +352,26 @@ exactly `GLIBC_2.27`.
 
 Only Linux x64 is built. Each additional platform needs its own napi-slug `.node` staged
 first, so it is another job rather than another matrix row.
+
+## Fleets: an orchestration in one command
+
+A fleet blueprint (`.orphus/fleets/<name>.fleet.yaml`) binds **teams** of agent
+definitions — with pre-assigned skills — to deliberation rooms and dispatch
+fan-out, and it is a single shareable file: fleets are community artifacts,
+created like skills are created.
+
+```
+/fleetsetup                       # interview → blueprint (models offered from YOUR configured providers only)
+/fleet coding-team fix the flaky exporter test
+```
+
+The orchestrator routes rather than works: deliberate teams argue in a room
+and converge on `FINAL:` lines the orchestrator digests; dispatch teams fan
+out as named subagents whose results return. Six example blueprints ship in
+`packages/fleet/examples/` — including a Kie.ai media team and a
+blog-from-YouTube pipeline — and the protocol lives in the
+`fleet-orchestration` skill. Reference:
+[packages/coding-agent/docs/fleet.md](packages/coding-agent/docs/fleet.md).
 
 ## Orchestrating a fleet with Orca
 

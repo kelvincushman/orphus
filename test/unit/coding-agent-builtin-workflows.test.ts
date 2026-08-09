@@ -21,6 +21,7 @@ const expectedBuiltinPackages = [
 	resolve("packages/web-access"),
 	resolve("packages/intercom"),
 	resolve("packages/roundtable"),
+	resolve("packages/fleet"),
 ];
 
 const builtinPackageFixtures = [
@@ -30,6 +31,7 @@ const builtinPackageFixtures = [
 	{ packageName: "@bastani/web-access", dirname: "web-access", requiredEntry: "index.ts" },
 	{ packageName: "@bastani/intercom", dirname: "intercom", requiredEntry: "index.ts" },
 	{ packageName: "@bastani/roundtable", dirname: "roundtable", requiredEntry: "index.ts" },
+	{ packageName: "@bastani/fleet", dirname: "fleet", requiredEntry: "index.ts" },
 ] as const;
 
 const fullBuiltinPackageLoadTimeoutMs = 60_000;

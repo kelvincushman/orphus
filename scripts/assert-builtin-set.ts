@@ -7,6 +7,7 @@ import { join, resolve } from "node:path";
 // against a sorted readdir. The contract test in
 // test/unit/assert-builtin-set.test.ts pins the two together.
 export const EXPECTED_BUILTIN_DIRECTORY_NAMES = [
+	"fleet",
 	"intercom",
 	"mcp",
 	"roundtable",

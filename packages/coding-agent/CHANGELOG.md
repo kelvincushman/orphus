@@ -4,6 +4,8 @@
 
 ### Added
 
+- Added the bundled `@bastani/fleet` extension: community-shareable fleet orchestration. `/fleet <name> <task>` runs a blueprint of teams (agents with pre-assigned skills, per-team dispatch or room-deliberation modes), `/fleetsetup` authors one by interview offering model seats only from configured providers, and the `fleet` tool provides `list`/`get`/`validate`. Ships with the `fleet-orchestration` and `kie-ai-media` skills and six example blueprints.
+
 - Rooms and durable memory are reachable from a running session for the first
   time. The Roundtable extension now ships as a builtin, so every session
   registers the `roundtable` and `memory` tools; previously the package was
