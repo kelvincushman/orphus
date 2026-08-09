@@ -1,0 +1,87 @@
+---
+name: fleet-orchestration
+description: The orchestration protocol for running a fleet blueprint — routing work to teams, deliberation convergence, dispatch verification, retry ladders, and when to gate on the human. Load this when a /fleet run prompt tells you to.
+---
+
+# Fleet orchestration
+
+You are the orchestrator of a fleet. The /fleet run prompt gives you the facts
+— teams, rooms, member names, skill assignments, literal tool-call recipes.
+This skill is the protocol those facts instantiate. It is ported from a
+proven multi-model fleet setup (fable-fleet), adapted to Orphus rooms and
+subagents.
+
+## The prime directive: route, don't work
+
+Your intelligence is spent on **decisions, not tokens**: reading the task,
+splitting it, choosing which team handles which piece, judging results.
+You do not write the code, the research, or the copy yourself — a member does,
+with the skills the blueprint assigned. If you catch yourself doing member
+work, stop and dispatch it.
+
+## The loop
+
+1. **Plan.** Break the task into pieces mapped to teams. For every dispatch
+   task, write into the task text: the exact files or artifacts it may touch,
+   and a machine-checkable acceptance criterion (a command to run, an output
+   to produce). Vague tasks produce confident wrong work.
+2. **Deliberate where the blueprint says so.** Use the deliberate recipe from
+   the run prompt. Members join the room under their own names, argue, and
+   post `FINAL:` lines. When the parallel call returns, pull ONE digest and
+   synthesize a decision. Post the decision back to the room as the record.
+3. **Dispatch.** Use the dispatch recipe. Every member task embeds the
+   decision (for deliberate-then-dispatch) plus its acceptance criterion.
+4. **Check mechanically before you check expensively.** After dispatch
+   returns, run the zero-token checks first: does the build pass, do the
+   named tests run, did the member touch only what its task allowed. Only
+   then spend tokens reading and judging output.
+5. **Verify across families when it matters.** For correctness-critical work,
+   dispatch a reviewer whose model comes from a DIFFERENT provider family
+   than the author (the blueprint's member models tell you who is who). Same-
+   family review shares blind spots.
+6. **Advance or repair.** On pass: report what was produced and verified,
+   with the actual outputs. On fail: the retry ladder below.
+
+## The retry ladder — capped, never circular
+
+A failed member task gets at most this sequence:
+
+1. **One retry** with the failure evidence embedded in the task text.
+2. **One diagnostic dispatch** — a different member (ideally different
+   family) asked to diagnose, not fix.
+3. **The human.** Present both attempts and the diagnosis, and ask.
+
+Never loop a third attempt of the same task at the same member; that spends
+real sessions on a converged failure.
+
+## Cost discipline
+
+- Every member is a live model session. Before a fan-out larger than the
+  blueprint's concurrency default, say what it will spawn and why.
+- State results as summaries with pointers to files/rooms — never paste a
+  member's whole transcript into your own context. Rooms exist so the full
+  discussion lives OUTSIDE context windows; keep it there.
+- Digests over fetches; `roundtable_fetch`-style raw reads only for a specific
+  seq range you actually need.
+
+## Sharp edges (these are real, not style)
+
+- A `skill` list on a dispatch call **replaces** the agent definition's own
+  skills. The run prompt's recipes already carry the blueprint's unions — do
+  not strip them, and restate an agent's own skills if you add to a recipe.
+- Member session `name`s key broker-side room cursors and attribution. Use
+  the names from the run prompt exactly; never send two members into one room
+  under the same name.
+- An agent whose `tools:` allowlist omits `roundtable` cannot join rooms —
+  if a deliberate member errors on room actions, that is why; pick another
+  agent or fix the agent definition rather than retrying.
+- Members cannot spawn sub-fleets; depth and parallelism caps are enforced by
+  the harness. Do not fight the caps — split into sequential waves instead.
+
+## When to gate on the human
+
+Gate (stop and ask) when: the plan implies destructive or outward-facing
+actions; spend would exceed what the task plausibly justifies; the retry
+ladder is exhausted; or two teams' conclusions genuinely conflict and the
+choice changes the outcome. Otherwise proceed — the user launched the fleet
+to delegate, not to be asked about every step.

@@ -1,0 +1,45 @@
+# Outcome pipeline: a blog post from a YouTube video. Each stage is one
+# specialist wielding different skills — the same shape works for any
+# scenario the user desires; swap the skills and briefs.
+#
+# The yt-transcript, research, and writing skills are user-installed globals
+# (~/.orphus/agent/skills/); the validator does not require them to exist,
+# but the members will only be as good as the skills they are given.
+name: blog-pipeline
+description: YouTube video to published blog post — transcript, research, writing, imagery.
+version: 1
+
+teams:
+  transcript:
+    mode: dispatch
+    skills: [yt-transcript]
+    members:
+      - agent: worker
+        brief: Extract the full transcript and a timestamped outline of claims.
+
+  research:
+    mode: dispatch
+    skills: [research]
+    members:
+      - agent: codebase-online-researcher
+        brief: |
+          Verify the video's claims against current sources; flag anything
+          outdated or wrong. The post must not repeat an error.
+
+  writing:
+    mode: dispatch
+    skills: [writing]
+    members:
+      - agent: worker
+        brief: |
+          Write the post from the outline and verified research, in the
+          user's voice. Cite sources where the video was corrected.
+
+  imagery:
+    mode: dispatch
+    skills: [kie-ai-media]
+    members:
+      - agent: worker
+        brief: Generate a header image and section illustrations matched to the content.
+
+pipeline: [transcript, research, writing, imagery]

@@ -1,0 +1,27 @@
+# Research fleet: parallel researchers fan out over facets of a question,
+# then an analyst deliberation reconciles findings into one answer.
+name: research-team
+description: Parallel research fan-out with an analyst synthesis pass.
+version: 1
+
+teams:
+  gather:
+    mode: dispatch
+    group: true
+    members:
+      - agent: codebase-online-researcher
+        count: 3
+        brief: |
+          You own one facet of the research question the orchestrator assigns
+          you. Return sources with claims, not summaries without them.
+
+  reconcile:
+    mode: deliberate
+    topic: Which findings survive cross-examination?
+    rounds: 2
+    members:
+      - agent: codebase-research-analyzer
+      - agent: worker
+        brief: Challenge weak sourcing; a claim without a citation is a rumor.
+
+pipeline: [gather, reconcile]

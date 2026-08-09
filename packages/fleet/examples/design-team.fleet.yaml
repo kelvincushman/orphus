@@ -1,0 +1,20 @@
+# Pure deliberation fleet: no code is written — the output is a decision of
+# record in the room, synthesized by the orchestrator from the digest.
+name: design-team
+description: Multi-perspective architecture deliberation producing a decision of record.
+version: 1
+
+teams:
+  panel:
+    mode: deliberate
+    topic: The design question under discussion
+    rounds: 3
+    members:
+      - agent: codebase-analyzer
+        brief: Ground every position in what the code actually does today.
+      - agent: codebase-pattern-finder
+        brief: Argue from precedent — how do comparable systems solve this?
+      - agent: worker
+        brief: |
+          Devil's advocate. Find the failure mode in every proposal, and
+          state what evidence would change your mind.
