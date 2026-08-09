@@ -313,9 +313,11 @@ git fetch upstream && git merge upstream/main
   the CI contract tests.
 
 The inherited Atomic workflows (`test.yml`, `publish.yml`, `warm-toolchain-cache.yml`) are
-kept byte-identical to upstream and disabled at the repository level: they target Blacksmith
-runners registered to the upstream org, which never pick up jobs here. Read them as a record
-of upstream's topology, not as this repository's gate.
+disabled at the repository level: they target Blacksmith runners registered to the upstream
+org, which never pick up jobs here. `publish.yml` and `warm-toolchain-cache.yml` are kept
+byte-identical to upstream; `test.yml` cannot be, because it carries the rebrand's
+`ORPHUS_REQUIRE_*` env-var names. Read them as a record of upstream's topology, not as this
+repository's gate.
 
 One test file is quarantined by name in `vitest.config.ts`, with its reason — a pre-existing
 timeout in vendored code. Deleting that entry is the goal. Details: [docs/ci.md](docs/ci.md).
