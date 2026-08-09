@@ -37,6 +37,10 @@ teams:                     # required; at least one
         count: 2           # optional; dispatch replication — members get unique session names
 
 pipeline: [design, implementation]  # optional; suggested team order; defaults to declaration order
+
+gate:                      # optional; the final gate for work that lands as a PR
+  reviewers: [coderabbit]  # automated GitHub reviewers that must COMPLETE before merging
+  model: openai-codex/gpt-5.6-sol  # the final-verdict reviewer, dispatched after they finish
 ```
 
 Sharp edges the validator cannot fully see for you:
