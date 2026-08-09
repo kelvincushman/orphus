@@ -11,18 +11,16 @@ name: Release
 #
 # Linux x64 only, on purpose. Every platform needs its own napi-slug `.node`
 # staged before scripts/build-binaries.sh will run (it exits 1 rather than
-# warning), so each additional target is another job. Start with the one that
-# builds on its host with no cross-compilation toolchain, and add targets as
-# they are actually wanted.
+# warning), so each additional target is another job. Start with the one whose
+# host and target agree, and add targets as they are actually wanted.
 #
-# Two things this does NOT match about upstream's publish.yml, stated so nobody
+# The `.node` is nevertheless built through cargo-zigbuild rather than plainly on
+# the host, because a host build links the runner's glibc and that alone set the
+# archive's floor. See GLIBC_FLOOR below.
+#
+# One thing this does NOT match about upstream's publish.yml, stated so nobody
 # assumes otherwise:
 #
-#   * No glibc floor. publish.yml routes glibc Linux targets through
-#     cargo-zigbuild with GLIBC_FLOOR=2.17. A plain host build on ubuntu-latest
-#     links against that runner's glibc (2.39), so the archive will not run on
-#     older distributions. Restoring the floor means adding zig and
-#     cargo-zigbuild; until then, do not advertise the artifact as portable.
 #   * scripts/build-binaries.sh emits an `atomic` archive. The packaging step
 #     below renames both the archive root and executable to `orphus` before the
 #     release is staged; the shared upstream build script remains unchanged.
@@ -35,6 +33,12 @@ on:
 
 permissions:
   contents: read
+
+env:
+  # Matches publish.yml. The archive cannot actually reach 2.17: the prebuilt
+  # @embedded-postgres server binaries it bundles require 2.27, and this workflow
+  # does not build them. Pinning what we do build takes the floor to that 2.27.
+  GLIBC_FLOOR: "2.17"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -79,6 +83,33 @@ jobs:
         with:
           # Required once pinned by SHA: the version otherwise comes from the ref.
           toolchain: stable
+          # cargo-zigbuild pins the glibc floor, but rustup still needs the bare
+          # triple installed; the floor is expressed in CROSS_TARGET below.
+          targets: x86_64-unknown-linux-gnu
+
+      # Community Zig mirrors have stalled on upstream's runners, and setup-zig
+      # applies no per-mirror deadline, so bound it and retry once on a
+      # re-shuffled list — the same pattern publish.yml uses.
+      - name: Setup zig for the glibc floor
+        id: zig
+        continue-on-error: true
+        timeout-minutes: 2
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          version: 0.16.0
+      - name: Retry zig acquisition on a re-shuffled mirror list
+        if: steps.zig.outcome == 'failure'
+        timeout-minutes: 2
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          version: 0.16.0
+      # Pinned: an unversioned taiki-e tool resolves to @latest, which floats the
+      # build toolchain of a published artifact with no diff to show for it.
+      - name: Install cargo-zigbuild
+        timeout-minutes: 3
+        uses: taiki-e/install-action@6a1bd70eaac3c8bdf093356838d7ee09fda951cf # v2.85.5
+        with:
+          tool: cargo-zigbuild@0.23.0
 
       - name: Install dependencies
         run: npm ci --ignore-scripts
@@ -95,8 +126,15 @@ jobs:
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       # build-binaries.sh hard-fails per platform when the matching .node is
-      # absent. No CROSS_TARGET is set, so this is a host build and needs no zig.
+      # absent. CROSS_TARGET carries the `<triple>.<major>.<minor>` form that
+      # build-native.ts routes to cargo-zigbuild's glibc pinning; without it this
+      # is a host build that links the runner's glibc and sets the whole
+      # archive's floor. Measured on the v0.1.0-alpha.2 artifact, this .node was
+      # the only component above 2.27 — it required 2.39 while the Bun-compiled
+      # binary needed only 2.17.
       - name: Build native bindings
+        env:
+          CROSS_TARGET: x86_64-unknown-linux-gnu.${{ env.GLIBC_FLOOR }}
         run: bun run --cwd packages/natives build
 
       - name: Build the Linux x64 archive

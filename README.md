@@ -322,6 +322,30 @@ repository's gate.
 One test file is quarantined by name in `vitest.config.ts`, with its reason — a pre-existing
 timeout in vendored code. Deleting that entry is the goal. Details: [docs/ci.md](docs/ci.md).
 
+### Release archives
+
+Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds a **Linux x64** archive,
+checks that the binary reports the tag's version, and stages a **draft** GitHub Release for a
+human to publish. It deliberately publishes to no registry.
+
+**What the archive runs on.** Its glibc floor is **2.27** — glibc 2.27 shipped in Ubuntu 18.04,
+so anything that old or newer works. The floor is not lower because the bundled
+`@embedded-postgres` server binaries are third-party prebuilts requiring 2.27, and this
+workflow does not build them. Everything it *does* build is pinned at 2.17 through
+cargo-zigbuild, and the Bun-compiled `orphus` executable needs only 2.17 on its own.
+
+Verify the floor on any archive rather than trusting this paragraph to stay true:
+
+```sh
+tar -xzf orphus-linux-x64.tar.gz
+find orphus -type f \( -name orphus -o -name '*.node' -o -name '*.so' \) \
+  -exec sh -c 'strings -a "$1" | grep -o "GLIBC_2\.[0-9]*"' _ {} \; \
+  | sort -u -t. -k2,2n | tail -1
+```
+
+Only Linux x64 is built. Each additional platform needs its own napi-slug `.node` staged
+first, so it is another job rather than another matrix row.
+
 ## Orchestrating a fleet with Orca
 
 [Orca](https://github.com/stablyai/orca) runs CLI agents in parallel git worktrees —
