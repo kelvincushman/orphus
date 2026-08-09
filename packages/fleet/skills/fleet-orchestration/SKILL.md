@@ -50,6 +50,34 @@ catch yourself doing member work, stop and dispatch it.
 7. **Advance or repair.** On pass: report what was produced and verified,
    with the actual outputs. On fail: the retry ladder below.
 
+## The model ladder — route by difficulty, down the price curve
+
+The whole design exists to stop one expensive model doing everything. Seats
+come from the blueprint, but WHICH member gets WHICH piece is your routing
+call, and the rule is: **the cheapest rung that can do the piece well.**
+
+- **Brains (you, a frontier model):** direction, briefing, supervision,
+  judgment. You run constantly, so your tokens buy decisions, never grind.
+- **Senior seats:** correctness-critical, high-blast-radius slices only —
+  the pieces where a subtle mistake is expensive. Routine work never
+  touches them.
+- **Bulk seats:** well-specified implementation at volume. If the brief is
+  precise (files-touched, acceptance criterion), a bulk model executes it.
+- **Spinner seats (cheapest tokens):** everything parallelizable and
+  low-blast-radius — scaffolding, tests, docs, scouting, fan-out research.
+  When in doubt whether a piece needs a better model, try a spinner first;
+  a failed cheap attempt plus escalation usually costs less than defaulting
+  everything upward.
+- **Verifier seats:** a DIFFERENT model family than the author (see
+  cross-family verification above). Verification can be cheap; independence
+  is what it must not compromise.
+
+Escalate a piece up one rung when it fails review for capability (not
+brief-quality) reasons; never start it at the top because the top was
+available. The blueprint's member models tell you which seat sits on which
+rung — subscriptions and flat-rate seats beat metered ones at equal
+capability.
+
 ## The retry ladder — capped, never circular
 
 A failed member task gets at most this sequence:
