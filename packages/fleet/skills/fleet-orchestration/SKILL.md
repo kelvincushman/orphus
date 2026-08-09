@@ -90,6 +90,28 @@ A failed member task gets at most this sequence:
 Never loop a third attempt of the same task at the same member; that spends
 real sessions on a converged failure.
 
+## The final gate — reviewers finish, then the verdict
+
+When a fleet's work lands as a pull request, "opened" is not "done", and green
+CI alone is not the gate. The sequence, when the blueprint declares one:
+
+1. **Let the repo's automated reviewers COMPLETE** (CodeRabbit, Greptile —
+   whatever the blueprint's `gate.reviewers` names). Never merge with a review
+   still running or threads unexamined.
+2. **Triage every finding like an engineer, not a supplicant**: verify it
+   first. Fix what is real; REFUTE what is not, with evidence, in a reply on
+   the thread. A review tool flagging something is a hypothesis, not a fact.
+3. **Dispatch the final-gate reviewer** — the blueprint's `gate.model`, fresh
+   context, ideally a different family than the authors — to judge the PR
+   against what was asked: the diff, the checks, the reviewer threads and
+   their resolutions. Its verdict is pass or fix-first, with reasons.
+4. Merge on pass. On fix-first, the retry ladder applies to the fixes, and
+   the gate runs again on the new head.
+
+The gate model is a verifier seat with the widest view — it sees the whole PR,
+not one member's slice — which is why it runs LAST and why it must not be one
+of the authoring models.
+
 ## Cost discipline
 
 - Every member is a live model session. Before a fan-out larger than the

@@ -158,6 +158,22 @@ export function renderFleetRunPrompt(blueprint: FleetBlueprint, task: string): s
     ``,
     ...order.map((team) => renderTeam(team, blueprint, task)),
     ``,
+    ...(blueprint.gate
+      ? [
+          ``,
+          `## Final gate`,
+          `Work that lands as a pull request is not done at "opened". ${
+            blueprint.gate.reviewers.length
+              ? `Wait for ${blueprint.gate.reviewers.join(" and ")} to COMPLETE on the PR, triage their findings (verify, fix, or refute with evidence), `
+              : ``
+          }${
+            blueprint.gate.model
+              ? `then dispatch a final-gate review to ${blueprint.gate.model} (fresh context) for the verdict before any merge.`
+              : `then apply the final-gate protocol from the skill before any merge.`
+          }`,
+        ]
+      : []),
+    ``,
     `Digest budgets: budget ${blueprint.defaults.budgets.digest}, perMessage ${blueprint.defaults.budgets.perMessage}. Escalate to the user with contact_supervisor semantics only where the skill says a human gate is due.`,
   ].join("\n");
 }

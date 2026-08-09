@@ -52,6 +52,13 @@ export interface FleetDefaults {
   readonly budgets: FleetBudgets;
 }
 
+export interface FleetGate {
+  /** Automated GitHub reviewers that must COMPLETE on a PR before the gate model runs. */
+  readonly reviewers: readonly string[];
+  /** The final-gate reviewer model (`provider/model`), dispatched after the reviewers finish. */
+  readonly model?: string;
+}
+
 export interface FleetBlueprint {
   readonly name: string;
   readonly description: string;
@@ -59,6 +66,8 @@ export interface FleetBlueprint {
   readonly version: number;
   /** User-chosen `provider/model` for the orchestrating session, when pinned. */
   readonly orchestratorModel?: string;
+  /** The final gate: PR reviewers to await, then the gate model's verdict. */
+  readonly gate?: FleetGate;
   readonly defaults: FleetDefaults;
   readonly teams: readonly TeamSpec[];
   /** Suggested team order; defaults to declaration order. */
