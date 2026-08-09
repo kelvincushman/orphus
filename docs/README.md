@@ -17,6 +17,7 @@ any of their context windows. Start with the first link; the rest are reference.
 | **[The `roundtable` tool](roundtable-tool.md)** | Every action, parameter, and default, with the reasoning. |
 | **[Roles and the manifest](roles.md)** | Declaring a fleet in `orphus.roles.yaml` and turning it into launch commands. |
 | **[Memory](memory.md)** | The durable layer: the librarian convention, the export → ingest → query flow, and its contract. |
+| **[Fleets](../packages/coding-agent/docs/fleet.md)** | Blueprint-driven orchestration: teams with pre-assigned skills, run by `/fleet`, authored by `/fleetsetup`. |
 | **[Orca integration](orca-integration.md)** | Running a fleet across parallel git worktrees. |
 | **[Workflow playbook](workflow-playbook.md)** | Multi-stage workflow execution, inherited from Atomic. |
 
