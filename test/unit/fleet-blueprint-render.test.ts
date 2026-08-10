@@ -91,6 +91,17 @@ teams:
 		assert.match(prompt, /"skill": \[\s*"thinking",\s*"tdd"\s*\]/u);
 	});
 
+	test("deliberate members are told the join is first and the room is the deliverable", () => {
+		// A member's own system prompt can beat a polite protocol: the first live
+		// panel had a member research diligently and never join. The template must
+		// leave no room for that reading.
+		const prompt = renderFleetRunPrompt(BLUEPRINT, "task");
+		assert.match(prompt, /FIRST tool call MUST be roundtable/u);
+		assert.match(prompt, /before any reading or research/u);
+		assert.match(prompt, /room is your deliverable/u);
+		assert.match(prompt, /Return just your FINAL line/u);
+	});
+
 	test("deliberate-then-dispatch teams carry both phases in order", () => {
 		const prompt = renderFleetRunPrompt(BLUEPRINT, "task");
 		const section = prompt.slice(prompt.indexOf("review"));

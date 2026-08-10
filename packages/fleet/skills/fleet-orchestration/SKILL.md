@@ -138,6 +138,12 @@ of the authoring models.
   missing — fix the blueprint, don't retry.
 - You must JOIN a room before posting to it — including yourself: join the
   team's room before posting your synthesis as the decision of record.
+- After a deliberation returns, verify EVERY member actually posted: the
+  digest attributes each message to a session name, so a missing name is
+  visible in one read. A member that completed its task but never joined the
+  room is a defect — its work never reached the panel. Report it as such in
+  your fleet report (which member, what it produced instead); do not silently
+  fold its artifact into the synthesis as if it had deliberated.
 - Members cannot spawn sub-fleets; depth and parallelism caps are enforced by
   the harness. Do not fight the caps — split into sequential waves instead.
 
