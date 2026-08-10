@@ -4,6 +4,8 @@ import {
 	AtomicWorkingLoader,
 	AtomicWorkingStatusComponent,
 	atomicWorkingFrame,
+	formatWorkingElapsed,
+	formatWorkingTokens,
 	ORPHUS_WORKING_BOLD_PHASES,
 	ORPHUS_WORKING_FRAME_MS,
 	ORPHUS_WORKING_FRAMES,
@@ -19,7 +21,11 @@ import {
 	type ThemeColor,
 } from "../src/modes/interactive/theme/theme.ts";
 import { loadTheme, loadThemeFromContent, loadThemeJson } from "../src/modes/interactive/theme/theme-loading.ts";
-import { WHIMSICAL_WORKING_MESSAGES } from "../src/modes/interactive/whimsical-messages.ts";
+import {
+	ORPHUS_DELIBERATION_MESSAGES,
+	pickWhimsicalWorkingMessage,
+	WHIMSICAL_WORKING_MESSAGES,
+} from "../src/modes/interactive/whimsical-messages.ts";
 
 const plain = (text: string): string => text.replace(/\u001b\[[0-9;]*m/g, "");
 const renderedContent = (loader: AtomicWorkingLoader): string => plain(loader.render(64)[1]!).trimEnd();
@@ -389,5 +395,60 @@ describe("Atomic working status", () => {
 		} finally {
 			restoreEnv("ORPHUS_REDUCED_MOTION", previousReducedMotion);
 		}
+	});
+});
+
+describe("working stats suffix", () => {
+	it("renders the dim parenthetical after the message and omits it when absent", () => {
+		initTheme("dark");
+		const withStats = new AtomicWorkingStatusComponent({
+			message: "Deliberating...",
+			stats: "1m 30s \u00b7 \u2193 4.9k tokens",
+		}).render(64);
+		expect(plain(withStats[1]!)).toContain("Deliberating... (1m 30s \u00b7 \u2193 4.9k tokens)");
+		const without = new AtomicWorkingStatusComponent({ message: "Deliberating..." }).render(64);
+		expect(plain(without[1]!)).not.toContain("(");
+	});
+
+	it("re-reads the loader's stats provider on every render", () => {
+		initTheme("dark");
+		let calls = 0;
+		const loader = new AtomicWorkingLoader(
+			{ requestRender: () => {} } as never,
+			undefined,
+			(text) => text,
+			"Convening...",
+			undefined,
+			() => `${++calls}s`,
+		);
+		expect(renderedContent(loader)).toContain("(1s)");
+		expect(renderedContent(loader)).toContain("(2s)");
+		loader.stop();
+	});
+
+	it("formats elapsed and token counts in the familiar shapes", () => {
+		expect(formatWorkingElapsed(45_000)).toBe("45s");
+		expect(formatWorkingElapsed(90_000)).toBe("1m 30s");
+		expect(formatWorkingElapsed(3_720_000)).toBe("1h 2m");
+		expect(formatWorkingTokens(812)).toBe("812");
+		expect(formatWorkingTokens(4_900)).toBe("4.9k");
+	});
+});
+
+describe("deliberation working verbs", () => {
+	it("picks from the deliberation register half the time and the whimsy the other half", () => {
+		const randoms = [0.1, 0, 0.9, 0]; // per pick: pool choice, then index
+		let index = 0;
+		vi.spyOn(Math, "random").mockImplementation(() => {
+			const value = randoms[index % randoms.length]!;
+			index += 1;
+			return value;
+		});
+		const first = pickWhimsicalWorkingMessage();
+		const second = pickWhimsicalWorkingMessage();
+		vi.restoreAllMocks();
+		expect([...ORPHUS_DELIBERATION_MESSAGES]).toContain(first);
+		expect([...WHIMSICAL_WORKING_MESSAGES]).toContain(second);
+		for (const message of ORPHUS_DELIBERATION_MESSAGES) expect(message.endsWith("...")).toBe(true);
 	});
 });

@@ -34,6 +34,8 @@ export const ORPHUS_WORKING_PHASES: readonly AtomicWorkingTone[] = [
 export interface AtomicWorkingStatusOptions {
 	frame?: number;
 	message?: string;
+	/** Dim parenthetical after the message, e.g. "1m 30s · ↓ 4.9k tokens". */
+	stats?: string;
 	palette?: AtomicWorkingPalette | (() => AtomicWorkingPalette);
 	spinnerColor?: (text: string) => string;
 	spinnerBoldColor?: (text: string) => string;
@@ -149,7 +151,10 @@ export class AtomicWorkingStatusComponent implements Component {
 		const styledMessage = noColorRequested()
 			? message
 			: (this.options.messageColor ?? ((text: string) => theme.fg("muted", text)))(message);
-		return ["", ...new Text(`${icon} ${styledMessage}`, 1, 0).render(width)];
+		const stats = this.options.stats
+			? ` ${noColorRequested() ? `(${this.options.stats})` : theme.fg("dim", `(${this.options.stats})`)}`
+			: "";
+		return ["", ...new Text(`${icon} ${styledMessage}${stats}`, 1, 0).render(width)];
 	}
 	invalidate(): void {}
 }
@@ -159,6 +164,7 @@ export class AtomicWorkingLoader implements Component {
 	private readonly ui: TUI;
 	private readonly spinnerColor: ((text: string) => string) | undefined;
 	private readonly messageColor: (text: string) => string;
+	private readonly stats: (() => string | undefined) | undefined;
 	private message: string;
 	private frame = 0;
 	private timer: ReturnType<typeof setInterval> | undefined;
@@ -172,15 +178,19 @@ export class AtomicWorkingLoader implements Component {
 		messageColor: (text: string) => string,
 		message = "Working...",
 		indicator?: LoaderIndicatorOptions,
+		stats?: () => string | undefined,
 	) {
 		this.ui = ui;
 		this.spinnerColor = spinnerColor;
 		this.messageColor = messageColor;
 		this.message = message;
+		this.stats = stats;
 		this.setIndicator(indicator);
 	}
 
 	render(width: number): string[] {
+		// The 88ms frame timer already drives renders, so the stats provider is
+		// re-read every tick — live elapsed time without a second timer.
 		return (
 			this.delegate?.render(width) ??
 			new AtomicWorkingStatusComponent({
@@ -188,6 +198,7 @@ export class AtomicWorkingLoader implements Component {
 				message: this.message,
 				spinnerColor: this.spinnerColor,
 				messageColor: this.messageColor,
+				...(this.stats ? { stats: this.stats() } : {}),
 			}).render(width)
 		);
 	}
@@ -261,4 +272,21 @@ export class AtomicWorkingLoader implements Component {
 export function atomicWorkingFrame(now = Date.now()): number {
 	if (process.env.ORPHUS_REDUCED_MOTION === "1") return 3;
 	return Math.floor(now / ORPHUS_WORKING_FRAME_MS) % ORPHUS_WORKING_FRAMES.length;
+}
+
+/** 45s · 1m 30s · 1h 2m — the shape users know from other harnesses. */
+export function formatWorkingElapsed(ms: number): string {
+	const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+	const hours = Math.floor(totalSeconds / 3600);
+	const minutes = Math.floor((totalSeconds % 3600) / 60);
+	const seconds = totalSeconds % 60;
+	if (hours > 0) return `${hours}h ${minutes}m`;
+	if (minutes > 0) return `${minutes}m ${seconds}s`;
+	return `${seconds}s`;
+}
+
+/** 812 → "812"; 4900 → "4.9k". */
+export function formatWorkingTokens(count: number): string {
+	if (count < 1000) return String(count);
+	return `${(count / 1000).toFixed(1)}k`;
 }

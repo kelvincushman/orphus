@@ -64,6 +64,8 @@ InteractiveModeBase.prototype.handleEvent = async function (
 	switch (event.type) {
 		case "agent_start":
 			this.pendingTools.clear();
+			this.workingRunStartedAt = Date.now();
+			this.workingRunOutputTokens = 0;
 			if (this.settingsManager.getShowTerminalProgress()) {
 				this.ui.terminal.setProgress(true);
 			}
@@ -200,6 +202,9 @@ InteractiveModeBase.prototype.handleEvent = async function (
 
 		case "message_end":
 			if (event.message.role === "user") break;
+			if (event.message.role === "assistant") {
+				this.workingRunOutputTokens += (event.message as { usage?: { output?: number } }).usage?.output ?? 0;
+			}
 			if (this.streamingComponent && event.message.role === "assistant") {
 				this.streamingMessage = event.message;
 				let errorMessage: string | undefined;

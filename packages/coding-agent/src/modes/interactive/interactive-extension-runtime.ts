@@ -1,6 +1,6 @@
 import { copyScopedModels } from "../../core/extensions/runner-context.ts";
 import { ModelRegistry } from "../../core/model-registry.ts";
-import { AtomicWorkingLoader } from "./components/atomic-working-status.ts";
+import { AtomicWorkingLoader, formatWorkingElapsed, formatWorkingTokens } from "./components/atomic-working-status.ts";
 import { mountIdleStatus } from "./components/idle-status.ts";
 import { InteractiveModeBase } from "./interactive-mode-base.ts";
 import {
@@ -99,6 +99,14 @@ InteractiveModeBase.prototype.createWorkingLoader = function (this: InteractiveM
 		(text) => theme.fg("muted", text),
 		this.getWorkingLoaderMessage(),
 		this.workingIndicatorOptions,
+		() => {
+			if (this.workingRunStartedAt === undefined) return undefined;
+			const parts = [formatWorkingElapsed(Date.now() - this.workingRunStartedAt)];
+			if (this.workingRunOutputTokens > 0) {
+				parts.push(`\u2193 ${formatWorkingTokens(this.workingRunOutputTokens)} tokens`);
+			}
+			return parts.join(" \u00b7 ");
+		},
 	);
 };
 

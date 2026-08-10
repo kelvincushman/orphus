@@ -461,6 +461,45 @@ export const WHIMSICAL_WORKING_MESSAGES = [
 	"Cherry-picking the commits...",
 ] as const;
 
+/**
+ * Orphus's own register: the roundtable. Many minds, from many makers, argue
+ * at one table — the working verbs should sound like that is happening.
+ */
+export const ORPHUS_DELIBERATION_MESSAGES = [
+	"Convening...",
+	"Deliberating...",
+	"Calling the room to order...",
+	"Seating the panel...",
+	"Hearing arguments...",
+	"Hearing the dissent...",
+	"Cross-examining...",
+	"Weighing positions...",
+	"Polling the members...",
+	"Caucusing...",
+	"Moderating...",
+	"Chairing...",
+	"Arbitrating...",
+	"Adjudicating...",
+	"Tabling motions...",
+	"Passing the gavel...",
+	"Minuting the discussion...",
+	"Digesting the room...",
+	"Counting FINALs...",
+	"Reaching quorum...",
+	"Converging...",
+	"Synthesizing the verdict...",
+	"Recording the decision...",
+	"Adjourning to consider...",
+	"Consulting the fleet...",
+	"Briefing the members...",
+	"Checking the hands' work...",
+	"Routing down the ladder...",
+	"Escalating a rung...",
+	"Letting the best path leave the room...",
+] as const;
+
 export function pickWhimsicalWorkingMessage(): string {
-	return WHIMSICAL_WORKING_MESSAGES[Math.floor(Math.random() * WHIMSICAL_WORKING_MESSAGES.length)];
+	// Half the turns speak Orphus's own register; half keep the inherited whimsy.
+	const pool = Math.random() < 0.5 ? ORPHUS_DELIBERATION_MESSAGES : WHIMSICAL_WORKING_MESSAGES;
+	return pool[Math.floor(Math.random() * pool.length)] as string;
 }
