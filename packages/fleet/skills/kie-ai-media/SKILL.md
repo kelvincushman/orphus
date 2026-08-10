@@ -9,6 +9,18 @@ Kie.ai is a unified, credit-based gateway to media models (Flux image
 generation, Veo/Kling/Seedance video, music and speech models, and more). One
 API key, one request pattern, every model.
 
+## Prefer the CLI when it is installed
+
+If `kie-pp-cli` is on PATH, use it INSTEAD of raw API calls — it is
+agent-native ([kelvincushman/kie-cli](https://github.com/kelvincushman/kie-cli),
+generated with CLI Printing Press): add `--agent` to any command for JSON
+output and non-interactive mode, and `kie-pp-cli doctor` verifies auth and
+connectivity before you spend credits. `kie-pp-cli --help` lists the
+generation commands; the async create-then-poll shape below still applies —
+the CLI wraps it. Auth is `KIE_BEARER_AUTH` or `kie-pp-cli auth set-token`,
+with the same never-in-a-file rules as the raw key. Everything below is the
+fallback when the CLI is absent.
+
 ## Setup — the key is never in a file
 
 The API key comes from the `KIE_AI_API_KEY` environment variable, set in the
