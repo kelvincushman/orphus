@@ -235,16 +235,29 @@ describe("scripts/bump-version.ts", () => {
 		}
 	});
 
-	test("rejects v-prefixed, legacy-numeric, and malformed alpha prerelease versions", () => {
-		// The prerelease convention is `-alpha.N` with the revision starting at 1.
-		// Legacy numeric prereleases (the old `-0`/`-4` style suffix) and any other
-		// suffix shape are rejected.
+	test("stamps a beta prerelease version", () => {
+		const root = createFixtureRoot();
+		try {
+			const result = runBump(root, "1.2.3-beta.1");
+			assert.equal(result.exitCode, 0, result.stderr);
+			assert.equal(readJson(join(root, "package.json")).version, "1.2.3-beta.1");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	test("rejects v-prefixed, legacy-numeric, and malformed prerelease versions", () => {
+		// The prerelease convention is `-alpha.N` or `-beta.N` with the revision
+		// starting at 1. Legacy numeric prereleases (the old `-0`/`-4` style
+		// suffix) and any other suffix shape are rejected.
 		const invalidVersions = [
 			"v1.2.3",
 			"1.2.3-0",
 			"1.2.3-alpha.0",
 			"1.2.3-alpha",
 			"1.2.3-alpha.01",
+			"1.2.3-beta.0",
+			"1.2.3-beta",
 			"1.2.3-rc.1",
 			"01.2.3",
 		];
@@ -254,7 +267,10 @@ describe("scripts/bump-version.ts", () => {
 			try {
 				const result = runBump(root, version);
 				assert.notEqual(result.exitCode, 0, `${version} should be rejected`);
-				assert.match(result.stderr, /Expected MAJOR\.MINOR\.PATCH or MAJOR\.MINOR\.PATCH-alpha\.REVISION/);
+				assert.match(
+					result.stderr,
+					/Expected MAJOR\.MINOR\.PATCH, MAJOR\.MINOR\.PATCH-alpha\.REVISION, or MAJOR\.MINOR\.PATCH-beta\.REVISION/,
+				);
 				assert.equal(readJson(join(root, "package.json")).version, "0.1.0");
 				assert.equal(readJson(join(root, "packages", "alpha", "package.json")).version, "0.1.0");
 				assert.equal(readLock(join(root, "package-lock.json")).packages["packages/alpha"]?.version, "0.1.0");

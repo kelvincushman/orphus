@@ -39,7 +39,7 @@ import { join, resolve } from "node:path";
 import { $ } from "bun";
 import { canonicalReleaseBaseRef } from "./release-base.js";
 
-const STRICT_RELEASE_VERSION_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-alpha\.([1-9]\d*))?$/;
+const STRICT_RELEASE_VERSION_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:alpha|beta)\.([1-9]\d*))?$/;
 const PLACEHOLDER_VERSIONS = new Set(["0.0.0", "0.0.0-dev"]);
 
 const ROOT = resolve(import.meta.dir, "..");
@@ -95,7 +95,7 @@ function validateVersion(version: string): void {
 	}
 	if (!STRICT_RELEASE_VERSION_RE.test(version)) {
 		fail(
-			`"${version}" is not a valid release version. Expected MAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH-alpha.REVISION (e.g. 0.8.31 or 0.9.0-alpha.1).`,
+			`"${version}" is not a valid release version. Expected MAJOR.MINOR.PATCH, MAJOR.MINOR.PATCH-alpha.REVISION, or MAJOR.MINOR.PATCH-beta.REVISION (e.g. 0.8.31, 0.9.0-alpha.1, or 0.9.0-beta.1).`,
 		);
 	}
 }

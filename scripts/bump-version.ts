@@ -79,7 +79,7 @@ function findRepoRoot(startDir: string): string {
 	}
 }
 
-const STRICT_RELEASE_VERSION_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-alpha\.([1-9]\d*))?$/;
+const STRICT_RELEASE_VERSION_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:alpha|beta)\.([1-9]\d*))?$/;
 const FIRST_PARTY_DEPENDENCY_SECTIONS = ["dependencies", "optionalDependencies", "devDependencies"] as const;
 const STABLE_RELEASE_BRANCH_RE = /^(?:release)\/((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))$/;
 const ALPHA_PRERELEASE_BRANCH_RE = /^(?:prerelease)\/((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)-alpha\.[1-9]\d*)$/;
@@ -108,7 +108,7 @@ function parseVersionFromBranch(branch: string): string {
 function validateVersion(version: string): void {
 	if (!STRICT_RELEASE_VERSION_RE.test(version)) {
 		console.error(
-			`Error: "${version}" is not a valid release version. Expected MAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH-alpha.REVISION (for example, 0.8.0 or 0.8.0-alpha.1).`,
+			`Error: "${version}" is not a valid release version. Expected MAJOR.MINOR.PATCH, MAJOR.MINOR.PATCH-alpha.REVISION, or MAJOR.MINOR.PATCH-beta.REVISION (for example, 0.8.0, 0.8.0-alpha.1, or 0.8.0-beta.1).`,
 		);
 		process.exit(1);
 	}
