@@ -91,6 +91,18 @@ teams:
 		assert.match(prompt, /"skill": \[\s*"thinking",\s*"tdd"\s*\]/u);
 	});
 
+	test("repo agent config files are referenced, never inlined", () => {
+		const prompt = renderFleetRunPrompt(BLUEPRINT, "task", {
+			files: ["docs/agents/issue-tracker.md", "docs/agents/domain.md"],
+		});
+		assert.match(prompt, /Repo agent config: docs\/agents\/issue-tracker\.md, docs\/agents\/domain\.md/u);
+		assert.match(prompt, /Read the relevant file before tracker or domain operations/u);
+		// Absent or empty config leaves the prompt untouched — blueprints are
+		// identical everywhere; the repo adapts them only when it says so.
+		assert.doesNotMatch(renderFleetRunPrompt(BLUEPRINT, "task"), /Repo agent config/u);
+		assert.doesNotMatch(renderFleetRunPrompt(BLUEPRINT, "task", { files: [] }), /Repo agent config/u);
+	});
+
 	test("deliberate members are told the join is first and the room is the deliverable", () => {
 		// A member's own system prompt can beat a polite protocol: the first live
 		// panel had a member research diligently and never join. The template must

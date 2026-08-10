@@ -4,6 +4,8 @@
 
 ### Added
 
+- Fleet runs adapt to the repository through committed markdown under `docs/agents/` (issue-tracker.md, triage-labels.md, domain.md): `/fleet` references whichever files exist in the run prompt — read lazily, never inlined — and `/fleetsetup` asks one question and writes `issue-tracker.md` when it is missing, proposing the tracker that matches the git remote. The convention is shared with community skill packs (mattpocock/skills reads the same files), so one configuration serves fleets and skills alike.
+
 ### Fixed
 
 - Deliberate members are now told the room join is their mandatory FIRST tool call and the room is the deliverable — the second live panel proved an agent's own system prompt can beat a polite protocol (one member researched diligently and never joined). The orchestration skill now also verifies every member posted and reports a silent member as a defect instead of folding its artifact into the synthesis.

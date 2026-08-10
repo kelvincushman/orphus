@@ -182,4 +182,28 @@ describe("/fleetsetup", () => {
 		assert.match(briefing, /fleet\(\{.*validate/su);
 		assert.match(briefing, /subagent\(\{.*list/su);
 	});
+
+	test("buildSetupBriefing interviews for the repo tracker config only when it is missing", () => {
+		const missing = buildSetupBriefing({
+			schema: "S",
+			configuredProviders: ["anthropic"],
+			fleets: [],
+			targetDir: "/tmp/x/.orphus/fleets",
+			hasIssueTrackerConfig: false,
+			gitRemote: "https://github.com/kelvincushman/orphus.git",
+		});
+		assert.match(missing, /docs\/agents\/issue-tracker\.md does not exist yet/u);
+		assert.match(missing, /git remote \(https:\/\/github\.com\/kelvincushman\/orphus\.git\)/u);
+		assert.match(missing, /mattpocock\/skills/u);
+
+		const present = buildSetupBriefing({
+			schema: "S",
+			configuredProviders: ["anthropic"],
+			fleets: [],
+			targetDir: "/tmp/x/.orphus/fleets",
+			hasIssueTrackerConfig: true,
+		});
+		assert.match(present, /already exists — fleets and skills will read it/u);
+		assert.doesNotMatch(present, /does not exist yet/u);
+	});
 });

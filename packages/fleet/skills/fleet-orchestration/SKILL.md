@@ -90,6 +90,18 @@ A failed member task gets at most this sequence:
 Never loop a third attempt of the same task at the same member; that spends
 real sessions on a converged failure.
 
+## Repo agent config — the blueprint is generic, the repo is specific
+
+When the run prompt lists files under `docs/agents/` (issue-tracker.md,
+triage-labels.md, domain.md), those are the repository's committed answers to
+"where do issues live, what are the labels called, where do domain docs sit".
+Read the relevant file BEFORE any tracker operation — filing issues, opening
+or gating PRs, placing documentation — and put the same instruction into any
+member task that touches those surfaces. Blueprints stay identical across
+repositories; this file is how one blueprint adapts. Community skill packs
+(mattpocock/skills among them) read the same files, so skills and fleets act
+on one configuration.
+
 ## The final gate — reviewers finish, then the verdict
 
 When a fleet's work lands as a pull request, "opened" is not "done", and green

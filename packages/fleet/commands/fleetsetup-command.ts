@@ -33,6 +33,16 @@ interface CommandContextLike {
 
 const PACKAGE_DIR = dirname(fileURLToPath(import.meta.url));
 
+/** First remote URL from .git/config, if the cwd is a git repo. No exec: a config read suffices for a proposal hint. */
+function readGitRemote(cwd: string): string | undefined {
+  try {
+    const config = readFileSync(join(cwd, ".git", "config"), "utf8");
+    return /\n\s*url\s*=\s*(\S+)/.exec(config)?.[1];
+  } catch {
+    return undefined;
+  }
+}
+
 function schemaReference(): string {
   const schemaPath = join(PACKAGE_DIR, "..", "SCHEMA.md");
   if (existsSync(schemaPath)) return readFileSync(schemaPath, "utf8");
@@ -44,6 +54,10 @@ export interface SetupBriefingInputs {
   readonly configuredProviders: readonly string[];
   readonly fleets: readonly { name: string; scope: string }[];
   readonly targetDir: string;
+  /** Whether docs/agents/issue-tracker.md already exists in this repo. */
+  readonly hasIssueTrackerConfig?: boolean;
+  /** The repo's git remote URL, when one exists — the tracker proposal hint. */
+  readonly gitRemote?: string;
 }
 
 /** Pure briefing builder, unit-tested apart from the handler. */
@@ -61,8 +75,19 @@ export function buildSetupBriefing(inputs: SetupBriefingInputs): string {
     `3. Members: map each team seat to an existing agent — run subagent({ action: "list" }) to see them — or create missing agents with subagent({ action: "create", config: { … } }). Pre-assign skills per member; team-level skills apply to every member.`,
     `4. Models: assign the orchestrator's model and any per-member models FROM THE CONFIGURED PROVIDERS ONLY (listed below). If the user wants an unconfigured provider, have them run /login <provider> first, then continue.`,
     `5. The final gate: ask which automated GitHub reviewers run on their PRs (e.g. coderabbit, greptile — or none), and which configured-provider model renders the final verdict once those reviewers COMPLETE. Record the answers as the blueprint's gate block ({ reviewers, model }); a fleet whose work lands as PRs should not merge on green checks alone.`,
-    `6. Write the blueprint to ${inputs.targetDir}/<name>.fleet.yaml and iterate fleet({ action: "validate", name: "<name>" }) until it reports valid; show the user warnings and ask before ignoring any.`,
-    `7. Finish by telling the user to run: /fleet <name> <task>`,
+    ...(inputs.hasIssueTrackerConfig
+      ? [
+          `6. Repo agent config: docs/agents/issue-tracker.md already exists — fleets and skills will read it; do not rewrite it here.`,
+        ]
+      : [
+          `6. Repo agent config: docs/agents/issue-tracker.md does not exist yet. Ask ONE question — where do issues and PRs for this repo live? ${
+            inputs.gitRemote
+              ? `Propose the tracker matching the git remote (${inputs.gitRemote}); `
+              : ``
+          }offer github (gh CLI), gitlab (glab CLI), local markdown, or a prose description of anything else (Jira, Linear, …). Write the answer to docs/agents/issue-tracker.md as short committed markdown: the tracker type and the exact commands or workflow agents should use. Fleet runs and community skill packs (e.g. mattpocock/skills) read this same file, so one answer configures both.`,
+        ]),
+    `7. Write the blueprint to ${inputs.targetDir}/<name>.fleet.yaml and iterate fleet({ action: "validate", name: "<name>" }) until it reports valid; show the user warnings and ask before ignoring any.`,
+    `8. Finish by telling the user to run: /fleet <name> <task>`,
     ``,
     `Configured providers (the only valid model sources right now):`,
     ...inputs.configuredProviders.map((provider) => `  - ${provider}`),
@@ -95,6 +120,8 @@ export function createFleetSetupHandler(pi: ExtensionAPI, deps: FleetSetupDeps =
         configuredProviders,
         fleets,
         targetDir: roots.projectDirs[0] ?? join(ctx.cwd, ".orphus", "fleets"),
+        hasIssueTrackerConfig: existsSync(join(ctx.cwd, "docs", "agents", "issue-tracker.md")),
+        gitRemote: readGitRemote(ctx.cwd),
       }),
       { deliverAs: "followUp" },
     );

@@ -98,3 +98,25 @@ interview.
 - Every member is a live model session; `count` and `concurrency` multiply
   real spend. The orchestration skill requires the model to state cost before
   large fan-outs, and caps retries at retry → diagnostic → human.
+
+## Repo agent config — one blueprint, any repository
+
+Blueprints are community artifacts and stay identical everywhere. Repo-specific
+facts — where issues live, what triage labels are called, where domain docs sit
+— belong in committed markdown under `docs/agents/`:
+
+- `docs/agents/issue-tracker.md` — tracker type and the exact commands or
+  workflow agents should use (GitHub `gh`, GitLab `glab`, local markdown, or a
+  prose description of Jira/Linear/anything else)
+- `docs/agents/triage-labels.md` — canonical label names mapped to this repo's
+- `docs/agents/domain.md` — the domain-documentation layout
+
+`/fleetsetup` asks one question and writes `issue-tracker.md` when it is
+missing (proposing the tracker that matches the git remote). `/fleet` runs
+reference whichever of these files exist — nothing is inlined; the orchestrator
+reads them lazily and passes the instruction to members whose tasks touch those
+surfaces. The convention is shared with community skill packs
+([mattpocock/skills](https://github.com/mattpocock/skills) reads the same
+files), so one configuration serves fleets and skills alike. Install such packs
+with `orphus install <repo-url>`; their skills surface lazily like any other.
+
