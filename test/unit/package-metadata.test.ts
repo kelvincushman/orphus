@@ -13,7 +13,7 @@ import webAccessPackageJson from "../../packages/web-access/package.json" with {
 import workflowsPackageJson from "../../packages/workflows/package.json" with { type: "json" };
 import { readJson } from "../helpers/runtime.js";
 
-const STRICT_RELEASE_VERSION_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-alpha\.([1-9]\d*))?$/;
+const STRICT_RELEASE_VERSION_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:alpha|beta)\.([1-9]\d*))?$/;
 
 type DependencySectionName = "dependencies" | "optionalDependencies" | "peerDependencies" | "devDependencies";
 
