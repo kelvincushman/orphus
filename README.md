@@ -122,6 +122,10 @@ orphus
 `ORPHUS_INSTALL_DIR` / `ORPHUS_BIN_DIR` overrides. Add an **API key** for whichever provider
 you use, or log in from inside a session with `/login`.
 
+From then on, `orphus update` upgrades in place: it checks this repository's releases,
+re-runs the installer, and flips the `current` pointer — prior versions stay on disk for
+rollback. Nobody reinstalls by hand.
+
 ### Building from a clone instead
 
 Adds: a **Rust toolchain** ([rustup](https://rustup.rs)) for the native bindings, and an
