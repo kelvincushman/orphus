@@ -43,6 +43,9 @@ class InteractiveModeDriver {
 		const baseEnv: Record<string, string | undefined> = { ...process.env };
 		for (const key of Object.keys(baseEnv)) {
 			if (key.startsWith("ORPHUS_INTERACTIVE_ENGINE_")) delete baseEnv[key];
+			// Runner provider credentials must not leak real providers into the
+			// fixture's model world (issue #66).
+			if (key.endsWith("_API_KEY") || key.endsWith("_BEARER_AUTH")) delete baseEnv[key];
 		}
 		this.process = spawnProcess(
 			[bunExecutable(), join(moduleDir(import.meta.url), "fixtures", "default-main-interactive-host.ts"), ...args],
