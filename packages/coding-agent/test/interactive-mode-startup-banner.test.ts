@@ -17,7 +17,7 @@ import {
 } from "../src/modes/interactive/components/startup-identity.ts";
 import { registerStartupInputListeners } from "../src/modes/interactive/interactive-input-handling.ts";
 import { InteractiveMode } from "../src/modes/interactive/interactive-mode.ts";
-import { initTheme, theme } from "../src/modes/interactive/theme/theme.ts";
+import { initTheme, Theme, type ThemeBg, type ThemeColor, theme } from "../src/modes/interactive/theme/theme.ts";
 
 function plain(text: string): string {
 	return text.replace(/\u001b\[[0-9;]*m/g, "");
@@ -196,6 +196,45 @@ describe("InteractiveMode startup banner", () => {
 				if (state.gap === 0) expect(rendered).toContain("Atomic v0.0.0");
 				expect(rendered).not.toMatch(/\u001b\[(?:38;|39m)/);
 			}
+		} finally {
+			if (previous === undefined) delete process.env.NO_COLOR;
+			else process.env.NO_COLOR = previous;
+		}
+	});
+
+	it("uses the default dark success ANSI color for solid block-logo cells", () => {
+		initTheme("dark");
+		const rendered = renderAtomicAssemblyBanner(0, theme, "high").join("\n");
+
+		expect(rendered).toContain(`${theme.getFgAnsi("success")}█`);
+		expect(rendered).not.toContain(`${theme.getFgAnsi("thinkingHigh")}█`);
+	});
+
+	it("uses a custom success-role ANSI override for solid block-logo cells", () => {
+		const customTheme = new Theme(
+			{
+				success: "#123456",
+				dim: "#303030",
+				thinkingHigh: "#654321",
+			} as Record<ThemeColor, string>,
+			{} as Record<ThemeBg, string>,
+			"truecolor",
+		);
+		const rendered = renderAtomicAssemblyBanner(0, customTheme, "high").join("\n");
+
+		expect(rendered).toContain("\u001b[38;2;18;52;86m█");
+		expect(rendered).not.toContain("\u001b[38;2;101;67;33m█");
+	});
+
+	it("keeps foreground ANSI out of solid block-logo cells when NO_COLOR is set", () => {
+		const previous = process.env.NO_COLOR;
+		process.env.NO_COLOR = "";
+		try {
+			initTheme("dark");
+			const rendered = renderAtomicAssemblyBanner(0, theme, "high").join("\n");
+
+			expect(rendered).not.toContain(theme.getFgAnsi("success"));
+			expect(rendered).not.toMatch(/\u001b\[(?:38;|39m)/);
 		} finally {
 			if (previous === undefined) delete process.env.NO_COLOR;
 			else process.env.NO_COLOR = previous;
