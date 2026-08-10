@@ -742,7 +742,10 @@ unixTest("shell installer accepts only Orphus stable, alpha, and beta release ta
 		try {
 			const result = fixture.run({ args: ["--ref", tag] });
 			assert.notEqual(result.exitCode, 0, `${tag} unexpectedly passed`);
-			assert.match(output(result), /expected vMAJOR\.MINOR\.PATCH, vMAJOR\.MINOR\.PATCH-alpha\.REVISION, or vMAJOR\.MINOR\.PATCH-beta\.REVISION/u);
+			assert.match(
+				output(result),
+				/expected vMAJOR\.MINOR\.PATCH, vMAJOR\.MINOR\.PATCH-alpha\.REVISION, or vMAJOR\.MINOR\.PATCH-beta\.REVISION/u,
+			);
 			assert.equal(readFileSync(fixture.requestLog, "utf8"), "");
 			assertNoTemporaryState(fixture);
 		} finally {
