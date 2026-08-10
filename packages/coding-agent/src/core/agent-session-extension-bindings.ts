@@ -181,13 +181,17 @@ export function _bindExtensionCore(this: AgentSession, runner: ExtensionRunner):
 				return delivery;
 			},
 			sendUserMessage: (content, options) => {
-				this.sendUserMessage(content, options).catch((err) => {
+				// Fire-and-forget for the caller, but tracked: single-shot surfaces
+				// (print mode) await waitForExtensionDeliveries before exiting.
+				const delivery = this.sendUserMessage(content, options).catch((err) => {
 					runner.emitError({
 						extensionPath: "<runtime>",
 						event: "send_user_message",
 						error: err instanceof Error ? err.message : String(err),
 					});
 				});
+				this._pendingExtensionDeliveries.add(delivery);
+				void delivery.finally(() => this._pendingExtensionDeliveries.delete(delivery));
 			},
 			appendEntry: (customType, data) => {
 				const id = this.sessionManager.appendCustomEntry(customType, data);

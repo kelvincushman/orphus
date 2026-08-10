@@ -30,6 +30,7 @@ type FakeSession = {
 	emitEvent: (event: AgentSessionEvent) => void;
 	getToolDefinition: ReturnType<typeof vi.fn<(name: string) => { structuredOutput?: true } | undefined>>;
 	prompt: ReturnType<typeof vi.fn<(text: string, options?: { images?: ImageContent[] }) => Promise<void>>>;
+	waitForExtensionDeliveries: ReturnType<typeof vi.fn<() => Promise<void>>>;
 	reload: ReturnType<typeof vi.fn<() => Promise<void>>>;
 };
 
@@ -129,6 +130,7 @@ function createRuntimeHost(
 			structuredOutputTools.has(name) ? { structuredOutput: true } : undefined,
 		),
 		prompt: vi.fn(async (_text: string, _options?: { images?: ImageContent[] }) => {}),
+		waitForExtensionDeliveries: vi.fn(async () => {}),
 		reload: vi.fn(async () => {}),
 	};
 
@@ -504,5 +506,26 @@ describe("runPrintMode", () => {
 		expect(errorSpy).toHaveBeenCalledWith(`Extension error (command:workflow): ${RUN_MISSING_ERROR}`);
 		expect(stdoutChunks.join("")).toBe("");
 		expect(session.extensionRunner.emit).toHaveBeenCalledWith({ type: "session_shutdown", reason: "quit" });
+	});
+
+	it("issue #47: waits for extension-initiated follow-up turns before reading the final message", async () => {
+		// A command like /fleet <name> <task> delivers its payload via a
+		// fire-and-forget sendUserMessage; print mode used to read the final
+		// state and exit while that turn was still starting.
+		const runtimeHost = createRuntimeHost(createAssistantMessage({ text: "command acknowledged" }));
+		const { session } = runtimeHost;
+		session.waitForExtensionDeliveries.mockImplementation(async () => {
+			session.state.messages.push(createAssistantMessage({ text: "follow-up turn result" }));
+		});
+		const stdoutChunks = captureStdout();
+		const exitCode = await runPrintModeWithFakeHost(runtimeHost, {
+			mode: "text",
+			initialMessage: "/fleet design-team decide something",
+		});
+		expect(exitCode).toBe(0);
+		expect(stdoutChunks.join("")).toContain("follow-up turn result");
+		expect(session.waitForExtensionDeliveries.mock.invocationCallOrder[0]).toBeGreaterThan(
+			session.prompt.mock.invocationCallOrder[0] ?? 0,
+		);
 	});
 });

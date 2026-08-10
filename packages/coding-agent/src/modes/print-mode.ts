@@ -219,10 +219,12 @@ export async function runPrintMode(runtimeHost: AgentSessionRuntime, options: Pr
 
 		if (initialMessage) {
 			await promptWithScopedCommandSuppression(initialMessage, { images: initialImages });
+			await session.waitForExtensionDeliveries();
 		}
 
 		for (const message of messages) {
 			await promptWithScopedCommandSuppression(message);
+			await session.waitForExtensionDeliveries();
 		}
 
 		const state = session.state;
