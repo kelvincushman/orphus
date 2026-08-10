@@ -8,6 +8,33 @@ export interface SelfUpdateRuntime {
 	isBunRuntime: boolean;
 	moduleDir: string;
 	getPackageDir(): string;
+	/** Real on-disk executable; defaults to process.execPath (import.meta paths inside a compiled binary point into $bunfs). */
+	getExecutablePath?(): string;
+}
+
+export const ORPHUS_RELEASES_URL = "https://github.com/kelvincushman/orphus/releases/latest";
+export const ORPHUS_INSTALLER_ONE_LINER =
+	"curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.sh | sh";
+
+/**
+ * Detect the install.sh layout — `<root>/versions/<tag>/orphus` with a
+ * `<root>/current` pointer — from the REAL executable path. When the binary
+ * lives there, self-update is simply re-running the canonical installer: it is
+ * transactional, checksum-verified, keeps prior versions, and flips `current`
+ * without touching the running process.
+ */
+function isArchiveInstall(runtime: SelfUpdateRuntime): boolean {
+	if (process.platform === "win32") return false;
+	const executable = runtime.getExecutablePath?.() ?? process.execPath;
+	let resolved: string;
+	try {
+		resolved = realpathSync(executable);
+	} catch {
+		return false;
+	}
+	const versionsDir = dirname(dirname(resolved));
+	if (basename(versionsDir) !== "versions") return false;
+	return existsSync(join(dirname(versionsDir), "current"));
 }
 
 export type InstallMethod = "bun-binary" | "npm" | "pnpm" | "yarn" | "bun" | "unknown";
@@ -309,6 +336,13 @@ export function getSelfUpdateCommandForRuntime(
 	updateTarget: SelfUpdateTarget = packageName,
 ): SelfUpdateCommand | undefined {
 	const method = detectInstallMethodForRuntime(runtime);
+	if (method === "bun-binary") {
+		// The package-manager gates below do not apply: the installer manages
+		// its own layout, verifies checksums, and fails cleanly on permissions.
+		return isArchiveInstall(runtime)
+			? makeSelfUpdateCommandStep("sh", ["-c", ORPHUS_INSTALLER_ONE_LINER])
+			: undefined;
+	}
 	const target = normalizeSelfUpdateTarget(updateTarget);
 	const command = getSelfUpdateCommandForMethod(
 		runtime,
@@ -336,7 +370,7 @@ export function getSelfUpdateUnavailableInstructionForRuntime(
 ): string {
 	const method = detectInstallMethodForRuntime(runtime);
 	if (method === "bun-binary") {
-		return `Download from: https://github.com/bastani-inc/atomic/releases/latest`;
+		return `Download from: ${ORPHUS_RELEASES_URL}\nOr adopt the managed install (self-updating from then on): ${ORPHUS_INSTALLER_ONE_LINER}`;
 	}
 	const target = normalizeSelfUpdateTarget(updateTarget);
 	const command = getSelfUpdateCommandForMethod(
@@ -361,6 +395,9 @@ export function getSelfUpdateUnavailableInstructionForRuntime(
 
 export function getUpdateInstructionForRuntime(runtime: SelfUpdateRuntime, packageName: string): string {
 	const method = detectInstallMethodForRuntime(runtime);
+	if (method === "bun-binary" && isArchiveInstall(runtime)) {
+		return `Run: ${ORPHUS_INSTALLER_ONE_LINER}`;
+	}
 	const command = getSelfUpdateCommandForMethod(runtime, method, packageName);
 	if (command) {
 		return `Run: ${command.display}`;
