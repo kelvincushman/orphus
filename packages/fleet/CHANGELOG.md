@@ -4,6 +4,10 @@
 
 ### Added
 
+### Fixed
+
+- Deliberate members are now told the room join is their mandatory FIRST tool call and the room is the deliverable — the second live panel proved an agent's own system prompt can beat a polite protocol (one member researched diligently and never joined). The orchestration skill now also verifies every member posted and reports a silent member as a defect instead of folding its artifact into the synthesis.
+
 - Blueprint members accept a `tools` allowlist that replaces the agent definition's own list for that seat — the lever that lets deliberate members built on read-only agents join rooms (`roundtable` is excluded from most read-only allowlists). All bundled examples now grant room access explicitly; the first live fleet run caught two of three panel members locked out.
 
 - Blueprints can declare a **final gate** (`gate: { reviewers, model }`): the orchestrator waits for the named automated GitHub reviewers (CodeRabbit, Greptile, …) to complete on a PR, triages their findings, then dispatches the configured gate model in fresh context for a pass / fix-first verdict before any merge. `/fleetsetup` asks for this during the interview, and the `fleet-orchestration` skill carries the protocol.
