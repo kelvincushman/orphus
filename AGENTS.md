@@ -114,6 +114,12 @@ The test for whether documentation needed updating is not "did I add a feature".
 It is: **would someone following the current docs now be misled?** If yes, that
 is part of this change, not a follow-up.
 
+**Bundled skills follow the writing-for-agents method** (context pointers, the
+two loads, the information hierarchy — see "Creating skills" in
+`packages/coding-agent/docs/skills.md`). A skill's description is a context
+pointer paid for on every turn: front-load the leading word, one trigger per
+branch, and prefer deletion to explanation in the body.
+
 **At every phase or milestone boundary — a release cut, a feature arc landing
 across several PRs, a "what's next" pause — run a docs sync pass as its own
 step, not per-PR:** reread README.md, docs/getting-started.md, and the docs of
