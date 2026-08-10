@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The kie-ai-media skill prefers `kie-pp-cli` (the community Printing Press CLI for Kie.ai) when it is on PATH — agent-native JSON mode, doctor-verified auth before spending credits — keeping the raw async API pattern as the fallback.
+
 ### Added
 
 - Fleet runs adapt to the repository through committed markdown under `docs/agents/` (issue-tracker.md, triage-labels.md, domain.md): `/fleet` references whichever files exist in the run prompt — read lazily, never inlined — and `/fleetsetup` asks one question and writes `issue-tracker.md` when it is missing, proposing the tracker that matches the git remote. The convention is shared with community skill packs (mattpocock/skills reads the same files), so one configuration serves fleets and skills alike.
