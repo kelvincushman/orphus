@@ -175,6 +175,7 @@ export interface AgentSessionMethodSurface extends AgentSessionQueuePauseControl
 		content: string | (TextContent | ImageContent)[],
 		options?: { deliverAs?: "steer" | "followUp" },
 	): Promise<void>;
+	waitForExtensionDeliveries(): Promise<void>;
 
 	_queueSteer(text: string, images?: ImageContent[]): Promise<void>;
 	_queueFollowUp(text: string, images?: ImageContent[]): Promise<void>;
@@ -349,6 +350,7 @@ export interface AgentSessionPublicSurface
 		| "followUp"
 		| "sendCustomMessage"
 		| "sendUserMessage"
+		| "waitForExtensionDeliveries"
 		| "clearQueue"
 		| "getSteeringMessages"
 		| "getFollowUpMessages"
@@ -405,6 +407,7 @@ export interface AgentSessionInternalSurface extends AgentSessionMethodSurface, 
 	_agentEventQueue: Promise<void>;
 	_steeringMessages: string[];
 	_followUpMessages: string[];
+	_pendingExtensionDeliveries: Set<Promise<void>>;
 	_interruptDeliveryQueue: Promise<void>;
 	_pendingPostCompactionContinuation: Promise<void> | undefined;
 	_postCompactionContinuationToken: number;

@@ -88,6 +88,7 @@ class AgentSessionBase {
 	protected _agentEventQueue: Promise<void> = Promise.resolve();
 	protected _steeringMessages: string[] = [];
 	protected _followUpMessages: string[] = [];
+	protected _pendingExtensionDeliveries: Set<Promise<void>> = new Set();
 	protected _interruptDeliveryQueue: Promise<void> = Promise.resolve();
 	protected _pendingInterruptDeliveries = 0;
 	protected _activeInterruptQueueHold: InterruptQueueHold | undefined = undefined;

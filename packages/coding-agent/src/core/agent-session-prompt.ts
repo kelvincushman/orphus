@@ -466,6 +466,22 @@ export async function sendUserMessage(
  * @returns Object with steering and followUp arrays
  */
 
+/**
+ * Resolve when no extension-initiated user-message deliveries are in flight.
+ *
+ * The extension binding for sendUserMessage is fire-and-forget by design —
+ * a command handler must not block on the turn its follow-up starts. That is
+ * fine wherever a process outlives the turn (interactive, RPC), and silently
+ * fatal in single-shot surfaces: print mode used to read the final state and
+ * exit while a /fleet run's follow-up turn was still starting (issue #47).
+ * Loop because an awaited delivery can queue another.
+ */
+export async function waitForExtensionDeliveries(this: AgentSession): Promise<void> {
+	while (this._pendingExtensionDeliveries.size > 0) {
+		await Promise.allSettled([...this._pendingExtensionDeliveries]);
+	}
+}
+
 export const agentSessionPromptMethods = {
 	prompt,
 	_runAgentPrompt,
@@ -477,4 +493,5 @@ export const agentSessionPromptMethods = {
 	steer,
 	followUp,
 	sendUserMessage,
+	waitForExtensionDeliveries,
 };
