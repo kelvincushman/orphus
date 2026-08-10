@@ -1,7 +1,13 @@
 import { compare, valid } from "semver";
-import { ENV_OFFLINE, ENV_SKIP_VERSION_CHECK, getEnvValue, PACKAGE_NAME } from "../config.ts";
+import { ENV_OFFLINE, ENV_SKIP_VERSION_CHECK, getEnvValue } from "../config.ts";
 
-const LATEST_VERSION_URL = `https://registry.npmjs.org/${PACKAGE_NAME}/latest`;
+// The fork is not published to npm: @bastani/atomic on the registry is the
+// UPSTREAM package, whose version has nothing to do with Orphus releases. The
+// authority for "latest" is this repository's GitHub releases — the same
+// source install.sh resolves against. The list endpoint (first entry = newest
+// published release) is used because /releases/latest excludes prereleases and
+// Orphus ships alphas.
+const LATEST_VERSION_URL = "https://api.github.com/repos/kelvincushman/orphus/releases?per_page=1";
 const DEFAULT_VERSION_CHECK_TIMEOUT_MS = 10000;
 
 /**
@@ -45,17 +51,21 @@ export async function getLatestPiRelease(options: { timeoutMs?: number } = {}): 
 
 	const response = await fetch(LATEST_VERSION_URL, {
 		headers: {
-			accept: "application/json",
+			accept: "application/vnd.github+json",
 		},
 		signal: AbortSignal.timeout(options.timeoutMs ?? DEFAULT_VERSION_CHECK_TIMEOUT_MS),
 	});
 	if (!response.ok) return undefined;
 
-	const data = (await response.json()) as { name?: unknown; version?: unknown; note?: unknown };
-	if (typeof data.version !== "string" || !data.version.trim()) return undefined;
-	const packageName = typeof data.name === "string" && data.name.trim() ? data.name.trim() : undefined;
-	const note = typeof data.note === "string" && data.note.trim() ? data.note.trim() : undefined;
-	return { version: data.version.trim(), packageName, ...(note ? { note } : {}) };
+	const data = (await response.json()) as unknown;
+	if (!Array.isArray(data) || data.length === 0) return undefined;
+	const tag = (data[0] as { tag_name?: unknown }).tag_name;
+	if (typeof tag !== "string") return undefined;
+	// Release tags are v-prefixed (release.yml triggers on v*); the version
+	// under the prefix is what VERSION carries and semver compares.
+	const version = tag.trim().replace(/^v/, "");
+	if (!version) return undefined;
+	return { version };
 }
 
 export async function getLatestPiVersion(options: { timeoutMs?: number } = {}): Promise<string | undefined> {

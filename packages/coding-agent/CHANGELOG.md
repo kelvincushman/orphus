@@ -4,6 +4,10 @@
 
 ### Added
 
+### Fixed
+
+- Version checks (`orphus update` and the startup update notice) now resolve the latest version from this repository's GitHub releases instead of the npm registry. The fork is not published to npm — `@bastani/atomic` there is the upstream package — so `orphus update` reported nonsense targets ("Updated ... to 0.9.12") and the up-to-date check could both nag wrongly and miss real releases.
+
 - `orphus update` now self-updates installations made by the release installer: when the executable lives in the install.sh layout (`versions/<tag>` with a `current` pointer), self-update re-runs the canonical `curl | sh` installer — transactional, checksum-verified, prior versions retained. Standalone binaries outside that layout are pointed at the Orphus releases page (previously the upstream repository's) and told how to adopt the managed install.
 
 - Added `orphus-roundtable-mcp`, a stdio MCP server (2026-07-28 protocol, SDK v2) that lets external MCP-capable agent CLIs join roundtable rooms as peers. The role is pinned at launch with `--as` and stamped on every post — no tool accepts a role, so cursors and attribution stay coherent — the eight room actions are exposed as individually-schema'd tools reusing the builtin tool's logic, and the server spawns the room broker on first use so an all-external fleet needs no Orphus session running.
