@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- The working spinner speaks Orphus's register half the time — Convening…, Hearing arguments…, Reaching quorum…, Recording the decision… — and carries a live stats suffix: elapsed time and output tokens streamed this run, e.g. `(1m 30s · ↓ 4.9k tokens)`.
+
 ### Fixed
 
 - Print mode (`-p`) now waits for extension-initiated follow-up turns before reading the final message and exiting. Commands that deliver their payload as a follow-up user message — `/fleet <name> <task>` chief among them — used to exit 0 with no output because the turn they queued was fire-and-forget and the process left before it started ([#47](https://github.com/kelvincushman/orphus/issues/47)).

@@ -461,6 +461,51 @@ export const WHIMSICAL_WORKING_MESSAGES = [
 	"Cherry-picking the commits...",
 ] as const;
 
+/**
+ * Orphus's own register: the roundtable. Many minds, from many makers, argue
+ * at one table — the working verbs should sound like that is happening.
+ */
+export const ORPHUS_DELIBERATION_MESSAGES = [
+	"Convening...",
+	"Deliberating...",
+	"Calling the room to order...",
+	"Seating the panel...",
+	"Hearing arguments...",
+	"Hearing the dissent...",
+	"Cross-examining...",
+	"Weighing positions...",
+	"Polling the members...",
+	"Caucusing...",
+	"Moderating...",
+	"Chairing...",
+	"Arbitrating...",
+	"Adjudicating...",
+	"Tabling motions...",
+	"Passing the gavel...",
+	"Minuting the discussion...",
+	"Digesting the room...",
+	"Counting FINALs...",
+	"Reaching quorum...",
+	"Converging...",
+	"Synthesizing the verdict...",
+	"Recording the decision...",
+	"Adjourning to consider...",
+	"Consulting the fleet...",
+	"Briefing the members...",
+	"Checking the hands' work...",
+	"Routing down the ladder...",
+	"Escalating a rung...",
+	"Letting the best path leave the room...",
+] as const;
+
 export function pickWhimsicalWorkingMessage(): string {
-	return WHIMSICAL_WORKING_MESSAGES[Math.floor(Math.random() * WHIMSICAL_WORKING_MESSAGES.length)];
+	// One draw decides pool AND index: half the unit interval keeps the
+	// inherited whimsy (0 still lands on its first verb, which lifecycle tests
+	// pin), the other half speaks Orphus's own register. Consumers stub
+	// Math.random and count calls as picks, so this must stay a single call.
+	const draw = Math.random();
+	if (draw < 0.5) {
+		return WHIMSICAL_WORKING_MESSAGES[Math.floor(draw * 2 * WHIMSICAL_WORKING_MESSAGES.length)] as string;
+	}
+	return ORPHUS_DELIBERATION_MESSAGES[Math.floor((draw - 0.5) * 2 * ORPHUS_DELIBERATION_MESSAGES.length)] as string;
 }

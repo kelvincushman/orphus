@@ -149,6 +149,10 @@ export class InteractiveModeBase {
 	loadingAnimation: Loader | AtomicWorkingLoader | undefined = undefined;
 
 	workingMessage: string | undefined = undefined;
+	/** Run-clock anchor for the working loader's stats suffix. */
+	workingRunStartedAt: number | undefined = undefined;
+	/** Output tokens streamed this run, accumulated at assistant message_end. */
+	workingRunOutputTokens = 0;
 
 	workingVisible = true;
 
