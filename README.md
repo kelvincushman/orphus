@@ -151,6 +151,12 @@ supported key is listed in
 Rooms and memory arrive automatically — `packages/roundtable` is a builtin package, so every
 session gets the `roundtable` and `memory` tools with no extra install.
 
+Skills extend from there: `orphus install <git-url>` consumes community skill packs
+([mattpocock/skills](https://github.com/mattpocock/skills) for engineering workflow,
+[cli-printing-press](https://github.com/mvanhorn/cli-printing-press) to mint agent-native
+CLIs from any API), and new skills follow the writing-for-agents method — see
+[skills.md](packages/coding-agent/docs/skills.md).
+
 ## Tier 3 — Run a fleet
 
 Adds: **[Orca](https://github.com/stablyai/orca)** for worktree fan-out, or **tmux** for a

@@ -238,3 +238,55 @@ cd /path/to/brave-search && bun install
 
 - [Anthropic Skills](https://github.com/anthropics/skills) - Document processing (docx, pdf, pptx, xlsx), web development
 - [Pi Skills](https://github.com/badlogic/pi-skills) - Upstream skill examples for web search, browser automation, Google APIs, and transcription
+
+## Community skill packs
+
+Any git repository containing `SKILL.md` files installs as a pack — nested
+layouts are discovered, and skills load lazily like everything else:
+
+```bash
+orphus install https://github.com/mattpocock/skills          # engineering workflow suite
+orphus install https://github.com/mvanhorn/cli-printing-press # agent-native CLI factory
+```
+
+Precedence is user > builtin, and the startup banner reports name collisions
+(installing mattpocock/skills shadows the builtin `tdd`, for example — filter
+the pack's `skills` list in settings if you want the builtin back). Skills
+whose frontmatter sets `disable-model-invocation: true` stay out of the
+model's view by their author's design and run only via `/skill:<name>`.
+
+Packs that read repo configuration use the committed-markdown convention
+under `docs/agents/` (issue tracker, triage labels, domain docs) — the same
+files `/fleetsetup` writes and fleet runs reference. One configuration serves
+fleets and skills alike.
+
+## Creating skills — the standard
+
+New skills follow the **writing-for-agents** method (Matt Pocock's, shipped in
+the pack above and model-invocable: it surfaces whenever an agent creates or
+edits a skill). Its levers, briefly:
+
+- **Context pointers**: a skill's description is a pointer — its *wording*
+  decides when the agent reaches the body. Front-load the leading word; one
+  trigger per branch; cut identity the body already carries.
+- **The two loads**: always-loaded material costs context every turn;
+  documents nobody can find cost the human. Spend each deliberately.
+- **The information hierarchy**: in-file steps → in-file reference →
+  disclosed reference behind a pointer. Inline what every branch needs; push
+  behind a pointer what only some branches reach.
+
+Author with `/skill:writing-for-agents` loaded, and prefer deletion to
+explanation.
+
+## Minting agent-native CLIs
+
+When an agent needs an API there is no good tool for, the
+[Printing Press](https://github.com/mvanhorn/cli-printing-press) pack mints
+one: from an OpenAPI spec, a HAR capture, or a URL, it generates a
+token-efficient Go CLI, an MCP server, and skills that teach its use. With
+the pack installed and the generator built (`go install
+github.com/mvanhorn/cli-printing-press/v4/cmd/cli-printing-press@latest`),
+run `/skill:printing-press <app-name>` and follow its flow; 45+ community
+CLIs are pre-built in the
+[library](https://github.com/mvanhorn/printing-press-library).
+
