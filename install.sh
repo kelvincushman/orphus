@@ -697,6 +697,12 @@ is_orphus_release_tag() {
             is_release_number "$release_revision" || return 1
             [ "$release_revision" != 0 ] || return 1
             ;;
+        *-beta.*)
+            release_revision=${release_version##*-beta.}
+            release_core=${release_version%-beta.*}
+            is_release_number "$release_revision" || return 1
+            [ "$release_revision" != 0 ] || return 1
+            ;;
         *-*) return 1 ;;
         *) release_core=$release_version ;;
     esac
@@ -762,7 +768,7 @@ RELEASE_TAG_ENCODED=
 API_URL=
 if [ -n "$REQUESTED_REF" ]; then
     is_orphus_release_tag "$REQUESTED_REF" ||
-        fail "unsupported release tag: expected vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-alpha.REVISION"
+        fail "unsupported release tag: expected vMAJOR.MINOR.PATCH, vMAJOR.MINOR.PATCH-alpha.REVISION, or vMAJOR.MINOR.PATCH-beta.REVISION"
     REQUESTED_REF_ENCODED=$(percent_encode "$REQUESTED_REF")
     API_URL=$TAGS_API/$REQUESTED_REF_ENCODED
 else
