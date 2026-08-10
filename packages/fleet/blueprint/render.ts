@@ -150,8 +150,23 @@ function renderTeam(team: TeamSpec, blueprint: FleetBlueprint, task: string): st
   }
 }
 
+export interface RepoAgentConfig {
+  /**
+   * Repo-relative paths of committed agent-config markdown found under
+   * docs/agents/ (the convention shared with community skill packs such as
+   * mattpocock/skills: issue-tracker.md, triage-labels.md, domain.md). The
+   * run prompt REFERENCES them; nothing is inlined — the orchestrator reads
+   * lazily, and blueprints stay identical across repositories.
+   */
+  files: string[];
+}
+
 /** The complete run prompt for `/fleet <name> <task>`. */
-export function renderFleetRunPrompt(blueprint: FleetBlueprint, task: string): string {
+export function renderFleetRunPrompt(
+  blueprint: FleetBlueprint,
+  task: string,
+  repoConfig?: RepoAgentConfig,
+): string {
   const order = blueprint.pipeline.map(
     (name) => blueprint.teams.find((team) => team.name === name) as TeamSpec,
   );
@@ -162,6 +177,12 @@ export function renderFleetRunPrompt(blueprint: FleetBlueprint, task: string): s
     ``,
     `You are the fleet orchestrator. Load the "fleet-orchestration" skill now and follow its protocol; the facts below instantiate it for this fleet. Direct the work and check the work — do not do the members' work yourself.`,
     ``,
+    ...(repoConfig && repoConfig.files.length
+      ? [
+          `Repo agent config: ${repoConfig.files.join(", ")}. Read the relevant file before tracker or domain operations (filing issues, gating PRs, placing docs), and tell any member whose task touches those to do the same.`,
+          ``,
+        ]
+      : []),
     `Suggested order: ${blueprint.pipeline.join(" → ")}. Adapt if the task demands it.`,
     ``,
     ...order.map((team) => renderTeam(team, blueprint, task)),

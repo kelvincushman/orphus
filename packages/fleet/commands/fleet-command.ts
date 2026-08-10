@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import type { ExtensionAPI } from "@bastani/atomic";
 import { discoverFleets, fleetRoots } from "../blueprint/discovery.ts";
 import { loadFleetBlueprint } from "../blueprint/manifest.ts";
@@ -26,6 +28,13 @@ export interface FleetCommandDeps {
   /** Test override for the shipped-examples dir. */
   bundledDir?: string;
 }
+
+/** The docs/agents/ files the run prompt references when they exist. */
+export const REPO_AGENT_CONFIG_FILES = [
+  "docs/agents/issue-tracker.md",
+  "docs/agents/triage-labels.md",
+  "docs/agents/domain.md",
+] as const;
 
 /** Minimal surface of ExtensionCommandContext the handler touches (stub-friendly). */
 interface CommandContextLike {
@@ -140,7 +149,16 @@ export function createFleetCommandHandler(pi: ExtensionAPI, deps: FleetCommandDe
 
     if (!pi.getSessionName()) pi.setSessionName(`fleet-${blueprint.name}-lead`);
     for (const warning of blueprint.warnings) notify(pi, `warning: ${warning}`);
-    pi.sendUserMessage(renderFleetRunPrompt(blueprint, task), { deliverAs: "followUp" });
+    // Repo agent config (Matt Pocock convention, shared with community skill
+    // packs): committed markdown under docs/agents/ adapts identical blueprints
+    // to this repository's tracker, labels, and domain-doc layout.
+    const repoConfigFiles = REPO_AGENT_CONFIG_FILES.filter((file) =>
+      existsSync(join(ctx.cwd, file)),
+    );
+    pi.sendUserMessage(
+      renderFleetRunPrompt(blueprint, task, { files: repoConfigFiles }),
+      { deliverAs: "followUp" },
+    );
   };
 }
 
