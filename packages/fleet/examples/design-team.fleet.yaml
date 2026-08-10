@@ -11,10 +11,13 @@ teams:
     rounds: 3
     members:
       - agent: codebase-analyzer
+        tools: [read, search, find, ls, roundtable]
         brief: Ground every position in what the code actually does today.
       - agent: codebase-pattern-finder
+        tools: [read, search, find, ls, roundtable]
         brief: Argue from precedent — how do comparable systems solve this?
       - agent: worker
+        tools: [read, search, find, ls, roundtable]
         brief: |
           Devil's advocate. Find the failure mode in every proposal, and
           state what evidence would change your mind.

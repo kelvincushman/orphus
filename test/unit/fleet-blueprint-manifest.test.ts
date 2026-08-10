@@ -305,6 +305,15 @@ teams:
 		assert.ok(blueprint.warnings.some((warning) => warning.includes("rounds")));
 	});
 
+	test("parses member tools as an explicit allowlist grant", () => {
+		const withTools = parseFleetBlueprint(
+			MINIMAL.replace("- agent: worker", "- agent: worker\n        tools: [read, roundtable]"),
+			blueprintPath(),
+		);
+		assert.deepEqual(withTools.teams[0]?.members[0]?.tools, ["read", "roundtable"]);
+		assert.equal(parseFleetBlueprint(MINIMAL, blueprintPath()).teams[0]?.members[0]?.tools, undefined);
+	});
+
 	test("parses the final-gate block and defaults to none", () => {
 		const gated = parseFleetBlueprint(
 			`${MINIMAL}gate:\n  reviewers: [coderabbit]\n  model: openai-codex/gpt-5.6-sol\n`,

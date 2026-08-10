@@ -145,6 +145,7 @@ export async function runParallelChainTasks(input: ParallelChainRunInput): Promi
 			onControlEvent: input.onControlEvent,
 			intercomSessionName: input.childIntercomTarget?.(task.agent, input.globalTaskIndex + taskIndex),
 			sessionName: task.name,
+			tools: task.tools,
 			orchestratorIntercomTarget: input.orchestratorIntercomTarget,
 			intercomGroup: resolveChildIntercomGroup(
 				task.group ?? setGroup,

@@ -21,7 +21,9 @@ teams:
     rounds: 2
     members:
       - agent: codebase-research-analyzer
+        tools: [read, search, find, ls, roundtable]
       - agent: worker
+        tools: [read, search, find, ls, roundtable]
         brief: Challenge weak sourcing; a claim without a citation is a rumor.
 
 pipeline: [gather, reconcile]

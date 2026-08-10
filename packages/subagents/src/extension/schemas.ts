@@ -58,6 +58,12 @@ const GroupSchema = Type.Union([Type.String(), Type.Boolean()], {
 const TaskItem = Type.Object({
 	agent: Type.String(),
 	task: Type.String(),
+	tools: Type.Optional(
+		Type.Array(Type.String(), {
+			description:
+				"REPLACES the agent's tool allowlist for this task (same semantics as skill). Grant \"roundtable\" here for members that must join rooms — read-only agents' allowlists exclude it.",
+		}),
+	),
 	name: Type.Optional(
 		Type.String({
 			description:
@@ -80,6 +86,12 @@ const TaskItem = Type.Object({
 // Parallel task item (within a parallel step)
 const ParallelTaskSchema = Type.Object({
 	agent: Type.String(),
+	tools: Type.Optional(
+		Type.Array(Type.String(), {
+			description:
+				"REPLACES the agent's tool allowlist for this task (same semantics as skill). Grant \"roundtable\" here for members that must join rooms — read-only agents' allowlists exclude it.",
+		}),
+	),
 	task: Type.Optional(
 		Type.String({
 			description: "Task template with {task}, {previous}, {chain_dir} variables. Defaults to {previous}.",
@@ -261,6 +273,12 @@ export const SubagentParams = Type.Object(
 			Type.String({ description: "Agent name (SINGLE mode) or target for management get/update/delete" }),
 		),
 		task: Type.Optional(Type.String({ description: "Task (SINGLE mode, optional for self-contained agents)" })),
+		tools: Type.Optional(
+			Type.Array(Type.String(), {
+				description:
+					"REPLACES the agent's tool allowlist for this task (same semantics as skill). Grant \"roundtable\" here for members that must join rooms — read-only agents' allowlists exclude it.",
+			}),
+		),
 		name: Type.Optional(
 			Type.String({
 				description:

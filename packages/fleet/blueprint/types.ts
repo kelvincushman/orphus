@@ -19,6 +19,12 @@ export interface MemberSpec {
   readonly briefPath?: string;
   /** Skills for this member; unioned with the team's skills at render time. */
   readonly skills: readonly string[];
+  /**
+   * Tool allowlist for this member — REPLACES the agent definition's own list
+   * (mirroring per-call skill semantics). Deliberate members whose agents have
+   * restrictive allowlists must include "roundtable" here to join rooms.
+   */
+  readonly tools?: readonly string[];
   /** Optional model override, `provider/model` or bare id — the agent's own model otherwise. */
   readonly model?: string;
   /** Dispatch replication factor; members are named uniquely when count > 1. */

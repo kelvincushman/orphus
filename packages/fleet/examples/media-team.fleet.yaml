@@ -11,6 +11,7 @@ teams:
     rounds: 1
     members:
       - agent: worker
+        tools: [read, search, find, ls, roundtable]
         brief: |
           Art director. Turn the request into concrete generation briefs:
           subject, composition, palette, aspect ratio, and which model family

@@ -208,7 +208,7 @@ export async function runSingleInProcess(
 		structuredOutput: options.structuredOutput
 			? { schema: options.structuredOutput.schema, outputPath: options.structuredOutput.outputPath }
 			: undefined,
-		tools: agent.tools,
+		tools: options.tools ?? agent.tools,
 		mcpDirectTools: agent.mcpDirectTools,
 		skills: options.skills ?? agent.skills,
 		model: undefined,

@@ -88,6 +88,8 @@ export interface RunSyncOptions {
 	index?: number;
 	sessionDir?: string;
 	sessionFile?: string;
+	/** Replaces the agent's tool allowlist for this child (same semantics as skills). */
+	tools?: string[];
 	/**
 	 * Name the child's session (SessionManager session_info). Extensions read it
 	 * via pi.getSessionName() — the roundtable broker keys room cursors and

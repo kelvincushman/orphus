@@ -4,6 +4,8 @@
 
 ### Added
 
+- Blueprint members accept a `tools` allowlist that replaces the agent definition's own list for that seat — the lever that lets deliberate members built on read-only agents join rooms (`roundtable` is excluded from most read-only allowlists). All bundled examples now grant room access explicitly; the first live fleet run caught two of three panel members locked out.
+
 - Blueprints can declare a **final gate** (`gate: { reviewers, model }`): the orchestrator waits for the named automated GitHub reviewers (CodeRabbit, Greptile, …) to complete on a PR, triages their findings, then dispatches the configured gate model in fresh context for a pass / fix-first verdict before any merge. `/fleetsetup` asks for this during the interview, and the `fleet-orchestration` skill carries the protocol.
 
 - Initial release of fleet orchestration. Blueprints (`.orphus/fleets/<name>.fleet.yaml`, or `<agentDir>/fleets/` user-globally with project shadowing) declare teams of agent definitions with pre-assigned skills, a delegation mode per team (`dispatch`, `deliberate`, or `deliberate-then-dispatch`), rooms, briefs, per-member models, and an optional pipeline order — validated by a strict fail-fast loader whose every error names the file and key path, with advisory warnings for cost- and room-sharing hazards.

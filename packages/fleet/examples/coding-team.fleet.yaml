@@ -13,7 +13,9 @@ teams:
     rounds: 2
     members:
       - agent: codebase-analyzer
+        tools: [read, search, find, ls, roundtable]
       - agent: worker
+        tools: [read, search, find, ls, roundtable]
         brief: |
           You are the critic. Argue for the smallest change that works, cite
           files rather than vibes, and attack hidden coupling in any proposal.
@@ -32,6 +34,8 @@ teams:
     topic: Does the implementation match the decision of record?
     members:
       - agent: code-simplifier
+        tools: [read, search, find, ls, roundtable]
       - agent: codebase-pattern-finder
+        tools: [read, search, find, ls, roundtable]
 
 pipeline: [design, implementation, review]
