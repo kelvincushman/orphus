@@ -109,6 +109,21 @@ context-window contract actually hold.
 
 ## Tier 2 — Use Orphus as your agent
 
+The fastest path is the release installer — no toolchain, no clone. It detects your platform
+(macOS arm64 or Linux x64 glibc today), downloads the newest release archive, verifies its
+checksum, and links `orphus` into `~/.local/bin`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.sh | sh
+orphus
+```
+
+`install.sh --help` documents pinning a version (`--ref v0.1.0-alpha.5`) and the
+`ORPHUS_INSTALL_DIR` / `ORPHUS_BIN_DIR` overrides. Add an **API key** for whichever provider
+you use, or log in from inside a session with `/login`.
+
+### Building from a clone instead
+
 Adds: a **Rust toolchain** ([rustup](https://rustup.rs)) for the native bindings, and an
 **API key** for whichever provider you use.
 
