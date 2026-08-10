@@ -280,7 +280,10 @@ explanation.
 
 ## Minting agent-native CLIs
 
-When an agent needs an API there is no good tool for, the
+Every session ships the `minting-clis` skill — it fires when a task needs an
+API no installed tool serves, and carries the order of moves (community
+library first, mint second, MCP only when a CLI cannot exist). The machinery
+it points at: the
 [Printing Press](https://github.com/mvanhorn/cli-printing-press) pack mints
 one: from an OpenAPI spec, a HAR capture, or a URL, it generates a
 token-efficient Go CLI, an MCP server, and skills that teach its use. With
