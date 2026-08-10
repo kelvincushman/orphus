@@ -33,6 +33,7 @@ coverage/
 .nyc_output/
 .pi_config/
 .atomic_config/
+.orphus_config/
 tui-debug.log
 compaction-results/
 .opencode/
@@ -45,12 +46,16 @@ todo.md
 plans/
 .pi/hf-sessions/
 .atomic/hf-sessions/
+.orphus/hf-sessions/
 .pi/hf-sessions-backup/
 .atomic/hf-sessions-backup/
+.orphus/hf-sessions-backup/
 collect.sh
 
 .atomic/todos
+.orphus/todos
 .atomic/workflows/runs/
+.orphus/workflows/runs/
 # deep-research workflow artifacts written into <cwd>/research during tests and E2E runs
 /research/.deep-research-*/
 /research/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*.md
@@ -300,6 +305,7 @@ evals/jobs/
 
 # subagent test scratch
 .atomic/subagents/
+.orphus/subagents/
 
 # GitNexus knowledge graph. The MCP server declaration in .mcp.json is committed;
 # the index it builds is a local derivative of the working tree, regenerated with
