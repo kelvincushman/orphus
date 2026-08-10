@@ -570,12 +570,18 @@ test("Blacksmith runners are used everywhere they are supported", async () => {
 	//     early under CI/GITHUB_ACTIONS/PREK_DISABLE_INSTALL, and `npm ci` never
 	//     runs the `prepare` script that installs them, so a clone could run none
 	//     of them. Same Blacksmith reasoning as `verify`.
-	//   ubuntu-latest  - release.yml, which builds the downloadable binary. Same
-	//     Blacksmith reasoning again. It is one job rather than a per-platform
-	//     matrix because every extra target needs its own napi-slug .node staged
-	//     first, so each is a deliberate addition here as well as there.
+	//   ubuntu-latest  - release.yml `build-linux` and `release`, which build the
+	//     downloadable Linux binary and stage the draft. Same Blacksmith
+	//     reasoning again. Targets are per-job rather than a matrix because
+	//     every extra target needs its own napi-slug .node staged first, so
+	//     each is a deliberate addition here as well as there.
+	//   macos-15       - release.yml `build-darwin`, the darwin-arm64 archive.
+	//     GitHub-hosted Apple Silicon; Blacksmith runners are registered to the
+	//     upstream org (see above), so the fork's release cannot use theirs.
 	assert.deepEqual(hosted.sort(), [
+		"macos-15",
 		"macos-26-intel",
+		"ubuntu-latest",
 		"ubuntu-latest",
 		"ubuntu-latest",
 		"ubuntu-latest",
