@@ -114,6 +114,16 @@ The test for whether documentation needed updating is not "did I add a feature".
 It is: **would someone following the current docs now be misled?** If yes, that
 is part of this change, not a follow-up.
 
+**At every phase or milestone boundary — a release cut, a feature arc landing
+across several PRs, a "what's next" pause — run a docs sync pass as its own
+step, not per-PR:** reread README.md, docs/getting-started.md, and the docs of
+whatever the arc touched as a NEW USER would, against what main actually does
+now. Per-PR housekeeping catches what one change invalidates; it reliably
+misses what an arc of changes adds up to (an installer landing in one PR and
+self-update in another means "how do I upgrade?" belongs in three places no
+single PR owned). Also refresh GitNexus (`--skip-agents-md`) at these
+boundaries.
+
 ## Tech Stack
 
 This repo runs a **hybrid toolchain, matching upstream `earendil-works/pi` task for task**.

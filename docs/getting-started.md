@@ -97,7 +97,20 @@ no room and no transcript** answers a question about what was decided.
 
 ## 2. Use Orphus as your coding agent
 
-Orphus is not published to npm. Build the binary from your checkout:
+The fastest path needs no clone at all — the release installer detects your
+platform (macOS arm64 or Linux x64 glibc today), verifies checksums, and links
+`orphus` onto your PATH:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.sh | sh
+orphus
+```
+
+Later upgrades are one command — `orphus update` checks this repository's
+releases and installs in place, keeping prior versions for rollback.
+
+Orphus is not published to npm. To run from a checkout instead, build the
+binary:
 
 ```bash
 npm run build --workspace=@bastani/atomic
