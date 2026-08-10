@@ -45,6 +45,21 @@ test("the tag version is stamped and proven by the packaged Orphus executable", 
 	assert.doesNotMatch(workflow, /gh release create[^\n]*[\s\S]{0,200}?atomic-linux-x64/u);
 });
 
+test("the darwin arm64 archive is host-built, renamed, verified, and staged beside linux", async () => {
+	const workflow = await readText(releasePath);
+	assert.match(workflow, /runs-on: macos-15/u);
+	assert.match(workflow, /build-binaries\.sh --skip-deps --skip-install --platform darwin-arm64/u);
+	assert.match(workflow, /NATIVE_TARGET: aarch64-apple-darwin/u);
+	assert.match(workflow, /shasum -a 256 "\$ASSET"/u);
+	assert.match(workflow, /file release\/orphus\/orphus \| grep -q arm64/u);
+	// The darwin job must never grow the linux cross-toolchain: the host build
+	// IS the target, and zig/cargo-zigbuild there would only obscure that.
+	const darwinJob = workflow.slice(workflow.indexOf("build-darwin:"), workflow.indexOf("\n  release:"));
+	assert.doesNotMatch(darwinJob, /setup-zig|cargo-zigbuild@|CROSS_TARGET:|GLIBC_FLOOR/u);
+	assert.match(workflow, /needs: \[build-linux, build-darwin\]/u);
+	assert.match(workflow, /orphus-darwin-arm64\.tar\.gz orphus-linux-x64\.tar\.gz SHA256SUMS/u);
+});
+
 test("the release glibc contract is wired, measured across every ELF file, and stated coherently", async () => {
 	const workflow = await readText(releasePath);
 	const readme = await readText(readmePath);
@@ -56,7 +71,7 @@ test("the release glibc contract is wired, measured across every ELF file, and s
 	assert.match(workflow, /-name '\*\.so\.\*'/u);
 	assert.match(workflow, /test "\$highest_glibc" = "GLIBC_2\.27"/u);
 	assert.doesNotMatch(workflow, /Not glibc-floored/u);
-	assert.match(workflow, /Requires glibc 2\.27 or newer/u);
+	assert.match(workflow, /requires glibc 2\.27 or newer/iu);
 	assert.match(readme, /find orphus -type f/u);
 	assert.match(readme, /-perm -111/u);
 	assert.match(readme, /-name '\*\.so\.\*'/u);
