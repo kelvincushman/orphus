@@ -725,13 +725,27 @@ unixTest("shell installer never treats adjacent PATH entries as one colon-contai
 	}
 });
 
-unixTest("shell installer accepts only Orphus stable and alpha release tag grammar", () => {
-	for (const tag of ["1.0.0", "v1.0", "v1.02.3", "v1.0.0-alpha.0", "v1.0.0-beta.1", "release/v1.0.0"]) {
+unixTest("shell installer installs beta release tags", () => {
+	const fixture = createFixture();
+	try {
+		addRelease(fixture, "v1.0.0-beta.1");
+		assertSuccess(fixture.run({ args: ["--ref", "v1.0.0-beta.1"] }));
+		assert.equal(currentVersion(fixture), "v1.0.0-beta.1");
+	} finally {
+		fixture.cleanup();
+	}
+});
+
+unixTest("shell installer accepts only Orphus stable, alpha, and beta release tag grammar", () => {
+	for (const tag of ["1.0.0", "v1.0", "v1.02.3", "v1.0.0-alpha.0", "v1.0.0-beta.0", "v1.0.0-rc.1", "release/v1.0.0"]) {
 		const fixture = createFixture();
 		try {
 			const result = fixture.run({ args: ["--ref", tag] });
 			assert.notEqual(result.exitCode, 0, `${tag} unexpectedly passed`);
-			assert.match(output(result), /expected vMAJOR\.MINOR\.PATCH or vMAJOR\.MINOR\.PATCH-alpha\.REVISION/u);
+			assert.match(
+				output(result),
+				/expected vMAJOR\.MINOR\.PATCH, vMAJOR\.MINOR\.PATCH-alpha\.REVISION, or vMAJOR\.MINOR\.PATCH-beta\.REVISION/u,
+			);
 			assert.equal(readFileSync(fixture.requestLog, "utf8"), "");
 			assertNoTemporaryState(fixture);
 		} finally {
