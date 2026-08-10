@@ -44,21 +44,44 @@ describe("version checks", () => {
 		await expect(checkForNewPiVersion("1.2.2")).resolves.toBe("1.2.3");
 	});
 
-	it("queries the Orphus GitHub releases for the latest version", async () => {
-		// The fork is not published to npm: @bastani/atomic on the registry is the
-		// UPSTREAM package, whose version has nothing to do with Orphus releases.
-		const fetchMock = vi.fn(async () => Response.json([{ tag_name: "v1.2.4" }]));
-		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
-
-		await expect(getLatestPiVersion()).resolves.toBe("1.2.4");
-		expect(fetchMock).toHaveBeenCalledWith(
-			"https://api.github.com/repos/kelvincushman/orphus/releases?per_page=1",
-			expect.objectContaining({
-				headers: expect.objectContaining({
-					accept: "application/vnd.github+json",
-				}),
-			}),
+	it("stable runners resolve the stable channel first", async () => {
+		// GitHub's /releases/latest IS the stable channel: it excludes
+		// prereleases. A stable install must not be dragged onto a newer beta.
+		const fetchMock = vi.fn(async (url: RequestInfo | URL) =>
+			String(url).endsWith("/releases/latest")
+				? Response.json({ tag_name: "v1.2.4" })
+				: Response.json([{ tag_name: "v1.3.0-beta.1" }]),
 		);
+		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
+
+		await expect(getLatestPiVersion({ currentVersion: "1.2.3" })).resolves.toBe("1.2.4");
+		expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+			"https://api.github.com/repos/kelvincushman/orphus/releases/latest",
+		);
+	});
+
+	it("falls back to the release list while only prereleases exist", async () => {
+		const fetchMock = vi.fn(async (url: RequestInfo | URL) =>
+			String(url).endsWith("/releases/latest")
+				? new Response("not found", { status: 404 })
+				: Response.json([{ tag_name: "v1.2.4" }]),
+		);
+		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
+
+		await expect(getLatestPiVersion({ currentVersion: "1.2.3" })).resolves.toBe("1.2.4");
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
+	it("prerelease runners track the newest release, prerelease or not", async () => {
+		// Beta testers opted onto the bleeding edge; keep them there.
+		const fetchMock = vi.fn(async () => Response.json([{ tag_name: "v1.3.0-beta.2" }]));
+		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
+
+		await expect(getLatestPiVersion({ currentVersion: "1.3.0-beta.1" })).resolves.toBe("1.3.0-beta.2");
+		expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+			"https://api.github.com/repos/kelvincushman/orphus/releases?per_page=1",
+		);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
 	});
 
 	it("strips the v prefix and reports no npm package name", async () => {
@@ -97,7 +120,7 @@ describe("version checks", () => {
 			const fetchMock = vi.fn(async () => Response.json([{ tag_name: "v1.2.4" }]));
 			vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock);
 
-			await expect(getLatestPiVersion()).resolves.toBe("1.2.4");
+			await expect(getLatestPiVersion({ currentVersion: "1.2.3-beta.1" })).resolves.toBe("1.2.4");
 			expect(fetchMock).toHaveBeenCalledOnce();
 		},
 	);

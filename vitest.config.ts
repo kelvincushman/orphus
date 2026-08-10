@@ -29,6 +29,7 @@ const QUARANTINED_TESTS: readonly string[] = [
 	// container as readily as on a loaded runner, so this is not the load
 	// sensitivity AGENTS.md warns about — it is a real pre-existing failure in
 	// the inherited suite, quarantined so the other 622 files can gate.
+	// Tracked: https://github.com/kelvincushman/orphus/issues/66
 	"**/test/unit/interactive-engine-cycle-fallback.test.ts",
 ];
 
