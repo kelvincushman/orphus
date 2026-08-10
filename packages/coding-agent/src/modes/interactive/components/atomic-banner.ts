@@ -21,9 +21,9 @@ const OUTLINE_CHARS = new Set(["╔", "╗", "╚", "╝", "═", "║"]);
 export const STARTUP_ASSEMBLY_GAPS = [10, 8, 6, 4, 3, 2, 1, 1, 0] as const;
 export const STARTUP_FRAME_MS = 80;
 export const STARTUP_MANIFESTO = [
-	"We question,",
-	"we break away from what is accepted.",
-	"Engineering matters.",
+	"Many minds, from many makers,",
+	"argue at one table.",
+	"The best path leaves the room.",
 ] as const;
 const SHADOW_CHAR = "░";
 
