@@ -279,13 +279,17 @@ describe("InteractiveMode startup banner", () => {
 		initTheme("dark");
 		const mark = renderAtomicAssemblyBanner(0, theme, "off");
 		const meta = ["Atomic v0.0.0", "(openai) model", "/tmp/project"];
-		expect(plain(composeStartupIdentity(mark, meta, 120, renderStartupManifesto(0)))).not.toContain("We question,");
-		expect(plain(composeStartupIdentity(mark, meta, 120, renderStartupManifesto(1)))).toContain("We question,");
+		expect(plain(composeStartupIdentity(mark, meta, 120, renderStartupManifesto(0)))).not.toContain(
+			"Many minds, from many makers,",
+		);
+		expect(plain(composeStartupIdentity(mark, meta, 120, renderStartupManifesto(1)))).toContain(
+			"Many minds, from many makers,",
+		);
 		expect(plain(composeStartupIdentity(mark, meta, 120, renderStartupManifesto(2)))).toContain(
-			"we break away from what is accepted.",
+			"argue at one table.",
 		);
 		const final = plain(composeStartupIdentity(mark, meta, 64, renderStartupManifesto(4)));
-		expect(final).toContain("Engineering matters.");
+		expect(final).toContain("The best path leaves the room.");
 		expect(final.split("\n").every((line) => line.length <= 64)).toBe(true);
 	});
 	it("refreshes the banner and inherited child fast-mode state when /fast changes", async () => {

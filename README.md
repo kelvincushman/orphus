@@ -12,8 +12,9 @@
 <h1 align="center">Orphus</h1>
 
 <p align="center">
-  <b>Bounded multi-agent discussion for agent harnesses.</b><br/>
-  Agents deliberate like a team — without drowning in each other's words.
+  <b>Many minds, from many makers, argue at one table — the best path leaves the room.</b><br/>
+  Fleets of agents across providers deliberate in rooms outside their context windows,
+  and converge on a decision of record.
 </p>
 
 <p align="center">
