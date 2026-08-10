@@ -30,14 +30,27 @@ reviews:
     base_branches:
       - main
 
-  # Focus on Orphus-authored surfaces; skip the vendored upstream and generated files.
+  # Focus on Orphus-authored surfaces; skip the vendored upstream and generated
+  # files. Orphus now authors across the harness — fleet, subagents, the
+  # coding-agent it modifies, the installer, release tooling, and the test
+  # tree — so the filters cover all of them. PR #69 was silently skipped under
+  # the old roundtable-only list; a skipped review is a hollow gate.
   path_filters:
     - "packages/roundtable/**"
-    - "test/unit/roundtable-*.test.ts"
+    - "packages/fleet/**"
+    - "packages/subagents/**"
+    - "packages/coding-agent/**"
+    - "test/**"
+    - "vitest.config.ts"
+    - "install.sh"
+    - "scripts/**"
     - "docs/**"
     - "roles/**"
     - "orphus.roles.yaml"
-    - ".github/workflows/ci.yml"
+    - ".github/workflows/**"
+    - ".coderabbit.yaml"
+    - "README.md"
+    - "AGENTS.md"
     - "!**/*.generated.ts"
     - "!**/node_modules/**"
 
