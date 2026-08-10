@@ -124,6 +124,14 @@ The gate model is a verifier seat with the widest view — it sees the whole PR,
 not one member's slice — which is why it runs LAST and why it must not be one
 of the authoring models.
 
+## The toolsmith move — no tool fits? mint one
+
+When a task needs an external API and no member tool serves it, do not let
+members hand-roll curl calls or bolt on an MCP server whose schemas ride
+every turn. Dispatch a member with the `minting-clis` skill to find or mint
+an agent-native CLI — community library first, factory second — then
+re-dispatch the original task with the new tool named in its brief.
+
 ## Cost discipline
 
 - Every member is a live model session. Before a fan-out larger than the

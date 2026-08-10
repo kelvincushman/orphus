@@ -4,6 +4,7 @@
 
 ### Changed
 
+- The orchestration skill gains the toolsmith move: a task needing an unserved API dispatches a member with `minting-clis` to find or mint an agent-native CLI, then re-dispatches with the new tool in the brief.
 - The kie-ai-media skill prefers `kie-pp-cli` (the community Printing Press CLI for Kie.ai) when it is on PATH — agent-native JSON mode, doctor-verified auth before spending credits — keeping the raw async API pattern as the fallback.
 
 ### Added

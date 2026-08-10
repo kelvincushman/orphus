@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Bundled the `minting-clis` skill: when a task needs an external API no installed tool serves, agents check the Printing Press community library, mint an agent-native CLI with the factory, and reach for an MCP wrapper only when a CLI cannot exist — with doctor-before-spending and never-in-a-file credential rules built in.
+
 ### Breaking Changes
 
 - `async: true` no longer survives parent exit. Async subagents now run as in-process children of the parent session on the same foreground executor, so quitting Atomic ends any in-flight async run. The child's canonical identity and its session file persist on disk and can be reloaded on a later start, but the running work does not continue in the background across a restart. The detached runner process that previously provided parent-exit survival has been deleted ([#2188](https://github.com/bastani-inc/atomic/issues/2188)).
