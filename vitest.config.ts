@@ -15,23 +15,17 @@ const setupFiles = ["./test/setup-workflow-durability.ts"];
 /**
  * Tests quarantined from collection, with the reason each one is here.
  *
- * This test was already failing on `main` when the CI job that runs this suite
- * was first added — nothing had run it since the fork, so nobody saw it go red.
- * It is listed here rather than skipped inside the file, because a
- * soft guard inside a test keeps the name in the pass count while its assertions
- * do nothing; this list is countable and shows up in review.
+ * A test goes on this list rather than being skipped inside its file, because
+ * a soft guard inside a test keeps the name in the pass count while its
+ * assertions do nothing; this list is countable and shows up in review.
  *
  * Deleting an entry is the goal. Adding one needs the same standard of proof:
  * demonstrated failing on a pristine checkout, with the cause understood.
+ * The last entry (interactive-engine-cycle-fallback, issue #66) turned out to
+ * be provider API keys leaking from the runner's env into the fixture's model
+ * world — fixed in the test's Driver, not the engine.
  */
-const QUARANTINED_TESTS: readonly string[] = [
-	// Times out waiting for a model-cycle state to settle. It fails on an idle
-	// container as readily as on a loaded runner, so this is not the load
-	// sensitivity AGENTS.md warns about — it is a real pre-existing failure in
-	// the inherited suite, quarantined so the other 622 files can gate.
-	// Tracked: https://github.com/kelvincushman/orphus/issues/66
-	"**/test/unit/interactive-engine-cycle-fallback.test.ts",
-];
+const QUARANTINED_TESTS: readonly string[] = [];
 
 const project = (name: string, directory: string) => ({
 	resolve: { alias: sharedAliases },

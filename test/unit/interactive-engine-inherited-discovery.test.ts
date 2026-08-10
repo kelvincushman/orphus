@@ -34,6 +34,9 @@ class InteractiveDriver {
 		const inherited: Record<string, string | undefined> = { ...process.env };
 		for (const key of Object.keys(inherited)) {
 			if (key.startsWith("ORPHUS_INTERACTIVE_ENGINE_")) delete inherited[key];
+			// Runner provider credentials must not leak real providers into the
+			// fixture's model world (issue #66).
+			if (key.endsWith("_API_KEY") || key.endsWith("_BEARER_AUTH")) delete inherited[key];
 		}
 		const env: Record<string, string> = {};
 		for (const [key, value] of Object.entries({ ...inherited, ...overrides })) {

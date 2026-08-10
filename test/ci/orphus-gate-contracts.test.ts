@@ -112,10 +112,12 @@ test("the quarantine list stays small, justified, and visible", async () => {
 	const config = (await import("../../vitest.config.js")) as { QUARANTINED_TESTS: readonly string[] };
 	const quarantined = config.QUARANTINED_TESTS;
 
-	// One entry, demonstrated failing on a pristine checkout before being
-	// listed. This assertion exists so growing the list is a deliberate act that
-	// shows up in review rather than a quiet way to make CI green.
-	assert.deepEqual([...quarantined].sort(), ["**/test/unit/interactive-engine-cycle-fallback.test.ts"]);
+	// Empty since the last entry was diagnosed (issue #66: runner provider
+	// credentials leaking into the fixture's model world — a test-harness bug,
+	// not an engine one). This assertion exists so growing the list is a
+	// deliberate act that shows up in review rather than a quiet way to make CI
+	// green; shrinking it is the goal and gets celebrated the same way.
+	assert.deepEqual([...quarantined].sort(), []);
 
 	// Each entry must carry its reason in the config, next to the entry itself —
 	// a bare list of paths decays into folklore about why they are there.
