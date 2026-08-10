@@ -24,6 +24,7 @@
 
 ### Fixed
 
+- Fixed builtin extension tools never reaching in-process children: the child resource loader was constructed without `builtinPackagePaths`, so builtin extensions (roundtable, subagents, fleet, mcp, web-access, intercom, workflows) never loaded and their tools silently vanished from every child regardless of its tool allowlist. Children now load the same builtin packages as the main session — a `tools` allowlist naming an extension tool (e.g. `roundtable`) surfaces it, an unrestricted child gets the full main-session tool surface, and nested fan-out is possible because children actually have the `subagent` tool. Test-session children skip resource loading entirely; it was dead cost on a path that never builds a real session.
 - Fixed in-process parallel siblings colliding on the same canonical identity and terminal artifact path, and fixed async completions omitting their persisted result envelope from the parent notification ([#2188](https://github.com/bastani-inc/atomic/issues/2188)).
 
 ### Removed
