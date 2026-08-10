@@ -99,12 +99,18 @@ function briefLine(member: MemberSpec): string {
 
 function deliberateTaskTemplate(team: TeamSpec, blueprint: FleetBlueprint, task: string) {
   const { digest, perMessage } = blueprint.defaults.budgets;
+  // The room is stated as the deliverable and the join as the mandatory first
+  // action because the first live runs proved a member's own system prompt can
+  // win otherwise: one panelist researched diligently, wrote its report into
+  // its artifact, and never joined — invisible to the panel it was seated on.
   return (member: MemberSpec, name: string): string =>
     `You are "${name}" in roundtable room #${team.room}${team.topic ? ` (topic: ${team.topic})` : ""}. ` +
     `Task under discussion: ${task}.${briefLine(member)} ` +
-    `Join the room with roundtable({ action: "join", room: "${team.room}" }), post your opening position, ` +
-    `then run ${team.rounds} rounds of: pull a digest (budget ${digest}, perMessage ${perMessage}), reply to what changed your view. ` +
-    `Post conclusions, not transcripts. When your position is settled, post one line starting "FINAL:" and leave the room.`;
+    `Your FIRST tool call MUST be roundtable({ action: "join", room: "${team.room}" }) — before any reading or research. ` +
+    `The room is your deliverable: a position that never reaches it does not exist, whatever else you produce. ` +
+    `Post your opening position, then run ${team.rounds} rounds of: pull a digest (budget ${digest}, perMessage ${perMessage}), reply to what changed your view. ` +
+    `Research between posts only to support a position. Post conclusions, not transcripts. ` +
+    `When your position is settled, post one line starting "FINAL:" and leave the room. Return just your FINAL line.`;
 }
 
 function dispatchTaskTemplate(task: string) {
