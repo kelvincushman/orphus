@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `orphus update` and the startup update notice now resolve per channel: stable installs track GitHub's stable channel (`/releases/latest`, which excludes prereleases) so a stable user is never dragged onto a newer beta, while prerelease installs keep tracking the newest release of any kind. While only prereleases exist, everyone falls through to the release list as before.
+
 ### Added
 
 - The working spinner speaks Orphus's register half the time — Convening…, Hearing arguments…, Reaching quorum…, Recording the decision… — and carries a live stats suffix: elapsed time and output tokens streamed this run, e.g. `(1m 30s · ↓ 4.9k tokens)`.

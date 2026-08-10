@@ -1,14 +1,21 @@
-import { compare, valid } from "semver";
-import { ENV_OFFLINE, ENV_SKIP_VERSION_CHECK, getEnvValue } from "../config.ts";
+import { compare, prerelease, valid } from "semver";
+import { ENV_OFFLINE, ENV_SKIP_VERSION_CHECK, getEnvValue, VERSION } from "../config.ts";
 
 // The fork is not published to npm: @bastani/atomic on the registry is the
 // UPSTREAM package, whose version has nothing to do with Orphus releases. The
 // authority for "latest" is this repository's GitHub releases — the same
-// source install.sh resolves against. The list endpoint (first entry = newest
-// published release) is used because /releases/latest excludes prereleases and
-// Orphus ships alphas.
-const LATEST_VERSION_URL = "https://api.github.com/repos/kelvincushman/orphus/releases?per_page=1";
+// source install.sh resolves against. Two channels fall out of GitHub's own
+// endpoints: /releases/latest excludes prereleases (the stable channel), and
+// the release list's first entry is the newest release of any kind.
+const RELEASES_API = "https://api.github.com/repos/kelvincushman/orphus/releases";
+const STABLE_CHANNEL_URL = `${RELEASES_API}/latest`;
+const NEWEST_RELEASE_URL = `${RELEASES_API}?per_page=1`;
 const DEFAULT_VERSION_CHECK_TIMEOUT_MS = 10000;
+
+function isPrereleaseVersion(version: string): boolean {
+	const normalized = valid(version.trim());
+	return normalized !== null && prerelease(normalized) !== null;
+}
 
 /**
  * The versionless placeholder stamped on `main` and read from source-tree dev
@@ -46,29 +53,50 @@ export function isNewerPackageVersion(candidateVersion: string, currentVersion: 
 	return candidateVersion.trim() !== currentVersion.trim();
 }
 
-export async function getLatestPiRelease(options: { timeoutMs?: number } = {}): Promise<LatestPiRelease | undefined> {
-	if (getEnvValue(ENV_OFFLINE)) return undefined;
-
-	const response = await fetch(LATEST_VERSION_URL, {
-		headers: {
-			accept: "application/vnd.github+json",
-		},
-		signal: AbortSignal.timeout(options.timeoutMs ?? DEFAULT_VERSION_CHECK_TIMEOUT_MS),
-	});
-	if (!response.ok) return undefined;
-
-	const data = (await response.json()) as unknown;
-	if (!Array.isArray(data) || data.length === 0) return undefined;
-	const tag = (data[0] as { tag_name?: unknown }).tag_name;
+function versionFromTag(tag: unknown): string | undefined {
 	if (typeof tag !== "string") return undefined;
 	// Release tags are v-prefixed (release.yml triggers on v*); the version
 	// under the prefix is what VERSION carries and semver compares.
 	const version = tag.trim().replace(/^v/, "");
-	if (!version) return undefined;
-	return { version };
+	return version || undefined;
 }
 
-export async function getLatestPiVersion(options: { timeoutMs?: number } = {}): Promise<string | undefined> {
+export async function getLatestPiRelease(
+	options: { timeoutMs?: number; currentVersion?: string } = {},
+): Promise<LatestPiRelease | undefined> {
+	if (getEnvValue(ENV_OFFLINE)) return undefined;
+	const requestInit = {
+		headers: {
+			accept: "application/vnd.github+json",
+		},
+		signal: AbortSignal.timeout(options.timeoutMs ?? DEFAULT_VERSION_CHECK_TIMEOUT_MS),
+	};
+
+	// Stable runners track the stable channel: a stable install must not be
+	// dragged onto a newer beta. Prerelease runners opted onto the bleeding
+	// edge and track the newest release of any kind. While ONLY prereleases
+	// exist, the stable endpoint 404s and everyone falls through to the list.
+	const currentVersion = options.currentVersion ?? VERSION;
+	if (!isPrereleaseVersion(currentVersion)) {
+		const stable = await fetch(STABLE_CHANNEL_URL, requestInit);
+		if (stable.ok) {
+			const data = (await stable.json()) as { tag_name?: unknown };
+			const version = versionFromTag(data.tag_name);
+			if (version) return { version };
+		}
+	}
+
+	const response = await fetch(NEWEST_RELEASE_URL, requestInit);
+	if (!response.ok) return undefined;
+	const data = (await response.json()) as unknown;
+	if (!Array.isArray(data) || data.length === 0) return undefined;
+	const version = versionFromTag((data[0] as { tag_name?: unknown }).tag_name);
+	return version ? { version } : undefined;
+}
+
+export async function getLatestPiVersion(
+	options: { timeoutMs?: number; currentVersion?: string } = {},
+): Promise<string | undefined> {
 	return (await getLatestPiRelease(options))?.version;
 }
 
