@@ -499,7 +499,13 @@ export const ORPHUS_DELIBERATION_MESSAGES = [
 ] as const;
 
 export function pickWhimsicalWorkingMessage(): string {
-	// Half the turns speak Orphus's own register; half keep the inherited whimsy.
-	const pool = Math.random() < 0.5 ? ORPHUS_DELIBERATION_MESSAGES : WHIMSICAL_WORKING_MESSAGES;
-	return pool[Math.floor(Math.random() * pool.length)] as string;
+	// One draw decides pool AND index: half the unit interval keeps the
+	// inherited whimsy (0 still lands on its first verb, which lifecycle tests
+	// pin), the other half speaks Orphus's own register. Consumers stub
+	// Math.random and count calls as picks, so this must stay a single call.
+	const draw = Math.random();
+	if (draw < 0.5) {
+		return WHIMSICAL_WORKING_MESSAGES[Math.floor(draw * 2 * WHIMSICAL_WORKING_MESSAGES.length)] as string;
+	}
+	return ORPHUS_DELIBERATION_MESSAGES[Math.floor((draw - 0.5) * 2 * ORPHUS_DELIBERATION_MESSAGES.length)] as string;
 }

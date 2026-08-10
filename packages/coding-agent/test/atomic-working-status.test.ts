@@ -436,19 +436,25 @@ describe("working stats suffix", () => {
 });
 
 describe("deliberation working verbs", () => {
-	it("picks from the deliberation register half the time and the whimsy the other half", () => {
-		const randoms = [0.1, 0, 0.9, 0]; // per pick: pool choice, then index
+	it("splits one draw between the whimsy and the deliberation register", () => {
+		// ONE Math.random call per pick — lifecycle tests count calls as picks —
+		// and a zero draw must keep landing on the whimsy's first verb.
+		const randoms = [0, 0.3, 0.5, 0.9];
 		let index = 0;
-		vi.spyOn(Math, "random").mockImplementation(() => {
-			const value = randoms[index % randoms.length]!;
-			index += 1;
-			return value;
-		});
-		const first = pickWhimsicalWorkingMessage();
-		const second = pickWhimsicalWorkingMessage();
+		const spy = vi.spyOn(Math, "random").mockImplementation(() => randoms[index++ % randoms.length]!);
+		const picks = [
+			pickWhimsicalWorkingMessage(),
+			pickWhimsicalWorkingMessage(),
+			pickWhimsicalWorkingMessage(),
+			pickWhimsicalWorkingMessage(),
+		];
+		const calls = spy.mock.calls.length;
 		vi.restoreAllMocks();
-		expect([...ORPHUS_DELIBERATION_MESSAGES]).toContain(first);
-		expect([...WHIMSICAL_WORKING_MESSAGES]).toContain(second);
+		expect(calls).toBe(4);
+		expect(picks[0]).toBe(WHIMSICAL_WORKING_MESSAGES[0]);
+		expect([...WHIMSICAL_WORKING_MESSAGES]).toContain(picks[1]);
+		expect(picks[2]).toBe(ORPHUS_DELIBERATION_MESSAGES[0]);
+		expect([...ORPHUS_DELIBERATION_MESSAGES]).toContain(picks[3]);
 		for (const message of ORPHUS_DELIBERATION_MESSAGES) expect(message.endsWith("...")).toBe(true);
 	});
 });
