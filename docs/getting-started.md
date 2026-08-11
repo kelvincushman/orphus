@@ -108,10 +108,12 @@ orphus
 
 Later upgrades are one command — `orphus update` checks this repository's
 releases and installs in place, keeping prior versions for rollback. Updates
-follow your channel: a stable install only ever moves to newer stable
-releases, while a prerelease install tracks the newest release of any kind.
-To try a specific prerelease deliberately, pin it:
-`install.sh --ref v0.2.0-beta.1`.
+follow your channel, and the channel is a property of the version you are
+running: a stable install only ever moves to newer stable releases, while a
+prerelease install tracks the newest release of any kind. `--ref` pins one
+exact tag (`install.sh --ref v0.1.0-beta.4`) — installing a prerelease that
+way puts your next `orphus update` on the prerelease channel until a stable
+lands you back.
 
 Orphus is not published to npm. To run from a checkout instead, build the
 binary:

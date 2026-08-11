@@ -336,10 +336,11 @@ byte-identical to upstream; `test.yml` cannot be, because it carries the rebrand
 `ORPHUS_REQUIRE_*` env-var names. Read them as a record of upstream's topology, not as this
 repository's gate.
 
-The quarantine list in `vitest.config.ts` is **empty** — the one file ever excluded was
-fixed at its root (a provider credential leaking from the developer's environment into
-test fixtures) rather than left out. `test/ci/orphus-gate-contracts.test.ts` pins the empty
-list, so growing it again is a reviewed act. Details: [docs/ci.md](docs/ci.md).
+The quarantine list in `vitest.config.ts` is **empty** — both files that ever passed
+through it left the same way, by fixing the cause rather than keeping the exclusion (a
+missing tag fetch in one case, a provider credential leaking from the developer's
+environment into test fixtures in the other). `test/ci/orphus-gate-contracts.test.ts` pins
+the empty list, so growing it again is a reviewed act. Details: [docs/ci.md](docs/ci.md).
 
 ### Release archives
 
