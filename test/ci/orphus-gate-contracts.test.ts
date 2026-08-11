@@ -24,11 +24,10 @@ test("CodeRabbit cannot silently narrow the final gate to an allowlist", async (
 		reviews?: { path_filters?: string[] };
 	};
 	const filters = config.reviews?.path_filters ?? [];
-	assert.ok(filters.length > 0, "expected explicit exclusions for generated or vendored files");
 	assert.deepEqual(
-		filters.filter((filter) => !filter.startsWith("!")),
-		[],
-		"positive path filters form an allowlist and silently skip every unlisted authored surface",
+		filters,
+		["!archive/upstream/**", "!**/*.generated.ts", "!**/node_modules/**"],
+		"path filters must remain exclusion-only and limited to known generated or vendored files",
 	);
 });
 
