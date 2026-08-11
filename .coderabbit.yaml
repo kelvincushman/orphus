@@ -30,14 +30,12 @@ reviews:
     base_branches:
       - main
 
-  # Focus on Orphus-authored surfaces; skip the vendored upstream and generated files.
+  # Review every changed file outside CodeRabbit's defaults. Keep this list
+  # exclusion-only: a positive pattern turns path_filters into an allowlist,
+  # which silently skipped PR #69 and would drift again as Orphus changes new
+  # parts of the inherited tree.
   path_filters:
-    - "packages/roundtable/**"
-    - "test/unit/roundtable-*.test.ts"
-    - "docs/**"
-    - "roles/**"
-    - "orphus.roles.yaml"
-    - ".github/workflows/ci.yml"
+    - "!archive/upstream/**"
     - "!**/*.generated.ts"
     - "!**/node_modules/**"
 

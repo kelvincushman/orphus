@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "vitest";
+import { parse as parseYaml } from "yaml";
 import { jobBlock, jobBlocks, readText } from "./workflow-text.js";
 
 /**
@@ -17,6 +18,18 @@ import { jobBlock, jobBlocks, readText } from "./workflow-text.js";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const ciPath = join(root, ".github/workflows/ci.yml");
+
+test("CodeRabbit cannot silently narrow the final gate to an allowlist", async () => {
+	const config = parseYaml(await readText(join(root, ".coderabbit.yaml"))) as {
+		reviews?: { path_filters?: string[] };
+	};
+	const filters = config.reviews?.path_filters ?? [];
+	assert.deepEqual(
+		filters,
+		["!archive/upstream/**", "!**/*.generated.ts", "!**/node_modules/**"],
+		"path filters must remain exclusion-only and limited to known generated or vendored files",
+	);
+});
 
 test("the Orphus gate lints, typechecks, and verifies the shrinkwrap", async () => {
 	const verify = jobBlock(await readText(ciPath), "verify", "suites");
