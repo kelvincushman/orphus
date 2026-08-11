@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- A roundtable activity ping delivered after session replacement no longer kills the process. `AgentSession.dispose()` invalidates extension ctxs without emitting `session_shutdown`, so the replaced session's roundtable instance survived as an orphan; its next coalesced ping threw from a timer callback and took the whole process down — a `/fleet` run that pins the orchestrator model died before its first turn whenever retained rooms had unread activity. Pings are best-effort by contract: delivery failure now quiesces the orphaned instance (drops the ping, disconnects it from the broker) and the replacement session's own instance serves the rooms.
+
 ## [0.1.0] - 2026-08-11
 
 The first stable Orphus release of the `orphus` binary. Everything below

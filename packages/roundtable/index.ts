@@ -21,6 +21,14 @@ export default function roundtableExtension(pi: ExtensionAPI): void {
   let pendingActivity = new Map<string, { count: number; from: Set<string> }>();
   let notifyTimer: NodeJS.Timeout | null = null;
 
+  const quiesce = () => {
+    if (notifyTimer) clearTimeout(notifyTimer);
+    notifyTimer = null;
+    pendingActivity = new Map();
+    client?.disconnect();
+    client = null;
+  };
+
   const flushActivity = () => {
     notifyTimer = null;
     if (pendingActivity.size === 0) return;
@@ -29,14 +37,27 @@ export default function roundtableExtension(pi: ExtensionAPI): void {
       parts.push(`#${room}: ${info.count} new (${[...info.from].join(", ")})`);
     }
     pendingActivity = new Map();
-    pi.sendMessage(
-      {
-        customType: "roundtable_activity",
-        content: `Roundtable activity — ${parts.join(" · ")}. Use roundtable({ action: "digest", room: "…" }) to catch up when relevant.`,
-        display: true,
-      },
-      { deliverAs: "followUp" },
-    );
+    try {
+      pi.sendMessage(
+        {
+          customType: "roundtable_activity",
+          content: `Roundtable activity — ${parts.join(" · ")}. Use roundtable({ action: "digest", room: "…" }) to catch up when relevant.`,
+          display: true,
+        },
+        { deliverAs: "followUp" },
+      );
+    } catch {
+      // The host refused delivery. The known case is a stale extension ctx
+      // after session replacement: AgentSession.dispose() invalidates every
+      // captured ctx without emitting session_shutdown, so this instance's
+      // broker client survives as an orphan and the next ping throws — from a
+      // timer callback, where an uncaught error kills the process (a /fleet
+      // run pinning the orchestrator model dies before its first turn).
+      // Pings are best-effort by contract — the digest tier recovers anything
+      // a lost ping would have said — so quiesce this orphaned instance and
+      // let the replacement session's own instance serve the rooms.
+      quiesce();
+    }
   };
 
   // Serialize concurrent first-connect calls (the harness runs tools in parallel):
@@ -90,9 +111,5 @@ export default function roundtableExtension(pi: ExtensionAPI): void {
     currentRole,
   });
 
-  pi.on("session_shutdown", () => {
-    if (notifyTimer) clearTimeout(notifyTimer);
-    client?.disconnect();
-    client = null;
-  });
+  pi.on("session_shutdown", quiesce);
 }
