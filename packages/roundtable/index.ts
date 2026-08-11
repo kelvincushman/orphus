@@ -20,8 +20,14 @@ export default function roundtableExtension(pi: ExtensionAPI): void {
   let connecting: Promise<RoundtableClient> | null = null;
   let pendingActivity = new Map<string, { count: number; from: Set<string> }>();
   let notifyTimer: NodeJS.Timeout | null = null;
+  // Once quiesced an instance is dead for good: the flag blocks new connects,
+  // drops in-flight ones on completion, and mutes activity callbacks — clearing
+  // live state alone would let a connect that was in flight during quiesce()
+  // restore an active client afterwards.
+  let quiesced = false;
 
   const quiesce = () => {
+    quiesced = true;
     if (notifyTimer) clearTimeout(notifyTimer);
     notifyTimer = null;
     pendingActivity = new Map();
@@ -64,6 +70,7 @@ export default function roundtableExtension(pi: ExtensionAPI): void {
   // without this, two roundtable calls in one turn spawn two clients, one orphaned
   // and still firing activity into pendingActivity. Mirrors intercom's reconnect guard.
   const ensureConnected = (): Promise<RoundtableClient> => {
+    if (quiesced) return Promise.reject(new Error("This roundtable instance has been quiesced (session ended or replaced)."));
     if (client?.connected) return Promise.resolve(client);
     if (connecting) return connecting;
     connecting = (async () => {
@@ -74,7 +81,14 @@ export default function roundtableExtension(pi: ExtensionAPI): void {
           typeof name === "string" && name.trim() ? name.trim() : `session-${process.pid}`,
         );
         await fresh.connect();
+        if (quiesced) {
+          // quiesce() ran while this connect was in flight — completing it
+          // would resurrect the instance quiesce just killed.
+          fresh.disconnect();
+          throw new Error("This roundtable instance has been quiesced (session ended or replaced).");
+        }
         fresh.onActivity((event) => {
+          if (quiesced) return;
           if (event.seq === 0) return; // membership churn, not content
           const entry = pendingActivity.get(event.room) ?? { count: 0, from: new Set<string>() };
           entry.count += 1;

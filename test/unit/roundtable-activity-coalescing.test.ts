@@ -176,6 +176,23 @@ describe("roundtable activity coalescing", () => {
 		);
 	});
 
+	// Quiescence is permanent: clearing live state alone would let a connect
+	// that was in flight during quiesce() restore an active client afterwards,
+	// and a dead instance must also refuse to build a NEW connection when a
+	// stray tool call arrives after shutdown.
+	it("refuses new connections after quiescing", async () => {
+		const { host, call } = await listener("worker", "design");
+		host.shutdown(); // session_shutdown → quiesce
+
+		const result = (await call({ action: "rooms" })) as { output?: string; isError?: boolean };
+		const text = JSON.stringify(result);
+		expect(text).toMatch(/quiesced/u);
+
+		// And no ping machinery survives: nothing was delivered after shutdown.
+		const pings = host.sent.filter((m) => m.customType === "roundtable_activity");
+		assert.equal(pings.length, 0);
+	});
+
 	it("names each distinct author once, however many times they posted", async () => {
 		const { host } = await listener("reviewer", "design");
 		const planner = await peer("planner");
