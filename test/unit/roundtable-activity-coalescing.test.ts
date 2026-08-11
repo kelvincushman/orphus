@@ -140,6 +140,59 @@ describe("roundtable activity coalescing", () => {
 		expect(pings[0]?.content).toMatch(/#design: 10 new \(planner\)/u);
 	});
 
+	// A stale extension ctx after session replacement throws from sendMessage —
+	// inside a timer callback, where an uncaught throw kills the whole process.
+	// AgentSession.dispose() invalidates captured ctxs WITHOUT emitting
+	// session_shutdown, so the old instance's broker client survives as an
+	// orphan and keeps receiving activity. The ping tier is best-effort by
+	// contract: delivery failure must quiesce the orphan (drop the ping,
+	// disconnect from the broker), never crash, and never ping again.
+	// Regression: a /fleet run pinning the orchestrator model died before its
+	// first turn when retained-room activity hit the replaced session's ctx.
+	it("quiesces instead of crashing when ping delivery hits a stale ctx", async () => {
+		const { host } = await listener("worker", "design");
+		(host.pi.sendMessage as ReturnType<typeof vi.fn>).mockImplementation(() => {
+			throw new Error("This extension ctx is stale after session replacement or reload.");
+		});
+
+		const planner = await peer("planner");
+		await planner.join("design");
+		await planner.post("design", "message after the ctx went stale");
+		await sleep(AFTER_FLUSH_MS);
+
+		// The flush attempted delivery exactly once and swallowed the throw.
+		const attempts = (host.pi.sendMessage as ReturnType<typeof vi.fn>).mock.calls.length;
+		assert.equal(attempts, 1, `expected one swallowed delivery attempt, got ${attempts}`);
+
+		// The orphan disconnected itself from the broker, so further activity
+		// never reaches it: no new delivery attempts, from a fresh timer or
+		// otherwise.
+		await planner.post("design", "second message");
+		await sleep(AFTER_FLUSH_MS);
+		assert.equal(
+			(host.pi.sendMessage as ReturnType<typeof vi.fn>).mock.calls.length,
+			attempts,
+			"a quiesced instance must not attempt further pings",
+		);
+	});
+
+	// Quiescence is permanent: clearing live state alone would let a connect
+	// that was in flight during quiesce() restore an active client afterwards,
+	// and a dead instance must also refuse to build a NEW connection when a
+	// stray tool call arrives after shutdown.
+	it("refuses new connections after quiescing", async () => {
+		const { host, call } = await listener("worker", "design");
+		host.shutdown(); // session_shutdown → quiesce
+
+		const result = (await call({ action: "rooms" })) as { output?: string; isError?: boolean };
+		const text = JSON.stringify(result);
+		expect(text).toMatch(/quiesced/u);
+
+		// And no ping machinery survives: nothing was delivered after shutdown.
+		const pings = host.sent.filter((m) => m.customType === "roundtable_activity");
+		assert.equal(pings.length, 0);
+	});
+
 	it("names each distinct author once, however many times they posted", async () => {
 		const { host } = await listener("reviewer", "design");
 		const planner = await peer("planner");
