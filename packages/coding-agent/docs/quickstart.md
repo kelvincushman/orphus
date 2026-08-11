@@ -1,10 +1,10 @@
 # Quickstart
 
-This page gets you from install to a useful first Atomic session. Atomic is the loop engine for all engineering work: it runs reliable coding-agent loops with stages, tools, artifacts, verification, subagents, review gates, checkpoints, and human approvals.
+This page gets you from install to a useful first Orphus session. Orphus is the loop engine for all engineering work: it runs reliable coding-agent loops with stages, tools, artifacts, verification, subagents, review gates, checkpoints, and human approvals.
 
 ## Prerequisites
 
-- **Node.js 24 LTS or newer** — Atomic requires the latest Node LTS runtime. Check with `node --version`.
+- **Node.js 24 LTS or newer** — Orphus requires the latest Node LTS runtime. Check with `node --version`.
 - **A package manager** — use npm (included with Node), pnpm, Yarn, or Bun. Use Bun 1.3.14+ for Bun installs or workflow-authoring examples.
 - **Model-provider access** — Use `/login` after startup. Supports provider subscriptions and APIs.
 
@@ -30,13 +30,13 @@ With Bun:
 bun add -g @bastani/atomic
 ```
 
-Atomic does not require package install scripts. If you want to disable dependency lifecycle scripts during the Atomic install, you can add `--ignore-scripts` to the install command.
+Orphus does not require package install scripts. If you want to disable dependency lifecycle scripts during the Orphus install, you can add `--ignore-scripts` to the install command.
 
 ### Alpine and musl Linux archives
 
 For Alpine Linux, use `atomic-linux-x64-musl.tar.gz` on x64 or `atomic-linux-arm64-musl.tar.gz` on arm64. These archives provide native search and PTY bindings. Install their runtime libraries with `apk add --no-cache libgcc libstdc++`, then see the [Alpine and musl Linux archive notes](/index#alpine-and-musl-linux-archives) for the clipboard fallback and external Postgres or Docker requirement for durable workflows.
 
-Then start Atomic in the project directory you want it to work on:
+Then start Orphus in the project directory you want it to work on:
 
 ```bash
 cd /path/to/project
@@ -57,11 +57,11 @@ This removes the CLI package only. User configuration, auth, sessions, and packa
 
 ## Authenticate
 
-Atomic can use subscription providers through `/login`, or API-key providers through environment variables or the auth file.
+Orphus can use subscription providers through `/login`, or API-key providers through environment variables or the auth file.
 
 ### Option 1: subscription login
 
-Start Atomic and run:
+Start Orphus and run:
 
 ```text
 /login
@@ -71,7 +71,7 @@ Then select a provider. Built-in subscription logins include Claude Pro/Max, Cha
 
 ### Option 2: API key
 
-Set an API key before launching Atomic:
+Set an API key before launching Orphus:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
@@ -84,19 +84,19 @@ See [Providers](/providers) for all supported providers, environment variables, 
 
 ## First session
 
-On a fresh install with no prior Atomic startup state, Atomic shows a one-time first-run explanation after any What's New notes and directly above the input box describing Atomic as a verifiable coding agent runtime for building and running agent workflows you can feel confident in. Returning users with prior startup state are marked onboarded automatically and continue directly into the normal chat UI; stored credentials by themselves do not skip the first-run explanation. The composer is the normal Atomic input from the start: type a message, run `/login` first if no provider is connected, open `/atomic`, or launch a workflow command without a special onboarding transition.
+On a fresh install with no prior Orphus startup state, Orphus shows a one-time first-run explanation after any What's New notes and directly above the input box describing Orphus as a verifiable coding agent runtime for building and running agent workflows you can feel confident in. Returning users with prior startup state are marked onboarded automatically and continue directly into the normal chat UI; stored credentials by themselves do not skip the first-run explanation. The composer is the normal Orphus input from the start: type a message, run `/login` first if no provider is connected, open `/atomic`, or launch a workflow command without a special onboarding transition.
 
-Once Atomic starts, default to a workflow for non-trivial work and for requests with inherent structure plus a verifiable objective. Implementation, build, debugging, bug fixes, migrations, features, scoped multi-file edits, validation/review work, and loop-shaped requests are workflow candidates; reserve direct chat for tiny deterministic low-risk answers or edits where tracking clearly adds more overhead than value.
+Once Orphus starts, default to a workflow for non-trivial work and for requests with inherent structure plus a verifiable objective. Implementation, build, debugging, bug fixes, migrations, features, scoped multi-file edits, validation/review work, and loop-shaped requests are workflow candidates; reserve direct chat for tiny deterministic low-risk answers or edits where tracking clearly adds more overhead than value.
 
-Workflow-first is not builtin-only or monolithic. Atomic can discover and run named builtin, project, user, and package workflows; author a rich custom TypeScript `workflow({...})` inline; and compositionally import reusable workflow definitions—including builtins from `@bastani/workflows/builtin`—into parent workflows with `ctx.workflow(...)`. Nested children can nest again within `maxDepth`, so custom graphs can combine proven research, implementation, design, verification, and approval workflows instead of copying them. They can also classify and branch, dynamically fan out and synthesize artifacts, run adversarial repair cycles, tournament-rank candidates, and loop until checks pass with explicit bounds.
+Workflow-first is not builtin-only or monolithic. Orphus can discover and run named builtin, project, user, and package workflows; author a rich custom TypeScript `workflow({...})` inline; and compositionally import reusable workflow definitions—including builtins from `@bastani/workflows/builtin`—into parent workflows with `ctx.workflow(...)`. Nested children can nest again within `maxDepth`, so custom graphs can combine proven research, implementation, design, verification, and approval workflows instead of copying them. They can also classify and branch, dynamically fan out and synthesize artifacts, run adversarial repair cycles, tournament-rank candidates, and loop until checks pass with explicit bounds.
 
-Atomic turns repeatable engineering loops into executable stages with inspectable evidence instead of relying on a markdown checklist the model may or may not follow.
+Orphus turns repeatable engineering loops into executable stages with inspectable evidence instead of relying on a markdown checklist the model may or may not follow.
 
 For an interactive tour any time, run `/atomic` inside the TUI; `/atomic overview`, `/atomic workflows`, and `/atomic example` walk through the same flow in more depth.
 
 ### Try the built-in workflows
 
-Atomic ships with nine workflows you can run immediately. Use `/workflow list` to see them and `/workflow inputs <name>` to inspect their inputs in your environment.
+Orphus ships with nine workflows you can run immediately. Use `/workflow list` to see them and `/workflow inputs <name>` to inspect their inputs in your environment.
 
 | Workflow | When to use | Example |
 |---|---|---|
@@ -114,7 +114,7 @@ Atomic ships with nine workflows you can run immediately. Use `/workflow list` t
 
 Inputs are bare `key=value` tokens. Values are JSON-parsed when possible, so `count=5`, `flag=true`, and `prompt="multi word value"` preserve useful types. If you call `/workflow <name>` without required inputs, the TUI opens an inline picker; pass `--no-picker` to skip it. Goal and Ralph support `git_worktree_dir` only when you explicitly want a reusable worktree, and skip PR creation unless you set `create_pr=true` for the post-approval final stage.
 
-You can also launch workflows with **natural language** — describe the task in chat and ask Atomic to run a matching installed workflow or author a task-specific one:
+You can also launch workflows with **natural language** — describe the task in chat and ask Orphus to run a matching installed workflow or author a task-specific one:
 
 ```text
 Fan out repository research by subsystem, save cited findings as artifacts, and synthesize the evidence.
@@ -132,7 +132,7 @@ Use goal to update the CLI docs, include one example, run the docs build, and fi
 Use ralph to research and implement specs/rate-limit.md, then review and repair it within three loops.
 ```
 
-Atomic chooses a complete execution shape, fills inputs from the request, and confirms before launch. Use Goal when a durable ledger and receipt-backed reviewer gate fit the task. Use Ralph when the job benefits from a research-first implementation/review loop. For exact domain contracts that either builtin does not cover, author a custom graph with deterministic checks and bounded repairs.
+Orphus chooses a complete execution shape, fills inputs from the request, and confirms before launch. Use Goal when a durable ledger and receipt-backed reviewer gate fit the task. Use Ralph when the job benefits from a research-first implementation/review loop. For exact domain contracts that either builtin does not cover, author a custom graph with deterministic checks and bounded repairs.
 
 ### Monitor and steer a run
 
@@ -152,7 +152,7 @@ The below-editor `BACKGROUND` panel uses two lines per card at 80 columns and wi
 
 Human-in-the-loop prompts (`ctx.ui.input`, `confirm`, `select`, `editor`) surface in the graph viewer, not as chat modals — connect to the run to answer them.
 
-Atomic also posts main-chat lifecycle notices when a run completes, fails, or awaits input. If you answer a workflow prompt in the graph or attached stage chat, the main chat receives a display-only answer summary for audit; it does not wake the model, enter LLM context, or answer later prompts. See [Workflows](/workflows) for the full reference and authoring guide.
+Orphus also posts main-chat lifecycle notices when a run completes, fails, or awaits input. If you answer a workflow prompt in the graph or attached stage chat, the main chat receives a display-only answer summary for audit; it does not wake the model, enter LLM context, or answer later prompts. See [Workflows](/workflows) for the full reference and authoring guide.
 
 ### Top skills to invoke directly
 
@@ -172,10 +172,10 @@ Use `/skill:research-codebase` for a focused subsystem or question. For reposito
 
 ### Create your own workflow in natural language
 
-Named workflows may be builtin, project, user, or package supplied. You do not have to hand-write TypeScript to add a new workflow. Describe what you want in plain chat and Atomic will design and write it for you using the [Workflows](/workflows) reference as the source of truth:
+Named workflows may be builtin, project, user, or package supplied. You do not have to hand-write TypeScript to add a new workflow. Describe what you want in plain chat and Orphus will design and write it for you using the [Workflows](/workflows) reference as the source of truth:
 
 ```text
-Create a reusable Atomic workflow called review-changes. It takes one
+Create a reusable Orphus workflow called review-changes. It takes one
 required text input `target` (a diff, PR, or review focus). Run two reviewers
 in parallel with fresh context — one for correctness and missing tests, one
 for edge cases and maintainability — then a synthesis stage that
@@ -183,12 +183,12 @@ consolidates findings into blockers vs. suggestions and returns
 { consolidated_review, decision }.
 ```
 
-Atomic will:
+Orphus will:
 
 - ask clarifying questions if stage purpose, inputs, models, or handoffs are ambiguous,
 - write a `.atomic/workflows/<name>.ts` definition that uses `workflow({ ... })` and imports `Type` from `typebox`,
 - run `/workflow reload` so the generated workflow is rediscovered and can be launched with `/workflow <name>`,
-- then report the generated workflow folder so you can inspect the code it wrote, using `Custom workflow created. You can inspect its code at: <workflow-folder-path>` (for example, `.atomic/workflows/`); Atomic does this only for newly created custom workflows, never builtin or pre-existing workflows.
+- then report the generated workflow folder so you can inspect the code it wrote, using `Custom workflow created. You can inspect its code at: <workflow-folder-path>` (for example, `.atomic/workflows/`); Orphus does this only for newly created custom workflows, never builtin or pre-existing workflows.
 
 The same plain-chat approach works for editing or hardening an existing workflow. For the full authoring reference, see [Workflows](/workflows), including composition with user-defined workflows and all nine builtins from `@bastani/workflows/builtin`.
 
@@ -200,7 +200,7 @@ If you'd rather start with a plain prompt, just type a request and press Enter:
 Summarize this repository and tell me how to run its checks.
 ```
 
-By default, Atomic gives the model these tools:
+By default, Orphus gives the model these tools:
 
 - `read` - read files
 - `bash` - run shell commands
@@ -211,11 +211,11 @@ By default, Atomic gives the model these tools:
 - `ask_user_question` - ask structured questions in the TUI
 - `todo` - manage file-based todos
 
-Normal coding sessions include file discovery and content search through `find` and `search` in addition to `read`, `bash`, `edit`, and `write`. Atomic runs in your current working directory and can modify files there. Use git or another checkpointing workflow if you want easy rollback.
+Normal coding sessions include file discovery and content search through `find` and `search` in addition to `read`, `bash`, `edit`, and `write`. Orphus runs in your current working directory and can modify files there. Use git or another checkpointing workflow if you want easy rollback.
 
-## Give Atomic project instructions
+## Give Orphus project instructions
 
-Atomic loads context files at startup. Add an `AGENTS.md` file to tell it how to work in a project:
+Orphus loads context files at startup. Add an `AGENTS.md` file to tell it how to work in a project:
 
 ```markdown
 # Project Instructions
@@ -225,12 +225,12 @@ Atomic loads context files at startup. Add an `AGENTS.md` file to tell it how to
 - Keep responses concise.
 ```
 
-Atomic loads:
+Orphus loads:
 
 - `~/.atomic/agent/AGENTS.md` for global instructions
 - `AGENTS.md` or `CLAUDE.md` from parent directories and the current directory
 
-Restart Atomic, or run `/reload`, after changing context files.
+Restart Orphus, or run `/reload`, after changing context files.
 
 ## Common things to try
 
@@ -270,7 +270,7 @@ atomic --name "my task"    # Set session display name at startup
 atomic --session <path|id> # Open a specific session
 ```
 
-Inside Atomic, use `/resume`, `/new`, `/tree`, `/fork`, and `/clone` to manage sessions.
+Inside Orphus, use `/resume`, `/new`, `/tree`, `/fork`, and `/clone` to manage sessions.
 
 ### Non-interactive mode
 
@@ -286,12 +286,12 @@ Use `--mode json` for JSON event output or `--mode rpc` for process integration.
 
 ## Next steps
 
-- [Using Atomic](/usage) - interactive mode, slash commands, sessions, context files, and CLI reference.
+- [Using Orphus](/usage) - interactive mode, slash commands, sessions, context files, and CLI reference.
 - [Workflows](/workflows) - run, inspect, and author multi-stage automation (including the built-in workflows).
 - [Skills](/skills) - reusable expert instructions invoked with `/skill:<name>`.
 - [Providers](/providers) - authentication and model setup.
 - [Settings](/settings) - global and project configuration.
 - [Keybindings](/keybindings) - shortcuts and customization.
-- [Atomic Packages](/packages) - install shared extensions, skills, prompts, and themes.
+- [Orphus Packages](/packages) - install shared extensions, skills, prompts, and themes.
 
 Platform notes: [Windows](/windows), [Termux](/termux), [tmux](/tmux), [Terminal setup](/terminal-setup), [Shell aliases](/shell-aliases).

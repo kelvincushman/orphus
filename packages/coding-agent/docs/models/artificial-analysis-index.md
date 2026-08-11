@@ -1,14 +1,14 @@
 ---
 title: "Benchmark Sources"
-description: "The external benchmarks that inform Atomic model selection — Artificial Analysis and DeepSWE — broken down per benchmark: what each measures and when to reference it."
+description: "The external benchmarks that inform Orphus model selection — Artificial Analysis and DeepSWE — broken down per benchmark: what each measures and when to reference it."
 ---
 
 # Benchmark Sources
 
-Atomic's model-selection docs are keyed to two live external benchmark sources rather than a hand-maintained table of scores. This page lists each benchmark, what it measures, and **when to reference it** for a given workflow role — so the docs stay useful as new models ship without a manual rewrite every time.
+Orphus's model-selection docs are keyed to two live external benchmark sources rather than a hand-maintained table of scores. This page lists each benchmark, what it measures, and **when to reference it** for a given workflow role — so the docs stay useful as new models ship without a manual rewrite every time.
 
 <Warning>
-No single benchmark is the source of truth. Use these as inputs and validate against Atomic's own workflow evals — public suites test different task distributions than real engineering loops. When Atomic's numbers disagree with a public index, Atomic's evals win. **Last reviewed: 2026-07-17.**
+No single benchmark is the source of truth. Use these as inputs and validate against Orphus's own workflow evals — public suites test different task distributions than real engineering loops. When Orphus's numbers disagree with a public index, Orphus's evals win. **Last reviewed: 2026-07-17.**
 </Warning>
 
 ## The two sources at a glance
@@ -20,7 +20,7 @@ No single benchmark is the source of truth. Use these as inputs and validate aga
 
 ## DeepSWE — coding-agent performance
 
-DeepSWE is the closest public proxy for what Atomic actually does. Tasks are written from scratch (not scraped from PRs), so no model has seen the solutions; solutions require substantially more code than SWE-bench-style suites; and verifiers test behavior rather than implementation.
+DeepSWE is the closest public proxy for what Orphus actually does. Tasks are written from scratch (not scraped from PRs), so no model has seen the solutions; solutions require substantially more code than SWE-bench-style suites; and verifiers test behavior rather than implementation.
 
 - **Metric:** `pass@1`, plus average cost per task, output tokens, and agent steps.
 - **When to reference:** default weighting for debugger, worker, and any code-writing role. This is the table that drives [Model Selection](/models/model-selection) and [Pareto Efficiency](/models/pareto-efficiency).

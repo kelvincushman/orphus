@@ -196,7 +196,7 @@ const preparedChangelogNotice: StartupNotice = {
 
 const preparedFirstRunNotice: StartupNotice = {
 	name: "first-run onboarding notice",
-	marker: "Atomic is a verifiable coding agent runtime",
+	marker: "Orphus is a verifiable coding agent runtime",
 	emit(mode) {
 		Object.assign(mode, {
 			startupNoticesPrepared: true,

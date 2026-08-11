@@ -1,17 +1,17 @@
 ---
 title: "Subagents"
-description: "Run focused Atomic child agents"
+description: "Run focused Orphus child agents"
 ---
 
 # Subagents
 
-Atomic bundles `@bastani/subagents`, an extension for bounded specialist delegation with separate context while the parent remains in control. Use a single agent, chain, or parallel fan-out when isolation or a specialist pass materially helps with locating code, analyzing behavior, researching references, reproducing actual failures, or simplifying code. Keep interactive, exploratory, conceptual, and conversation-led work inline when direct user steering is more useful.
+Orphus bundles `@bastani/subagents`, an extension for bounded specialist delegation with separate context while the parent remains in control. Use a single agent, chain, or parallel fan-out when isolation or a specialist pass materially helps with locating code, analyzing behavior, researching references, reproducing actual failures, or simplifying code. Keep interactive, exploratory, conceptual, and conversation-led work inline when direct user steering is more useful.
 
 You do not need to install anything separately when you use `@bastani/atomic`.
 
 ## Start with natural language
 
-Ask Atomic to coordinate subagents in plain language:
+Ask Orphus to coordinate subagents in plain language:
 
 ```text
 Map the authentication flow with focused subagents before we change it.
@@ -25,7 +25,7 @@ Run a parallel review composition: one pass for current behavior, one for failur
 Research the upstream library behavior online, then compare it with our local implementation.
 ```
 
-Atomic decides whether delegation adds value, which specialist fits each bounded part, and whether the work should run as a single child, parallel group, chain, foreground run, or selective background run. Multiple steps, files, tests, validation, or parallelism alone do not require a workflow; clearly delegated long-running autonomous work that needs durable stages, checkpoints, resumability, HIL, gates, retries, or loops is usually better served by a workflow.
+Orphus decides whether delegation adds value, which specialist fits each bounded part, and whether the work should run as a single child, parallel group, chain, foreground run, or selective background run. Multiple steps, files, tests, validation, or parallelism alone do not require a workflow; clearly delegated long-running autonomous work that needs durable stages, checkpoints, resumability, HIL, gates, retries, or loops is usually better served by a workflow.
 
 ## Subagent execution is non-interactive
 
@@ -33,11 +33,11 @@ Supported subagent launches start immediately without opening a preview/editor p
 
 The human slash commands remain registered and continue to use their separate parsing and event-bridge path, including background and fork flags.
 
-Subagents now run and return their results directly. Atomic does not infer acceptance gates from prompt wording, inject `acceptance-report` instructions into child prompts, parse or strip `acceptance-report` blocks, or reject completed child runs because changed-file, test, or review evidence is missing. Put any evidence or validation requirements directly in the task text you give the parent or child agent.
+Subagents now run and return their results directly. Orphus does not infer acceptance gates from prompt wording, inject `acceptance-report` instructions into child prompts, parse or strip `acceptance-report` blocks, or reject completed child runs because changed-file, test, or review evidence is missing. Put any evidence or validation requirements directly in the task text you give the parent or child agent.
 
 ## Foreground supervisor coordination
 
-When a foreground child sends `intercom.ask`, `intercom.send`, or `contact_supervisor` coordination, Atomic first probes for the exact foreground owner. Only an exact live child reserves the request; Atomic then sends a generation-scoped detach commit and waits for that child to acknowledge it before placing the message in the parent's model-visible steering queue. This first-refusal ordering also applies when the parent is a busy workflow stage: detach completes before the request enters the stage AgentSession generation boundary, breaking the child-waits-for-reply / stage-waits-for-child cycle. Unmatched and background-child messages retain existing routing—ordinary parents queue until idle, while open workflow stages fall back to their native generation admission. Blocking `need_decision` and `interview_request` calls remain actionable through [Intercom](/intercom)'s pending/reply tracker, and the exact threaded reply resumes the retained child without delayed duplicate delivery.
+When a foreground child sends `intercom.ask`, `intercom.send`, or `contact_supervisor` coordination, Orphus first probes for the exact foreground owner. Only an exact live child reserves the request; Orphus then sends a generation-scoped detach commit and waits for that child to acknowledge it before placing the message in the parent's model-visible steering queue. This first-refusal ordering also applies when the parent is a busy workflow stage: detach completes before the request enters the stage AgentSession generation boundary, breaking the child-waits-for-reply / stage-waits-for-child cycle. Unmatched and background-child messages retain existing routing—ordinary parents queue until idle, while open workflow stages fall back to their native generation admission. Blocking `need_decision` and `interview_request` calls remain actionable through [Intercom](/intercom)'s pending/reply tracker, and the exact threaded reply resumes the retained child without delayed duplicate delivery.
 
 Only the matching foreground child can authorize release of the parent `subagent` tool. For a parallel foreground group, that accepted commit releases foreground supervision for every active sibling as one unit, so a long-running sibling cannot keep a blocking child request trapped behind the aggregate tool call; tasks still waiting behind the concurrency limit are skipped and never launched unsupervised. Children are in-process `AgentSession` instances governed by the shared Rust control plane: there is no child OS process, idle watchdog, stdout drain, or detached placeholder to recover. A detached call becomes `continued` through `continue_in_background`; its canonical child remains live in the jobs widget and later delivers one terminal result. Fire-and-forget `intercom.send` and `progress_update` also release foreground supervision promptly, but do not create a reply waiter.
 
@@ -47,19 +47,19 @@ Subagent result announcements are also resilient in sessions that never receive 
 
 Intercom connection remains tool-driven. Foreground and background launches do not import the heavy Intercom runtime or connect either the parent or bridged child automatically. If live child-to-parent coordination is needed, the parent model should invoke `intercom({ action: "status" })` before launch; the child then connects on its first `contact_supervisor` or `intercom` call. Cancellation or session replacement still invalidates the handshake generation, so stale acknowledgements cannot surface or detach a child.
 
-Atomic's implementation adapts the prompt foreground release and later-result recovery contracts proven in `nicobailon/pi-subagents` commits `1b55c8c`, `589e51e`, `68fb528`, and `9dfe3df`; it retains Atomic's broker and raw-TypeScript architecture rather than copying upstream's filesystem transport.
+Orphus's implementation adapts the prompt foreground release and later-result recovery contracts proven in `nicobailon/pi-subagents` commits `1b55c8c`, `589e51e`, `68fb528`, and `9dfe3df`; it retains Atomic's broker and raw-TypeScript architecture rather than copying upstream's filesystem transport.
 
 ## Migration from acceptance gates
 
 If you have older subagent calls, saved chains, or custom agents that used the removed gate fields:
 
-- Remove `acceptance` properties from `subagent()` calls, `tasks` entries, `chain` steps, static parallel task items, and dynamic fanout parallel templates. Atomic no longer reads these fields; JSON chain rewrites drop legacy copies.
+- Remove `acceptance` properties from `subagent()` calls, `tasks` entries, `chain` steps, static parallel task items, and dynamic fanout parallel templates. Orphus no longer reads these fields; JSON chain rewrites drop legacy copies.
 - Remove `completionGuard: false` from agent frontmatter and custom agent definitions. The no-mutation completion guard no longer exists, so the override has no effect and management rewrites strip it.
 - Move validation, command, evidence, review, or residual-risk requirements into the natural-language task text passed to the parent or child agent.
 
 ## Bundled agents
 
-Atomic currently bundles these agents from `@bastani/subagents`:
+Orphus currently bundles these agents from `@bastani/subagents`:
 
 | Agent | Use it for | Edit files? |
 |---|---|---|
@@ -77,7 +77,7 @@ The bundled definitions keep their routing and model frontmatter but use compact
 
 ## Review compositions
 
-Atomic does not bundle a single generic review agent. Instead, compose specialists with distinct angles and let the parent session synthesize their findings before applying any fix.
+Orphus does not bundle a single generic review agent. Instead, compose specialists with distinct angles and let the parent session synthesize their findings before applying any fix.
 
 Common review angles:
 
@@ -124,19 +124,19 @@ subagent({ action: "doctor" })
 
 Use `interrupt` when you want a resumable stop. Use `resume` to send a follow-up to a reachable child, or to cold-reload a completed child from its saved session. Use `doctor` for read-only setup diagnostics.
 
-`async: true` means **do not wait**. Atomic admits an in-process child, returns its canonical child path immediately, and tracks the live child through the jobs widget. Intercom detach uses this exact same continuation mechanism, so a foreground child that asks its supervisor to coordinate becomes `continued` instead of returning a detached placeholder.
+`async: true` means **do not wait**. Orphus admits an in-process child, returns its canonical child path immediately, and tracks the live child through the jobs widget. Intercom detach uses this exact same continuation mechanism, so a foreground child that asks its supervisor to coordinate becomes `continued` instead of returning a detached placeholder.
 
-**`async: true` does not survive parent exit. The live child is owned by the parent process; quitting Atomic ends any in-flight async run. Only the persisted canonical identity and session file survive, and a later session can list that cold identity and resume it.**
+**`async: true` does not survive parent exit. The live child is owned by the parent process; quitting Orphus ends any in-flight async run. Only the persisted canonical identity and session file survive, and a later session can list that cold identity and resume it.**
 
 Status, interrupt, list, and resume use the Rust registry and status watch for live children; terminal delivery is an in-memory bounded envelope with the artifact and run-history record persisted once. There is no PID polling, result-claim file, stale-run reconciliation, or detached runner process.
 
 Inside workflow stages, completion delivery observes the stage generation boundary. A completion received before the boundary closes is queued through the stage AgentSession and processed before the stage publishes its terminal snapshot. A completion that arrives after close is routed once to the parent/main chat and cannot reopen or append to the completed stage transcript. Producers that are still running do not hold the stage open, so background work remains non-blocking; explicit post-mortem stage chat is still available separately.
 
-When a workflow graph overlay is open, Atomic also publishes the live async subagent summary into the shared status surface. The below-editor async widget remains available when the workflow overlay is hidden, and the overlay statusline keeps the run count/state visible while the graph fills the terminal.
+When a workflow graph overlay is open, Orphus also publishes the live async subagent summary into the shared status surface. The below-editor async widget remains available when the workflow overlay is hidden, and the overlay statusline keeps the run count/state visible while the graph fills the terminal.
 
 ## Orchestrator model and group policy
 
-Atomic applies the same delegation policy to any parent chat or workflow stage that orchestrates subagents. A named agent uses the model and fallback chain declared by its agent definition, so the orchestrator normally omits the subagent tool's explicit `model` argument. An override needs either the user's exact model request or a documented task-specific reason recorded before launch; model diversity alone is not enough.
+Orphus applies the same delegation policy to any parent chat or workflow stage that orchestrates subagents. A named agent uses the model and fallback chain declared by its agent definition, so the orchestrator normally omits the subagent tool's explicit `model` argument. An override needs either the user's exact model request or a documented task-specific reason recorded before launch; model diversity alone is not enough.
 
 If an agent declares no model or fallback policy, the orchestrator consults the role guidance in [Model selection](/models/model-selection), then calls `workflow({ action: "models" })` when that tool is available. It may pin only a returned `fullId` and may add a thinking suffix only when the model entry lists that level. When the catalog tool is unavailable, the catalog is empty, or no recommended model is present, the child stays unpinned and the orchestrator reports the limit instead of inventing a model or inspecting credentials.
 
@@ -153,17 +153,17 @@ For adversarial review or research, prefer fresh context so the specialist inspe
 
 For parallel implementation work, `worktree: true` can give each child an isolated git worktree so concurrent edits do not clobber each other.
 
-Fresh child sessions use normal Atomic package discovery when an agent omits `extensions`, so bundled lightweight MCP, web-access, and Intercom wrappers are available just as they are in the parent. An explicit `extensions` field (including an empty list) intentionally switches the child to extension-allowlist mode and excludes unlisted builtins; it does not inherit the parent's normal discovery set.
+Fresh child sessions use normal Orphus package discovery when an agent omits `extensions`, so bundled lightweight MCP, web-access, and Intercom wrappers are available just as they are in the parent. An explicit `extensions` field (including an empty list) intentionally switches the child to extension-allowlist mode and excludes unlisted builtins; it does not inherit the parent's normal discovery set.
 
 Top-level parallel calls support up to 50 subagents after expanding each task's optional `count`. The extension's `parallel.maxTasks` setting defaults to 50 and can enforce a lower task limit; `parallel.concurrency` independently controls how many of those children run at once, while the Rust turn limiter admits at most four running turns per parent.
 
-Subagent tasks, parallel/chain items, and the top-level call accept a `group` field that sets the spawned child's [Intercom](/intercom) home group, so same-group subagents can intercom each other while staying isolated from other groups. A named string joins that group; `true` auto-generates one shared UUID group per parallel set. Precedence is `explicit subagent group > inherited current-session group > config > "default"`. Workflow stages carry their runtime-owned invocation group, so children launched without `group` automatically join the workflow group; callers do not need to copy or generate an ID. In other sessions, omission inherits that launching session's resolved group. The child group is applied only when the child has Intercom access (the peer `intercom` tool or subagent-only `contact_supervisor` tool); a child without Intercom receives no group. `contact_supervisor` still reaches the supervisor across group boundaries because Atomic requests a broker capability during typed admission and binds the child's registration to the issuing supervisor. Foreground and single-child paths use exact child scopes; asynchronous chains use bounded per-child slots so indexes shifted by dynamic fanout remain valid. The lightweight Intercom wrapper lazy-loads the authorization provider; provider failures abort launch, while hosts without a provider omit supervisor metadata instead of exposing a broken channel.
+Subagent tasks, parallel/chain items, and the top-level call accept a `group` field that sets the spawned child's [Intercom](/intercom) home group, so same-group subagents can intercom each other while staying isolated from other groups. A named string joins that group; `true` auto-generates one shared UUID group per parallel set. Precedence is `explicit subagent group > inherited current-session group > config > "default"`. Workflow stages carry their runtime-owned invocation group, so children launched without `group` automatically join the workflow group; callers do not need to copy or generate an ID. In other sessions, omission inherits that launching session's resolved group. The child group is applied only when the child has Intercom access (the peer `intercom` tool or subagent-only `contact_supervisor` tool); a child without Intercom receives no group. `contact_supervisor` still reaches the supervisor across group boundaries because Orphus requests a broker capability during typed admission and binds the child's registration to the issuing supervisor. Foreground and single-child paths use exact child scopes; asynchronous chains use bounded per-child slots so indexes shifted by dynamic fanout remain valid. The lightweight Intercom wrapper lazy-loads the authorization provider; provider failures abort launch, while hosts without a provider omit supervisor metadata instead of exposing a broken channel.
 
 Subagent SINGLE calls, parallel `tasks[]` items, and chain parallel steps accept an optional `name` that names the child's session (the same session name extensions read via `getSessionName()`). Roundtable rooms key read cursors and attribution by session name, and unnamed in-process children all share the parent's pid-derived identity — so two children joining the same room would otherwise collide on one cursor. Name each member that will join a room, uniquely per room. Fleet blueprints do this automatically.
 
-When a subagent call, parallel task, chain step, or background run uses a `cwd`, Atomic validates that working directory before starting the child runtime. Missing or non-directory paths are reported as `cwd` problems instead of lower-level runtime errors.
+When a subagent call, parallel task, chain step, or background run uses a `cwd`, Orphus validates that working directory before starting the child runtime. Missing or non-directory paths are reported as `cwd` problems instead of lower-level runtime errors.
 
-Single-agent calls also accept `reads: string[] | false`. Atomic prepends those files as read context for foreground and background execution through the same in-process session path, including `/run agent[reads=a.md+b.md]`. Relative entries resolve against the effective child `cwd` (including a relative top-level `cwd` resolved from the parent); absolute entries are unchanged. Invalid values fail before the child session starts.
+Single-agent calls also accept `reads: string[] | false`. Orphus prepends those files as read context for foreground and background execution through the same in-process session path, including `/run agent[reads=a.md+b.md]`. Relative entries resolve against the effective child `cwd` (including a relative top-level `cwd` resolved from the parent); absolute entries are unchanged. Invalid values fail before the child session starts.
 
 Single-agent calls accept `progress: boolean` in foreground, background, and revived/resumed mode. `progress: true` creates a run-scoped `progress.md` under isolated subagent artifact storage and instructs the child to maintain it without writing `progress.md` into the child `cwd`; `progress: false` disables an agent's `defaultProgress`. When `progress` is omitted, the agent's default is inherited, except that inherited progress is suppressed for read-only tasks (`progress: true` still explicitly opts in). Foreground runs remove this run-owned progress storage after the child exits when `artifacts: false`, including children temporarily detached for intercom coordination. This is separate from `includeProgress: true`, which only includes detailed runtime progress telemetry in the final tool result and does not create or maintain a file.
 
@@ -215,11 +215,11 @@ Cite each actionable issue with file:line evidence and the observed failure or r
 Return only issues worth fixing now. Stop when the relevant diff and affected call paths have been inspected, or name the evidence you could not access.
 ```
 
-If an agent or chain step uses an explicit empty `tools: []` allowlist together with `outputSchema`, Atomic starts the child with only `structured_output` enabled for the required final answer. It does not omit `--tools` and accidentally restore default tools. Path-only tool entries remain extension paths and do not create a builtin allowlist by themselves. The typed child session construction registers its schema-backed `structured_output` tool before explicit allowlists are applied.
+If an agent or chain step uses an explicit empty `tools: []` allowlist together with `outputSchema`, Orphus starts the child with only `structured_output` enabled for the required final answer. It does not omit `--tools` and accidentally restore default tools. Path-only tool entries remain extension paths and do not create a builtin allowlist by themselves. The typed child session construction registers its schema-backed `structured_output` tool before explicit allowlists are applied.
 
 ## Structured output schemas
 
-Chain and parallel steps can declare an `outputSchema` when the parent needs reliable machine-readable handoff data. Atomic passes that schema directly to a `structured_output` tool backed by the shared Atomic factory. The child should call `structured_output` when it is done:
+Chain and parallel steps can declare an `outputSchema` when the parent needs reliable machine-readable handoff data. Orphus passes that schema directly to a `structured_output` tool backed by the shared Orphus factory. The child should call `structured_output` when it is done:
 
 ```ts
 structured_output({
@@ -228,21 +228,21 @@ structured_output({
 })
 ```
 
-`outputSchema` is a plain JSON Schema descriptor object. It may describe object, array, or primitive final values, and the child should pass a JSON value that matches that schema directly. Atomic no longer adds object-root restrictions, sidecar metadata, transcript-finality checks, or duplicate-call guards. The child runtime writes the tool arguments to `output.json`; the parent validates that captured JSON against the schema, reads it back as `result.structuredOutput`, and exposes it in named-chain references under `outputs.name.structured`. If the child exits without calling `structured_output`, or the captured value fails schema validation, Atomic retries up to three times with a corrective prompt that quotes the exact contract/validation error and reminds the child to call `structured_output` rather than returning plain JSON.
+`outputSchema` is a plain JSON Schema descriptor object. It may describe object, array, or primitive final values, and the child should pass a JSON value that matches that schema directly. Orphus no longer adds object-root restrictions, sidecar metadata, transcript-finality checks, or duplicate-call guards. The child runtime writes the tool arguments to `output.json`; the parent validates that captured JSON against the schema, reads it back as `result.structuredOutput`, and exposes it in named-chain references under `outputs.name.structured`. If the child exits without calling `structured_output`, or the captured value fails schema validation, Orphus retries up to three times with a corrective prompt that quotes the exact contract/validation error and reminds the child to call `structured_output` rather than returning plain JSON.
 
-Children without `outputSchema` do not receive `structured_output` from Atomic's default tool registry. They can still use a custom extension-provided terminating tool if you explicitly add one.
+Children without `outputSchema` do not receive `structured_output` from Orphus's default tool registry. They can still use a custom extension-provided terminating tool if you explicitly add one.
 
 Dynamic fanout `collect.outputSchema` validates the collected result array after child runs finish.
 
 ## Fallback models
 
-Agents can define ordered `fallbackModels` for retryable provider or model failures such as rate limits, quota/usage-limit exhaustion (for example a provider reporting `The usage limit has been reached`, or `usage_limit_reached`/`insufficient_quota` codes), auth problems, unavailable models, network timeouts, or 5xx errors. Atomic tries the requested primary model first, then configured fallbacks, and finally appends the current user-selected model as the last fallback candidate when available. The main chat and workflow stages share one failure classifier, so auth, model-availability, request-incompatibility, and transport signals are handled consistently. Cancellations, safety refusals, and task/tool failures are never retried on another model.
+Agents can define ordered `fallbackModels` for retryable provider or model failures such as rate limits, quota/usage-limit exhaustion (for example a provider reporting `The usage limit has been reached`, or `usage_limit_reached`/`insufficient_quota` codes), auth problems, unavailable models, network timeouts, or 5xx errors. Orphus tries the requested primary model first, then configured fallbacks, and finally appends the current user-selected model as the last fallback candidate when available. The main chat and workflow stages share one failure classifier, so auth, model-availability, request-incompatibility, and transport signals are handled consistently. Cancellations, safety refusals, and task/tool failures are never retried on another model.
 
-A candidate that cannot serve the current request — for example an HTTP 400/413/422 bad/unprocessable/payload-too-large request, an unsupported tool or parameter, a context-length/context-window overflow, or a `too large` / `invalid_request` error — is treated as request/context incompatible and the chain advances to the next candidate rather than stopping. This means that if none of the configured candidates are applicable to the request, Atomic falls back to the currently selected user model instead of failing outright.
+A candidate that cannot serve the current request — for example an HTTP 400/413/422 bad/unprocessable/payload-too-large request, an unsupported tool or parameter, a context-length/context-window overflow, or a `too large` / `invalid_request` error — is treated as request/context incompatible and the chain advances to the next candidate rather than stopping. This means that if none of the configured candidates are applicable to the request, Orphus falls back to the currently selected user model instead of failing outright.
 
 Model fallback decisions use structured provider and attempt causes. There is no per-attempt idle watchdog, no child wall-clock kill cap, and no timeout-regex classification: a quiet provider response is allowed to finish, and only an explicit termination or provider failure supplies a retryable cause. Numeric process exit codes are not used as an outcome discriminator.
 
-When registry availability shows that a known candidate provider has no configured auth, Atomic records a skipped model attempt before starting the in-process turn. Unknown/custom providers are still attempted, and the current user-selected model appended as the final fallback is never filtered out by this pre-admission check.
+When registry availability shows that a known candidate provider has no configured auth, Orphus records a skipped model attempt before starting the in-process turn. Unknown/custom providers are still attempted, and the current user-selected model appended as the final fallback is never filtered out by this pre-admission check.
 
 Fallbacks do not retry ordinary task failures, validation failures, tool failures, cancellations, or workflow-code errors. Because a fallback may send the same prompt and context to a different provider, choose models that match your cost, privacy, and data-handling requirements.
 

@@ -1,4 +1,4 @@
-> Atomic can help you use the SDK. Ask it to build an integration for your use case.
+> Orphus can help you use the SDK. Ask it to build an integration for your use case.
 
 # SDK
 
@@ -46,7 +46,7 @@ const { session } = await createAgentSession({
 });
 ```
 
-`ModelRuntime.create()` accepts custom `authPath`, `modelsPath`, credential storage, and runtime auth overrides. `ModelRegistry` and `AuthStorage` remain available as Atomic's synchronous compatibility facades. Use `readStoredCredential(provider, authPath?)` for a lightweight read of one stored provider credential.
+`ModelRuntime.create()` accepts custom `authPath`, `modelsPath`, credential storage, and runtime auth overrides. `ModelRegistry` and `AuthStorage` remain available as Orphus's synchronous compatibility facades. Use `readStoredCredential(provider, authPath?)` for a lightweight read of one stored provider credential.
 
 Extensions supplied directly to SDK sessions can use the exported `InlineExtension` type. Extension APIs and event types include native `registerProvider(Provider)`, `registerEntryRenderer`, `entry_appended`, `before_provider_headers`, and `agent_settled`.
 
@@ -74,7 +74,7 @@ With Bun:
 bun add @bastani/atomic
 ```
 
-Atomic does not require package install scripts. If you want to disable dependency lifecycle scripts during the Atomic install, you can add `--ignore-scripts` to the install command.
+Orphus does not require package install scripts. If you want to disable dependency lifecycle scripts during the Orphus install, you can add `--ignore-scripts` to the install command.
 
 The SDK is included in the main package. No separate SDK package is needed.
 
@@ -391,7 +391,7 @@ const { session } = await createAgentSession({
 });
 ```
 
-Atomic reads primary `.atomic` locations first and legacy `.pi` locations for compatibility when multiple config directories are supported. Passing an explicit `agentDir` makes that directory the user override.
+Orphus reads primary `.atomic` locations first and legacy `.pi` locations for compatibility when multiple config directories are supported. Passing an explicit `agentDir` makes that directory the user override.
 
 `cwd` is used by `DefaultResourceLoader` for:
 - Project extensions (`.atomic/extensions/`, then legacy `.pi/extensions/`)
@@ -549,7 +549,7 @@ const { session } = await createAgentSession({
 
 #### Bash tool behavior
 
-Atomic's built-in `bash` tool matches upstream pi: when `bash` is enabled, commands execute through the configured shell with the Atomic process permissions. Use `tools`, `excludedTools`, or `noTools` to decide whether a session exposes the `bash` tool at all. Atomic no longer provides a command-level allow/deny option for `bash`; use an operating-system/container sandbox or a custom tool/extension when you need command allowlisting or stronger isolation.
+Orphus's built-in `bash` tool matches upstream pi: when `bash` is enabled, commands execute through the configured shell with the Orphus process permissions. Use `tools`, `excludedTools`, or `noTools` to decide whether a session exposes the `bash` tool at all. Orphus no longer provides a command-level allow/deny option for `bash`; use an operating-system/container sandbox or a custom tool/extension when you need command allowlisting or stronger isolation.
 
 #### Tools with Custom cwd
 
@@ -645,7 +645,7 @@ const { session } = await createAgentSession({
 });
 ```
 
-The tool parameters are exactly the supplied schema: with `DecisionSchema`, the model calls `structured_output({ approved, findings })`. Array and primitive schemas are also accepted by the factory when the target provider/tool runtime supports them; the captured value is whatever JSON value matches the schema. A successful call stores the params in `capture.value`, returns them as pretty-printed JSON tool-result text for text print mode, keeps the flat value in tool `details`, writes the same JSON to the configured `output.outputPath` when an `output` file sink is configured, and sets `terminate: true` so there is no extra follow-up assistant turn. Atomic relies on the tool schema instead of extra structured-output parsing or sidecar validation. Structured-output tool definitions opt out of oversized-result persistence.
+The tool parameters are exactly the supplied schema: with `DecisionSchema`, the model calls `structured_output({ approved, findings })`. Array and primitive schemas are also accepted by the factory when the target provider/tool runtime supports them; the captured value is whatever JSON value matches the schema. A successful call stores the params in `capture.value`, returns them as pretty-printed JSON tool-result text for text print mode, keeps the flat value in tool `details`, writes the same JSON to the configured `output.outputPath` when an `output` file sink is configured, and sets `terminate: true` so there is no extra follow-up assistant turn. Orphus relies on the tool schema instead of extra structured-output parsing or sidecar validation. Structured-output tool definitions opt out of oversized-result persistence.
 
 Custom tool names are supported, and the prompt metadata follows the configured name. If you use a custom name such as `final_decision`, include that name in any explicit `tools` allowlist. If the standard `structured_output` name is required, register the factory with its default name:
 
@@ -929,7 +929,7 @@ const { session } = await createAgentSession({
 
 **Project-specific settings:**
 
-Settings load from Atomic-first locations and merge:
+Settings load from Orphus-first locations and merge:
 1. Global: `~/.atomic/agent/settings.json`, then legacy `~/.pi/agent/settings.json`
 2. Project: `<cwd>/.atomic/settings.json`, then legacy `<cwd>/.pi/settings.json`
 

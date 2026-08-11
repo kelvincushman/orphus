@@ -59,7 +59,7 @@ export default function (pi: ExtensionAPI) {
 }
 ```
 
-The extension factory can also be `async`. For dynamic model discovery, fetch and register models in the factory instead of `session_start`. Atomic waits for the factory before startup continues, so the provider is available during interactive startup and to `atomic --list-models`.
+The extension factory can also be `async`. For dynamic model discovery, fetch and register models in the factory instead of `session_start`. Orphus waits for the factory before startup continues, so the provider is available during interactive startup and to `atomic --list-models`.
 
 ## Override Existing Provider
 
@@ -208,7 +208,7 @@ models: [{
   id: "custom-model",
   // ...
   reasoning: true,
-  thinkingLevelMap: {              // map Atomic thinking levels to provider values; null hides unsupported levels
+  thinkingLevelMap: {              // map Orphus thinking levels to provider values; null hides unsupported levels
     minimal: null,
     low: null,
     medium: null,
@@ -312,15 +312,15 @@ After registration, users can authenticate via `/login corporate-ai`.
 
 Existing extension OAuth definitions keep their `login`, `refreshToken`, `getApiKey`, and optional `modifyModels` methods. OAuth refresh is serialized so concurrent requests do not overwrite each other's credentials.
 
-In isolated interactive mode, extension code and executable OAuth methods remain in the engine process. Atomic transports only the JSON-safe provider description (`id`, `name`, `loginLabel`, and `usesCallbackServer`) to the terminal process; it never serializes provider functions or acquired credentials and does not load the extension a second time in the frontend. `loginLabel` replaces the login dialog title, while `usesCallbackServer: true` exposes a redirect-URL paste field that races the browser callback. The engine executes the provider's login closure and correlates browser URLs, device codes, progress/info messages, prompts, selections, and manual-code callbacks with the originating login.
+In isolated interactive mode, extension code and executable OAuth methods remain in the engine process. Orphus transports only the JSON-safe provider description (`id`, `name`, `loginLabel`, and `usesCallbackServer`) to the terminal process; it never serializes provider functions or acquired credentials and does not load the extension a second time in the frontend. `loginLabel` replaces the login dialog title, while `usesCallbackServer: true` exposes a redirect-URL paste field that races the browser callback. The engine executes the provider's login closure and correlates browser URLs, device codes, progress/info messages, prompts, selections, and manual-code callbacks with the originating login.
 
-After acquisition, the engine owns serialized credential persistence and logout. It publishes the authenticated provider against its already-loaded snapshot as soon as persistence succeeds; dynamic catalog and ambient-availability refreshes run separately under the model selector's deadline and never extend the login transaction. Logout similarly publishes stored-credential removal without invoking `refreshModels`; Atomic gives the provider's local remaining-auth probe a short deadline so extension code cannot keep the dialog open. The frontend applies the returned snapshot only after the engine transaction succeeds. Escape or Ctrl+C cancels only the matching login and leaves the prior credential/catalog intact. Built-in OAuth and direct, non-isolated extension OAuth use the same persistence and cancellation semantics; later provider registrations continue to override earlier registrations by ID.
+After acquisition, the engine owns serialized credential persistence and logout. It publishes the authenticated provider against its already-loaded snapshot as soon as persistence succeeds; dynamic catalog and ambient-availability refreshes run separately under the model selector's deadline and never extend the login transaction. Logout similarly publishes stored-credential removal without invoking `refreshModels`; Orphus gives the provider's local remaining-auth probe a short deadline so extension code cannot keep the dialog open. The frontend applies the returned snapshot only after the engine transaction succeeds. Escape or Ctrl+C cancels only the matching login and leaves the prior credential/catalog intact. Built-in OAuth and direct, non-isolated extension OAuth use the same persistence and cancellation semantics; later provider registrations continue to override earlier registrations by ID.
 
 Intentional cancellation is quiet, including native `AbortError`, an aborted signal or its exact reason, nested abort causes, and the legacy exact `Login cancelled` error. Provider denial, timeout, network/protocol errors, malformed responses, token exchange failures, and storage failures remain visible. Catalog-refresh failures are reported by `/model` while cached models remain selectable; they do not turn a persisted login into a failed transaction.
 
 ## Dynamic model catalog refresh
 
-Providers whose catalogs change at runtime can add `refreshModels`. Atomic calls it during the model picker's bounded asynchronous refresh, independently of authentication completion:
+Providers whose catalogs change at runtime can add `refreshModels`. Orphus calls it during the model picker's bounded asynchronous refresh, independently of authentication completion:
 
 ```typescript
 pi.registerProvider("corporate-ai", {
@@ -374,7 +374,7 @@ For providers with non-standard APIs, implement `streamSimple`. Study the existi
 
 **Reference implementations:**
 
-Atomic uses provider implementations from its installed `@earendil-works/pi-ai` dependency. Inspect the compiled declarations and JavaScript under `node_modules/@earendil-works/pi-ai/dist/providers/`, including:
+Orphus uses provider implementations from its installed `@earendil-works/pi-ai` dependency. Inspect the compiled declarations and JavaScript under `node_modules/@earendil-works/pi-ai/dist/providers/`, including:
 - `anthropic.d.ts` / `anthropic.js` - Anthropic Messages API
 - `mistral.d.ts` / `mistral.js` - Mistral Conversations API
 - `openai-completions.d.ts` / `openai-completions.js` - OpenAI Chat Completions
@@ -576,7 +576,7 @@ pi.registerProvider("my-provider", {
 
 ## Testing Your Implementation
 
-Test your provider against focused tests that mirror Atomic's provider contract. If you are working from the source checkout, note that provider internals come from `@earendil-works/pi-ai`; this monorepo does not contain a `packages/ai/test` directory to copy from directly:
+Test your provider against focused tests that mirror Orphus's provider contract. If you are working from the source checkout, note that provider internals come from `@earendil-works/pi-ai`; this monorepo does not contain a `packages/ai/test` directory to copy from directly:
 
 | Test | Purpose |
 |------|---------|
@@ -656,7 +656,7 @@ interface ProviderModelConfig {
   /** Whether the model supports extended thinking. */
   reasoning: boolean;
 
-  /** Maps Atomic thinking levels to provider/model-specific values; null marks a level unsupported. */
+  /** Maps Orphus thinking levels to provider/model-specific values; null marks a level unsupported. */
   thinkingLevelMap?: Partial<Record<"off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max", string | null>>;
 
   /** Supported input types. */
@@ -695,7 +695,7 @@ interface ProviderModelConfig {
     supportsUsageInStreaming?: boolean;
     supportsStrictMode?: boolean;
     supportsOpenAIGrammarTools?: boolean;
-    /** Atomic alias for supportsOpenAIGrammarTools. */
+    /** Orphus alias for supportsOpenAIGrammarTools. */
     supportsGrammarTools?: boolean;
     maxTokensField?: "max_completion_tokens" | "max_tokens";
     requiresToolResultName?: boolean;
@@ -719,6 +719,6 @@ The `cost` shape is equivalent to `Model<Api>["cost"]`. Base rates and every tie
 `openrouter` sends `reasoning: { effort }`. `deepseek` sends `thinking: { type: "enabled" | "disabled" }` and `reasoning_effort` when enabled. `together` sends `reasoning: { enabled }` and also `reasoning_effort` when `supportsReasoningEffort` is enabled. `qwen` is for DashScope-style top-level `enable_thinking`. Use `qwen-chat-template` for local Qwen-compatible servers that read `chat_template_kwargs.enable_thinking` and need `preserve_thinking`. Use `chat-template` for configurable `chat_template_kwargs`, for example DeepSeek V3.x behind vLLM with `chatTemplateKwargs: { "thinking": { "$var": "thinking.enabled" } }`.
 `cacheControlFormat: "anthropic"` applies Anthropic-style `cache_control` markers to the system prompt, last tool definition, and last user/assistant text content.
 
-Capability flags are enforcement claims, not preferences. `supportsStrictMode` controls strict JSON-schema tools for OpenAI-compatible APIs; Anthropic/Bedrock use `supportsStrictTools`; `supportsOpenAIGrammarTools` controls OpenAI Lark/regex custom tools. Atomic also accepts `supportsGrammarTools` as a compatibility alias and synchronizes it to the canonical OpenAI name; when both disagree, the canonical field wins. Leave these fields unset/false unless the endpoint and selected model actually preserve and enforce the corresponding request shape. See [Extensions](/extensions#constrained-sampling) for exact `constrainedSampling` modes.
+Capability flags are enforcement claims, not preferences. `supportsStrictMode` controls strict JSON-schema tools for OpenAI-compatible APIs; Anthropic/Bedrock use `supportsStrictTools`; `supportsOpenAIGrammarTools` controls OpenAI Lark/regex custom tools. Orphus also accepts `supportsGrammarTools` as a compatibility alias and synchronizes it to the canonical OpenAI name; when both disagree, the canonical field wins. Leave these fields unset/false unless the endpoint and selected model actually preserve and enforce the corresponding request shape. See [Extensions](/extensions#constrained-sampling) for exact `constrainedSampling` modes.
 
 For `openai-responses` providers, set `compat.sessionAffinityFormat` to `"openai"` for `session_id` plus `x-client-request-id`, `"openai-nosession"` to omit `session_id` while retaining `x-client-request-id`, or `"openrouter"` for `x-session-id`. Responses-compatible providers may also set `supportsToolSearch` when they support deferred tool loading.

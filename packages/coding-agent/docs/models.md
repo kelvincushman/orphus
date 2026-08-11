@@ -1,6 +1,6 @@
 # Custom Models
 
-Add custom providers and models (Ollama, vLLM, LM Studio, proxies) via the single `models.json` in the active Atomic agent directory, normally `~/.atomic/agent/models.json`, or the directory selected by `ORPHUS_CODING_AGENT_DIR`/`PI_CODING_AGENT_DIR`. Atomic reads only that file: it does not read project-scoped `.atomic/models.json`, fall back to `~/.pi/agent/models.json`, or merge `.pi` and `.atomic` model configuration files. The legacy `.pi` read fallback remains available for configuration surfaces that explicitly use layered config paths, such as `auth.json`; it does not apply to `models.json`.
+Add custom providers and models (Ollama, vLLM, LM Studio, proxies) via the single `models.json` in the active Orphus agent directory, normally `~/.atomic/agent/models.json`, or the directory selected by `ORPHUS_CODING_AGENT_DIR`/`PI_CODING_AGENT_DIR`. Orphus reads only that file: it does not read project-scoped `.atomic/models.json`, fall back to `~/.pi/agent/models.json`, or merge `.pi` and `.atomic` model configuration files. The legacy `.pi` read fallback remains available for configuration surfaces that explicitly use layered config paths, such as `auth.json`; it does not apply to `models.json`.
 
 The interactive `/model` selector renders the current authenticated snapshot immediately and refreshes network-backed catalogs in the background for up to 15 seconds. The direct `/model <model_name>` route searches under the same deadline and falls back to cached models when refresh stalls or fails. The terminal owns that deadline: it stops waiting and replaces `Refreshing model catalogs…` with a cached-model timeout or error status even when lower-level work rejects or ignores cancellation. In isolated-engine sessions the same deadline covers both credential reload and catalog work inside the engine, and model selection does not queue behind the refresh. Login and logout publish credential changes independently of catalog refresh, and a refresh that started against an older credential generation is discarded instead of restoring stale provider availability. A slow catalog therefore falls back to cached models without requiring an `auth.json` or `~/.atomic` reset.
 
@@ -42,7 +42,7 @@ For local models (Ollama, LM Studio, vLLM), only `id` is required per model:
 
 The `apiKey` is required but Ollama ignores it, so any value works.
 
-Some OpenAI-compatible servers do not understand the `developer` role used for reasoning-capable models. For those providers, set `compat.supportsDeveloperRole` to `false` so Atomic sends the system prompt as a `system` message instead. If the server also does not support `reasoning_effort`, set `compat.supportsReasoningEffort` to `false` too.
+Some OpenAI-compatible servers do not understand the `developer` role used for reasoning-capable models. For those providers, set `compat.supportsDeveloperRole` to `false` so Orphus sends the system prompt as a `system` message instead. If the server also does not support `reasoning_effort`, set `compat.supportsReasoningEffort` to `false` too.
 
 You can set `compat` at the provider level to apply to all models, or at the model level to override a specific model. This commonly applies to Ollama, vLLM, SGLang, and similar OpenAI-compatible servers.
 
@@ -95,7 +95,7 @@ Override defaults when you need specific values:
 }
 ```
 
-Atomic reloads the active agent directory's single `models.json` each time you open `/model`. Provider definitions, per-model overrides, dynamic catalogs, and isolated-engine model state are rebuilt from that fresh configuration, so edits take effect without restarting. Invalid edits report an error.
+Orphus reloads the active agent directory's single `models.json` each time you open `/model`. Provider definitions, per-model overrides, dynamic catalogs, and isolated-engine model state are rebuilt from that fresh configuration, so edits take effect without restarting. Invalid edits report an error.
 
 ## Google AI Studio Example
 
@@ -135,7 +135,7 @@ The `baseUrl` is required when adding custom models to the `google-generative-ai
 
 Set `api` at provider level (default for all models) or model level (override per model).
 
-These four values are the generic custom-provider APIs supported by `models.json`. Atomic's installed native provider runtime also implements provider-owned APIs including `mistral-conversations`, `azure-openai-responses`, `openai-codex-responses`, `bedrock-converse-stream`, `google-vertex`, and `pi-messages`; those native APIs are not implied to be stable generic custom-provider contracts.
+These four values are the generic custom-provider APIs supported by `models.json`. Orphus's installed native provider runtime also implements provider-owned APIs including `mistral-conversations`, `azure-openai-responses`, `openai-codex-responses`, `bedrock-converse-stream`, `google-vertex`, and `pi-messages`; those native APIs are not implied to be stable generic custom-provider contracts.
 
 ## Provider Configuration
 
@@ -150,7 +150,7 @@ These four values are the generic custom-provider APIs supported by `models.json
 | `models`         | Array of model configurations                                    |
 | `modelOverrides` | Per-model overrides for matching built-in or extension-registered models on this provider |
 
-For a custom Radius gateway, set `"oauth": "radius"` and its `baseUrl`. Atomic uses Radius OAuth credentials and the gateway's dynamic `pi-messages` catalog.
+For a custom Radius gateway, set `"oauth": "radius"` and its `baseUrl`. Orphus uses Radius OAuth credentials and the gateway's dynamic `pi-messages` catalog.
 ### Value Resolution
 
 The `apiKey` and `headers` fields support three formats:
@@ -171,7 +171,7 @@ The `apiKey` and `headers` fields support three formats:
 
 Legacy uppercase env-var-like values in existing `models.json` provider config, such as `MY_API_KEY`, are migrated to `$MY_API_KEY` on startup only when that environment variable is present during migration; otherwise the value is preserved as a literal. New configs should use explicit `$ENV_VAR`/`${ENV_VAR}` syntax for environment variables.
 
-For `models.json`, shell commands are resolved at request time. Atomic intentionally does not apply built-in TTL, stale reuse, or recovery logic for arbitrary commands. Different commands need different caching and failure strategies, and Atomic cannot infer the right one.
+For `models.json`, shell commands are resolved at request time. Orphus intentionally does not apply built-in TTL, stale reuse, or recovery logic for arbitrary commands. Different commands need different caching and failure strategies, and Orphus cannot infer the right one.
 
 If your command is slow, expensive, rate-limited, or should keep using a previous value on transient failures, wrap it in your own script or command that implements the caching or TTL behavior you want.
 
@@ -204,7 +204,7 @@ If your command is slow, expensive, rate-limited, or should keep using a previou
 | `name`             | No       | `id`              | Human-readable model label. Used for matching (`--model` patterns) and shown as secondary model detail text. |
 | `api`              | No       | provider's `api`  | Override provider's API for this model                                                                     |
 | `reasoning`        | No       | `false`           | Supports extended thinking                                                                                 |
-| `thinkingLevelMap` | No       | omitted           | Maps Atomic thinking levels to provider values and marks unsupported levels (see below)                    |
+| `thinkingLevelMap` | No       | omitted           | Maps Orphus thinking levels to provider values and marks unsupported levels (see below)                    |
 | `input`            | No       | `["text"]`        | Input types: `["text"]` or `["text", "image"]`                                                             |
 | `contextWindow`    | No       | `128000`          | Default/effective context window size in tokens                                                            |
 | `maxTokens`        | No       | `16384`           | Maximum output tokens                                                                                      |
@@ -217,7 +217,7 @@ Current behavior:
 - The configured `name` is used for model matching and secondary model detail text. It does not replace the footer/status-bar model id.
 
 
-Model references resolve the complete, unmodified ID before Atomic interprets thinking suffixes or glob syntax. For example, if the catalog contains the literal ID `provider/literal[free]:high`, that complete model wins and `:high` remains part of its ID; it does not become a thinking-level suffix and `[free]` is not treated as a character class. Only when the complete ID is absent does Atomic parse a valid thinking suffix, try the stripped exact ID, then apply glob/fuzzy matching. This preserves literal provider IDs without changing ordinary `*`, `?`, bracket-glob, ambiguity, ordering, or deduplication behavior.
+Model references resolve the complete, unmodified ID before Orphus interprets thinking suffixes or glob syntax. For example, if the catalog contains the literal ID `provider/literal[free]:high`, that complete model wins and `:high` remains part of its ID; it does not become a thinking-level suffix and `[free]` is not treated as a character class. Only when the complete ID is absent does Orphus parse a valid thinking suffix, try the stripped exact ID, then apply glob/fuzzy matching. This preserves literal provider IDs without changing ordinary `*`, `?`, bracket-glob, ambiguity, ordering, or deduplication behavior.
 ### Request-wide Cost Tiers
 
 Custom models can declare request-wide long-context pricing under `cost.tiers`. The base `cost` and every tier must provide all four rates: `input`, `output`, `cacheRead`, and `cacheWrite`, in cost per million tokens. Each tier also requires `inputTokensAbove`.
@@ -243,7 +243,7 @@ Custom models can declare request-wide long-context pricing under `cost.tiers`. 
 }
 ```
 
-Atomic chooses one rate set for the entire request. It calculates aggregate input as `input + cacheRead + cacheWrite`, selects only tiers whose threshold is **strictly exceeded**, and uses the matching tier with the highest `inputTokensAbove`. Exactly 272,000 aggregate input tokens in the example still use the base rates; 272,001 use every rate from the tier, including the tier's output rate.
+Orphus chooses one rate set for the entire request. It calculates aggregate input as `input + cacheRead + cacheWrite`, selects only tiers whose threshold is **strictly exceeded**, and uses the matching tier with the highest `inputTokensAbove`. Exactly 272,000 aggregate input tokens in the example still use the base rates; 272,001 use every rate from the tier, including the tier's output rate.
 
 For `modelOverrides`, `cost` is partial: any supplied scalar rate replaces that scalar while omitted scalar rates remain inherited. A scalar-only cost override also preserves inherited tiers. Supplying `tiers` replaces the whole inherited tier array; use `"tiers": []` to clear it explicitly. Every supplied replacement tier must still be complete.
 
@@ -268,7 +268,7 @@ This override changes only the base input rate, retains the model's other base r
 
 ### Thinking Level Map
 
-Use `thinkingLevelMap` on a model to describe model-specific thinking controls. Keys are Atomic thinking levels: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`. A level is selectable only when the active model supports it; `xhigh` and `max` are not universal provider capabilities.
+Use `thinkingLevelMap` on a model to describe model-specific thinking controls. Keys are Orphus thinking levels: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`. A level is selectable only when the active model supports it; `xhigh` and `max` are not universal provider capabilities.
 
 Values are tristate:
 
@@ -418,12 +418,12 @@ Use `modelOverrides` to customize specific models without replacing the provider
 
 `modelOverrides` supports these fields per model: `name`, `reasoning`, `thinkingLevelMap`, `input`, `cost` (partial scalar rates plus optional full tier-array replacement), `contextWindow`, `maxTokens`, `headers`, `compat`.
 
-Atomic reads one `models.json` from the active agent directory. It does not layer model overrides from `.pi` and `.atomic` files.
+Orphus reads one `models.json` from the active agent directory. It does not layer model overrides from `.pi` and `.atomic` files.
 
 Within a single file, custom model definitions replace matching built-in entries after built-in overrides are applied. `modelOverrides` composes only with built-in and extension-registered models; it does not modify a same-ID custom model definition.
 
 Behavior notes:
-- Atomic retains the parsed override map even when an extension registers the matching provider/model after `models.json` is loaded.
+- Orphus retains the parsed override map even when an extension registers the matching provider/model after `models.json` is loaded.
 - Model overrides come from the active agent directory's single `models.json`; no cross-file layering or merging is performed.
 - For matching built-in and extension-registered models, the model definition is the base and `modelOverrides` wins configured fields. Extension-registered model headers are shallow-merged with override headers, with override headers winning duplicate names. A same-ID custom model replaces the built-in override result, including its complete header record.
 - A scalar-only `cost` override preserves inherited tiers. Supplying `cost.tiers` replaces the complete tier array, including `[]` to clear it; omitted scalar cost fields remain inherited.
@@ -435,7 +435,7 @@ Behavior notes:
 
 For providers or proxies using `api: "anthropic-messages"`, use `compat.supportsEagerToolInputStreaming` to control Anthropic fine-grained tool streaming compatibility.
 
-By default, Atomic sends per-tool `eager_input_streaming: true`. If a proxy or Anthropic-compatible backend rejects that field, set `supportsEagerToolInputStreaming` to `false`. Atomic will omit `tools[].eager_input_streaming` and send the legacy `fine-grained-tool-streaming-2025-05-14` beta header for tool-enabled requests instead.
+By default, Orphus sends per-tool `eager_input_streaming: true`. If a proxy or Anthropic-compatible backend rejects that field, set `supportsEagerToolInputStreaming` to `false`. Orphus will omit `tools[].eager_input_streaming` and send the legacy `fine-grained-tool-streaming-2025-05-14` beta header for tool-enabled requests instead.
 
 ```json
 {
@@ -500,25 +500,25 @@ For providers with partial OpenAI compatibility, use the `compat` field.
 | `requiresThinkingAsText`                      | Convert thinking blocks to plain text                                                                                                                                                                                                |
 | `requiresReasoningContentOnAssistantMessages` | Include empty `reasoning_content` on all replayed assistant messages when reasoning is enabled                                                                                                                                       |
 | `thinkingFormat`                              | Use `reasoning_effort`, `openrouter`, `deepseek`, `together`, `zai`, `qwen`, `chat-template`, or `qwen-chat-template` thinking parameters                                                                                            |
-| `chatTemplateKwargs`                          | `chat_template_kwargs` values for `thinkingFormat: "chat-template"`; use `{ "$var": "thinking.enabled" }` or `{ "$var": "thinking.effort" }` for Atomic-controlled thinking values                                          |
+| `chatTemplateKwargs`                          | `chat_template_kwargs` values for `thinkingFormat: "chat-template"`; use `{ "$var": "thinking.enabled" }` or `{ "$var": "thinking.effort" }` for Orphus-controlled thinking values                                          |
 | `cacheControlFormat`                          | Use Anthropic-style `cache_control` markers on the system prompt, last tool definition, and last user/assistant text content. Currently only `anthropic` is supported.                                                               |
 | `supportsStrictMode`                          | OpenAI-compatible strict JSON-schema function tools. This is not a general guarantee for every API. |
 | `supportsStrictTools`                         | Anthropic/Bedrock strict-tool capability, normally generated from verified model metadata. |
 | `supportsOpenAIGrammarTools`                  | Canonical Pi capability for OpenAI Lark/regex custom tools. Keep false unless the endpoint passes custom tools through unchanged. |
-| `supportsGrammarTools`                        | Atomic compatibility alias for `supportsOpenAIGrammarTools`; the canonical field wins if both disagree. |
+| `supportsGrammarTools`                        | Orphus compatibility alias for `supportsOpenAIGrammarTools`; the canonical field wins if both disagree. |
 | `supportsLongCacheRetention`                  | Whether the provider accepts long cache retention when cache retention is `long`: `prompt_cache_retention: "24h"` for OpenAI prompt caching, or `cache_control.ttl: "1h"` when `cacheControlFormat` is `anthropic`. Default: `true`. |
 | `openRouterRouting`                           | OpenRouter provider routing preferences. This object is sent as-is in the `provider` field of the [OpenRouter API request](https://openrouter.ai/docs/guides/routing/provider-selection).                                            |
 | `vercelGatewayRouting`                        | Vercel AI Gateway routing config for provider selection (`only`, `order`)                                                                                                                                                            |
 
 ### Constrained tool sampling
 
-Tools may request `{ type: "json_schema", strict: "prefer" | "require" }` or `{ type: "grammar", variants: { openai_lark?: string, openai_regex?: string } }`. `prefer` may fall back to ordinary tool calling; `require` must fail if the active provider/model cannot enforce the schema. Grammar tools use OpenAI custom-tool syntax and fall back to normal function handling when grammar capability is absent. Do not infer support from a provider name: Atomic carries the model's explicit capability metadata through built-in catalogs, dynamic catalogs, overrides, SDK/RPC model objects, and isolated execution.
+Tools may request `{ type: "json_schema", strict: "prefer" | "require" }` or `{ type: "grammar", variants: { openai_lark?: string, openai_regex?: string } }`. `prefer` may fall back to ordinary tool calling; `require` must fail if the active provider/model cannot enforce the schema. Grammar tools use OpenAI custom-tool syntax and fall back to normal function handling when grammar capability is absent. Do not infer support from a provider name: Orphus carries the model's explicit capability metadata through built-in catalogs, dynamic catalogs, overrides, SDK/RPC model objects, and isolated execution.
 
 Strict JSON-schema support currently includes OpenAI, Anthropic, capable Bedrock Converse models, Mistral, and Gemini 3 through Google/Vertex. Earlier Gemini models cannot enforce required parameters: `prefer` falls back and `require` fails. OpenAI grammar tools are limited to capable GPT-5+ models on endpoints known to preserve custom tools; gateways such as OpenRouter may normalize and break them.
 
 ### Catalog freshness and precedence
 
-Authenticated remote catalogs are cached in `models-store.json`. Atomic revalidates pi.dev catalogs with the stored ETag through `If-None-Match`; an empty `304 Not Modified` is success and retains the cached body while updating its check time. A newer bundled catalog wins over an older persisted overlay even when package file mtimes are misleading. Final visibility is built-ins, persisted/remote data subject to freshness, configured `.pi` then `.atomic` layers, and live provider catalogs/overrides. Provider failures retain the last usable provider-specific snapshot.
+Authenticated remote catalogs are cached in `models-store.json`. Orphus revalidates pi.dev catalogs with the stored ETag through `If-None-Match`; an empty `304 Not Modified` is success and retains the cached body while updating its check time. A newer bundled catalog wins over an older persisted overlay even when package file mtimes are misleading. Final visibility is built-ins, persisted/remote data subject to freshness, configured `.pi` then `.atomic` layers, and live provider catalogs/overrides. Provider failures retain the last usable provider-specific snapshot.
 
 Claude Opus 5 is present in the generated Anthropic and Amazon Bedrock catalogs. Its metadata enables adaptive thinking, including `xhigh` where advertised. Bedrock uses its generated inference-profile ID, prompt-caching and strict-tool metadata, and preserves provider/AWS validation errors. Custom entries must reproduce those capabilities honestly rather than copying a display name alone.
 `openrouter` uses `reasoning: { effort }`. `together` uses `reasoning: { enabled }` and also `reasoning_effort` when `supportsReasoningEffort` is enabled. `qwen` uses top-level `enable_thinking`. Use `qwen-chat-template` for local Qwen-compatible servers that require `chat_template_kwargs.enable_thinking` and `preserve_thinking`. Use `chat-template` for vLLM/Hugging Face chat templates that need configurable `chat_template_kwargs`, such as `chatTemplateKwargs: { "thinking": { "$var": "thinking.enabled" } }` for DeepSeek V3.x templates.
