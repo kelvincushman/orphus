@@ -35,7 +35,7 @@ ecosystem is what moves those pins).
 ### `suites` — the inherited tests
 
 Runs the upstream recipe on a standard runner: a Rust toolchain and
-`npm run build --workspace=@bastani/atomic-natives` (the bundled subagent
+`npm run build --workspace=@orphus/natives` (the bundled subagent
 extension loads the control plane in `crates/atomic-natives` and fails at import
 without a binding, taking the whole suite with it), then the coding-agent build
 (`test/unit/pi-0.82.1-artifacts.test.ts` degrades to `test.skip` when `dist/` is
@@ -89,7 +89,7 @@ removing a step fails a test rather than silently shrinking the gate.
 
 ## Inherited Atomic pipeline (disabled — reference only)
 
-Atomic publishes `@bastani/atomic` from `packages/coding-agent` and `@bastani/atomic-natives` from `packages/natives`. The other workspace packages remain private and are bundled into the coding-agent package.
+Atomic publishes `@orphus/coding-agent` from `packages/coding-agent` and `@orphus/natives` from `packages/natives`. The other workspace packages remain private and are bundled into the coding-agent package.
 
 ### Workflow overview
 
@@ -129,7 +129,7 @@ The test workflow runs on pushes to `main`, `release/**`, and `prerelease/**`, a
 
 | Job | Platforms | Chain | Linux | Windows |
 | --- | --- | --- | ---: | ---: |
-| `suites` | both | build `@bastani/atomic` -> unit -> integration | 121 s | 195 s |
+| `suites` | both | build `@orphus/coding-agent` -> unit -> integration | 121 s | 195 s |
 | `agent-suite` | both | build native bindings -> coding-agent vitest (Node), then its Bun-hosted SQLite selector project | 126 s | 232 s |
 | `release-archive` | both | build package -> `scripts/build-binaries.sh` -> archive smoke | 74 s | 149 s warm / 4m04s healthy p100 |
 | `static-checks` | Linux only | typecheck, docs links, Mintlify, CI contracts | 30 s | – |
@@ -183,7 +183,7 @@ Steps stay in one job only when one consumes another's build output. Nothing is 
 
 - `test/unit/pi-0.82.1-artifacts.test.ts` gates its assertions on `packages/coding-agent/dist` and degrades to `test.skip` with a warning when the build has not run, so the unit suite must stay behind the package build. Moving it into a build-less job would lose coverage without failing anything.
 - `test/integration/installed-package-node-extensions.test.ts` needs `dist/` and Node and is hard-required by `ATOMIC_REQUIRE_INSTALLED_NODE_SMOKE=1`, so `suites` is the only job that installs Node.
-- `packages/coding-agent/test/native-binding-exports.test.ts` is hard-required by `ATOMIC_REQUIRE_NATIVE_BINDING_SMOKE=1`, so the vitest suite stays behind `npm run build --workspace=@bastani/atomic-natives`.
+- `packages/coding-agent/test/native-binding-exports.test.ts` is hard-required by `ATOMIC_REQUIRE_NATIVE_BINDING_SMOKE=1`, so the vitest suite stays behind `npm run build --workspace=@orphus/natives`.
 - `scripts/build-binaries.sh` reuses `packages/natives/native/*.node` when present and otherwise builds them, so `release-archive` carries its own Rust toolchain and pays that build again rather than waiting on `agent-suite`. `suites` and `static-checks` need no Rust at all.
 - `agent-suite` runs the coding-agent package in one step; its SQLite selectors resolve `node:sqlite` under Node and fall back to `bun:sqlite` under Bun.
 
@@ -252,7 +252,7 @@ The tag push is the publication signal. Do not bump package versions directly on
 
 ### Native NAPI matrix
 
-The native job always rebuilds and uploads one artifact for each shipped `@bastani/atomic-natives` target. It uses pinned Rust 1.97.0; x64 targets use the compatibility-oriented `x86-64-v2` baseline.
+The native job always rebuilds and uploads one artifact for each shipped `@orphus/natives` target. It uses pinned Rust 1.97.0; x64 targets use the compatibility-oriented `x86-64-v2` baseline.
 
 | Platform | Runner | Explicit rustup target |
 | --- | --- | --- |
@@ -434,16 +434,16 @@ After npm succeeds, `publish-github-release` changes the draft to public and set
 
 The npm job uses environment `npm-publish` with only `contents: read` and `id-token: write`. It upgrades to an npm version that supports trusted publishing and publishes with provenance. Configure the npm trusted publisher for workflow filename `publish.yml` and environment `npm-publish` on all ten package names:
 
-1. `@bastani/atomic-natives-darwin-arm64`
-2. `@bastani/atomic-natives-darwin-x64`
-3. `@bastani/atomic-natives-linux-arm64-gnu`
-4. `@bastani/atomic-natives-linux-arm64-musl`
-5. `@bastani/atomic-natives-linux-x64-gnu`
-6. `@bastani/atomic-natives-linux-x64-musl`
-7. `@bastani/atomic-natives-win32-arm64-msvc`
-8. `@bastani/atomic-natives-win32-x64-msvc`
-9. `@bastani/atomic-natives`
-10. `@bastani/atomic`
+1. `@orphus/natives-darwin-arm64`
+2. `@orphus/natives-darwin-x64`
+3. `@orphus/natives-linux-arm64-gnu`
+4. `@orphus/natives-linux-arm64-musl`
+5. `@orphus/natives-linux-x64-gnu`
+6. `@orphus/natives-linux-x64-musl`
+7. `@orphus/natives-win32-arm64-msvc`
+8. `@orphus/natives-win32-x64-msvc`
+9. `@orphus/natives`
+10. `@orphus/coding-agent`
 
 That order publishes native leaves first, then the native root, then the coding agent. A package version already present in the registry is logged and skipped, making recovery idempotent. Stable versions use `latest`; alpha versions use `next`. No static npm credential is configured.
 

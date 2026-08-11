@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import { registerFleetCommand } from "./commands/fleet-command.ts";
 import { registerFleetSetupCommand } from "./commands/fleetsetup-command.ts";
 import { registerFleetTool } from "./fleet-tool.ts";

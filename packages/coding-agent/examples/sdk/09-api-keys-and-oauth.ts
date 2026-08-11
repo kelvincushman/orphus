@@ -4,7 +4,7 @@
  * Configure credential and model resolution through ModelRuntime.
  */
 
-import { createAgentSession, ModelRuntime, SessionManager } from "@bastani/atomic";
+import { createAgentSession, ModelRuntime, SessionManager } from "@orphus/coding-agent";
 
 // Default: createAgentSession builds a runtime from the active agent directory's
 // auth.json and models.json.

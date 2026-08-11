@@ -19,10 +19,10 @@ pkg update && pkg upgrade
 pkg install nodejs termux-api git
 
 # Install Atomic with npm (included with Termux's nodejs package)
-npm install -g @bastani/atomic
+npm install -g @orphus/coding-agent
 
 # If you have installed Bun separately in Termux, you can use Bun instead:
-# bun add -g @bastani/atomic
+# bun add -g @orphus/coding-agent
 
 # Create config directory
 mkdir -p ~/.atomic/agent
@@ -134,5 +134,5 @@ If npm fails, try clearing the cache before retrying:
 
 ```bash
 npm cache clean --force
-npm install -g @bastani/atomic
+npm install -g @orphus/coding-agent
 ```

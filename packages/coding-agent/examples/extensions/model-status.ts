@@ -7,7 +7,7 @@
  * Usage: atomic -e ./model-status.ts
  */
 
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 
 export default function (pi: ExtensionAPI) {
 	pi.on("model_select", async (event, ctx) => {

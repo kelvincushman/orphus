@@ -82,7 +82,7 @@ const ORPHUS_RUNTIME_DEPENDENCIES: DependencyMap = {
 	...atomicPackageJson.optionalDependencies,
 };
 
-const PUBLISHABLE_WORKSPACE_PACKAGES = new Set(["@bastani/atomic", "@bastani/atomic-natives"]);
+const PUBLISHABLE_WORKSPACE_PACKAGES = new Set(["@orphus/coding-agent", "@orphus/natives"]);
 
 function markdownFiles(dir: string): string[] {
 	return readdirSync(dir)
@@ -122,13 +122,17 @@ describe("package metadata", () => {
 
 		for (const { manifestPath, packageJson } of packages) {
 			assert.match(packageJson.version, STRICT_RELEASE_VERSION_RE, `${manifestPath} has an invalid release version`);
-			assert.equal(packageJson.version, atomicPackageJson.version, `${manifestPath} must match @bastani/atomic`);
+			assert.equal(
+				packageJson.version,
+				atomicPackageJson.version,
+				`${manifestPath} must match @orphus/coding-agent`,
+			);
 		}
 	});
 
 	test("only intended workspace packages are publishable", async () => {
 		const packages = await workspacePackages();
-		assert.equal(atomicPackageJson.name, "@bastani/atomic");
+		assert.equal(atomicPackageJson.name, "@orphus/coding-agent");
 		assert.equal(Object.hasOwn(atomicPackageJson, "private"), false);
 
 		for (const { manifestPath, packageJson } of packages) {
@@ -136,45 +140,49 @@ describe("package metadata", () => {
 			assert.equal(
 				packageJson.private,
 				true,
-				`${manifestPath} must remain private because it is bundled into @bastani/atomic`,
+				`${manifestPath} must remain private because it is bundled into @orphus/coding-agent`,
 			);
 		}
 	});
 
-	test("@bastani/atomic package manifest exposes orphus app config and legacy pi shim", () => {
-		assert.deepEqual(atomicPackageJson.atomicConfig, atomicPackageJson.piConfig);
-		assert.equal(atomicPackageJson.atomicConfig.name, "orphus");
-		assert.equal(atomicPackageJson.atomicConfig.configDir, ".orphus");
+	test("@orphus/coding-agent package manifest exposes orphus app config and legacy pi shim", () => {
+		// orphusConfig is canonical: the scope rename means the package name no
+		// longer contains the app name, so the derived `${appName}Config` lookup
+		// would resolve to "coding-agent". piConfig stays as the inherited shim
+		// and must agree with it.
+		assert.deepEqual(atomicPackageJson.orphusConfig, atomicPackageJson.piConfig);
+		assert.equal(atomicPackageJson.orphusConfig.name, "orphus");
+		assert.equal(atomicPackageJson.orphusConfig.configDir, ".orphus");
 	});
 
-	test("@bastani/atomic package manifest is installable outside the workspace", () => {
+	test("@orphus/coding-agent package manifest is installable outside the workspace", () => {
 		for (const [sectionName, dependencyName, dependencyRange] of dependencyEntries(atomicPackageJson)) {
 			assert.ok(
 				!dependencyRange.startsWith("workspace:"),
 				`${sectionName}.${dependencyName} must not use the workspace protocol in the published manifest`,
 			);
 			assert.ok(
-				!dependencyName.startsWith("@bastani/") || dependencyName === "@bastani/atomic-natives",
+				!dependencyName.startsWith("@orphus/") || dependencyName === "@orphus/natives",
 				`${sectionName}.${dependencyName} must not point at a private bundled workspace package`,
 			);
 		}
 	});
 
-	test("@bastani/atomic declares runtime dependencies required by bundled packages", () => {
+	test("@orphus/coding-agent declares runtime dependencies required by bundled packages", () => {
 		for (const bundledPackageJson of BUNDLED_PACKAGE_MANIFESTS) {
 			for (const [, dependencyName, dependencyRange] of dependencyEntries(bundledPackageJson, ["dependencies"])) {
-				if (dependencyName.startsWith("@bastani/")) continue;
+				if (dependencyName.startsWith("@orphus/")) continue;
 				const atomicDependencyRange = atomicRuntimeDependencyRange(dependencyName);
 				const foundRange = atomicDependencyRange ?? "missing";
 				assert.ok(
 					atomicDependencyRange !== undefined && semverSubset(atomicDependencyRange, dependencyRange),
-					`@bastani/atomic must directly depend on ${dependencyName} for bundled ${bundledPackageJson.name} with a range equal to or narrower than ${dependencyRange} (found ${foundRange})`,
+					`@orphus/coding-agent must directly depend on ${dependencyName} for bundled ${bundledPackageJson.name} with a range equal to or narrower than ${dependencyRange} (found ${foundRange})`,
 				);
 			}
 		}
 	});
 
-	test("@bastani/atomic Node.js engine range is no broader than direct runtime dependency engines", async () => {
+	test("@orphus/coding-agent Node.js engine range is no broader than direct runtime dependency engines", async () => {
 		const atomicNodeEngine = atomicPackageJson.engines.node;
 		assert.equal(typeof atomicNodeEngine, "string");
 
@@ -189,7 +197,7 @@ describe("package metadata", () => {
 
 			assert.ok(
 				semverSubset(atomicNodeEngine, dependencyNodeEngine),
-				`@bastani/atomic engines.node (${atomicNodeEngine}) must be equal to or narrower than ${dependencyName} engines.node (${dependencyNodeEngine})`,
+				`@orphus/coding-agent engines.node (${atomicNodeEngine}) must be equal to or narrower than ${dependencyName} engines.node (${dependencyNodeEngine})`,
 			);
 		}
 	});
@@ -231,7 +239,7 @@ describe("package metadata", () => {
 	});
 
 	test("natives package follows the generated NAPI-RS package layout", () => {
-		assert.equal(nativesPackageJson.name, "@bastani/atomic-natives");
+		assert.equal(nativesPackageJson.name, "@orphus/natives");
 		assert.equal(nativesPackageJson.main, "./native/index.js");
 		assert.equal(nativesPackageJson.types, "./native/index.d.ts");
 		assert.equal(nativesPackageJson.napi.binaryName, "atomic_natives");

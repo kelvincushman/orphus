@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { AgentSessionEvent } from "@bastani/atomic";
+import type { AgentSessionEvent } from "@orphus/coding-agent";
 import { afterEach, describe, test } from "vitest";
 import { workflow } from "../../packages/workflows/src/authoring/workflow.js";
 import { workflowSendAction } from "../../packages/workflows/src/extension/workflow-tool-send.js";

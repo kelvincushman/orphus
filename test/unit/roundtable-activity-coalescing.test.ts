@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import { mkdtempSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";

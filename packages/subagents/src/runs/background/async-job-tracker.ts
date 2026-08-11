@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { ExtensionAPI, ExtensionContext } from "@bastani/atomic";
+import type { ExtensionAPI, ExtensionContext } from "@orphus/coding-agent";
 import type { AsyncJobState, AsyncStartedEvent, AsyncStatus, SubagentState } from "../../shared/types.ts";
 import { renderWidget } from "../../tui/render.ts";
 import { listSubagentControls } from "../inprocess/control-registry.ts";

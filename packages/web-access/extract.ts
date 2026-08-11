@@ -2,7 +2,7 @@ import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
 import TurndownService from "turndown";
 import pLimit from "p-limit";
-import { CONFIG_DIR_NAME } from "@bastani/atomic";
+import { CONFIG_DIR_NAME } from "@orphus/coding-agent";
 import { activityMonitor } from "./activity.js";
 import { extractRSCContent } from "./rsc-extract.js";
 import { extractPDFToMarkdown, isPDF } from "./pdf-extract.js";

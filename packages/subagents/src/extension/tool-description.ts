@@ -1,4 +1,4 @@
-import { APP_NAME } from "@bastani/atomic";
+import { APP_NAME } from "@orphus/coding-agent";
 
 export const SUBAGENT_TOOL_DESCRIPTION = `Delegate bounded specialist work to subagents or manage agent definitions while the parent remains in control.
 EXECUTION (use exactly ONE mode):

@@ -1,4 +1,4 @@
-import { StringEnum, type ExtensionAPI } from "@bastani/atomic";
+import { StringEnum, type ExtensionAPI } from "@orphus/coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { renderWebSearchResult } from "./result-renderers.js";

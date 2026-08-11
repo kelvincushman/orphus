@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AgentSession } from "@bastani/atomic";
+import type { AgentSession } from "@orphus/coding-agent";
 import { test } from "vitest";
 import {
 	finalizePromptOutput,

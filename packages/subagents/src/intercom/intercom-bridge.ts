@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { APP_NAME, getEnvValue, getProjectConfigDirs } from "@bastani/atomic";
+import { APP_NAME, getEnvValue, getProjectConfigDirs } from "@orphus/coding-agent";
 import type { AgentConfig } from "../agents/agents.ts";
 import type { ExtensionConfig, IntercomBridgeConfig, IntercomBridgeMode } from "../shared/types.ts";
 import { getAgentDir } from "../shared/utils.ts";

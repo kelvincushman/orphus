@@ -12,8 +12,8 @@ const repoRoot = resolve(moduleDir(import.meta.url), "../..");
 const workflowsPackage = join(repoRoot, "packages", "workflows");
 const typeboxPackage = join(repoRoot, "node_modules", "typebox");
 
-const workflowOutputFixture = `import { createStore, run, workflow } from "@bastani/workflows";
-import type { RunResult, ToolNodeSnapshot } from "@bastani/workflows";
+const workflowOutputFixture = `import { createStore, run, workflow } from "@orphus/workflows";
+import type { RunResult, ToolNodeSnapshot } from "@orphus/workflows";
 import { Type } from "typebox";
 
 const child = workflow({
@@ -135,8 +135,8 @@ function runTsc(fixtureRoot: string): void {
 
 function writePackageFixture(fixtureRoot: string): void {
 	mkdirSync(join(fixtureRoot, "src"), { recursive: true });
-	mkdirSync(join(fixtureRoot, "node_modules", "@bastani"), { recursive: true });
-	symlinkSync(workflowsPackage, join(fixtureRoot, "node_modules", "@bastani", "workflows"), "dir");
+	mkdirSync(join(fixtureRoot, "node_modules", "@orphus"), { recursive: true });
+	symlinkSync(workflowsPackage, join(fixtureRoot, "node_modules", "@orphus", "workflows"), "dir");
 	symlinkSync(typeboxPackage, join(fixtureRoot, "node_modules", "typebox"), "dir");
 	writeFileSync(
 		join(fixtureRoot, "package.json"),
@@ -159,7 +159,7 @@ function writePackageFixture(fixtureRoot: string): void {
 					typeRoots: [join(repoRoot, "node_modules", "@types")],
 					types: ["bun"],
 					paths: {
-						"@bastani/atomic": [join(repoRoot, "packages", "coding-agent", "src", "index.ts")],
+						"@orphus/coding-agent": [join(repoRoot, "packages", "coding-agent", "src", "index.ts")],
 						"@earendil-works/pi-tui": [
 							join(repoRoot, "node_modules", "@earendil-works", "pi-tui", "dist", "index.d.ts"),
 						],

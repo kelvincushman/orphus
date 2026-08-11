@@ -1,5 +1,5 @@
 import * as path from "node:path";
-import { APP_NAME } from "@bastani/atomic";
+import { APP_NAME } from "@orphus/coding-agent";
 import {
 	ASYNC_DIR,
 	type AsyncJobState,

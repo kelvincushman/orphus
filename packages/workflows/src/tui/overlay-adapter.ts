@@ -12,10 +12,10 @@
  *   - src/tui/workflow-attach-pane.ts
  *   - src/extension/wiring.ts  PiCustomOverlayOptions, PiOverlayHandle
  *   - @earendil-works/pi-tui dist/tui.d.ts  OverlayOptions, OverlayHandle
- *   - @bastani/atomic docs/tui.md (overlay primitives)
+ *   - @orphus/coding-agent docs/tui.md (overlay primitives)
  */
 
-import type { ChatMessageRenderOptions, ReadonlyFooterDataProvider } from "@bastani/atomic";
+import type { ChatMessageRenderOptions, ReadonlyFooterDataProvider } from "@orphus/coding-agent";
 import type {
 	PiCustomComponent,
 	PiCustomOverlayFactoryTui,

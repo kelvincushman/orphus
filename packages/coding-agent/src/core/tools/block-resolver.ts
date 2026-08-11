@@ -3,7 +3,7 @@
  *
  * Resolves `replace block N:` / `delete block N` / `insert after block N:`
  * anchors with the Rust tree-sitter `blockRangeAt` primitive in
- * `@bastani/atomic-natives` (mirrors oh-my-pi's native resolver): it infers the
+ * `@orphus/natives` (mirrors oh-my-pi's native resolver): it infers the
  * language from the path and returns the 1-indexed line span of the syntactic
  * block beginning on line N, or `null` when none resolves (blank line, pure
  * closing delimiter, unsupported language, or a syntax error in the subtree).

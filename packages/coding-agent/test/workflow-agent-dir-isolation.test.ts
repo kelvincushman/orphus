@@ -46,7 +46,7 @@ function writeShadowWorkflow(agentDir: string, name: "fan-out-and-synthesize" | 
 	writeFileSync(
 		join(workflowsDir, `${name}.ts`),
 		[
-			'import { workflow } from "@bastani/workflows";',
+			'import { workflow } from "@orphus/workflows";',
 			"export default workflow({",
 			`  name: "${name}",`,
 			`  description: "stale home-global ${name}",`,

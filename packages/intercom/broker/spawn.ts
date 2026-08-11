@@ -4,7 +4,7 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { createRequire } from "module";
 import net from "net";
-import { isBunBinary } from "@bastani/atomic";
+import { isBunBinary } from "@orphus/coding-agent";
 import {
   getBrokerPidPath,
   getBrokerSocketPath,

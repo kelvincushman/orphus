@@ -4,7 +4,7 @@
  * Usage: atomic --extension ./examples/extensions/rainbow-editor.ts
  */
 
-import { CustomEditor, type ExtensionAPI } from "@bastani/atomic";
+import { CustomEditor, type ExtensionAPI } from "@orphus/coding-agent";
 
 // Base colors (coral → yellow → green → teal → blue → purple → pink)
 const COLORS: [number, number, number][] = [

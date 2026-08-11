@@ -1,15 +1,15 @@
 {
-	"name": "@bastani/atomic",
+	"name": "@orphus/coding-agent",
 	"version": "0.0.0",
 	"lockfileVersion": 3,
 	"requires": true,
 	"packages": {
 		"": {
-			"name": "@bastani/atomic",
+			"name": "@orphus/coding-agent",
 			"version": "0.0.0",
 			"license": "MIT",
 			"dependencies": {
-				"@bastani/atomic-natives": "0.0.0",
+				"@orphus/natives": "0.0.0",
 				"@dbos-inc/dbos-sdk": "4.24.16",
 				"@earendil-works/pi-agent-core": "^0.83.0",
 				"@earendil-works/pi-ai": "^0.83.0",
@@ -514,133 +514,6 @@
 			"engines": {
 				"node": ">=6.9.0"
 			}
-		},
-		"node_modules/@bastani/atomic-natives": {
-			"version": "0.0.0",
-			"resolved": "https://registry.npmjs.org/@bastani/atomic-natives/-/atomic-natives-0.0.0.tgz",
-			"license": "MIT",
-			"optionalDependencies": {
-				"@bastani/atomic-natives-darwin-arm64": "0.0.0",
-				"@bastani/atomic-natives-darwin-x64": "0.0.0",
-				"@bastani/atomic-natives-linux-arm64-gnu": "0.0.0",
-				"@bastani/atomic-natives-linux-arm64-musl": "0.0.0",
-				"@bastani/atomic-natives-linux-x64-gnu": "0.0.0",
-				"@bastani/atomic-natives-linux-x64-musl": "0.0.0",
-				"@bastani/atomic-natives-win32-arm64-msvc": "0.0.0",
-				"@bastani/atomic-natives-win32-x64-msvc": "0.0.0"
-			},
-			"engines": {
-				"bun": ">=1.3.14",
-				"node": ">= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0"
-			}
-		},
-		"node_modules/@bastani/atomic-natives-darwin-arm64": {
-			"version": "0.0.0",
-			"resolved": "https://registry.npmjs.org/@bastani/atomic-natives-darwin-arm64/-/atomic-natives-darwin-arm64-0.0.0.tgz",
-			"license": "MIT",
-			"os": [
-				"darwin"
-			],
-			"cpu": [
-				"arm64"
-			],
-			"optional": true
-		},
-		"node_modules/@bastani/atomic-natives-darwin-x64": {
-			"version": "0.0.0",
-			"resolved": "https://registry.npmjs.org/@bastani/atomic-natives-darwin-x64/-/atomic-natives-darwin-x64-0.0.0.tgz",
-			"license": "MIT",
-			"os": [
-				"darwin"
-			],
-			"cpu": [
-				"x64"
-			],
-			"optional": true
-		},
-		"node_modules/@bastani/atomic-natives-linux-arm64-gnu": {
-			"version": "0.0.0",
-			"resolved": "https://registry.npmjs.org/@bastani/atomic-natives-linux-arm64-gnu/-/atomic-natives-linux-arm64-gnu-0.0.0.tgz",
-			"license": "MIT",
-			"os": [
-				"linux"
-			],
-			"cpu": [
-				"arm64"
-			],
-			"libc": [
-				"glibc"
-			],
-			"optional": true
-		},
-		"node_modules/@bastani/atomic-natives-linux-arm64-musl": {
-			"version": "0.0.0",
-			"resolved": "https://registry.npmjs.org/@bastani/atomic-natives-linux-arm64-musl/-/atomic-natives-linux-arm64-musl-0.0.0.tgz",
-			"license": "MIT",
-			"os": [
-				"linux"
-			],
-			"cpu": [
-				"arm64"
-			],
-			"libc": [
-				"musl"
-			],
-			"optional": true
-		},
-		"node_modules/@bastani/atomic-natives-linux-x64-gnu": {
-			"version": "0.0.0",
-			"resolved": "https://registry.npmjs.org/@bastani/atomic-natives-linux-x64-gnu/-/atomic-natives-linux-x64-gnu-0.0.0.tgz",
-			"license": "MIT",
-			"os": [
-				"linux"
-			],
-			"cpu": [
-				"x64"
-			],
-			"libc": [
-				"glibc"
-			],
-			"optional": true
-		},
-		"node_modules/@bastani/atomic-natives-linux-x64-musl": {
-			"version": "0.0.0",
-			"resolved": "https://registry.npmjs.org/@bastani/atomic-natives-linux-x64-musl/-/atomic-natives-linux-x64-musl-0.0.0.tgz",
-			"license": "MIT",
-			"os": [
-				"linux"
-			],
-			"cpu": [
-				"x64"
-			],
-			"libc": [
-				"musl"
-			],
-			"optional": true
-		},
-		"node_modules/@bastani/atomic-natives-win32-arm64-msvc": {
-			"version": "0.0.0",
-			"resolved": "https://registry.npmjs.org/@bastani/atomic-natives-win32-arm64-msvc/-/atomic-natives-win32-arm64-msvc-0.0.0.tgz",
-			"license": "MIT",
-			"os": [
-				"win32"
-			],
-			"cpu": [
-				"arm64"
-			],
-			"optional": true
-		},
-		"node_modules/@bastani/atomic-natives-win32-x64-msvc": {
-			"version": "0.0.0",
-			"resolved": "https://registry.npmjs.org/@bastani/atomic-natives-win32-x64-msvc/-/atomic-natives-win32-x64-msvc-0.0.0.tgz",
-			"license": "MIT",
-			"os": [
-				"win32"
-			],
-			"cpu": [
-				"x64"
-			],
-			"optional": true
 		},
 		"node_modules/@borewit/text-codec": {
 			"version": "0.2.2",
@@ -1630,6 +1503,133 @@
 			"engines": {
 				"node": ">=14"
 			}
+		},
+		"node_modules/@orphus/natives": {
+			"version": "0.0.0",
+			"resolved": "https://registry.npmjs.org/@orphus/natives/-/natives-0.0.0.tgz",
+			"license": "MIT",
+			"optionalDependencies": {
+				"@orphus/natives-darwin-arm64": "0.0.0",
+				"@orphus/natives-darwin-x64": "0.0.0",
+				"@orphus/natives-linux-arm64-gnu": "0.0.0",
+				"@orphus/natives-linux-arm64-musl": "0.0.0",
+				"@orphus/natives-linux-x64-gnu": "0.0.0",
+				"@orphus/natives-linux-x64-musl": "0.0.0",
+				"@orphus/natives-win32-arm64-msvc": "0.0.0",
+				"@orphus/natives-win32-x64-msvc": "0.0.0"
+			},
+			"engines": {
+				"bun": ">=1.3.14",
+				"node": ">= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0"
+			}
+		},
+		"node_modules/@orphus/natives-darwin-arm64": {
+			"version": "0.0.0",
+			"resolved": "https://registry.npmjs.org/@orphus/natives-darwin-arm64/-/natives-darwin-arm64-0.0.0.tgz",
+			"license": "MIT",
+			"os": [
+				"darwin"
+			],
+			"cpu": [
+				"arm64"
+			],
+			"optional": true
+		},
+		"node_modules/@orphus/natives-darwin-x64": {
+			"version": "0.0.0",
+			"resolved": "https://registry.npmjs.org/@orphus/natives-darwin-x64/-/natives-darwin-x64-0.0.0.tgz",
+			"license": "MIT",
+			"os": [
+				"darwin"
+			],
+			"cpu": [
+				"x64"
+			],
+			"optional": true
+		},
+		"node_modules/@orphus/natives-linux-arm64-gnu": {
+			"version": "0.0.0",
+			"resolved": "https://registry.npmjs.org/@orphus/natives-linux-arm64-gnu/-/natives-linux-arm64-gnu-0.0.0.tgz",
+			"license": "MIT",
+			"os": [
+				"linux"
+			],
+			"cpu": [
+				"arm64"
+			],
+			"libc": [
+				"glibc"
+			],
+			"optional": true
+		},
+		"node_modules/@orphus/natives-linux-arm64-musl": {
+			"version": "0.0.0",
+			"resolved": "https://registry.npmjs.org/@orphus/natives-linux-arm64-musl/-/natives-linux-arm64-musl-0.0.0.tgz",
+			"license": "MIT",
+			"os": [
+				"linux"
+			],
+			"cpu": [
+				"arm64"
+			],
+			"libc": [
+				"musl"
+			],
+			"optional": true
+		},
+		"node_modules/@orphus/natives-linux-x64-gnu": {
+			"version": "0.0.0",
+			"resolved": "https://registry.npmjs.org/@orphus/natives-linux-x64-gnu/-/natives-linux-x64-gnu-0.0.0.tgz",
+			"license": "MIT",
+			"os": [
+				"linux"
+			],
+			"cpu": [
+				"x64"
+			],
+			"libc": [
+				"glibc"
+			],
+			"optional": true
+		},
+		"node_modules/@orphus/natives-linux-x64-musl": {
+			"version": "0.0.0",
+			"resolved": "https://registry.npmjs.org/@orphus/natives-linux-x64-musl/-/natives-linux-x64-musl-0.0.0.tgz",
+			"license": "MIT",
+			"os": [
+				"linux"
+			],
+			"cpu": [
+				"x64"
+			],
+			"libc": [
+				"musl"
+			],
+			"optional": true
+		},
+		"node_modules/@orphus/natives-win32-arm64-msvc": {
+			"version": "0.0.0",
+			"resolved": "https://registry.npmjs.org/@orphus/natives-win32-arm64-msvc/-/natives-win32-arm64-msvc-0.0.0.tgz",
+			"license": "MIT",
+			"os": [
+				"win32"
+			],
+			"cpu": [
+				"arm64"
+			],
+			"optional": true
+		},
+		"node_modules/@orphus/natives-win32-x64-msvc": {
+			"version": "0.0.0",
+			"resolved": "https://registry.npmjs.org/@orphus/natives-win32-x64-msvc/-/natives-win32-x64-msvc-0.0.0.tgz",
+			"license": "MIT",
+			"os": [
+				"win32"
+			],
+			"cpu": [
+				"x64"
+			],
+			"optional": true
 		},
 		"node_modules/@protobufjs/aspromise": {
 			"version": "1.1.2",

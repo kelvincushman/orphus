@@ -12,7 +12,7 @@
  * delivered, and the queue has to survive the user leaving the node.
  */
 
-import { workflow } from "@bastani/workflows";
+import { workflow } from "@orphus/workflows";
 
 export default workflow({
 	name: "issue-2074-stage-steering",

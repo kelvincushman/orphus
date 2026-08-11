@@ -10,8 +10,8 @@ Agents that deliberate like a team without drowning in each other's words. The d
 
 Atomic already has the bones Orphus needs, which changes the plan from "build" to "extend":
 
-- **`@bastani/intercom`** — 1:1 messaging between local agent sessions via a unix-socket broker, lazy-loaded so idle sessions pay zero context. This is the transport pattern to build on, not replace.
-- **`@bastani/workflows`** — typed execution graphs with author/verifier separation and adversarial-verification builtins. This is the self-improvement engine, already written.
+- **`@orphus/intercom`** — 1:1 messaging between local agent sessions via a unix-socket broker, lazy-loaded so idle sessions pay zero context. This is the transport pattern to build on, not replace.
+- **`@orphus/workflows`** — typed execution graphs with author/verifier separation and adversarial-verification builtins. This is the self-improvement engine, already written.
 - **Verification-first runtime** — stages declare schema-checked outputs; completion is decided by code, not model self-report. Exactly the gate a self-modifying system needs.
 - **Orca compatibility** — Orca ships a Pi integration (`src/main/pi/`) that Atomic remains compatible with, so Orphus sessions can run as Orca worktree agents with minimal adapter work.
 
@@ -101,6 +101,6 @@ Demo assets: the live Orca fan-out, the no-model scripted demo (works offline on
 
 ## Status of the open decisions
 
-- **Naming (from the risks above).** Unresolved, and now explicit rather than implied: the package is `@bastani/roundtable` in `packages/roundtable`, still on the upstream npm scope. Renaming to `@orphus/rooms` touches the workspace, the lockfile, the builtin lists, and the shrinkwrap, so it wants to be one deliberate change rather than a side effect of another. Nothing blocks on it.
+- **Naming (from the risks above).** Unresolved, and now explicit rather than implied: the package is `@orphus/roundtable` in `packages/roundtable`, still on the upstream npm scope. Renaming to `@orphus/rooms` touches the workspace, the lockfile, the builtin lists, and the shrinkwrap, so it wants to be one deliberate change rather than a side effect of another. Nothing blocks on it.
 - **Phase 2's live demo.** The launcher and manifest landed; real Orca worktrees driven end to end with models attached, and the screen recording, have not.
 - **Phase 3's exit criteria.** The `memory` tool ships and rooms can now export a transcript, so the export → ingest → recall path runs end to end in `npm run demo:loop`. What remains is doing it once for real — one room transcript ingested and queryable — plus the two accepted self-authored improvements, one per axis.

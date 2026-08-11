@@ -1,4 +1,4 @@
-import type { AgentSession } from "@bastani/atomic";
+import type { AgentSession } from "@orphus/coding-agent";
 import { describe, test } from "vitest";
 import type { StageSessionRuntime as PublicStageSessionRuntime } from "../../packages/workflows/src/authoring.ts";
 import type { AgentSessionAdapter, InternalStageContext, StageSessionRuntime } from "./stage-runner-helpers.js";

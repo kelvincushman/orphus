@@ -2,7 +2,7 @@
  * Subagent completion notifications.
  */
 
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import { resolveSubagentIntercomTarget } from "../../intercom/intercom-bridge.ts";
 import {
 	SUBAGENT_ASYNC_COMPLETE_EVENT,

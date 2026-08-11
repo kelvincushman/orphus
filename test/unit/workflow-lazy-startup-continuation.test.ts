@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { WORKFLOW_STAGE_SUBAGENT_GUARD_ENV } from "@bastani/atomic";
+import { WORKFLOW_STAGE_SUBAGENT_GUARD_ENV } from "@orphus/coding-agent";
 import { Type } from "typebox";
 import { afterEach, beforeEach, describe, test } from "vitest";
 import { workflow } from "../../packages/workflows/src/authoring/workflow.js";
@@ -106,7 +106,7 @@ function listPayload(sent: readonly SentMessage[]): ChatSurfacePayload | undefin
 async function writeWorkflowFixture(filePath: string, name: string): Promise<void> {
 	await writeFile(
 		filePath,
-		`import { workflow } from "@bastani/workflows";
+		`import { workflow } from "@orphus/workflows";
 export default workflow({
   name: ${JSON.stringify(name)},
   description: "",
@@ -122,7 +122,7 @@ export default workflow({
 async function writePromptWorkflowFixture(filePath: string, name: string): Promise<void> {
 	await writeFile(
 		filePath,
-		`import { workflow } from "@bastani/workflows";
+		`import { workflow } from "@orphus/workflows";
 export default workflow({
   name: ${JSON.stringify(name)},
   description: "",

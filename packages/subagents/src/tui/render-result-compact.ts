@@ -1,5 +1,5 @@
-import { keyHintIfBound } from "@bastani/atomic";
 import { type Component, Container, Text } from "@earendil-works/pi-tui";
+import { keyHintIfBound } from "@orphus/coding-agent";
 import { shortenPath } from "../shared/formatters.ts";
 import type { AgentProgress, AsyncJobStep, Details } from "../shared/types.ts";
 import { getSingleResultOutput } from "../shared/utils.ts";

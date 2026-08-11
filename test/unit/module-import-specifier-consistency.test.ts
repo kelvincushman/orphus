@@ -35,12 +35,12 @@ type RelativeSpecifier = {
 
 const repositoryRoot = resolve(moduleDir(import.meta.url), "../..");
 const packageSources: readonly PackageSource[] = [
-	{ name: "@bastani/atomic", root: join(repositoryRoot, "packages/coding-agent/src") },
-	{ name: "@bastani/workflows", root: join(repositoryRoot, "packages/workflows") },
-	{ name: "@bastani/subagents", root: join(repositoryRoot, "packages/subagents") },
-	{ name: "@bastani/mcp", root: join(repositoryRoot, "packages/mcp") },
-	{ name: "@bastani/web-access", root: join(repositoryRoot, "packages/web-access") },
-	{ name: "@bastani/intercom", root: join(repositoryRoot, "packages/intercom") },
+	{ name: "@orphus/coding-agent", root: join(repositoryRoot, "packages/coding-agent/src") },
+	{ name: "@orphus/workflows", root: join(repositoryRoot, "packages/workflows") },
+	{ name: "@orphus/subagents", root: join(repositoryRoot, "packages/subagents") },
+	{ name: "@orphus/mcp", root: join(repositoryRoot, "packages/mcp") },
+	{ name: "@orphus/web-access", root: join(repositoryRoot, "packages/web-access") },
+	{ name: "@orphus/intercom", root: join(repositoryRoot, "packages/intercom") },
 ];
 const sourceFilePattern = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
 const specifierExtensionPattern = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;

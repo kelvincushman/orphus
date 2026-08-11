@@ -4,7 +4,7 @@
 
 import * as os from "node:os";
 import * as path from "node:path";
-import { APP_NAME } from "@bastani/atomic";
+import { APP_NAME } from "@orphus/coding-agent";
 import type { ArtifactConfig, MaxOutputConfig } from "./types-results.ts";
 
 // Constants

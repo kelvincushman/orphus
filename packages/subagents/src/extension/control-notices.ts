@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import { controlNotificationKey, formatControlNoticeMessage } from "../runs/shared/subagent-control.ts";
 import type { ControlEvent, SubagentState } from "../shared/types.ts";
 

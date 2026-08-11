@@ -1,4 +1,4 @@
-import type { ChatMessageRenderOptions, ChatSessionHostStyle } from "@bastani/atomic";
+import type { ChatMessageRenderOptions, ChatSessionHostStyle } from "@orphus/coding-agent";
 import { hexToAnsi, RESET } from "./color-utils.js";
 import { editorRuleColor } from "./stage-chat-view-footer-status.js";
 import { blankLine, cursorBlock, paint, workingIndicatorPalette } from "./stage-chat-view-render-helpers.js";

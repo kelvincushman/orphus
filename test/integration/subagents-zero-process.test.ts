@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ExtensionContext } from "@bastani/atomic";
+import type { ExtensionContext } from "@orphus/coding-agent";
 import { test } from "vitest";
 import type { AgentConfig } from "../../packages/subagents/src/agents/agent-types.js";
 import { runSync } from "../../packages/subagents/src/runs/foreground/execution.js";

@@ -11,7 +11,7 @@
  * Start Atomic with this extension:
  *   atomic -e ./examples/extensions/input-transform-streaming.ts
  */
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 
 const TRIGGER = /\b(changes?|diff|modified)\b/i;
 

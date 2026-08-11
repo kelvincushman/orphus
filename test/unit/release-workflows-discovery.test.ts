@@ -6,14 +6,14 @@ import { describe, test } from "vitest";
 const repoFile = (path: string): string => readFileSync(join(process.cwd(), path), "utf8");
 
 describe("repo-local release workflow discovery imports", () => {
-	test("release-docs avoids the @bastani/atomic package root during discovery", () => {
+	test("release-docs avoids the @orphus/coding-agent package root during discovery", () => {
 		const path = ".atomic/workflows/lib/release-docs.ts";
 		const source = repoFile(path);
 
 		assert.doesNotMatch(
 			source,
-			/from\s+["']@bastani\/atomic["']/,
-			`${path} must not import @bastani/atomic because workspace discovery resolves that package root to missing dist/index.js`,
+			/from\s+["']@orphus\/coding-agent["']/,
+			`${path} must not import @orphus/coding-agent because workspace discovery resolves that package root to missing dist/index.js`,
 		);
 		assert.match(
 			source,
@@ -27,7 +27,7 @@ describe("repo-local release workflow discovery imports", () => {
 
 		assert.doesNotMatch(
 			source,
-			/@bastani\/workflows\/builtin\//,
+			/@orphus\/workflows\/builtin\//,
 			"release-docs should not depend on a bundled child workflow",
 		);
 		assert.match(source, /ctx\.parallel\(/, "release-docs should fan out repository research");

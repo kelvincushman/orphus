@@ -12,7 +12,7 @@
  * `structured_output` for this extension/runtime only.
  */
 
-import { createStructuredOutputTool, type ExtensionAPI } from "@bastani/atomic";
+import { createStructuredOutputTool, type ExtensionAPI } from "@orphus/coding-agent";
 import { Type } from "typebox";
 
 const SummarySchema = Type.Object(

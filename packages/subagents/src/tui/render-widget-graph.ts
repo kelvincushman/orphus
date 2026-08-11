@@ -1,4 +1,4 @@
-import { keyHintIfBound } from "@bastani/atomic";
+import { keyHintIfBound } from "@orphus/coding-agent";
 import { aggregateStepStatus, formatParallelOutcome } from "../shared/status-format.ts";
 import type { AsyncJobState } from "../shared/types.ts";
 import { buildAsyncChainStepSpans } from "./render-chain-graph.ts";

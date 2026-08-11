@@ -140,7 +140,7 @@ cp permission-gate.ts ~/.atomic/agent/extensions/
 See [docs/extensions.md](../../docs/extensions.md) for full documentation.
 
 ```typescript
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import { Type } from "typebox";
 
 export default function (pi: ExtensionAPI) {
@@ -184,7 +184,7 @@ export default function (pi: ExtensionAPI) {
 Atomic's export preserves Pi's Google-compatible schema while keeping it composable with Atomic's direct TypeBox version.
 
 ```typescript
-import { StringEnum } from "@bastani/atomic";
+import { StringEnum } from "@orphus/coding-agent";
 
 // Good
 action: StringEnum(["list", "add"] as const)

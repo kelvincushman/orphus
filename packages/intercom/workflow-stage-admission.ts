@@ -1,4 +1,4 @@
-import type { ExtensionContext } from "@bastani/atomic";
+import type { ExtensionContext } from "@orphus/coding-agent";
 
 export type WorkflowStageFirstRefusalDisposition = "delivered" | "unclaimed" | "abandoned";
 export type WorkflowStageAdmissionBarrier = () => Promise<void>;

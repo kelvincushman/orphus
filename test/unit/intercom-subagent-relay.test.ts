@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { ExtensionContext } from "@bastani/atomic";
+import type { ExtensionContext } from "@orphus/coding-agent";
 import { describe, test } from "vitest";
 import { InboundIdleQueue } from "../../packages/intercom/inbound-idle-queue.js";
 import {

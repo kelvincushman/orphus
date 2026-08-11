@@ -66,7 +66,7 @@ which is what makes `afterSeq` stable across rotation.
 ## The wire
 
 Length-prefixed JSON: a 4-byte big-endian length, then the payload. The framing
-deliberately mirrors `@bastani/intercom`'s so the two brokers stay
+deliberately mirrors `@orphus/intercom`'s so the two brokers stay
 protocol-cousins and a future merge stays cheap.
 
 The reader buffers across socket reads, so a message split arbitrarily — even

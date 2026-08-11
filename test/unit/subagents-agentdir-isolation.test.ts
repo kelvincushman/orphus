@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import type { ExtensionAPI, ExtensionContext } from "@bastani/atomic";
+import type { ExtensionAPI, ExtensionContext } from "@orphus/coding-agent";
 import { afterEach, describe, test, vi } from "vitest";
 import { createSubagentStartupMaintenance } from "../../packages/subagents/src/extension/startup-maintenance.ts";
 import type { SubagentState } from "../../packages/subagents/src/shared/types.ts";

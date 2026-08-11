@@ -1,4 +1,4 @@
-import type { ModelInfo, RpcClient } from "@bastani/atomic";
+import type { ModelInfo, RpcClient } from "@orphus/coding-agent";
 
 // Existing consumers can keep constructing the original four-field shape.
 export const legacyModelInfo: ModelInfo = {

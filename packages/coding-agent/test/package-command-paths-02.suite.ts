@@ -112,7 +112,7 @@ describe("package commands", () => {
 
 	it("installs the active package name from the update check during self-update", async () => {
 		const globalPrefix = join(tempDir, "global-prefix");
-		const selfPackageDir = join(globalPrefix, "lib", "node_modules", "@bastani", "atomic");
+		const selfPackageDir = join(globalPrefix, "lib", "node_modules", "@orphus", "coding-agent");
 		const fakeNpmPath = join(tempDir, "fake-npm.cjs");
 		const recordPath = join(tempDir, "self-update.json");
 		mkdirSync(selfPackageDir, { recursive: true });
@@ -167,7 +167,7 @@ else {
 	});
 	it("fails self-update when renamed npm package installation fails", async () => {
 		const globalPrefix = join(tempDir, "global-prefix");
-		const selfPackageDir = join(globalPrefix, "lib", "node_modules", "@bastani", "atomic");
+		const selfPackageDir = join(globalPrefix, "lib", "node_modules", "@orphus", "coding-agent");
 		const fakeNpmPath = join(tempDir, "fake-npm-fail.cjs");
 		const recordPath = join(tempDir, "self-update-fail.json");
 		mkdirSync(selfPackageDir, { recursive: true });
@@ -253,7 +253,7 @@ if(args.includes("install")) process.exit(23);
 	it("uses the current package name when the update check omits packageName", async () => {
 		const targetVersion = getNewerPatchVersion();
 		const globalPrefix = join(tempDir, "global-prefix");
-		const selfPackageDir = join(globalPrefix, "lib", "node_modules", "@bastani", "atomic");
+		const selfPackageDir = join(globalPrefix, "lib", "node_modules", "@orphus", "coding-agent");
 		const fakeNpmPath = join(tempDir, "fake-npm.cjs");
 		const recordPath = join(tempDir, "self-update.json");
 		mkdirSync(selfPackageDir, { recursive: true });

@@ -16,7 +16,7 @@
  *   /working-indicator reset     Restore Atomic's default spinner
  */
 
-import type { ExtensionAPI, ExtensionContext, WorkingIndicatorOptions } from "@bastani/atomic";
+import type { ExtensionAPI, ExtensionContext, WorkingIndicatorOptions } from "@orphus/coding-agent";
 
 type WorkingIndicatorMode = "dot" | "none" | "pulse" | "spinner" | "default";
 

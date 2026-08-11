@@ -25,9 +25,9 @@
  *   atomic -e ./built-in-tool-renderer.ts
  */
 
-import type { BashToolDetails, EditToolDetails, ExtensionAPI, ReadToolDetails } from "@bastani/atomic";
-import { createBashTool, createEditTool, createReadTool, createWriteTool } from "@bastani/atomic";
 import { Text } from "@earendil-works/pi-tui";
+import type { BashToolDetails, EditToolDetails, ExtensionAPI, ReadToolDetails } from "@orphus/coding-agent";
+import { createBashTool, createEditTool, createReadTool, createWriteTool } from "@orphus/coding-agent";
 
 export default function (pi: ExtensionAPI) {
 	const cwd = process.cwd();

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { ExtensionAPI, ToolDefinition } from "@bastani/atomic";
+import type { ExtensionAPI, ToolDefinition } from "@orphus/coding-agent";
 import { type Static, Type } from "typebox";
 import { describe, test } from "vitest";
 import intercom from "../../packages/intercom/index.js";

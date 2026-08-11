@@ -28,7 +28,7 @@ Intercom connections are normally tool-driven. A bridged child still keeps its o
 
 ## Install
 
-Atomic bundles `@bastani/intercom` as a first-party extension; no separate install is needed for normal Atomic sessions. For legacy pi installations of the upstream package:
+Atomic bundles `@orphus/intercom` as a first-party extension; no separate install is needed for normal Atomic sessions. For legacy pi installations of the upstream package:
 
 ```bash
 pi install npm:pi-intercom

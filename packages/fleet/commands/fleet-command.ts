@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import { discoverFleets, fleetRoots } from "../blueprint/discovery.ts";
 import { loadFleetBlueprint } from "../blueprint/manifest.ts";
 import { renderFleetRunPrompt } from "../blueprint/render.ts";

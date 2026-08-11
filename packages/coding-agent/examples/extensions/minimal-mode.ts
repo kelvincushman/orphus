@@ -16,7 +16,8 @@
  * Then use ctrl+o to toggle between minimal (collapsed) and full (expanded) views.
  */
 
-import type { ExtensionAPI } from "@bastani/atomic";
+import { Text } from "@earendil-works/pi-tui";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import {
 	createBashTool,
 	createEditTool,
@@ -25,8 +26,7 @@ import {
 	createLsTool,
 	createReadTool,
 	createWriteTool,
-} from "@bastani/atomic";
-import { Text } from "@earendil-works/pi-tui";
+} from "@orphus/coding-agent";
 import { homedir } from "os";
 
 /**

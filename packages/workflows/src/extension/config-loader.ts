@@ -17,7 +17,13 @@
  */
 
 import { isAbsolute, join } from "node:path";
-import { CONFIG_DIR_NAME, CONFIG_DIR_NAMES, getAgentDir, getAgentDirs, getProjectConfigPaths } from "@bastani/atomic";
+import {
+	CONFIG_DIR_NAME,
+	CONFIG_DIR_NAMES,
+	getAgentDir,
+	getAgentDirs,
+	getProjectConfigPaths,
+} from "@orphus/coding-agent";
 import { loadConfigFile } from "./config-file-loader.js";
 import type { WorkflowLifecycleNoticeKind } from "./lifecycle-notifications.js";
 

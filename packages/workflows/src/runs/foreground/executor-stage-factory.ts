@@ -1,4 +1,4 @@
-import { runCallback, runSynchronousCallback } from "@bastani/atomic";
+import { runCallback, runSynchronousCallback } from "@orphus/coding-agent";
 import type { GraphFrontierTracker } from "../../engine/graph-inference.js";
 import type { EngineStageRuntimeOptions } from "../../engine/options.js";
 import { appendStageEnd, appendStageStart } from "../../shared/persistence-session-entries.js";

@@ -55,7 +55,7 @@ test("the Orphus gate runs the inherited unit suite and the CI contracts", async
 	// The unit suite imports the bundled subagent extension, which loads the
 	// Rust control plane in crates/atomic-natives. Without a binding the import
 	// fails and the whole suite dies, not just the runner tests.
-	assert.match(suites, /npm run build --workspace=@bastani\/atomic-natives/u);
+	assert.match(suites, /npm run build --workspace=@orphus\/natives/u);
 	// test/unit/pi-0.82.1-artifacts.test.ts degrades to test.skip when
 	// packages/coding-agent/dist is absent — coverage would vanish, silently.
 	assert.match(suites, /working-directory: packages\/coding-agent\n\s+run: npm run build/u);

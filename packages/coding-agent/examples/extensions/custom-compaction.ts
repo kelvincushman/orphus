@@ -3,7 +3,7 @@
  * before Atomic resolves model credentials. The runtime keeps the boundary and
  * persists this text verbatim.
  */
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 
 export default function customCompaction(pi: ExtensionAPI): void {
 	pi.on("session_before_compact", async (event) => {

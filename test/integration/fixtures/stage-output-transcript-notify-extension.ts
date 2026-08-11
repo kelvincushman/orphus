@@ -8,7 +8,7 @@
  */
 
 import { readFile, writeFile } from "node:fs/promises";
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 
 const NOTIFY_DELAY_MS = 500;
 

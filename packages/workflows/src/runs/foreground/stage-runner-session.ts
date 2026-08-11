@@ -1,4 +1,4 @@
-import type { AgentSession } from "@bastani/atomic";
+import type { AgentSession } from "@orphus/coding-agent";
 import type { StageSessionCreateResult, StageSessionRuntime } from "./stage-runner-types.js";
 
 type StageSessionExtensionRunner = {

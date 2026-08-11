@@ -15,7 +15,7 @@ This monorepo runs a hybrid toolchain matching upstream pi: npm installs, builds
 
 ```bash
 npm run test:unit
-npm run build --workspace=@bastani/atomic
+npm run build --workspace=@orphus/coding-agent
 ```
 
 Atomic keeps the caller's current working directory when launched from development wrappers.
@@ -66,14 +66,14 @@ npm run test:integration          # Run integration tests
 npm run test:all                  # Run all tests
 npm run test:scripts              # Run the repository script tests under node --test
 # Run the package Vitest suite (Node-hosted)
-npm run test --workspace=@bastani/atomic -- test/specific.test.ts
+npm run test --workspace=@orphus/coding-agent -- test/specific.test.ts
 # Run its Bun-hosted half. Required: the SQLite selector tests load bun:sqlite,
 # which the shipped binary has and Node does not.
 ```
 
 ## Deterministic installs
 
-`@bastani/atomic` ships `packages/coding-agent/npm-shrinkwrap.json` so package-manager installs resolve the same dependency tree every time. Contributors working from a source checkout can validate that the checked-in shrinkwrap is up to date with:
+`@orphus/coding-agent` ships `packages/coding-agent/npm-shrinkwrap.json` so package-manager installs resolve the same dependency tree every time. Contributors working from a source checkout can validate that the checked-in shrinkwrap is up to date with:
 
 ```bash
 bun run scripts/generate-coding-agent-shrinkwrap.mjs --check

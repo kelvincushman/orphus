@@ -2,7 +2,7 @@
  * Companion-package detection helpers.
  *
  * Why this exists:
- *   `@bastani/workflows` orchestrates a few first-party pi packages
+ *   `@orphus/workflows` orchestrates a few first-party pi packages
  *   at runtime (delegation, MCP access, HIL bridge, web fetch). They are
  *   installed independently of workflows so pi's npm-identity
  *   dedup can share them with any other extensions the user already has

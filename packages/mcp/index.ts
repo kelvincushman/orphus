@@ -1,4 +1,4 @@
-import type { AgentToolUpdateCallback, ExtensionAPI, ExtensionContext, SubagentChildPolicy, ToolInfo } from "@bastani/atomic";
+import type { AgentToolUpdateCallback, ExtensionAPI, ExtensionContext, SubagentChildPolicy, ToolInfo } from "@orphus/coding-agent";
 import type { McpExtensionState } from "./state.js";
 import type { McpConfig } from "./types.ts";
 import type { MetadataCache } from "./metadata-cache.js";

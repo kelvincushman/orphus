@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { WORKFLOW_STAGE_SUBAGENT_GUARD_ENV } from "@bastani/atomic";
+import { WORKFLOW_STAGE_SUBAGENT_GUARD_ENV } from "@orphus/coding-agent";
 import { Type } from "typebox";
 import { afterEach, beforeEach } from "vitest";
 import { workflow } from "../../packages/workflows/src/authoring/workflow.js";
@@ -127,7 +127,7 @@ export async function writeWorkflowFixture(filePath: string, name: string): Prom
 	const encodedName = JSON.stringify(name);
 	await writeFile(
 		filePath,
-		`import { workflow } from "@bastani/workflows";
+		`import { workflow } from "@orphus/workflows";
 export default workflow({
   name: ${encodedName},
   description: "",

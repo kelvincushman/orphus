@@ -1,4 +1,4 @@
-import { APP_NAME, type ExtensionAPI, type ExtensionContext } from "@bastani/atomic";
+import { APP_NAME, type ExtensionAPI, type ExtensionContext } from "@orphus/coding-agent";
 import { appendFileSync } from "node:fs";
 import { IntercomClient } from "./broker/client.js";
 import { spawnBrokerIfNeeded } from "./broker/spawn.js";

@@ -1,4 +1,4 @@
-import type { AgentSession, AgentSessionEvent, ChatMessageEntry } from "@bastani/atomic";
+import type { AgentSession, AgentSessionEvent, ChatMessageEntry } from "@orphus/coding-agent";
 import { describe, test } from "vitest";
 import type { StageControlHandle } from "../../packages/workflows/src/runs/foreground/stage-control-registry.js";
 import { isTerminalOrNonStreamingStageChatStatus } from "../../packages/workflows/src/tui/stage-chat-view-state.js";

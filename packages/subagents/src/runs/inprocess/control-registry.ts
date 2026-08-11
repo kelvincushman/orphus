@@ -1,4 +1,4 @@
-import type { ChildIdentity } from "@bastani/atomic-natives";
+import type { ChildIdentity } from "@orphus/natives";
 import { createSubagentControl, type ParentContext, type SubagentControlRuntime } from "./runner.ts";
 
 /**

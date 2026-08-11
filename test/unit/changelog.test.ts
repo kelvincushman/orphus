@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { createGitEnvironment } from "@bastani/atomic";
+import { createGitEnvironment } from "@orphus/coding-agent";
 import { describe, test } from "vitest";
 import {
 	type ChangelogEntry,

@@ -149,7 +149,7 @@ describe("/workflow command in non-interactive (-p) mode (#1156 regressions)", (
 	test.sequential("session_start defers package workflow module evaluation until /workflow list needs discovery", async () => {
 		const marker = `__atomicLazyWorkflowEval_${Date.now()}`;
 		globalThis[marker] = 0;
-		const source = `import { workflow } from "@bastani/workflows";
+		const source = `import { workflow } from "@orphus/workflows";
 globalThis[${JSON.stringify(marker)}] = (globalThis[${JSON.stringify(marker)}] ?? 0) + 1;
 export default workflow({
   name: "lazy package workflow",

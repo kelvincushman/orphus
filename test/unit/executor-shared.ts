@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AgentSession, CreateAgentSessionOptions, ToolDefinition } from "@bastani/atomic";
+import type { AgentSession, CreateAgentSessionOptions, ToolDefinition } from "@orphus/coding-agent";
 import { Type } from "typebox";
 import { afterEach, beforeEach, test } from "vitest";
 import { workflow } from "../../packages/workflows/src/authoring/workflow.js";

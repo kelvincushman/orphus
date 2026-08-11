@@ -1,8 +1,8 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { ExtensionAPI, ToolDefinition } from "@bastani/atomic";
-import { APP_NAME } from "@bastani/atomic";
+import type { ExtensionAPI, ToolDefinition } from "@orphus/coding-agent";
+import { APP_NAME } from "@orphus/coding-agent";
 
 import { discoverAgents } from "../agents/agents.ts";
 import { resolveSubagentIntercomTarget } from "../intercom/intercom-bridge.ts";

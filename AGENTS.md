@@ -2,23 +2,23 @@
 
 ## Overview
 
-This repo is **Orphus**: an agent harness whose agents deliberate in rooms that live outside their context windows. It is a fork of [Atomic](https://github.com/bastani-inc/atomic), itself a fork of pi, so most of the tree is vendored upstream code and the package names are still `@bastani/*`. Renaming the npm scope is an open decision, not an oversight — see PLAN.md.
+This repo is **Orphus**: an agent harness whose agents deliberate in rooms that live outside their context windows. It began as a fork of [Atomic](https://github.com/bastani-inc/atomic), itself a fork of pi, so most of the tree is vendored upstream code. Workspace packages carry the `@orphus/*` scope: the rename is deliberate and means `git merge upstream/main` now conflicts on import lines, so upstream changes are cherry-picked rather than merged wholesale.
 
 The packages this project exists for:
 
-- `@bastani/roundtable` in `packages/roundtable` — **the Orphus contribution.** Rooms and the context-window contract: the budgeted digest algorithm (`digest.ts`), the local-socket broker and its client (`broker/`), the `roundtable` and `memory` tools, the declarative role manifest and launcher (`roles/`, `bin/orphus-roles.ts`), the discussion-etiquette skill, and the no-model demos. When a change here is not obviously about rooms, digests, roles, or memory, it probably belongs in the vendored tree instead.
-- `@bastani/fleet` in `packages/fleet` — **Orphus-authored orchestration on top of rooms and subagents.** Shareable fleet blueprints (`*.fleet.yaml`: teams of agent definitions with pre-assigned skills and a delegation mode each), the `/fleet` and `/fleetsetup` commands, the `fleet` introspection tool, and the `fleet-orchestration` and `kie-ai-media` skills. It executes nothing itself — members run via the `subagent` tool and deliberate in roundtable rooms. When a change is about *how members run* rather than *how a fleet is described and briefed*, it belongs in `packages/subagents` or the vendored tree.
+- `@orphus/roundtable` in `packages/roundtable` — **the Orphus contribution.** Rooms and the context-window contract: the budgeted digest algorithm (`digest.ts`), the local-socket broker and its client (`broker/`), the `roundtable` and `memory` tools, the declarative role manifest and launcher (`roles/`, `bin/orphus-roles.ts`), the discussion-etiquette skill, and the no-model demos. When a change here is not obviously about rooms, digests, roles, or memory, it probably belongs in the vendored tree instead.
+- `@orphus/fleet` in `packages/fleet` — **Orphus-authored orchestration on top of rooms and subagents.** Shareable fleet blueprints (`*.fleet.yaml`: teams of agent definitions with pre-assigned skills and a delegation mode each), the `/fleet` and `/fleetsetup` commands, the `fleet` introspection tool, and the `fleet-orchestration` and `kie-ai-media` skills. It executes nothing itself — members run via the `subagent` tool and deliberate in roundtable rooms. When a change is about *how members run* rather than *how a fleet is described and briefed*, it belongs in `packages/subagents` or the vendored tree.
 
 Inherited from Atomic, and mostly left alone:
 
-- `@bastani/atomic` in `packages/coding-agent` — the coding-agent CLI, which builds the `orphus` binary. The only independently published package.
-- `@bastani/workflows` in `packages/workflows` — a first-party extension for Atomic/pi that brings multi-stage, DAG-driven workflow execution to agent sessions.
-- `@bastani/subagents` in `packages/subagents` — builtin subagent orchestration, reusable agent definitions, skills, prompts, chains, and foreground/background execution.
-- `@bastani/mcp` in `packages/mcp` — builtin MCP adapter extension that exposes MCP servers as agent tools.
-- `@bastani/web-access` in `packages/web-access` — builtin web search, URL fetching, GitHub repository, PDF, and video extraction tools.
-- `@bastani/intercom` in `packages/intercom` — builtin coordination channel for parent/child and cross-session agent communication.
+- `@orphus/coding-agent` in `packages/coding-agent` — the coding-agent CLI, which builds the `orphus` binary. The only independently published package.
+- `@orphus/workflows` in `packages/workflows` — a first-party extension for Atomic/pi that brings multi-stage, DAG-driven workflow execution to agent sessions.
+- `@orphus/subagents` in `packages/subagents` — builtin subagent orchestration, reusable agent definitions, skills, prompts, chains, and foreground/background execution.
+- `@orphus/mcp` in `packages/mcp` — builtin MCP adapter extension that exposes MCP servers as agent tools.
+- `@orphus/web-access` in `packages/web-access` — builtin web search, URL fetching, GitHub repository, PDF, and video extraction tools.
+- `@orphus/intercom` in `packages/intercom` — builtin coordination channel for parent/child and cross-session agent communication.
 
-Companion packages under `packages/*` ship as **raw TypeScript** (no compile step) and are bundled into `@bastani/atomic` at build time rather than published independently. The coding-agent package follows upstream pi's compiled-package layout.
+Companion packages under `packages/*` ship as **raw TypeScript** (no compile step) and are bundled into `@orphus/coding-agent` at build time rather than published independently. The coding-agent package follows upstream pi's compiled-package layout.
 
 ## Minimal-change principle (KISS) — read this first
 
@@ -187,7 +187,7 @@ platform-sensitive change as unverified on Windows until someone runs it there.
 - `npm run roles` — turn `orphus.roles.yaml` into launch commands (`--format plan|json|sh|tmux|orca`)
 - `npx vitest --run --project unit test/unit/roundtable-` — the Orphus tests alone, in seconds
 - `npm run test:unit`, `npm run test:integration`, `npm run test:ci-contracts`, `npm run test:all`
-- `npm run test --workspace=@bastani/atomic` — the coding-agent vitest suite, under Node
+- `npm run test --workspace=@orphus/coding-agent` — the coding-agent vitest suite, under Node
 - `npm run test:scripts` — `node --test scripts/*.test.mjs`
 - `npm run hooks:install`, `npm run hooks:run`
 - `bun run scripts/<name>.ts` — repository scripts stay on Bun; see the Tech Stack table
@@ -409,7 +409,7 @@ Use these sections under `## [Unreleased]`:
 
 ## Versionless release bases & bumping
 
-`main` and supported workstream bases are versionless: every `packages/*/package.json` (plus `package-lock.json` workspace entries, the `@bastani/atomic-natives` dependency pin, `packages/natives/native/index.js` checks, and the Cargo manifests/lock) stays at the `0.0.0` placeholder. **Do not bump the version on a release base.**
+`main` and supported workstream bases are versionless: every `packages/*/package.json` (plus `package-lock.json` workspace entries, the `@orphus/natives` dependency pin, `packages/natives/native/index.js` checks, and the Cargo manifests/lock) stays at the `0.0.0` placeholder. **Do not bump the version on a release base.**
 
 `scripts/bump-version.ts` is the low-level stamper that rewrites every versioned manifest. It is invoked by `scripts/cut-release.ts` inside a throwaway worktree at the exact remote base SHA to materialize the real version on the tagged release commit. You normally never run it directly against a release base; the only direct use is resetting the placeholder if it ever drifts:
 
@@ -430,7 +430,7 @@ Note: npm provenance publishing uses GitHub OIDC trusted publishing and must not
 
 ## Tips
 
-1. The workflows extension is bundled into `@bastani/atomic`. For local development against upstream pi, symlink `packages/workflows` into `~/.pi/agent/extensions/workflows` if you want host-level discovery outside Atomic.
+1. The workflows extension is bundled into `@orphus/coding-agent`. For local development against upstream pi, symlink `packages/workflows` into `~/.pi/agent/extensions/workflows` if you want host-level discovery outside Atomic.
 2. Rely on agent skills to provide information on best practices during implementation. Here is a short list of Agent Skills that are incredibly relevant to this project that you should try to use when applicable:
     - bun
     - gh-commit
@@ -442,13 +442,13 @@ Note: npm provenance publishing uses GitHub OIDC trusted publishing and must not
 4. When modifying this extension, follow pi's extension and SDK conventions.
 
 <EXTREMELY_IMPORTANT>
-`@bastani/workflows` ships raw `.ts` files with no build step — do NOT introduce `dist/`, `tsconfig.build.json`, `outDir`, or any bundling.
+`@orphus/workflows` ships raw `.ts` files with no build step — do NOT introduce `dist/`, `tsconfig.build.json`, `outDir`, or any bundling.
 
 Install with `npm ci --ignore-scripts`, and add dependencies with `npm install`. Never run
 `yarn install` or `pnpm install`, and do not bring back `bun install`: each writes a competing
 lockfile that `npm ci` neither reads nor verifies, and bypasses the `min-release-age` gate in
 the committed `.npmrc`. `package-lock.json` is the only lockfile, and it is also the input to
-the shrinkwrap published inside `@bastani/atomic`.
+the shrinkwrap published inside `@orphus/coding-agent`.
 
 Bun is still required, and still correct, for three things: compiling release binaries with
 `bun build --compile`, running `scripts/*.ts`, and running the Bun-hosted test fixtures. See

@@ -15,7 +15,8 @@
  */
 
 import { mkdtemp, writeFile } from "node:fs/promises";
-import type { ExtensionAPI } from "@bastani/atomic";
+import { Text } from "@earendil-works/pi-tui";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import {
 	DEFAULT_MAX_BYTES,
 	DEFAULT_MAX_LINES,
@@ -23,8 +24,7 @@ import {
 	type TruncationResult,
 	truncateHead,
 	withFileMutationQueue,
-} from "@bastani/atomic";
-import { Text } from "@earendil-works/pi-tui";
+} from "@orphus/coding-agent";
 import { execSync } from "child_process";
 import { tmpdir } from "os";
 import { join } from "path";

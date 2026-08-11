@@ -94,7 +94,7 @@ function isWorkflowAuthoringImplementationFrame(filePath: string): boolean {
 	if (!/\/authoring\/workflow\.[cm]?[jt]sx?$/.test(normalized)) return false;
 	return (
 		normalized.includes("/packages/workflows/") ||
-		normalized.includes("/node_modules/@bastani/workflows/") ||
+		normalized.includes("/node_modules/@orphus/workflows/") ||
 		normalized.includes("/dist/builtin/workflows/") ||
 		normalized.includes("/.atomic/agent/extensions/workflows/") ||
 		normalized.includes("/.pi/agent/extensions/workflows/")

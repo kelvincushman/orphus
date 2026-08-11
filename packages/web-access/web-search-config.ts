@@ -1,4 +1,4 @@
-import { CONFIG_DIR_NAME, getUserConfigPaths } from "@bastani/atomic";
+import { CONFIG_DIR_NAME, getUserConfigPaths } from "@orphus/coding-agent";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";

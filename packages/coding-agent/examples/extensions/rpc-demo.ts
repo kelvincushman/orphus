@@ -17,7 +17,7 @@
  * - setEditorText() - via /rpc-prefill command
  */
 
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 
 export default function (pi: ExtensionAPI) {
 	let turnCount = 0;

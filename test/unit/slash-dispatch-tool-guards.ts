@@ -110,7 +110,7 @@ describe("tool run-control actions", () => {
 	test.sequential("registered workflow tool suppresses lifecycle notices while awaiting a headless run", async () => {
 		const resource = await makeRegisteredWorkflowToolWithResource(
 			"tool-headless-lifecycle.ts",
-			`import { workflow } from "@bastani/workflows";
+			`import { workflow } from "@orphus/workflows";
 import { Type } from "typebox";
 
 export default workflow({

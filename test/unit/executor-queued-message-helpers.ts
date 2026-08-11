@@ -1,4 +1,4 @@
-import type { AgentSessionEvent, PromptOptions } from "@bastani/atomic";
+import type { AgentSessionEvent, PromptOptions } from "@orphus/coding-agent";
 import {
 	assert,
 	createStageControlRegistry,

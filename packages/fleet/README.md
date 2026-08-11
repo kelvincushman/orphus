@@ -1,4 +1,4 @@
-# @bastani/fleet
+# @orphus/fleet
 
 Community-shareable fleet orchestration for Orphus. A blueprint
 (`<name>.fleet.yaml`) binds teams of agent definitions — with pre-assigned

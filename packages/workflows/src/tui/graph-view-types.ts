@@ -1,4 +1,4 @@
-import type { ReadonlyFooterDataProvider } from "@bastani/atomic";
+import type { ReadonlyFooterDataProvider } from "@orphus/coding-agent";
 import type { Store } from "../shared/store.js";
 import type { GraphTheme } from "./graph-theme.js";
 

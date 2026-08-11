@@ -1,4 +1,4 @@
-import type { ExtensionContext } from "@bastani/atomic";
+import type { ExtensionContext } from "@orphus/coding-agent";
 import type { ExtractedContent } from "./extract.js";
 import type { SearchResult } from "./perplexity.js";
 

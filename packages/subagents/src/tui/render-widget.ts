@@ -1,6 +1,6 @@
 import * as path from "node:path";
-import type { ExtensionContext } from "@bastani/atomic";
 import { type Component, Container, Text } from "@earendil-works/pi-tui";
+import type { ExtensionContext } from "@orphus/coding-agent";
 import { type AsyncJobState, MAX_WIDGET_JOBS, WIDGET_KEY } from "../shared/types.ts";
 import { widgetActivity, widgetJobName, widgetStats, widgetStatusGlyph } from "./render-event-formatting.ts";
 import { getTermWidth, runningPulseGlyph, type Theme, truncLine } from "./render-layout.ts";

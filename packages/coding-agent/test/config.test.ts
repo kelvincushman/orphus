@@ -52,7 +52,7 @@ function createNpmPrefixInstall(template = "pi-prefix-"): { prefix: string; pack
 	const prefix = mkdtempSync(join(tmpdir(), template));
 	const binDir = join(prefix, "bin");
 	const root = join(prefix, "lib", "node_modules");
-	const scopeDir = join(root, "@bastani");
+	const scopeDir = join(root, "@orphus");
 	const packageDir = join(scopeDir, "atomic");
 	const npmPath = join(binDir, commandFileName("npm"));
 	mkdirSync(packageDir, { recursive: true });
@@ -70,7 +70,7 @@ function createPnpmGlobalInstall(): { root: string; packageDir: string } {
 	const temp = mkdtempSync(join(tmpdir(), "pi-pnpm-"));
 	const binDir = join(temp, "bin");
 	const root = join(temp, "pnpm", "global", "5", "node_modules");
-	const packageDir = join(root, "@bastani", "atomic");
+	const packageDir = join(root, "@orphus", "coding-agent");
 	mkdirSync(packageDir, { recursive: true });
 	mkdirSync(binDir, { recursive: true });
 	writeFileSync(join(binDir, commandFileName("pnpm")), createFakePnpmScript(root));
@@ -78,7 +78,9 @@ function createPnpmGlobalInstall(): { root: string; packageDir: string } {
 	tempDir = temp;
 	process.env.PATH = `${binDir}${delimiter}${originalPath ?? ""}`;
 	process.env.ORPHUS_PACKAGE_DIR = packageDir;
-	setExecPath(join(root, ".pnpm", "@bastani+atomic@0.0.0", "node_modules", "@bastani", "atomic", "dist", "cli.js"));
+	setExecPath(
+		join(root, ".pnpm", "@bastani+atomic@0.0.0", "node_modules", "@orphus", "coding-agent", "dist", "cli.js"),
+	);
 	return { root, packageDir };
 }
 
@@ -86,7 +88,7 @@ function createYarnGlobalInstall(): { globalDir: string; packageDir: string } {
 	const temp = mkdtempSync(join(tmpdir(), "pi-yarn-"));
 	const binDir = join(temp, "bin");
 	const globalDir = join(temp, "yarn", "global");
-	const packageDir = join(globalDir, "node_modules", "@bastani", "atomic");
+	const packageDir = join(globalDir, "node_modules", "@orphus", "coding-agent");
 	mkdirSync(packageDir, { recursive: true });
 	mkdirSync(binDir, { recursive: true });
 	writeFileSync(join(binDir, commandFileName("yarn")), createFakeYarnScript(globalDir));
@@ -94,7 +96,7 @@ function createYarnGlobalInstall(): { globalDir: string; packageDir: string } {
 	tempDir = temp;
 	process.env.PATH = `${binDir}${delimiter}${originalPath ?? ""}`;
 	process.env.ORPHUS_PACKAGE_DIR = packageDir;
-	setExecPath(join(globalDir, ".yarn", "@bastani", "atomic", "dist", "cli.js"));
+	setExecPath(join(globalDir, ".yarn", "@orphus", "coding-agent", "dist", "cli.js"));
 	return { globalDir, packageDir };
 }
 
@@ -103,7 +105,7 @@ function createBunGlobalInstall(): { packageDir: string } {
 	const prefix = join(temp, ".bun");
 	const bunBin = join(prefix, "bin");
 	const root = join(prefix, "install", "global", "node_modules");
-	const scopeDir = join(root, "@bastani");
+	const scopeDir = join(root, "@orphus");
 	const packageDir = join(scopeDir, "atomic");
 	mkdirSync(packageDir, { recursive: true });
 	mkdirSync(bunBin, { recursive: true });
@@ -155,8 +157,8 @@ describe("detectInstallMethod", () => {
 		);
 
 		expect(detectInstallMethod()).toBe("pnpm");
-		expect(getUpdateInstruction("@bastani/atomic")).toBe(
-			"Run: pnpm install -g --ignore-scripts --config.minimumReleaseAge=0 @bastani/atomic",
+		expect(getUpdateInstruction("@orphus/coding-agent")).toBe(
+			"Run: pnpm install -g --ignore-scripts --config.minimumReleaseAge=0 @orphus/coding-agent",
 		);
 	});
 
@@ -164,39 +166,39 @@ describe("detectInstallMethod", () => {
 		setExecPath("/usr/local/bin/node");
 
 		expect(detectInstallMethod()).toBe("unknown");
-		expect(getSelfUpdateCommand("@bastani/atomic")).toBeUndefined();
-		expect(getUpdateInstruction("@bastani/atomic")).toBe(
-			"Update @bastani/atomic using the package manager, wrapper, or source checkout that provides this installation.",
+		expect(getSelfUpdateCommand("@orphus/coding-agent")).toBeUndefined();
+		expect(getUpdateInstruction("@orphus/coding-agent")).toBe(
+			"Update @orphus/coding-agent using the package manager, wrapper, or source checkout that provides this installation.",
 		);
 	});
 
 	test("self-updates npm installs from custom prefixes", () => {
 		const { prefix } = createNpmPrefixInstall();
 
-		const command = getSelfUpdateCommand("@bastani/atomic");
+		const command = getSelfUpdateCommand("@orphus/coding-agent");
 
 		expect(detectInstallMethod()).toBe("npm");
 		expect(command).toEqual({
 			command: "npm",
-			args: ["--prefix", prefix, "install", "-g", "--ignore-scripts", "--min-release-age=0", "@bastani/atomic"],
-			display: `npm --prefix ${prefix} install -g --ignore-scripts --min-release-age=0 @bastani/atomic`,
+			args: ["--prefix", prefix, "install", "-g", "--ignore-scripts", "--min-release-age=0", "@orphus/coding-agent"],
+			display: `npm --prefix ${prefix} install -g --ignore-scripts --min-release-age=0 @orphus/coding-agent`,
 		});
 	});
 
 	test("self-updates renamed packages from the current install prefix", () => {
 		const { prefix } = createNpmPrefixInstall();
 
-		const command = getSelfUpdateCommand("@bastani/atomic", undefined, "@new-scope/pi");
+		const command = getSelfUpdateCommand("@orphus/coding-agent", undefined, "@new-scope/pi");
 
 		expect(command).toEqual({
 			command: "npm",
 			args: ["--prefix", prefix, "install", "-g", "--ignore-scripts", "--min-release-age=0", "@new-scope/pi"],
-			display: `npm --prefix ${prefix} uninstall -g @bastani/atomic && npm --prefix ${prefix} install -g --ignore-scripts --min-release-age=0 @new-scope/pi`,
+			display: `npm --prefix ${prefix} uninstall -g @orphus/coding-agent && npm --prefix ${prefix} install -g --ignore-scripts --min-release-age=0 @new-scope/pi`,
 			steps: [
 				{
 					command: "npm",
-					args: ["--prefix", prefix, "uninstall", "-g", "@bastani/atomic"],
-					display: `npm --prefix ${prefix} uninstall -g @bastani/atomic`,
+					args: ["--prefix", prefix, "uninstall", "-g", "@orphus/coding-agent"],
+					display: `npm --prefix ${prefix} uninstall -g @orphus/coding-agent`,
 				},
 				{
 					command: "npm",
@@ -209,10 +211,10 @@ describe("detectInstallMethod", () => {
 
 	test("self-updates exact npm versions without uninstalling the current package", () => {
 		const { prefix } = createNpmPrefixInstall();
-		const installSpec = "@bastani/atomic@1.2.3";
+		const installSpec = "@orphus/coding-agent@1.2.3";
 
-		const command = getSelfUpdateCommand("@bastani/atomic", undefined, {
-			packageName: "@bastani/atomic",
+		const command = getSelfUpdateCommand("@orphus/coding-agent", undefined, {
+			packageName: "@orphus/coding-agent",
 			installSpec,
 		});
 
@@ -226,19 +228,19 @@ describe("detectInstallMethod", () => {
 	test("self-update respects configured npmCommand", () => {
 		const { prefix } = createNpmPrefixInstall();
 
-		const command = getSelfUpdateCommand("@bastani/atomic", ["npm", "--prefix", prefix]);
+		const command = getSelfUpdateCommand("@orphus/coding-agent", ["npm", "--prefix", prefix]);
 
 		expect(command).toEqual({
 			command: "npm",
-			args: ["--prefix", prefix, "install", "-g", "--ignore-scripts", "--min-release-age=0", "@bastani/atomic"],
-			display: `npm --prefix ${prefix} install -g --ignore-scripts --min-release-age=0 @bastani/atomic`,
+			args: ["--prefix", prefix, "install", "-g", "--ignore-scripts", "--min-release-age=0", "@orphus/coding-agent"],
+			display: `npm --prefix ${prefix} install -g --ignore-scripts --min-release-age=0 @orphus/coding-agent`,
 		});
 	});
 
 	test("self-update treats empty npmCommand as unset", () => {
 		const { prefix } = createNpmPrefixInstall();
 
-		const command = getSelfUpdateCommand("@bastani/atomic", []);
+		const command = getSelfUpdateCommand("@orphus/coding-agent", []);
 
 		expect(command?.args).toEqual([
 			"--prefix",
@@ -247,17 +249,17 @@ describe("detectInstallMethod", () => {
 			"-g",
 			"--ignore-scripts",
 			"--min-release-age=0",
-			"@bastani/atomic",
+			"@orphus/coding-agent",
 		]);
 	});
 
 	test("quotes npm self-update display paths", () => {
 		const { prefix } = createNpmPrefixInstall("pi prefix ");
 
-		const command = getSelfUpdateCommand("@bastani/atomic");
+		const command = getSelfUpdateCommand("@orphus/coding-agent");
 
 		expect(command?.display).toBe(
-			`npm --prefix "${prefix}" install -g --ignore-scripts --min-release-age=0 @bastani/atomic`,
+			`npm --prefix "${prefix}" install -g --ignore-scripts --min-release-age=0 @orphus/coding-agent`,
 		);
 	});
 
@@ -267,40 +269,40 @@ describe("detectInstallMethod", () => {
 		setExecPath(`${packageDir}\\dist\\cli.js`);
 
 		expect(detectInstallMethod()).toBe("npm");
-		expect(getUpdateInstruction("@bastani/atomic")).toBe(
-			"Run: npm install -g --ignore-scripts --min-release-age=0 @bastani/atomic",
+		expect(getUpdateInstruction("@orphus/coding-agent")).toBe(
+			"Run: npm install -g --ignore-scripts --min-release-age=0 @orphus/coding-agent",
 		);
 	});
 
 	test("self-updates bun global installs from bun pm bin", () => {
 		createBunGlobalInstall();
 
-		const command = getSelfUpdateCommand("@bastani/atomic");
+		const command = getSelfUpdateCommand("@orphus/coding-agent");
 
 		expect(detectInstallMethod()).toBe("bun");
 		expect(command).toEqual({
 			command: "bun",
-			args: ["install", "-g", "--ignore-scripts", "--minimum-release-age=0", "@bastani/atomic"],
-			display: "bun install -g --ignore-scripts --minimum-release-age=0 @bastani/atomic",
+			args: ["install", "-g", "--ignore-scripts", "--minimum-release-age=0", "@orphus/coding-agent"],
+			display: "bun install -g --ignore-scripts --minimum-release-age=0 @orphus/coding-agent",
 		});
 	});
 
 	test("self-updates renamed pnpm global installs by removing the old package first", () => {
 		createPnpmGlobalInstall();
 
-		const command = getSelfUpdateCommand("@bastani/atomic", undefined, "@new-scope/pi");
+		const command = getSelfUpdateCommand("@orphus/coding-agent", undefined, "@new-scope/pi");
 
 		expect(detectInstallMethod()).toBe("pnpm");
 		expect(command).toEqual({
 			command: "pnpm",
 			args: ["install", "-g", "--ignore-scripts", "--config.minimumReleaseAge=0", "@new-scope/pi"],
 			display:
-				"pnpm remove -g @bastani/atomic && pnpm install -g --ignore-scripts --config.minimumReleaseAge=0 @new-scope/pi",
+				"pnpm remove -g @orphus/coding-agent && pnpm install -g --ignore-scripts --config.minimumReleaseAge=0 @new-scope/pi",
 			steps: [
 				{
 					command: "pnpm",
-					args: ["remove", "-g", "@bastani/atomic"],
-					display: "pnpm remove -g @bastani/atomic",
+					args: ["remove", "-g", "@orphus/coding-agent"],
+					display: "pnpm remove -g @orphus/coding-agent",
 				},
 				{
 					command: "pnpm",
@@ -314,18 +316,18 @@ describe("detectInstallMethod", () => {
 	test("self-updates renamed yarn global installs by removing the old package first", () => {
 		createYarnGlobalInstall();
 
-		const command = getSelfUpdateCommand("@bastani/atomic", undefined, "@new-scope/pi");
+		const command = getSelfUpdateCommand("@orphus/coding-agent", undefined, "@new-scope/pi");
 
 		expect(detectInstallMethod()).toBe("yarn");
 		expect(command).toEqual({
 			command: "yarn",
 			args: ["global", "add", "--ignore-scripts", "@new-scope/pi"],
-			display: "yarn global remove @bastani/atomic && yarn global add --ignore-scripts @new-scope/pi",
+			display: "yarn global remove @orphus/coding-agent && yarn global add --ignore-scripts @new-scope/pi",
 			steps: [
 				{
 					command: "yarn",
-					args: ["global", "remove", "@bastani/atomic"],
-					display: "yarn global remove @bastani/atomic",
+					args: ["global", "remove", "@orphus/coding-agent"],
+					display: "yarn global remove @orphus/coding-agent",
 				},
 				{
 					command: "yarn",
@@ -339,19 +341,19 @@ describe("detectInstallMethod", () => {
 	test("self-updates renamed bun global installs by removing the old package first", () => {
 		createBunGlobalInstall();
 
-		const command = getSelfUpdateCommand("@bastani/atomic", undefined, "@new-scope/pi");
+		const command = getSelfUpdateCommand("@orphus/coding-agent", undefined, "@new-scope/pi");
 
 		expect(detectInstallMethod()).toBe("bun");
 		expect(command).toEqual({
 			command: "bun",
 			args: ["install", "-g", "--ignore-scripts", "--minimum-release-age=0", "@new-scope/pi"],
 			display:
-				"bun uninstall -g @bastani/atomic && bun install -g --ignore-scripts --minimum-release-age=0 @new-scope/pi",
+				"bun uninstall -g @orphus/coding-agent && bun install -g --ignore-scripts --minimum-release-age=0 @new-scope/pi",
 			steps: [
 				{
 					command: "bun",
-					args: ["uninstall", "-g", "@bastani/atomic"],
-					display: "bun uninstall -g @bastani/atomic",
+					args: ["uninstall", "-g", "@orphus/coding-agent"],
+					display: "bun uninstall -g @orphus/coding-agent",
 				},
 				{
 					command: "bun",
@@ -366,7 +368,7 @@ describe("detectInstallMethod", () => {
 		const { packageDir } = createNpmPrefixInstall();
 		chmodSync(packageDir, 0o500);
 
-		expect(getSelfUpdateCommand("@bastani/atomic")).toBeUndefined();
-		expect(getSelfUpdateUnavailableInstruction("@bastani/atomic")).toContain("the install path is not writable");
+		expect(getSelfUpdateCommand("@orphus/coding-agent")).toBeUndefined();
+		expect(getSelfUpdateUnavailableInstruction("@orphus/coding-agent")).toContain("the install path is not writable");
 	});
 });

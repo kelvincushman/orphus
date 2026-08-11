@@ -1,6 +1,6 @@
 import type { ProviderHeaders } from "@earendil-works/pi-ai";
 import { complete, getModel, type Message, type Model } from "@earendil-works/pi-ai/compat";
-import type { ExtensionContext } from "@bastani/atomic";
+import type { ExtensionContext } from "@orphus/coding-agent";
 import type { QueryResultData } from "./storage.js";
 
 const PREFERRED_SUMMARY_MODELS = [

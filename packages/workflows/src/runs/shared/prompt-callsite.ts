@@ -15,7 +15,7 @@ export interface PromptCallsiteFrame {
 
 const PACKAGED_WORKFLOW_RUNTIME_ROOTS = [
 	"/dist/builtin/workflows/src/",
-	"/node_modules/@bastani/workflows/src/",
+	"/node_modules/@orphus/workflows/src/",
 ] as const;
 
 function normalizeSlashes(path: string): string {

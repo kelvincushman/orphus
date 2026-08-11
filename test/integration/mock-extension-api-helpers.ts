@@ -8,7 +8,7 @@
  */
 
 import assert from "node:assert/strict";
-import { WORKFLOW_STAGE_SUBAGENT_GUARD_ENV } from "@bastani/atomic";
+import { WORKFLOW_STAGE_SUBAGENT_GUARD_ENV } from "@orphus/coding-agent";
 import factory, {
 	type ExtensionAPI,
 	makeExecuteWorkflowTool,

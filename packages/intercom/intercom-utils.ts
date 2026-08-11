@@ -1,4 +1,4 @@
-import { type ExtensionAPI, type SubagentChildPolicy } from "@bastani/atomic";
+import { type ExtensionAPI, type SubagentChildPolicy } from "@orphus/coding-agent";
 import type { Attachment, Message, SessionInfo, SupervisorRegistration } from "./types.js";
 import { DEFAULT_GROUP, normalizeGroup } from "./group.js";
 

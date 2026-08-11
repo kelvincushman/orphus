@@ -1,4 +1,4 @@
-import type { ExtensionAPI, ExtensionContext } from "@bastani/atomic";
+import type { ExtensionAPI, ExtensionContext } from "@orphus/coding-agent";
 import type { IntercomClient } from "./broker/client.js";
 import type { ComposeResult } from "./ui/compose.ts";
 import { ComposeOverlay } from "./ui/compose.ts";

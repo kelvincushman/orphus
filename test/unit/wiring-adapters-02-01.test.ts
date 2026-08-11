@@ -12,7 +12,7 @@ import type {
 	CreateAgentSessionOptions,
 	DefaultResourceLoaderInheritanceSnapshot,
 	PackageSource,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 import { describe, test } from "vitest";
 import type {
 	PiCodingAgentSdk,
@@ -174,7 +174,7 @@ describe("buildRuntimeAdapters — SDK AgentSession adapter", () => {
 	});
 
 	test("falls back to the pi SDK createAgentSession in production (NODE_ENV unset) — proves pi-coding-agent ≥ 0.74 integration", () => {
-		// The pi SDK (`@bastani/atomic` ≥ 0.74) exposes
+		// The pi SDK (`@orphus/coding-agent` ≥ 0.74) exposes
 		// `createAgentSession` as a top-level package export, NOT on the
 		// ExtensionAPI surface. The workflow extension MUST resolve a default
 		// session factory from that package in production (no test context,

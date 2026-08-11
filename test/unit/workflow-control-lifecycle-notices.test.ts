@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { AgentSession } from "@bastani/atomic";
+import type { AgentSession } from "@orphus/coding-agent";
 import { afterEach, describe, test } from "vitest";
 import { InMemoryDurableBackend } from "../../packages/workflows/src/durable/backend.js";
 import { setDurableBackend } from "../../packages/workflows/src/durable/factory.js";

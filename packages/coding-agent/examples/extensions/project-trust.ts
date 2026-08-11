@@ -13,7 +13,7 @@
  * Try it in a project containing .atomic (or legacy .pi), AGENTS.md/CLAUDE.md, or .agents/skills.
  */
 
-import type { ExtensionAPI, ProjectTrustEventResult } from "@bastani/atomic";
+import type { ExtensionAPI, ProjectTrustEventResult } from "@orphus/coding-agent";
 
 export default function (pi: ExtensionAPI) {
 	let loadCount = 0;

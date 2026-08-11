@@ -2,7 +2,7 @@
  * Shared workflow module loading helpers.
  *
  * Discovery loads user-authored workflow files through this jiti instance so
- * TypeScript/ESM/CJS semantics and the @bastani/workflows virtual SDK alias
+ * TypeScript/ESM/CJS semantics and the @orphus/workflows virtual SDK alias
  * stay consistent.
  */
 
@@ -20,7 +20,7 @@ import tournament from "../../builtin/tournament.js";
 import { isBrandedWorkflowDefinition } from "../authoring/workflow.js";
 import * as workflowsSdkSurface from "../sdk-surface.js";
 
-const WORKFLOWS_MODULE_SPECIFIER = "@bastani/workflows";
+const WORKFLOWS_MODULE_SPECIFIER = "@orphus/workflows";
 const WORKFLOWS_BUILTIN_MODULE_SPECIFIER = `${WORKFLOWS_MODULE_SPECIFIER}/builtin`;
 const TYPEBOX_MODULE_SPECIFIER = "typebox";
 // Keep this in sync with index.ts through sdk-surface.ts.
@@ -61,7 +61,7 @@ const workflowModuleLoader = createJiti(import.meta.url, {
 	// Keep workflow-file import semantics deterministic: jiti owns .ts/.js/.mjs/.cjs
 	// resolution instead of handing some imports back to native import().
 	tryNative: false,
-	// Resolve the @bastani/workflows SDK (and its builtin submodules) to in-memory
+	// Resolve the @orphus/workflows SDK (and its builtin submodules) to in-memory
 	// surfaces in every runtime. This mirrors the compiled bun binary path and
 	// keeps discovery fast: aliasing the SDK to its on-disk package re-evaluated
 	// the entire SDK module graph once per workflow file (moduleCache stays false),

@@ -1,5 +1,5 @@
-import type { AgentSession } from "@bastani/atomic";
 import { Box, Text } from "@earendil-works/pi-tui";
+import type { AgentSession } from "@orphus/coding-agent";
 import type { StageSnapshot } from "../shared/store-types.js";
 import { hexToAnsi, RESET } from "./color-utils.js";
 import { wrapIdentifierLines } from "./run-identity-rows.js";

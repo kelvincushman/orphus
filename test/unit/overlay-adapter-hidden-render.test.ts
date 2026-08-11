@@ -52,7 +52,7 @@ async function registerIsolatedTests(): Promise<void> {
 		wrapTextWithAnsi: (text: string) => [text],
 	}));
 
-	mock.module("@bastani/atomic", () => ({
+	mock.module("@orphus/coding-agent", () => ({
 		ChatSessionHost: TestComponent,
 		keyHint: (key: string) => key,
 		keyText: (key: string) => key,

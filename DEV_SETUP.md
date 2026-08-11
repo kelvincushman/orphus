@@ -19,11 +19,11 @@ npm run roles       # turn orphus.roles.yaml into launch commands
 
 - **[Node.js](https://nodejs.org) ≥ 22.13** — runs installs, checks, and the vitest suites (`node:sqlite` is unflagged from 22.13)
 - **[Bun](https://bun.sh) ≥ 1.3.14** — compiles release binaries, runs `scripts/*.ts`, and hosts the Bun-based test fixtures
-- **[Rust](https://rustup.rs)** (stable, with `cargo`) — builds the `@bastani/atomic-natives` N-API module
+- **[Rust](https://rustup.rs)** (stable, with `cargo`) — builds the `@orphus/natives` N-API module
 - **[uv](https://docs.astral.sh/uv/)** — Python package/environment manager for the `evals/` harness
 - **Docker** — required for local Pier/DeepSWE sandbox runs
 
-This repo runs a hybrid toolchain matching upstream `earendil-works/pi`: **npm** installs, builds, checks, and runs the vitest suites; **Bun** compiles the release binaries, runs `scripts/*.ts`, and hosts the test fixtures that need it. `AGENTS.md` carries the full table. The `@bastani/workflows` workspace package ships raw `.ts` files with no build step; Atomic bundles it into `@bastani/atomic` during the coding-agent build.
+This repo runs a hybrid toolchain matching upstream `earendil-works/pi`: **npm** installs, builds, checks, and runs the vitest suites; **Bun** compiles the release binaries, runs `scripts/*.ts`, and hosts the test fixtures that need it. `AGENTS.md` carries the full table. The `@orphus/workflows` workspace package ships raw `.ts` files with no build step; Atomic bundles it into `@orphus/coding-agent` during the coding-agent build.
 
 ---
 
@@ -33,7 +33,7 @@ This repo runs a hybrid toolchain matching upstream `earendil-works/pi`: **npm**
 git clone git@github.com:kelvincushman/orphus.git
 cd orphus
 npm ci --ignore-scripts
-npm run build --workspace=@bastani/atomic-natives
+npm run build --workspace=@orphus/natives
 ```
 
 The natives build is a required one-time step (and again after pulling changes to
@@ -97,7 +97,7 @@ uv run pier run \
 
 `npm install` runs the root `prepare` script, which installs Git hooks with [`prek`](https://prek.j178.dev/) from [`prek.toml`](./prek.toml). The hook shims installed by default come from `default_install_hook_types`; currently that is `pre-commit`. To reinstall hooks manually, run `npm run hooks:install`. Set `PREK_DISABLE_INSTALL=1` to skip hook installation for a local install; CI skips it automatically.
 
-The root `package.json` is a private workspace package named `atomic-monorepo`. The only publishable package is `packages/coding-agent` (`@bastani/atomic`); other `packages/*` workspaces are bundled or internal.
+The root `package.json` is a private workspace package named `atomic-monorepo`. The only publishable package is `packages/coding-agent` (`@orphus/coding-agent`); other `packages/*` workspaces are bundled or internal.
 
 ---
 
@@ -216,7 +216,7 @@ Run these from the workspace root:
 | Command                    | Description                                                      |
 | -------------------------- | ---------------------------------------------------------------- |
 | `npm ci --ignore-scripts`   | Install from `package-lock.json`                                 |
-| `npm run build --workspace=@bastani/atomic-natives` | Build the native N-API module (requires cargo)  |
+| `npm run build --workspace=@orphus/natives` | Build the native N-API module (requires cargo)  |
 | `npm run check`             | Typecheck plus the published-shrinkwrap check                    |
 | `npm run typecheck`         | Type-check the workspace                                         |
 | `npm run test:unit`         | Run unit tests                                                   |
@@ -224,8 +224,8 @@ Run these from the workspace root:
 | `npm run test:ci-contracts` | Run the CI and release contract suite                            |
 | `npm run test:all`          | Run both unit + integration                                      |
 | `npm run test:scripts`      | `node --test scripts/*.test.mjs`                                 |
-| `npm run test --workspace=@bastani/atomic`     | The coding-agent suite, under Node              |
-| `npm run test:bun --workspace=@bastani/atomic` | Its Bun-hosted half; both are required          |
+| `npm run test --workspace=@orphus/coding-agent`     | The coding-agent suite, under Node              |
+| `npm run test:bun --workspace=@orphus/coding-agent` | Its Bun-hosted half; both are required          |
 | `npm run hooks:install`     | Install `prek.toml` Git hooks using `default_install_hook_types` |
 | `npm run hooks:run`         | Run all `prek.toml` hooks across the repository                  |
 
@@ -248,7 +248,7 @@ Because the suites run under Node, `Bun.*` and `import.meta.dir` are unavailable
 reaching for `node:fs` or `node:child_process`. See `AGENTS.md` for the table.
 
 One exception: four files in `packages/coding-agent/test` are collected by a **Bun-hosted**
-vitest project (`agent-bun`) and run by `npm run test:bun --workspace=@bastani/atomic`. They
+vitest project (`agent-bun`) and run by `npm run test:bun --workspace=@orphus/coding-agent`. They
 test `src/core/tools/resource-selectors.ts`, which loads `bun:sqlite` and throws without it,
 so under Node they do not fail — they stop asserting. Do not add a runtime guard that returns
 early; add the file to `BUN_HOSTED_TESTS` in `packages/coding-agent/vitest.config.ts`
@@ -276,7 +276,7 @@ import {
     DefaultResourceLoader,
     SessionManager,
     getAgentDir,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 import factory from "./packages/workflows/src/extension/index.ts";
 
 const resourceLoader = new DefaultResourceLoader({
@@ -301,7 +301,7 @@ bun examples/hello-world.ts
 bun examples/parallel-fan-out.ts
 ```
 
-Examples import the workspace package `@bastani/workflows`.
+Examples import the workspace package `@orphus/workflows`.
 
 ---
 
@@ -318,9 +318,9 @@ Examples import the workspace package `@bastani/workflows`.
 │   │   ├── memory/                      # HMLR-Wiki / Dossier adapter
 │   │   ├── demo/                        # the no-model demos
 │   │   └── skills/                      # discussion etiquette, as an agent skill
-│   ├── coding-agent/                    # @bastani/atomic CLI fork; builds the orphus binary
+│   ├── coding-agent/                    # @orphus/coding-agent CLI fork; builds the orphus binary
 │   └── workflows/
-│       ├── package.json                 # private bundled @bastani/workflows metadata
+│       ├── package.json                 # private bundled @orphus/workflows metadata
 │       ├── src/
 │       │   ├── extension/               # atomic extension entry point, commands, tools, hooks
 │       │   ├── intercom/                # intercom adapter
@@ -354,9 +354,9 @@ Examples import the workspace package `@bastani/workflows`.
 
 - **Source files use `.js` import extensions** (TypeScript ESM convention). The repo ships as `.ts` files; Bun resolves `.js` specifiers to `.ts` sources directly.
 - **Avoid `any` and `unknown`.** Use specific types. The codebase compiles with `strict`, `noUnusedLocals`, and `noUnusedParameters`.
-- **Keep the root package private.** The only publishable workspace package is `packages/coding-agent` (`@bastani/atomic`).
-- **Keep `packages/workflows` private.** It is bundled into `@bastani/atomic`; do not publish it independently.
-- **Do not add a build step** for `@bastani/workflows`; it ships raw TypeScript/resources into the Atomic bundle.
+- **Keep the root package private.** The only publishable workspace package is `packages/coding-agent` (`@orphus/coding-agent`).
+- **Keep `packages/workflows` private.** It is bundled into `@orphus/coding-agent`; do not publish it independently.
+- **Do not add a build step** for `@orphus/workflows`; it ships raw TypeScript/resources into the Atomic bundle.
 - **Track in-progress fixes in `issues.md`.** Delete the file once issues are resolved.
 
 ---
@@ -383,4 +383,4 @@ Bun is the development/test/runtime path. **npm is still the registry publicatio
 
 ## CI
 
-CI runs static checks, the root unit/integration suites, the coding-agent suite, and release-archive smoke tests as concurrent jobs behind a fail-closed result gate, on Linux and Windows. It builds `@bastani/atomic-natives` explicitly before the suites. See [docs/ci.md](./docs/ci.md) and `.github/workflows/test.yml`.
+CI runs static checks, the root unit/integration suites, the coding-agent suite, and release-archive smoke tests as concurrent jobs behind a fail-closed result gate, on Linux and Windows. It builds `@orphus/natives` explicitly before the suites. See [docs/ci.md](./docs/ci.md) and `.github/workflows/test.yml`.

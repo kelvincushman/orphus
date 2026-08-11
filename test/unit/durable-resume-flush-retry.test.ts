@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { WORKFLOW_STAGE_SUBAGENT_GUARD_ENV } from "@bastani/atomic";
+import { WORKFLOW_STAGE_SUBAGENT_GUARD_ENV } from "@orphus/coding-agent";
 import { afterEach, describe, test } from "vitest";
 import { InMemoryDurableBackend } from "../../packages/workflows/src/durable/backend.js";
 import { setDurableBackend } from "../../packages/workflows/src/durable/factory.js";

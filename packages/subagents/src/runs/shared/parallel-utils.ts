@@ -1,4 +1,4 @@
-import type { CodexFastModeResolvedSettings, CodexFastModeScope } from "@bastani/atomic";
+import type { CodexFastModeResolvedSettings, CodexFastModeScope } from "@orphus/coding-agent";
 import type { ModelAttempt } from "../../shared/types.ts";
 
 export interface RunnerSubagentStep {

@@ -1,6 +1,6 @@
 import { lstat, mkdir, realpath, writeFile } from "fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep } from "path";
-import type { ExtensionAPI, ToolDefinition } from "@bastani/atomic";
+import type { ExtensionAPI, ToolDefinition } from "@orphus/coding-agent";
 import { type Static, Type } from "typebox";
 import { buildDigest, type DigestOptions } from "./digest.ts";
 import type { RoundtableClient } from "./broker/client.ts";

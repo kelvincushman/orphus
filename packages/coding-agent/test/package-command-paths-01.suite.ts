@@ -322,7 +322,7 @@ describe("package commands", () => {
 	it("uses the update check version for forced self updates even when current", async () => {
 		const globalPrefix = join(tempDir, "global-prefix");
 		const projectPrefix = join(tempDir, "project-prefix");
-		const selfPackageDir = join(globalPrefix, "lib", "node_modules", "@bastani", "atomic");
+		const selfPackageDir = join(globalPrefix, "lib", "node_modules", "@orphus", "coding-agent");
 		const fakeNpmPath = join(tempDir, "fake-npm.cjs");
 		const recordPath = join(tempDir, "self-update.json");
 		mkdirSync(selfPackageDir, { recursive: true });

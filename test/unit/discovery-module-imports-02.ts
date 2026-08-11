@@ -33,7 +33,7 @@ export function registerDiscoveryModuleImportsSuite2(): void {
 			await createProjectWorkflowFile(
 				"conflict.js",
 				`
-  import { workflow } from "@bastani/workflows";
+  import { workflow } from "@orphus/workflows";
   export default workflow({
     name: "conflict-alpha",
     description: "conflict-alpha",
@@ -77,7 +77,7 @@ export function registerDiscoveryModuleImportsSuite2(): void {
 			await createProjectWorkflowFile(
 				"mixed-validity.js",
 				`
-  import { workflow } from "@bastani/workflows";
+  import { workflow } from "@orphus/workflows";
   export default workflow({
     name: "Valid Default",
     description: "",
@@ -136,7 +136,7 @@ export function registerDiscoveryModuleImportsSuite2(): void {
 			await createProjectWorkflowFile(
 				"removed-api.js",
 				`
-  import { workflow, runWorkflow } from "@bastani/workflows";
+  import { workflow, runWorkflow } from "@orphus/workflows";
   runWorkflow();
   export default workflow({
     name: "removed-api-import",
@@ -162,7 +162,7 @@ export function registerDiscoveryModuleImportsSuite2(): void {
 			await createProjectWorkflowFile(
 				"removed-namespace.js",
 				`
-  import * as workflows from "@bastani/workflows";
+  import * as workflows from "@orphus/workflows";
   workflows.runWorkflow();
   export default workflows.workflow({
     name: "removed-namespace-import",
@@ -188,7 +188,7 @@ export function registerDiscoveryModuleImportsSuite2(): void {
 			await createProjectWorkflowFile(
 				"removed-require.cjs",
 				`
-  const { workflow, runWorkflow } = require("@bastani/workflows");
+  const { workflow, runWorkflow } = require("@orphus/workflows");
   runWorkflow();
   exports.default = workflow({
     name: "removed-require-destructured",
@@ -214,7 +214,7 @@ export function registerDiscoveryModuleImportsSuite2(): void {
 			await createProjectWorkflowFile(
 				"removed-require-namespace.cjs",
 				`
-  const workflows = require("@bastani/workflows");
+  const workflows = require("@orphus/workflows");
   workflows.runWorkflow();
   exports.default = workflows.workflow({
     name: "removed-require-namespace",
@@ -240,7 +240,7 @@ export function registerDiscoveryModuleImportsSuite2(): void {
 			await createProjectWorkflowFile(
 				"removed-reference-only.ts",
 				`
-  import { workflow, runWorkflow } from "@bastani/workflows";
+  import { workflow, runWorkflow } from "@orphus/workflows";
   const pattern = /runWorkflow/;
   const identity = <T,>(value: T): T => value;
   void pattern;
@@ -268,11 +268,11 @@ export function registerDiscoveryModuleImportsSuite2(): void {
 			await createProjectWorkflowFile(
 				"removed-comment-string.js",
 				`
-  import { workflow } from "@bastani/workflows";
-  // import { runWorkflow } from "@bastani/workflows"; removed migration note only
+  import { workflow } from "@orphus/workflows";
+  // import { runWorkflow } from "@orphus/workflows"; removed migration note only
   const docs = [
-    'import { runWorkflow } from "@bastani/workflows";',
-    "const workflows = await import('@bastani/workflows'); workflows.runWorkflow();",
+    'import { runWorkflow } from "@orphus/workflows";',
+    "const workflows = await import('@orphus/workflows'); workflows.runWorkflow();",
   ].join("\\n");
   void docs;
   export default workflow({

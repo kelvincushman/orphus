@@ -1,4 +1,4 @@
-import type { ExtensionCommandContext, ExtensionContext, ToolDefinition } from "@bastani/atomic";
+import type { ExtensionCommandContext, ExtensionContext, ToolDefinition } from "@orphus/coding-agent";
 
 type CommandHandler = (args: string, ctx: ExtensionCommandContext) => void | Promise<void>;
 type ExecutableHeavy = {

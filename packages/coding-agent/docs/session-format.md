@@ -32,7 +32,7 @@ Source on GitHub ([atomic](https://github.com/bastani-inc/atomic)):
 - [`packages/coding-agent/src/core/session-manager.ts`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/session-manager.ts) - Session entry types and SessionManager
 - [`packages/coding-agent/src/core/messages.ts`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/messages.ts) - Extended message types (BashExecutionMessage, CustomMessage, etc.)
 
-Base message and agent event types are provided by Atomic's installed runtime dependencies (`@earendil-works/pi-ai` and `@earendil-works/pi-agent-core`), not by separate `packages/ai` or `packages/agent` directories in this monorepo. For TypeScript definitions in your project, inspect `node_modules/@bastani/atomic/dist/`, `node_modules/@earendil-works/pi-ai/dist/`, and `node_modules/@earendil-works/pi-agent-core/dist/`.
+Base message and agent event types are provided by Atomic's installed runtime dependencies (`@earendil-works/pi-ai` and `@earendil-works/pi-agent-core`), not by separate `packages/ai` or `packages/agent` directories in this monorepo. For TypeScript definitions in your project, inspect `node_modules/@orphus/coding-agent/dist/`, `node_modules/@earendil-works/pi-ai/dist/`, and `node_modules/@earendil-works/pi-agent-core/dist/`.
 
 ## Message Types
 

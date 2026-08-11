@@ -4,7 +4,7 @@ import type {
 	DefaultResourceLoaderInheritanceSnapshot,
 	PackageSource,
 	SubagentChildPolicy,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 import type { StageSessionRuntime } from "../runs/foreground/stage-runner.js";
 
 export interface PiSdkSettingsManager {

@@ -13,7 +13,7 @@ import {
 	DefaultResourceLoader,
 	type DefaultResourceLoaderInheritanceSnapshot,
 	type PackageSource,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 import { describe, test } from "vitest";
 import type {
 	PiCodingAgentSdk,

@@ -1,5 +1,5 @@
 /**
- * Integration smoke: run the built @bastani/atomic package under Node from an
+ * Integration smoke: run the built @orphus/coding-agent package under Node from an
  * installed-like layout (dependencies as node_modules siblings, no monorepo
  * packages/ directories next to the loader).
  *
@@ -93,7 +93,7 @@ function linkDir(target: string, linkPath: string): void {
 
 /**
  * Build <tmp>/install/node_modules mirroring the repo's node_modules via
- * links, except @bastani/atomic itself, which is copied (not linked) so the
+ * links, except @orphus/coding-agent itself, which is copied (not linked) so the
  * loader's realpath does not lead back into the monorepo and re-enable the
  * workspace-path short circuit.
  */
@@ -106,7 +106,7 @@ function buildInstalledLayout(): string {
 		if (entry === ".bin" || entry === ".cache") continue;
 		const source = join(repoNodeModules, entry);
 		if (!fs.statSync(source).isDirectory()) continue;
-		if (entry === "@bastani") {
+		if (entry === "@orphus") {
 			const scopeDir = join(layoutNodeModules, entry);
 			fs.mkdirSync(scopeDir);
 			for (const scoped of fs.readdirSync(source)) {
@@ -118,7 +118,7 @@ function buildInstalledLayout(): string {
 		linkDir(source, join(layoutNodeModules, entry));
 	}
 
-	const atomicDest = join(layoutNodeModules, "@bastani", "atomic");
+	const atomicDest = join(layoutNodeModules, "@orphus", "coding-agent");
 	fs.mkdirSync(atomicDest, { recursive: true });
 	fs.copyFileSync(join(packageDir, "package.json"), join(atomicDest, "package.json"));
 	fs.cpSync(join(packageDir, "dist"), join(atomicDest, "dist"), { recursive: true, dereference: true });
@@ -126,7 +126,7 @@ function buildInstalledLayout(): string {
 }
 
 runTest(
-	"installed @bastani/atomic loads builtin extensions under Node",
+	"installed @orphus/coding-agent loads builtin extensions under Node",
 	() => {
 		const atomicDest = buildInstalledLayout();
 		assert.ok(tmpRoot, "layout setup must assign tmpRoot");

@@ -1,4 +1,4 @@
-import { type CreateAgentSessionOptions, SessionManager } from "@bastani/atomic";
+import { type CreateAgentSessionOptions, SessionManager } from "@orphus/coding-agent";
 import { resolveStageGroup, stageHasIntercomAccess } from "../../shared/intercom-group.js";
 import type { StageExecutionMeta, StageOptions } from "../../shared/types.js";
 import type { AgentSessionConsumer } from "./stage-runner-types.js";

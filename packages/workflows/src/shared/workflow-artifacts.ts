@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, readdir, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { getAgentDir, getEnvValue } from "@bastani/atomic";
+import { getAgentDir, getEnvValue } from "@orphus/coding-agent";
 import type { DurableWorkflowBackend } from "../durable/backend.js";
 import { getDurableBackend } from "../durable/factory.js";
 import { type WorkflowRunResumeCandidate, workflowRunHasPausedState } from "../durable/resume-eligibility.js";

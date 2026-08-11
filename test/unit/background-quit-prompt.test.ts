@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { AgentSession } from "@bastani/atomic";
+import type { AgentSession } from "@orphus/coding-agent";
 import { Type } from "typebox";
 import { afterEach, describe, test } from "vitest";
 import { workflow } from "../../packages/workflows/src/authoring/workflow.js";
