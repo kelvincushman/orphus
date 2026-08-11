@@ -46,9 +46,8 @@ function noColorRequested(): boolean {
 	return process.env.NO_COLOR !== undefined;
 }
 
-export function renderAtomicAssemblyBanner(gap: number, activeTheme: Theme, thinkingLevel: ThinkingLevel): string[] {
-	const colorize = activeTheme.getThinkingBorderColor(thinkingLevel);
-	const solid = (text: string) => activeTheme.bold(noColorRequested() ? text : colorize(text));
+export function renderAtomicAssemblyBanner(gap: number, activeTheme: Theme, _thinkingLevel: ThinkingLevel): string[] {
+	const solid = (text: string) => activeTheme.bold(noColorRequested() ? text : activeTheme.fg("success", text));
 	const paint = (char: string) => {
 		if (char === " ") return char;
 		if (char === SHADOW_CHAR || OUTLINE_CHARS.has(char)) {
