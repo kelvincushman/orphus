@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { createGitEnvironment } from "@bastani/atomic";
@@ -25,25 +25,37 @@ const repoRoot = join(moduleDir(import.meta.url), "..", "..");
 
 // Sanitize the Git environment: under a hook runner (e.g. prek) Git exports
 // GIT_DIR/GIT_WORK_TREE, which it honors over cwd (see git-env.ts).
-function git(args: string[]): string {
+function git(args: string[], cwd: string = repoRoot): string {
 	return execFileSync("git", args, {
-		cwd: repoRoot,
+		cwd,
 		encoding: "utf-8",
 		env: createGitEnvironment(),
 		stdio: ["ignore", "pipe", "pipe"],
 	});
 }
 
-/** The release tag for a changelog version, or null when no such tag exists locally. */
-function resolveTag(version: string): string | null {
+/**
+ * The release tag that can anchor a changelog version, or null when none can.
+ * A candidate spelling anchors only when the tag exists AND its tree contains
+ * the changelog: an inherited upstream tag can share a version string with an
+ * Orphus release while predating a package entirely (the full Pi/Atomic
+ * history — tags included — is preserved in this fork), and one spelling
+ * failing the tree check must not stop the other spelling from being tried.
+ */
+function resolveAnchorTag(version: string, repoRelativePath: string, cwd: string = repoRoot): string | null {
 	// Atomic tags are bare (`0.9.11-alpha.9`); inherited upstream tags carry a `v` prefix.
 	for (const candidate of [version, `v${version}`]) {
 		try {
-			git(["rev-parse", "--verify", "--quiet", `refs/tags/${candidate}^{commit}`]);
-			return candidate;
+			git(["rev-parse", "--verify", "--quiet", `refs/tags/${candidate}^{commit}`], cwd);
 		} catch {
-			// try the next spelling
+			continue; // no such tag — try the next spelling
 		}
+		try {
+			git(["cat-file", "-e", `${candidate}:${repoRelativePath}`], cwd);
+		} catch {
+			continue; // tag predates the package — try the next spelling
+		}
+		return candidate;
 	}
 	return null;
 }
@@ -197,6 +209,49 @@ describe("changelog parsing", () => {
 	});
 });
 
+describe("anchor tag resolution", () => {
+	test("skips a tag spelling whose tree predates the package and anchors on the other spelling", () => {
+		const root = mkdtempSync(join(tmpdir(), "atomic-changelog-anchor-"));
+		try {
+			const run = (args: string[]) => git(args, root);
+			run(["init", "--quiet", "--initial-branch=main"]);
+			const commit = (message: string) =>
+				run([
+					"-c",
+					"user.name=Atomic Test",
+					"-c",
+					"user.email=atomic-test@example.com",
+					"-c",
+					"core.hooksPath=/dev/null",
+					"commit",
+					"--no-gpg-sign",
+					"--quiet",
+					"--allow-empty",
+					"-m",
+					message,
+				]);
+			commit("before the package existed");
+			// The bare spelling exists but its tree predates the package — the
+			// inherited-upstream-tag shape. It must not stop the v spelling.
+			run(["tag", "0.5.0"]);
+
+			mkdirSync(join(root, "packages", "demo"), { recursive: true });
+			writeFileSync(
+				join(root, "packages", "demo", "CHANGELOG.md"),
+				"# Changelog\n\n## [0.5.0] - 2026-01-01\n\n- First release.\n",
+			);
+			run(["add", "-A"]);
+			commit("add the package");
+			run(["tag", "v0.5.0"]);
+
+			assert.equal(resolveAnchorTag("0.5.0", "packages/demo/CHANGELOG.md", root), "v0.5.0");
+			assert.equal(resolveAnchorTag("0.6.0", "packages/demo/CHANGELOG.md", root), null);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+});
+
 // AGENTS.md: "Each version section is immutable once released" and "New entries ALWAYS go
 // under ## [Unreleased]". Once a version is tagged, its published notes are fixed, so the
 // released tail of every package changelog must still read exactly as it did at that tag.
@@ -215,16 +270,24 @@ describe("released changelog sections", () => {
 			// anything above it (an in-flight release, plus [Unreleased]) is still editable.
 			let anchor: { entry: ChangelogEntry; tag: string } | null = null;
 			for (const entry of current) {
-				const tag = resolveTag(entry.version);
+				const tag = resolveAnchorTag(entry.version, relativePath);
 				if (tag) {
 					anchor = { entry, tag };
 					break;
 				}
 			}
-			assert.ok(
-				anchor,
-				`no version in ${relativePath} resolves to a local tag; fetch tags before running this suite`,
-			);
+			if (!anchor) {
+				// A package whose first release is still in flight has no tagged
+				// section to compare against — legal, but only when release tags
+				// are demonstrably fetched. Otherwise this is the forgot-to-fetch
+				// checkout the anchor requirement exists to catch.
+				const releaseTags = git(["tag", "--list", "v[0-9]*", "[0-9]*"]);
+				assert.ok(
+					releaseTags.trim().length > 0,
+					`no version in ${relativePath} resolves to a local tag and no release tags are fetched; fetch tags before running this suite`,
+				);
+				return;
+			}
 
 			const tagged = parseChangelogAtTag(anchor.tag, relativePath);
 			const taggedIndex = tagged.findIndex((entry) => entry.version === anchor.entry.version);

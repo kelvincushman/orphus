@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-08-11
+
+The first stable Orphus release, and this package's first release of any
+kind — fleet orchestration was born in the 0.1.0 prerelease line.
+
 ### Changed
 
 - The orchestration skill gains the toolsmith move: a task needing an unserved API dispatches a member with `minting-clis` to find or mint an agent-native CLI, then re-dispatches with the new tool in the brief.

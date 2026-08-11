@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-08-11
+
+The first stable Orphus release of the `orphus` binary. Everything below
+shipped across the `0.1.0-alpha` and `0.1.0-beta` prereleases. (Version
+numbers here are Orphus app releases; the `0.9.x` entries below them are the
+upstream Atomic package this fork carries.)
+
 ### Changed
 
 - `orphus update` and the startup update notice now resolve per channel: stable installs track GitHub's stable channel (`/releases/latest`, which excludes prereleases) so a stable user is never dragged onto a newer beta, while prerelease installs keep tracking the newest release of any kind. While only prereleases exist, everyone falls through to the release list as before.
@@ -13,10 +20,6 @@
 ### Fixed
 
 - Print mode (`-p`) now waits for extension-initiated follow-up turns before reading the final message and exiting. Commands that deliver their payload as a follow-up user message — `/fleet <name> <task>` chief among them — used to exit 0 with no output because the turn they queued was fire-and-forget and the process left before it started ([#47](https://github.com/kelvincushman/orphus/issues/47)).
-
-### Added
-
-### Fixed
 
 - Version checks (`orphus update` and the startup update notice) now resolve the latest version from this repository's GitHub releases instead of the npm registry. The fork is not published to npm — `@bastani/atomic` there is the upstream package — so `orphus update` reported nonsense targets ("Updated ... to 0.9.12") and the up-to-date check could both nag wrongly and miss real releases.
 

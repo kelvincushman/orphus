@@ -55,26 +55,26 @@ following the documented install ran none of them.
 
 ### Quarantined tests
 
-One file is excluded from collection, listed by name in `vitest.config.ts` with
-its reason beside it:
+The quarantine list in `vitest.config.ts` is **empty**, and
+`test/ci/orphus-gate-contracts.test.ts` pins it that way — growing it (or
+shrinking it) is a deliberate, reviewed act, never a drive-by edit.
 
-| File | Why |
-| --- | --- |
-| `test/unit/interactive-engine-cycle-fallback.test.ts` | Times out waiting for a model-cycle state. Fails on an idle container as readily as on a loaded runner, so it is a genuine pre-existing failure rather than the load sensitivity `AGENTS.md` warns about |
+Two files have passed through it, and both left the same way — by fixing the
+cause rather than accepting the exclusion:
 
-It was already red on `main` when the `suites` job was added — nothing had run
-this suite since the fork, so nobody had seen it. It is excluded at collection
-rather than skipped inside the file, because a soft guard keeps a test's name in
-the pass count while its assertions do nothing; a missing file is countable.
+- `changelog.test.ts` failed because CI checkouts had no tags; a tag-fetch step
+  fixed it.
+- `interactive-engine-cycle-fallback.test.ts` timed out because the engine
+  test drivers spawned children with the developer's full environment — a real
+  provider key (`GROQ_API_KEY` and kin) leaked into fixtures and turned a
+  scripted model cycle into a live provider call. The drivers now scrub
+  `*_API_KEY` / `*_BEARER_AUTH` from the child environment.
 
-**Deleting that entry is the goal.** Adding one needs the same standard of
-proof: demonstrated failing on a pristine checkout, with the cause understood.
-`test/ci/orphus-gate-contracts.test.ts` asserts the list and that each entry
-carries a stated reason, so growing it shows up in review.
-
-A second file, `changelog.test.ts`, was quarantined for the same reason and has
-since been **un-quarantined** — the tag-fetch step above fixed the cause instead
-of accepting the exclusion, which is the pattern to follow.
+Adding an entry needs a demonstrated failure on a pristine checkout with the
+cause understood, and the entry must carry its reason in the config. Exclusion
+happens at collection rather than by skipping inside the file, because a soft
+guard keeps a test's name in the pass count while its assertions do nothing; a
+missing file is countable.
 
 ### What this gate does not cover
 
