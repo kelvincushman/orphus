@@ -142,7 +142,7 @@ test("post-tool compaction keeps its factual status across the interposed turn_s
 		assert.equal(harness.mode.autoCompactionLoader, undefined);
 		assert.notEqual(harness.mode.loadingAnimation, undefined, "the same stream resumes with Working");
 		assert.doesNotMatch(harness.status(), /Auto-compacting/);
-		assert.match(harness.status(), /∀ /, "a live working indicator is mounted again");
+		assert.match(harness.status(), /⊙ /, "a live working indicator is mounted again");
 
 		await emit(harness.mode, { type: "agent_end" });
 		assert.equal(harness.mode.loadingAnimation, undefined);
@@ -167,7 +167,7 @@ test("a successful post-tool no-op compaction restores Working without user inpu
 
 		assert.equal(harness.mode.autoCompactionLoader, undefined);
 		assert.notEqual(harness.mode.loadingAnimation, undefined, "successful no-op still resumes Working");
-		assert.match(harness.status(), /∀ /);
+		assert.match(harness.status(), /⊙ /);
 		assert.doesNotMatch(harness.status(), /Auto-compacting/);
 
 		await emit(harness.mode, { type: "turn_start" });
@@ -194,7 +194,7 @@ test("aborted and failed post-tool compaction leave no active indicator", async 
 
 			assert.equal(harness.mode.autoCompactionLoader, undefined);
 			assert.equal(harness.mode.loadingAnimation, undefined);
-			assert.doesNotMatch(harness.status(), /Auto-compacting|∀ /);
+			assert.doesNotMatch(harness.status(), /Auto-compacting|⊙ /);
 			assert.equal(timers.intervalCount(), 0, "no animation timer survives a terminal compaction");
 			if (expectAborted) assert.deepEqual(harness.statuses, ["Auto-compaction cancelled"]);
 		} finally {
@@ -212,7 +212,7 @@ test("an ordinary turn_start still mounts Working when no compaction owns the su
 		await emit(harness.mode, { type: "turn_start" });
 
 		assert.notEqual(harness.mode.loadingAnimation, undefined);
-		assert.match(harness.status(), /∀ /);
+		assert.match(harness.status(), /⊙ /);
 		assert.equal(timers.intervalCount(), 1);
 	} finally {
 		harness.mode.loadingAnimation?.stop();

@@ -73,14 +73,14 @@ test("successful retry and fallback stay ordinary-inactive until a genuine lifec
 			factual: "retrying…",
 			end: { type: "auto_retry_end", success: true, attempt: 1 },
 			restart: { type: "agent_start" },
-			restartedLine: " ∀ Working...",
+			restartedLine: " ⊙ Working...",
 		},
 		{
 			start: { type: "model_fallback_start", from: "a", to: "b", reason: "quota", attempt: 1 },
 			factual: "switching model…",
 			end: { type: "model_fallback_end", success: true, from: "a", to: "b" },
 			restart: { type: "turn_start" },
-			restartedLine: " ∀ Schlepping...",
+			restartedLine: " ⊙ Schlepping...",
 		},
 	] as const;
 
@@ -97,7 +97,7 @@ test("successful retry and fallback stay ordinary-inactive until a genuine lifec
 				host.applyAgentEvent({ type: "agent_start" } as never);
 				host.applyAgentEvent({ type: "turn_start" } as never);
 				timers.advanceBy(88);
-				assert.equal(workingLine(host), " ∀ Schlepping...");
+				assert.equal(workingLine(host), " ⊙ Schlepping...");
 
 				const beforeFactualStart = renderRequests;
 				host.applyAgentEvent(transition.start as never);
@@ -159,14 +159,14 @@ test("ordinary assistant start coalesces into the active turn animation paint", 
 
 		assert.equal(host.entries().length, 1, "the assistant transcript entry updates immediately");
 		assert.equal(host.entries()[0]?.role, "assistant");
-		assert.deepEqual(paintedFrames, [" ∀ Working...", " ∀ Schlepping..."]);
+		assert.deepEqual(paintedFrames, [" ⊙ Working...", " ⊙ Schlepping..."]);
 		timers.advanceBy(87);
 		assert.equal(paintedFrames.length, 2, "the active cadence retains its 88ms latency ceiling");
 		timers.advanceBy(1);
 
 		assert.deepEqual(
 			paintedFrames,
-			[" ∀ Working...", " ∀ Schlepping...", " ∀ Schlepping..."],
+			[" ⊙ Working...", " ⊙ Schlepping...", " ⊙ Schlepping..."],
 			"the 88ms turn tick owns the single next-frame repaint",
 		);
 		assert.deepEqual(timers.timeoutDelays(), [], "no parallel event throttle is registered");
@@ -200,7 +200,7 @@ test("public interrupt stops the working lifecycle and fences its captured callb
 		host.applyAgentEvent({ type: "agent_start" } as never);
 		assert.equal(host.hasAnimationTick(), true);
 		assert.deepEqual(timers.activeIntervalDelays(), [88]);
-		assert.match(workingLine(host) ?? "", /^ ∀ /);
+		assert.match(workingLine(host) ?? "", /^ ⊙ /);
 		const interruptedTick = timers.capturedAnimationCallbacks().at(-1)!;
 
 		await host.interrupt();
@@ -305,11 +305,11 @@ test("non-reduced in-flight host construction first renders the regular pulse ph
 		},
 	});
 	try {
-		assert.equal(workingLine(host), " ∀ Working...");
+		assert.equal(workingLine(host), " ⊙ Working...");
 		assert.deepEqual(timers.intervalDelays(), [88]);
 		assert.equal(renderRequests, 0, "construction is not a synthetic lifecycle event");
 		timers.advanceBy(88);
-		assert.equal(workingLine(host), " ∀ Working...");
+		assert.equal(workingLine(host), " ⊙ Working...");
 		assert.equal(renderRequests, 1);
 	} finally {
 		host.dispose();

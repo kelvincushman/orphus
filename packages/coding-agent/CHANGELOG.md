@@ -2,7 +2,14 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The working indicator is Orphus's own mark: a round table seen from above (`⊙`) with the decision at its centre, replacing the `∀` this tree inherited from Atomic. The ten-step luminance ramp, 88ms cadence, `NO_COLOR` behaviour, and reduced-motion static frame are unchanged.
+
 ### Fixed
+
+- Runtime working directories are created under the configured Orphus config dir instead of a hardcoded `.atomic`. Subagent artifacts, subagent and workflow worktrees, durable workflow run artifacts, the embedded-Postgres data root, and the run-history fallback all wrote to `.atomic/…` regardless of configuration — so a fresh install with no Atomic history still grew `.atomic` directories inside user projects. Every one now resolves through `CONFIG_DIR_NAME` (`.orphus` by default); reads of existing configuration keep their `.atomic`/`.pi` fallbacks, so prior installs are unaffected.
+- The workflow authoring prompt told the model to report new workflows under `.atomic/workflows/`, sending hand-authored workflows to the legacy directory even though discovery prefers `.orphus`. It now names `.orphus/workflows/`.
 
 - A roundtable activity ping delivered after session replacement no longer kills the process. `AgentSession.dispose()` invalidates extension ctxs without emitting `session_shutdown`, so the replaced session's roundtable instance survived as an orphan; its next coalesced ping threw from a timer callback and took the whole process down — a `/fleet` run that pins the orchestrator model died before its first turn whenever retained rooms had unread activity. Pings are best-effort by contract: delivery failure now quiesces the orphaned instance (drops the ping, disconnects it from the broker) and the replacement session's own instance serves the rooms.
 

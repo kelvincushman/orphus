@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { createGitEnvironment } from "@bastani/atomic";
+import { CONFIG_DIR_NAME, createGitEnvironment } from "@bastani/atomic";
 import { performPostCreationSetup } from "./worktree-post-create.js";
 import { findCanonicalGitRoot } from "./worktree-root.js";
 export interface WorktreeSetup {
@@ -154,10 +154,10 @@ function buildWorktreeBranch(runId: string, index: number): string {
 	return `worktree-${flattenedWorktreeName(runId, index)}`;
 }
 function buildWorktreePath(mainRoot: string, runId: string, index: number): string {
-	return path.join(mainRoot, ".atomic", "worktrees", flattenedWorktreeName(runId, index));
+	return path.join(mainRoot, CONFIG_DIR_NAME, "worktrees", flattenedWorktreeName(runId, index));
 }
 function ensureWorktreeIgnore(mainRoot: string): void {
-	const root = path.join(mainRoot, ".atomic", "worktrees");
+	const root = path.join(mainRoot, CONFIG_DIR_NAME, "worktrees");
 	fs.mkdirSync(root, { recursive: true });
 	fs.writeFileSync(path.join(root, ".gitignore"), "*\n", "utf8");
 }

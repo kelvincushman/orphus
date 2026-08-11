@@ -93,7 +93,7 @@ afterEach(() => {
 
 describe("Atomic working status", () => {
 	it("keeps exact literal one-cell identity through the approved ten-phase ramp", () => {
-		expect(ORPHUS_WORKING_FRAMES).toEqual(Array(10).fill("∀"));
+		expect(ORPHUS_WORKING_FRAMES).toEqual(Array(10).fill("⊙"));
 		expect(ORPHUS_WORKING_FRAMES.map(visibleWidth)).toEqual(Array(10).fill(1));
 		expect(ORPHUS_WORKING_BOLD_PHASES).toEqual([false, false, false, false, true, true, true, false, false, false]);
 		expect(ORPHUS_WORKING_PHASES).toEqual([
@@ -127,7 +127,7 @@ describe("Atomic working status", () => {
 			"#2d537a",
 			"#1c2c3c",
 		]);
-		expect(rendered.map((line) => plain(line).trimEnd())).toEqual(Array(10).fill(" ∀ Working..."));
+		expect(rendered.map((line) => plain(line).trimEnd())).toEqual(Array(10).fill(" ⊙ Working..."));
 		expect(rendered.map((line) => line.includes("\u001b[1m"))).toEqual(ORPHUS_WORKING_BOLD_PHASES);
 	});
 
@@ -205,7 +205,7 @@ describe("Atomic working status", () => {
 		const rendered = ORPHUS_WORKING_FRAMES.map(
 			(_, frame) => new AtomicWorkingStatusComponent({ frame, messageColor: String }).render(64)[1]!,
 		);
-		expect(rendered.map((line, index) => line.includes(`\u001b[38;5;${expected[index]}m∀`))).toEqual(
+		expect(rendered.map((line, index) => line.includes(`\u001b[38;5;${expected[index]}m⊙`))).toEqual(
 			Array(10).fill(true),
 		);
 	});
@@ -282,8 +282,8 @@ describe("Atomic working status", () => {
 			spinnerBoldColor: (text) => `<bold>${text}</bold>`,
 			messageColor: String,
 		}).render(64)[1]!;
-		expect(regular.trimEnd()).toBe(" <regular>∀</regular> Working...");
-		expect(bold.trimEnd()).toBe(" <bold>∀</bold> Working...");
+		expect(regular.trimEnd()).toBe(" <regular>⊙</regular> Working...");
+		expect(bold.trimEnd()).toBe(" <bold>⊙</bold> Working...");
 	});
 
 	it("uses an exact 88ms cadence with a ten-phase 880ms cycle", () => {
@@ -308,8 +308,8 @@ describe("Atomic working status", () => {
 				.render(64)
 				.map(plain);
 			expect(lines).toHaveLength(2);
-			expect(lines[1]!.trimEnd()).toBe(` ∀ ${message}`);
-			expect(lines[1]!.match(/∀/g)).toEqual(["∀"]);
+			expect(lines[1]!.trimEnd()).toBe(` ⊙ ${message}`);
+			expect(lines[1]!.match(/⊙/g)).toEqual(["⊙"]);
 			expect(lines.every((line) => visibleWidth(line) <= 64)).toBe(true);
 		}
 	});
@@ -320,14 +320,14 @@ describe("Atomic working status", () => {
 		root.addChild(new AtomicWorkingStatusComponent({ frame: 0, message: "Schlepping...", messageColor: String }));
 		const lines = root.render(64).map(plain);
 		expect(lines.slice(0, 2).map((line) => line.trimEnd())).toEqual(["history-1", "history-2"]);
-		expect(lines.slice(2).map((line) => line.trimEnd())).toEqual(["", " ∀ Schlepping..."]);
+		expect(lines.slice(2).map((line) => line.trimEnd())).toEqual(["", " ⊙ Schlepping..."]);
 	});
 
 	it("restores phase zero with a fresh 88ms cadence after an extension override", () => {
 		vi.useFakeTimers();
 		const requestRender = vi.fn();
 		const loader = new AtomicWorkingLoader({ requestRender } as never, undefined, String, "Working...");
-		expect(renderedContent(loader)).toBe(" ∀ Working...");
+		expect(renderedContent(loader)).toBe(" ⊙ Working...");
 		vi.advanceTimersByTime(352);
 		expect(loader.render(64)[1]).toContain("\u001b[1m");
 		loader.setIndicator({ frames: ["X"] });
@@ -371,7 +371,7 @@ describe("Atomic working status", () => {
 			(_, frame) => new AtomicWorkingStatusComponent({ frame }).render(64)[1]!,
 		);
 		expect(rendered.every((line) => !line.includes("\u001b[38;"))).toBe(true);
-		expect(rendered.every((line) => plain(line).trimEnd() === " ∀ Working...")).toBe(true);
+		expect(rendered.every((line) => plain(line).trimEnd() === " ⊙ Working...")).toBe(true);
 		expect(rendered.map((line) => line.includes("\u001b[1m"))).toEqual(ORPHUS_WORKING_BOLD_PHASES);
 	});
 
