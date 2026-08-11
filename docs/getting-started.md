@@ -107,7 +107,11 @@ orphus
 ```
 
 Later upgrades are one command — `orphus update` checks this repository's
-releases and installs in place, keeping prior versions for rollback.
+releases and installs in place, keeping prior versions for rollback. Updates
+follow your channel: a stable install only ever moves to newer stable
+releases, while a prerelease install tracks the newest release of any kind.
+To try a specific prerelease deliberately, pin it:
+`install.sh --ref v0.2.0-beta.1`.
 
 Orphus is not published to npm. To run from a checkout instead, build the
 binary:

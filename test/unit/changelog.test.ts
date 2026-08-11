@@ -48,6 +48,21 @@ function resolveTag(version: string): string | null {
 	return null;
 }
 
+/**
+ * Whether the tagged tree contains the given path. An inherited upstream tag
+ * can share a version string with an Orphus release while predating a package
+ * entirely (the full Pi/Atomic history — tags included — is preserved in this
+ * fork); such a tag cannot anchor that package's changelog.
+ */
+function tagContainsPath(tag: string, repoRelativePath: string): boolean {
+	try {
+		git(["cat-file", "-e", `${tag}:${repoRelativePath}`]);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 function parseChangelogAtTag(tag: string, repoRelativePath: string): ChangelogEntry[] {
 	const root = mkdtempSync(join(tmpdir(), "atomic-changelog-tag-"));
 	try {
@@ -216,15 +231,23 @@ describe("released changelog sections", () => {
 			let anchor: { entry: ChangelogEntry; tag: string } | null = null;
 			for (const entry of current) {
 				const tag = resolveTag(entry.version);
-				if (tag) {
+				if (tag && tagContainsPath(tag, relativePath)) {
 					anchor = { entry, tag };
 					break;
 				}
 			}
-			assert.ok(
-				anchor,
-				`no version in ${relativePath} resolves to a local tag; fetch tags before running this suite`,
-			);
+			if (!anchor) {
+				// A package whose first release is still in flight has no tagged
+				// section to compare against — legal, but only when release tags
+				// are demonstrably fetched. Otherwise this is the forgot-to-fetch
+				// checkout the anchor requirement exists to catch.
+				const releaseTags = git(["tag", "--list", "v[0-9]*", "[0-9]*"]);
+				assert.ok(
+					releaseTags.trim().length > 0,
+					`no version in ${relativePath} resolves to a local tag and no release tags are fetched; fetch tags before running this suite`,
+				);
+				return;
+			}
 
 			const tagged = parseChangelogAtTag(anchor.tag, relativePath);
 			const taggedIndex = tagged.findIndex((entry) => entry.version === anchor.entry.version);

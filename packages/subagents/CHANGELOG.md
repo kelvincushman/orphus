@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-08-11
+
+The first stable Orphus release. Everything below shipped across the
+`0.1.0-alpha` and `0.1.0-beta` prereleases; entries citing upstream issue
+numbers arrived through the vendored Atomic tree and ship in this release.
+
 ### Added
 
 - Bundled the `minting-clis` skill: when a task needs an external API no installed tool serves, agents check the Printing Press community library, mint an agent-native CLI with the factory, and reach for an MCP wrapper only when a CLI cannot exist — with doctor-before-spending and never-in-a-file credential rules built in.

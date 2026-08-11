@@ -119,13 +119,15 @@ curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.s
 orphus
 ```
 
-`install.sh --help` documents pinning a version (`--ref v0.1.0-alpha.5`) and the
+`install.sh --help` documents pinning a version (`--ref v0.1.0`) and the
 `ORPHUS_INSTALL_DIR` / `ORPHUS_BIN_DIR` overrides. Add an **API key** for whichever provider
 you use, or log in from inside a session with `/login`.
 
 From then on, `orphus update` upgrades in place: it checks this repository's releases,
 re-runs the installer, and flips the `current` pointer — prior versions stay on disk for
-rollback. Nobody reinstalls by hand.
+rollback. Nobody reinstalls by hand. Updates follow your channel: a stable install tracks
+stable releases only, so it is never dragged onto a beta; a prerelease install tracks the
+newest release of any kind.
 
 ### Building from a clone instead
 
@@ -182,19 +184,6 @@ node packages/coding-agent/dist/cli.js --name librarian   # the one role allowed
 
 The wiki lives at `<agent dir>/memory` by default, so every session and Orca worktree shares
 one memory. Contract and configuration: [docs/memory.md](docs/memory.md).
-
-The demo runs three scripted agents (planner, researcher, critic) through a rate-limiter
-design discussion over the real broker socket, then shows each agent — and a late-joining
-reviewer — catching up under budget:
-
-```
-reviewer joins late — unread: 9 (entire discussion, 2413 chars)
-  digest: 767 chars (budget 800) = 32% of the raw transcript
-  verbatim 3 · headlines 1 · collapsed 5
-```
-
-No model is involved anywhere in the demo: it proves the transport and the bound.
-Attach real agents for the live version (below).
 
 ## How Orphus works
 
@@ -347,14 +336,23 @@ byte-identical to upstream; `test.yml` cannot be, because it carries the rebrand
 `ORPHUS_REQUIRE_*` env-var names. Read them as a record of upstream's topology, not as this
 repository's gate.
 
-One test file is quarantined by name in `vitest.config.ts`, with its reason — a pre-existing
-timeout in vendored code. Deleting that entry is the goal. Details: [docs/ci.md](docs/ci.md).
+The quarantine list in `vitest.config.ts` is **empty** — the one file ever excluded was
+fixed at its root (a provider credential leaking from the developer's environment into
+test fixtures) rather than left out. `test/ci/orphus-gate-contracts.test.ts` pins the empty
+list, so growing it again is a reviewed act. Details: [docs/ci.md](docs/ci.md).
 
 ### Release archives
 
-Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds a **Linux x64** archive,
-checks that the binary reports the tag's version, and stages a **draft** GitHub Release for a
-human to publish. It deliberately publishes to no registry.
+Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds a **macOS arm64**
+archive and a **Linux x64** archive, checks that each binary reports the tag's version,
+writes a `SHA256SUMS` the installer verifies against, and stages a **draft** GitHub Release
+for a human to publish. It deliberately publishes to no registry.
+
+**Platform scope.** macOS arm64 (Apple silicon) and Linux x64 glibc are the built platforms.
+Windows, Linux arm64, and musl (Alpine) are not built — each needs its own napi-slug `.node`
+staged first, so each is another job rather than another matrix row. Intel macOS is not
+planned. If you need one of these, open an issue; the installer already refuses politely on
+unsupported platforms rather than guessing.
 
 **What the archive runs on.** Its glibc floor is **2.27** — distributions providing glibc
 2.27 or newer satisfy that ABI requirement (Ubuntu 18.04 ships 2.27). The floor is not
@@ -375,9 +373,6 @@ find orphus -type f \
 
 The release workflow runs the same scan and refuses to stage the draft unless it reports
 exactly `GLIBC_2.27`.
-
-Only Linux x64 is built. Each additional platform needs its own napi-slug `.node` staged
-first, so it is another job rather than another matrix row.
 
 ## From another harness (MCP)
 
