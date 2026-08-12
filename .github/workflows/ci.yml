@@ -156,3 +156,61 @@ jobs:
           path: .ci-diagnostics/
           if-no-files-found: ignore
           retention-days: 14
+
+  # The review gate. CodeRabbit reports its check as PASSING even when it
+  # declined to review — the summary comment then says "Review skipped", and
+  # the reason has twice been something nobody would notice: path filters that
+  # had silently become an allowlist (#69), and a file-count ceiling on a large
+  # rename (#82). A gate that goes green without reviewing is worse than no
+  # gate, because the process believes it ran.
+  #
+  # This job fails when the robot skipped, so a hollow gate is red. Two escapes,
+  # both deliberate and visible: the `review-exempt` label (for changes no robot
+  # can usefully review), or a `Substitute-review:` line in the PR body pointing
+  # at whatever stood in — an independent reviewer, a human pass, a fleet gate.
+  review-gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Require a review that actually ran
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          if gh api "repos/$REPO/issues/$PR/labels" --jq '.[].name' | grep -qx 'review-exempt'; then
+            echo "::notice::review-exempt label present — review gate waived deliberately."
+            exit 0
+          fi
+
+          body=$(gh api "repos/$REPO/pulls/$PR" --jq '.body // ""')
+          if printf '%s' "$body" | grep -qiE '^Substitute-review:[[:space:]]*\S'; then
+            printf '%s\n' "$body" | grep -iE '^Substitute-review:' | while read -r line; do
+              echo "::notice::Substitute review declared — $line"
+            done
+            exit 0
+          fi
+
+          # The newest CodeRabbit comment decides: it re-posts on each review.
+          comment=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq '[.[] | select(.user.login | startswith("coderabbit")) | .body] | last // ""')
+
+          if [ -z "$comment" ]; then
+            echo "::error::No CodeRabbit comment found. The review has not run (or not yet) — this gate needs a completed review, the review-exempt label, or a Substitute-review: line in the PR body."
+            exit 1
+          fi
+
+          if printf '%s' "$comment" | grep -qiE 'review (was )?skipped'; then
+            echo "::error::CodeRabbit reported its check as passing but SKIPPED the review. Reason from its comment:"
+            printf '%s' "$comment" | grep -iE 'skipped|exceed|filter' | head -5 || true
+            echo "::error::Fix the cause, split the PR, or declare a substitute: add a 'Substitute-review: <what reviewed this>' line to the PR body, or the review-exempt label."
+            exit 1
+          fi
+
+          echo "CodeRabbit review completed."

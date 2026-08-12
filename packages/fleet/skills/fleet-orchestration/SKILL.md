@@ -109,7 +109,14 @@ CI alone is not the gate. The sequence, when the blueprint declares one:
 
 1. **Let the repo's automated reviewers COMPLETE** (CodeRabbit, Greptile —
    whatever the blueprint's `gate.reviewers` names). Never merge with a review
-   still running or threads unexamined.
+   still running or threads unexamined. **A green check is not proof a review
+   happened**: reviewers report PASSING when they decline to review, and the
+   reasons are invisible unless you read their comment — path filters that
+   became an allowlist, a file-count ceiling on a large diff, a plan limit.
+   Read the reviewer's own comment and confirm it reviewed. If it skipped,
+   the gate is NOT satisfied: fix the cause, split the diff, or obtain a
+   substitute review (an independent reviewer in fresh context) and say in
+   the PR which one stood in.
 2. **Triage every finding like an engineer, not a supplicant**: verify it
    first. Fix what is real; REFUTE what is not, with evidence, in a reply on
    the thread. A review tool flagging something is a hypothesis, not a fact.

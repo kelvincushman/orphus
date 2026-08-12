@@ -96,6 +96,12 @@ test("every Orphus gate job pins its actions by commit SHA", async () => {
 test("checkout credentials are not persisted into repository-controlled steps", async () => {
 	const ci = await readText(ciPath);
 	for (const [name, block] of jobBlocks(ci)) {
+		// A job that never checks out has no credentials to persist, so the rule
+		// is scoped to jobs that do. It is the same guarantee, not a weaker one:
+		// what must never happen is a checkout leaving a usable token behind for
+		// later steps. `review-gate` is the first checkout-less job here — it
+		// only calls the GitHub API with the workflow token.
+		if (!/actions\/checkout@/u.test(block)) continue;
 		assert.match(
 			block,
 			/actions\/checkout@[0-9a-f]{40}[^\n]*\n\s+with:\n\s+persist-credentials: false/u,
