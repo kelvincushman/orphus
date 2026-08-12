@@ -327,7 +327,7 @@ Defer background resource startup until `session_start` or the command/tool/even
     "zod": "^3.0.0",
     "chalk": "^5.0.0"
   },
-  "atomic": {
+  "orphus": {
     "extensions": ["./src/index.ts"]
   }
 }
@@ -1490,7 +1490,7 @@ pi.sendMessage({
 
 ### pi.sendMessages(messages, options?)
 
-Orphusally admit a batch of custom messages in array order. The call returns `void | Promise<void>` for compatibility with synchronous hosts; use `await Promise.resolve(pi.sendMessages(...))` when admission or routing failure must be observed. The promise is an admission receipt and does not wait for the resulting model turn. Admission is indivisible; use this when a prelude and terminal notice must stay contiguous without globally serializing other extension work.
+Admit a batch of custom messages in array order. The call returns `void | Promise<void>` for compatibility with synchronous hosts; use `await Promise.resolve(pi.sendMessages(...))` when admission or routing failure must be observed. The promise is an admission receipt and does not wait for the resulting model turn. Admission is indivisible; use this when a prelude and terminal notice must stay contiguous without globally serializing other extension work.
 
 ```typescript
 pi.sendMessages([
