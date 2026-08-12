@@ -79,7 +79,7 @@ function createPnpmGlobalInstall(): { root: string; packageDir: string } {
 	process.env.PATH = `${binDir}${delimiter}${originalPath ?? ""}`;
 	process.env.ORPHUS_PACKAGE_DIR = packageDir;
 	setExecPath(
-		join(root, ".pnpm", "@bastani+atomic@0.0.0", "node_modules", "@orphus", "coding-agent", "dist", "cli.js"),
+		join(root, ".pnpm", "@orphus+coding-agent@0.0.0", "node_modules", "@orphus", "coding-agent", "dist", "cli.js"),
 	);
 	return { root, packageDir };
 }
@@ -153,7 +153,7 @@ function createFakeBunScript(bunBin: string): string {
 describe("detectInstallMethod", () => {
 	test("detects pnpm from Windows .pnpm install paths", () => {
 		setExecPath(
-			"C:\\Users\\Admin\\Documents\\pnpm-repository\\global\\5\\.pnpm\\@bastani+atomic@0.67.68\\node_modules\\@bastani\\atomic\\dist\\cli.js",
+			"C:\\Users\\Admin\\Documents\\pnpm-repository\\global\\5\\.pnpm\\@orphus+coding-agent@0.67.68\\node_modules\\@orphus\\coding-agent\\dist\\cli.js",
 		);
 
 		expect(detectInstallMethod()).toBe("pnpm");
@@ -264,7 +264,7 @@ describe("detectInstallMethod", () => {
 	});
 
 	test("does not infer Windows npm custom prefixes from package paths", () => {
-		const packageDir = "C:\\Users\\Admin\\npm prefix\\node_modules\\@bastani\\atomic";
+		const packageDir = "C:\\Users\\Admin\\npm prefix\\node_modules\\@orphus\\coding-agent";
 		process.env.ORPHUS_PACKAGE_DIR = packageDir;
 		setExecPath(`${packageDir}\\dist\\cli.js`);
 
