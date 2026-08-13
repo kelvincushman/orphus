@@ -4,7 +4,7 @@
 
 ### Added
 
-- Sessions now account for what tool results put into the context window. Every result is measured at the one hook it passes through on its way to the model, recording the tool that produced it, the characters that actually entered context, and whether an oversized result was replaced by a file reference. `session.contextAccounting` exposes session and per-tool totals plus a one-line summary; with `ORPHUS_EXPERIMENTAL=1` that summary also appears in the footer. This is measurement, not enforcement — the room digest is the only boundary the runtime bounds today, and knowing what the unbounded ones cost is the prerequisite for changing that.
+- Sessions now account for what tool results put into the context window. Every result is measured at the one hook it passes through on its way to the model, recording the tool that produced it, the characters that actually entered context, and whether an oversized result was replaced by a file reference. `session.contextAccounting` exposes session and per-tool totals plus a one-line summary; with `ORPHUS_EXPERIMENTAL=1` that summary also appears in the footer. On dispose a session writes its totals to the session record as a `context_accounting` custom entry — diagnostic state that never enters LLM context — so a finished session can be read back without instrumenting the run. Sessions that called no tool write nothing. This is measurement, not enforcement: the room digest is the only boundary the runtime bounds today, and knowing what the unbounded ones cost is the prerequisite for changing that.
 
 ### Changed
 

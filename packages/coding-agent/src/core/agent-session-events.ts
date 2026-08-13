@@ -19,6 +19,7 @@ import {
 } from "./agent-session-types.ts";
 import { disposeSessionAsyncJobManager } from "./async/session-manager.js";
 import { formatCodexProviderError } from "./codex-errors.ts";
+import { CONTEXT_ACCOUNTING_CUSTOM_TYPE } from "./context-accounting.ts";
 import type {
 	MessageEndEvent,
 	MessageStartEvent,
@@ -516,6 +517,19 @@ export function _reconnectToAgent(this: AgentSession): void {
  */
 
 export function dispose(this: AgentSession): void {
+	// Record what tool results cost this session's context window, before anything
+	// is torn down. A custom entry rather than a new session-entry type: this is
+	// diagnostic state a reader scans for, and it must not enter LLM context —
+	// which is exactly what CustomEntry is for. Sessions that ran no tool write
+	// nothing. Persistence is best-effort: a session ending badly should not be
+	// made worse by a failure to write its own accounting.
+	try {
+		const snapshot = this._contextAccounting.snapshot();
+		if (snapshot) this.sessionManager.appendCustomEntry(CONTEXT_ACCOUNTING_CUSTOM_TYPE, snapshot);
+	} catch {
+		// Session file unwritable, already closed, or persistence disabled.
+	}
+
 	// Fail closed while protected input remains queued, or flush a consumed
 	// reconciliation before invalidation can discard its recovery state.
 	prepareProtectedStreamingCustomMessagesForDisposal(this);

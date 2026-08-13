@@ -13,6 +13,12 @@
  * clock, no session coupling, so it can be asserted against directly.
  */
 
+/**
+ * `customType` of the session-record entry. Readers — the eval harness, a
+ * post-hoc report — scan session entries for this value.
+ */
+export const CONTEXT_ACCOUNTING_CUSTOM_TYPE = "context_accounting";
+
 /** One tool result's contribution to the context window. */
 export interface ToolContextRecord {
 	readonly toolName: string;
@@ -72,6 +78,20 @@ export class ContextAccounting {
 	}
 
 	/**
+	 * Plain-data view for the session record. Returns undefined when no tool has
+	 * run, so a session that never called one writes nothing rather than an entry
+	 * full of zeroes.
+	 */
+	snapshot(): ContextAccountingSnapshot | undefined {
+		if (this.session.calls === 0) return undefined;
+		return {
+			totals: this.session,
+			byTool: Object.fromEntries(this.byTool()),
+			summary: this.summary(),
+		};
+	}
+
+	/**
 	 * One line naming the heaviest contributors, for the footer and the
 	 * end-of-session summary. Empty string when no tool has run, so a caller can
 	 * skip rendering without a separate emptiness check.
@@ -91,11 +111,20 @@ export class ContextAccounting {
 }
 
 /**
- * Read-only view for consumers — the footer, the session summary, evals.
+ * Read-only view for consumers — the footer, the session record, evals.
  * Excludes {@link ContextAccounting.record}, which belongs to the tool hook that
  * owns the measurement.
  */
-export type ReadonlyContextAccounting = Pick<ContextAccounting, "totals" | "byTool" | "summary">;
+export type ReadonlyContextAccounting = Pick<ContextAccounting, "totals" | "byTool" | "summary" | "snapshot">;
+
+/** The session-record shape: plain data, no Map, safe to JSON round-trip. */
+export interface ContextAccountingSnapshot {
+	readonly totals: ToolContextTotals;
+	/** Per-tool totals, heaviest first — object key order preserves that ordering. */
+	readonly byTool: Record<string, ToolContextTotals>;
+	/** The same one-liner the footer renders, so a reader needs no formatting logic. */
+	readonly summary: string;
+}
 
 /** Compact character counts: 812, 4.2k, 1.3M. */
 export function formatChars(chars: number): string {
