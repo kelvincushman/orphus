@@ -180,17 +180,25 @@ describe("roundtable activity coalescing", () => {
 	// that was in flight during quiesce() restore an active client afterwards,
 	// and a dead instance must also refuse to build a NEW connection when a
 	// stray tool call arrives after shutdown.
-	it("refuses new connections after quiescing", async () => {
+	it("refuses new connections after quiescing, and an armed timer never fires", async () => {
 		const { host, call } = await listener("worker", "design");
-		host.shutdown(); // session_shutdown → quiesce
+		const planner = await peer("planner");
+		await planner.join("design");
+
+		// Arm the coalesce timer with real pending activity, then shut down
+		// INSIDE the window: quiesce must clear the armed timer, not merely
+		// prevent future ones. Without the post + full-window wait below, a
+		// zero-ping assertion is vacuous — nothing would have pinged anyway.
+		await planner.post("design", "posted before shutdown");
+		await sleep(300); // let the activity event cross the socket and arm the timer
+		host.shutdown(); // session_shutdown → quiesce, inside the coalesce window
 
 		const result = (await call({ action: "rooms" })) as { output?: string; isError?: boolean };
-		const text = JSON.stringify(result);
-		expect(text).toMatch(/quiesced/u);
+		expect(JSON.stringify(result)).toMatch(/quiesced/u);
 
-		// And no ping machinery survives: nothing was delivered after shutdown.
+		await sleep(AFTER_FLUSH_MS);
 		const pings = host.sent.filter((m) => m.customType === "roundtable_activity");
-		assert.equal(pings.length, 0);
+		assert.equal(pings.length, 0, "an armed coalesce timer must not deliver after quiescence");
 	});
 
 	it("names each distinct author once, however many times they posted", async () => {
