@@ -27,7 +27,8 @@ any of their context windows. Start with the first link; the rest are reference.
 | --- | --- |
 | **[Architecture](architecture.md)** | What runs where, what the bound actually guarantees, and where the trust boundary sits. |
 | **[Design decisions](../packages/roundtable/DESIGN.md)** | Why each choice went the way it did, including the alternatives rejected. |
-| **[The self-improvement loop](self-improvement-loop.md)** | The roadmap: a harness that proposes its own improvements, gated by evidence. |
+| **[The self-improvement loop](self-improvement-loop.md)** | *Design document, not yet built.* The roadmap: a harness that proposes its own improvements, gated by evidence. |
+| **[RLM security posture](rlm-security-posture.md)** | The rules self-modification and persistent execution sessions must obey, and which of them the runtime actually enforces. |
 
 ## Working on it
 

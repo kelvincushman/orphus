@@ -120,6 +120,31 @@ marker tells you how many were dropped; `fetch` gets them back.
 exists because the caller sometimes genuinely needs the text, and a small default
 page size is the only guard.
 
+## Boundaries and their bounds
+
+The guarantees above describe one boundary. Orphus has four, and only one of them
+is actually bounded by the runtime today. This table is the honest scoreboard:
+
+| Boundary | Bound today | Mechanism |
+| --- | --- | --- |
+| room → agent | **Runtime-enforced** | Digest tiering: at most `budget` chars plus one marker line ([`digest.ts`](../packages/roundtable/digest.ts), default budget 2000, per-message cap 600) |
+| subagent → parent | **Truncation only** — 200 KB / 5000 lines | Every child's output is concatenated inline (`subagent-executor-parallel.ts`); the cap is `DEFAULT_MAX_OUTPUT` in [`types-runtime.ts`](../packages/subagents/src/shared/types-runtime.ts). `file-only` mode is opt-in, per call |
+| chain step → next step | **None** — full-text splice | `{outputs.name}` substitutes the previous child's complete text into the next prompt ([`chain-outputs.ts`](../packages/subagents/src/runs/shared/chain-outputs.ts)) |
+| tool result → context | Spill to file above 50 000 chars | `DEFAULT_MAX_RESULT_SIZE_CHARS` in [`tool-limits.ts`](../packages/coding-agent/src/core/tools/tool-limits.ts); the model receives a preview and a path |
+
+Read the difference between rows one and two carefully, because it is the gap
+worth closing. A room bounds what reaches you no matter what your peers write:
+hostile input cannot inflate your context, because the budget is enforced before
+the text ever leaves the broker. A subagent's return is merely *truncated* — a
+blunt cap that fires at 200 KB, which is already far past the point where the
+parent's context is the scarce resource. Truncation is a backstop, not a bound:
+it prevents catastrophe without shaping what arrives.
+
+The chain row is the weakest. Nothing limits it at all; a child that emits
+100 KB splices 100 KB into its successor's prompt.
+
+When a later phase changes a row here, that diff is the release note.
+
 ## Trust boundary
 
 **Local machine, same user.** The socket lives under the agent directory with

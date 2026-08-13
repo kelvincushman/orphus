@@ -1,5 +1,15 @@
 # The self-improvement loop
 
+> **Status: design document.** The adversarial-verification workflow described
+> below is implemented — see
+> [`packages/workflows/builtin/adversarial-verification.ts`](../packages/workflows/builtin/adversarial-verification.ts).
+> **The retrospective and proposal stages are not built.** Searching this tree
+> for `retrospective` finds prose in this file, `README.md`, and `PLAN.md`, and
+> no implementing source. It is scheduled as Phase 3 of the RLM adoption plan.
+>
+> Nothing in this document describes current behaviour unless it links to
+> source. Read the rest as intent, not as a description of what runs today.
+
 Goal: the harness improves itself along two axes, both gated by verification —
 never by self-report.
 
