@@ -36,9 +36,12 @@ formality.
 No self-modification may touch the base system prompt. This is the single wall,
 and it does not move.
 
-**Status: instructed, and enforced by the Phase 3 applier — not by the runtime
-today.** There is no mechanism in this tree that protects the base prompt from a
-file write. Phase 3 must therefore enforce it in two places, because the surface
+**Status: instructed only. Nothing enforces this today.** There is no mechanism
+in this tree that protects the base prompt from a file write, and the applier
+that will is Phase 3 work that does not exist yet. Until it does, this rule is
+prompt text and holds only while the model cooperates.
+
+When Phase 3 is built it must enforce the rule in two places, because a surface
 check is the only thing standing there:
 
 1. The WP 3.3 gate rejects any proposal whose diff touches a path outside the
@@ -64,8 +67,9 @@ Nothing self-applies. Concretely:
 ## Rule 3 — the refine loop cannot widen its own capabilities
 
 A proposal may not grant the refine loop new tool access, and specifically may
-not grant it `repl`. The WP 3.3 surface check enforces this; it is not left to
-the proposer's restraint.
+not grant it `repl`. This must be enforced by the WP 3.3 surface check when that
+check is built, and must not be left to the proposer's restraint. Like Rule 1,
+nothing enforces it today because nothing it governs exists yet.
 
 This rule exists because Phase 3 and Phase 4 are individually bounded but
 jointly dangerous: a loop that can rewrite its own instructions *and* execute
