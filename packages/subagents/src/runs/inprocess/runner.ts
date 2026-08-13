@@ -5,6 +5,7 @@ import {
 	type AgentSession,
 	type AgentSessionEvent,
 	type AgentSessionEventListener,
+	CONFIG_DIR_NAME,
 	type CreateAgentSessionOptions,
 	createAgentSession,
 	DefaultResourceLoader,
@@ -398,7 +399,7 @@ function validatePath(pathValue: string): void {
 
 function trustedSessionRoot(parent: ParentContext, requestedRoot?: string): string {
 	validatePath(parent.path);
-	const root = resolve(requestedRoot ?? join(process.cwd(), ".atomic", "subagents"));
+	const root = resolve(requestedRoot ?? join(process.cwd(), CONFIG_DIR_NAME, "subagents"));
 	const child = resolve(root, ...parent.path.split("/"));
 	if (relative(root, child).startsWith("..")) throw new Error("subagent session root escapes trusted root");
 	return root;

@@ -30,14 +30,14 @@ test("the real InteractiveMode turn_start path resets the default loader phase a
 		await InteractiveModeBase.prototype.handleEvent.call(mode, { type: "turn_start" } as never);
 
 		assert.doesNotMatch(workingLine(loader), /\u001b\[1m/);
-		assert.match(workingLine(loader), /\u001b\[38;2;112;117;159m∀/);
+		assert.match(workingLine(loader), /\u001b\[38;2;112;117;159m⊙/);
 		assert.equal(timers.intervalCount(), 1);
 		oldTick();
-		assert.match(workingLine(loader), /\u001b\[38;2;112;117;159m∀/, "replaced timer is stale");
+		assert.match(workingLine(loader), /\u001b\[38;2;112;117;159m⊙/, "replaced timer is stale");
 		timers.advanceBy(87);
-		assert.match(workingLine(loader), /\u001b\[38;2;112;117;159m∀/);
+		assert.match(workingLine(loader), /\u001b\[38;2;112;117;159m⊙/);
 		timers.advanceBy(1);
-		assert.match(workingLine(loader), /\u001b\[38;2;127;132;156m∀/);
+		assert.match(workingLine(loader), /\u001b\[38;2;127;132;156m⊙/);
 	} finally {
 		loader.stop();
 		timers.restore();
@@ -146,7 +146,7 @@ test("turn_end removes the main Atomic loader and fences its 88ms callback befor
 
 		await InteractiveModeBase.prototype.handleEvent.call(mode, { type: "turn_start" } as never);
 		const nextLoader = mode.loadingAnimation as AtomicWorkingLoader;
-		assert.match(workingLine(nextLoader), /\u001b\[38;2;112;117;159m∀/);
+		assert.match(workingLine(nextLoader), /\u001b\[38;2;112;117;159m⊙/);
 		assert.equal(timers.intervalCount(), 1);
 		const afterRestart = renders;
 		completedTurnTick();
@@ -155,7 +155,7 @@ test("turn_end removes the main Atomic loader and fences its 88ms callback befor
 		assert.equal(renders, afterRestart);
 		timers.advanceBy(1);
 		assert.equal(renders, afterRestart + 1);
-		assert.match(workingLine(nextLoader), /\u001b\[38;2;127;132;156m∀/);
+		assert.match(workingLine(nextLoader), /\u001b\[38;2;127;132;156m⊙/);
 	} finally {
 		mode.loadingAnimation?.stop();
 		timers.restore();

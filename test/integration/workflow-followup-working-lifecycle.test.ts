@@ -49,7 +49,7 @@ function renderText(view: StageChatView): string {
  * default "Working..." text for a whimsical message, so the row itself — not
  * one label — is what must stay visible without a gap.
  */
-const WORKING_ROW = /∀\s+\S+/;
+const WORKING_ROW = /⊙\s+\S+/;
 
 interface SecondTurnGates {
 	readonly backendStarted: PromiseWithResolvers<void>;

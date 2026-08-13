@@ -1,6 +1,6 @@
 # Containerization
 
-Atomic runs with all permissions by default, but in some cases, you will want to have more control over what directories Atomic can write to and which accesses it has.
+Orphus runs with all permissions by default, but in some cases, you will want to have more control over what directories Orphus can write to and which accesses it has.
 
 There are two general options. You can either
 1. run the whole `atomic` process inside an isolated environment, or
@@ -108,4 +108,4 @@ openshell sandbox download atomic-sandbox /workspace/repo ./repo-out
 
 OpenShell providers can keep raw model API keys outside the sandbox.
 When inference routing is configured, code inside the sandbox can call `https://inference.local`, and the gateway injects the configured provider credentials upstream.
-Configure Atomic to use the corresponding OpenAI-compatible or Anthropic-compatible endpoint if you want model traffic to use this route.
+Configure Orphus to use the corresponding OpenAI-compatible or Anthropic-compatible endpoint if you want model traffic to use this route.

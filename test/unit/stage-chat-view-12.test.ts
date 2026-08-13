@@ -506,7 +506,7 @@ describe("StageChatView", () => {
 		});
 		const rendered = view.render(64).map(stripAnsi).join("\n");
 		assert.match(rendered, /❯/);
-		assert.match(rendered, /∀ Working\.\.\./);
+		assert.match(rendered, /⊙ Working\.\.\./);
 		view.dispose();
 	});
 });

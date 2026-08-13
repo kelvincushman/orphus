@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { getAgentConfigPaths } from "@orphus/coding-agent";
+import { CONFIG_DIR_NAME, getAgentConfigPaths } from "@orphus/coding-agent";
 
 export interface RunEntry {
 	agent: string;
@@ -12,7 +12,8 @@ export interface RunEntry {
 }
 
 const HISTORY_PATH =
-	getAgentConfigPaths("run-history.jsonl")[0] ?? path.join(os.homedir(), ".atomic", "agent", "run-history.jsonl");
+	getAgentConfigPaths("run-history.jsonl")[0] ??
+	path.join(os.homedir(), CONFIG_DIR_NAME, "agent", "run-history.jsonl");
 const HISTORY_READ_PATHS = getAgentConfigPaths("run-history.jsonl");
 const ROTATE_READ_THRESHOLD = 1200;
 const ROTATE_KEEP = 1000;

@@ -1,6 +1,6 @@
 # llama.cpp
 
-Atomic supports the [llama.cpp](https://github.com/ggml-org/llama.cpp) router server. The router discovers multiple GGUF models and loads or unloads them on demand.
+Orphus supports the [llama.cpp](https://github.com/ggml-org/llama.cpp) router server. The router discovers multiple GGUF models and loads or unloads them on demand.
 
 Use a current llama.cpp build with router support. Follow its [build instructions](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md) or install a [prebuilt release](https://github.com/ggml-org/llama.cpp/releases).
 
@@ -27,7 +27,7 @@ llama-server \
 
 Single-file models can sit directly in the model directory. Put multimodal and multi-shard models in separate subdirectories with their projection or shard files. Restart the router after manually adding files. Per-model context sizes and other options can be set with [model presets](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md#model-presets).
 
-## Configure Atomic
+## Configure Orphus
 
 Run:
 
@@ -53,11 +53,11 @@ Run `/llama` in interactive mode:
 - Select **Download model…**, search Hugging Face, then choose a repository and quantization. Exact `owner/repository[:quant]` values also work.
 - Press Escape during a load or download to confirm cancellation.
 
-Hugging Face search uses `HF_TOKEN` when set, then checks `$HF_TOKEN_PATH`, `$HF_HOME/token`, `$XDG_CACHE_HOME/huggingface/token`, and `~/.cache/huggingface/token`. Unauthenticated search has lower rate limits. Atomic warns before gated downloads and links to the access page. Because llama.cpp performs the download, its process must also have `HF_TOKEN` for gated repositories.
+Hugging Face search uses `HF_TOKEN` when set, then checks `$HF_TOKEN_PATH`, `$HF_HOME/token`, `$XDG_CACHE_HOME/huggingface/token`, and `~/.cache/huggingface/token`. Unauthenticated search has lower rate limits. Orphus warns before gated downloads and links to the access page. Because llama.cpp performs the download, its process must also have `HF_TOKEN` for gated repositories.
 
-Atomic asks before unloading other models, never silently unloads models, and never deletes model files. `/llama` always displays the router's current state because other clients may share it. Only loaded models appear in `/model`; load one first, then select it there. Atomic persists the last successful loaded-model catalog in `~/.atomic/agent/models-store.json` (or the active custom agent directory), so those entries remain selectable after restart and before the first successful refresh. If that first online refresh fails, Atomic reports the original router error while continuing to expose the validated persisted catalog; a later successful refresh replaces those stale loaded-state entries without duplicates. If the router disconnects, choose **Retry** to reconnect and refresh state without replaying the interrupted operation.
+Orphus asks before unloading other models, never silently unloads models, and never deletes model files. `/llama` always displays the router's current state because other clients may share it. Only loaded models appear in `/model`; load one first, then select it there. Orphus persists the last successful loaded-model catalog in `~/.atomic/agent/models-store.json` (or the active custom agent directory), so those entries remain selectable after restart and before the first successful refresh. If that first online refresh fails, Orphus reports the original router error while continuing to expose the validated persisted catalog; a later successful refresh replaces those stale loaded-state entries without duplicates. If the router disconnects, choose **Retry** to reconnect and refresh state without replaying the interrupted operation.
 
-Each llama model uses the router-reported loaded context (`meta.n_ctx`, then training context, otherwise Atomic's fallback) for both `contextWindow` and `maxTokens`; Atomic no longer applies a separate 16K output cap. The server remains authoritative and may impose a smaller practical generation limit.
+Each llama model uses the router-reported loaded context (`meta.n_ctx`, then training context, otherwise Orphus's fallback) for both `contextWindow` and `maxTokens`; Orphus no longer applies a separate 16K output cap. The server remains authoritative and may impose a smaller practical generation limit.
 
 ## Troubleshooting
 

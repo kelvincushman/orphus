@@ -1,10 +1,10 @@
-> Atomic can create TUI components. Ask it to build one for your use case.
+> Orphus can create TUI components. Ask it to build one for your use case.
 
 # TUI Components
 
 Extensions and custom tools can render custom TUI components for interactive user interfaces. This page covers the component system and available building blocks.
 
-**Source:** TUI components are provided by Atomic's installed `@earendil-works/pi-tui` runtime dependency (`node_modules/@earendil-works/pi-tui/dist/`).
+**Source:** TUI components are provided by Orphus's installed `@earendil-works/pi-tui` runtime dependency (`node_modules/@earendil-works/pi-tui/dist/`).
 
 ## Component Interface
 
@@ -97,9 +97,9 @@ pi.on("session_start", async (_event, ctx) => {
 });
 ```
 
-Pass `{ signal }` to `ctx.ui.custom()` when the UI belongs to an abortable operation. If the signal aborts, Atomic dismisses the custom UI and rejects the returned promise with the signal reason. For overlays, use `options.onHandle` to receive an overlay handle for programmatic visibility control.
+Pass `{ signal }` to `ctx.ui.custom()` when the UI belongs to an abortable operation. If the signal aborts, Orphus dismisses the custom UI and rejects the returned promise with the signal reason. For overlays, use `options.onHandle` to receive an overlay handle for programmatic visibility control.
 
-In Atomic's default interactive mode, the component instance remains in the isolated engine child. The terminal host caches rendered lines and forwards input asynchronously, so `render()` and `handleInput()` must not depend on direct access to host process objects. The remote bridge preserves pi-tui's key-release contract: release events are filtered unless the child component sets `wantsKeyRelease = true`, matching a directly mounted component. Return values passed to `done()` must be JSON-safe.
+In Orphus's default interactive mode, the component instance remains in the isolated engine child. The terminal host caches rendered lines and forwards input asynchronously, so `render()` and `handleInput()` must not depend on direct access to host process objects. The remote bridge preserves pi-tui's key-release contract: release events are filtered unless the child component sets `wantsKeyRelease = true`, matching a directly mounted component. Return values passed to `done()` must be JSON-safe.
 
 ### Host terminal modes from an isolated component
 
@@ -154,7 +154,7 @@ const values = await ctx.ui.hostInputForm?.({
 if (values === undefined) return; // Escape, Ctrl+C, teardown, or close
 ```
 
-Field types are `string`, `text`, `number`, `integer`, `boolean`, and `select`. Initial and returned values are raw strings; the caller owns domain coercion. Every current interactive Atomic host exposes the optional capability, while headless RPC and print surfaces omit it. Keep a legacy fallback only when compatibility with older hosts is required.
+Field types are `string`, `text`, `number`, `integer`, `boolean`, and `select`. Initial and returned values are raw strings; the caller owns domain coercion. Every current interactive Orphus host exposes the optional capability, while headless RPC and print surfaces omit it. Keep a legacy fallback only when compatibility with older hosts is required.
 
 The bundled `/workflow <name>` input picker uses this channel and retains its older custom-editor/`ctx.ui.custom()` paths only as compatibility fallbacks.
 
@@ -510,7 +510,7 @@ per process.
 PI_TUI_WRITE_LOG=/tmp/tui-ansi.log atomic
 ```
 
-Atomic vendors TUI components through the installed `@earendil-works/pi-tui` dependency.
+Orphus vendors TUI components through the installed `@earendil-works/pi-tui` dependency.
 
 ## Performance
 
@@ -818,11 +818,11 @@ ctx.ui.setWorkingIndicator({
 // Hide the indicator entirely
 ctx.ui.setWorkingIndicator({ frames: [] });
 
-// Restore Atomic's default one-cell identity pulse
+// Restore Orphus's default one-cell identity pulse
 ctx.ui.setWorkingIndicator();
 ```
 
-This affects the normal Working indicator from accepted prompt submission through response streaming. Working appears immediately during attachment and other pre-stream startup, then continues without a visible gap when the agent turn begins. A no-turn result, prompt failure, or turn completion removes it. An accepted manual retry clears stale status from the prior prompt before showing new pre-stream activity. Factual automatic retry and fallback status takes precedence while that transition is active; ordinary Working resumes only when a later Working lifecycle actually starts. With no extension override, Atomic renders the exact one-cell `∀` immediately before one of its 453 original randomized whimsical working verbs, selected once per turn. Every agent and SDK turn starts at regular weight with a fresh lifecycle-relative 88ms cadence, then follows a ten-frame, theme-aware dark → accent → bright/bold → accent → dark luminance ramp without changing glyph or geometry. Optional theme tone overrides control any desired phases exactly, including terminal palette indices 0–255; Atomic derives omitted tones from selected-surface, `accent`, and `text` roles. Dark, light, custom, and dynamically reloaded themes therefore retain their own palette. Under `NO_COLOR`, the same cadence remains visible through regular/bold weight without foreground-color escapes. Turn completion and terminal cleanup stop the timer cleanly. Restoring Atomic's default after an extension override also restarts at the dark regular phase; custom extension frames and intervals remain unchanged and render verbatim. `ORPHUS_REDUCED_MOTION=1` shows a static regular accent `∀` without an animation timer. The icon and longest message fit standard and 64-column widths. Factual status copy takes precedence. Compaction and retry loaders keep their plain built-in styling. During successful post-tool autocompaction, Atomic temporarily replaces the Working indicator with the compaction loader and restores it before the same stream continues; no additional user input is required.
+This affects the normal Working indicator from accepted prompt submission through response streaming. Working appears immediately during attachment and other pre-stream startup, then continues without a visible gap when the agent turn begins. A no-turn result, prompt failure, or turn completion removes it. An accepted manual retry clears stale status from the prior prompt before showing new pre-stream activity. Factual automatic retry and fallback status takes precedence while that transition is active; ordinary Working resumes only when a later Working lifecycle actually starts. With no extension override, Orphus renders the exact one-cell `∀` immediately before one of its 453 original randomized whimsical working verbs, selected once per turn. Every agent and SDK turn starts at regular weight with a fresh lifecycle-relative 88ms cadence, then follows a ten-frame, theme-aware dark → accent → bright/bold → accent → dark luminance ramp without changing glyph or geometry. Optional theme tone overrides control any desired phases exactly, including terminal palette indices 0–255; Orphus derives omitted tones from selected-surface, `accent`, and `text` roles. Dark, light, custom, and dynamically reloaded themes therefore retain their own palette. Under `NO_COLOR`, the same cadence remains visible through regular/bold weight without foreground-color escapes. Turn completion and terminal cleanup stop the timer cleanly. Restoring Orphus's default after an extension override also restarts at the dark regular phase; custom extension frames and intervals remain unchanged and render verbatim. `ORPHUS_REDUCED_MOTION=1` shows a static regular accent `∀` without an animation timer. The icon and longest message fit standard and 64-column widths. Factual status copy takes precedence. Compaction and retry loaders keep their plain built-in styling. During successful post-tool autocompaction, Orphus temporarily replaces the Working indicator with the compaction loader and restores it before the same stream continues; no additional user input is required.
 
 Post-tool autocompaction is more precisely delimited by its own event pair. Pi opens the follow-up turn while the compaction is still unmatched, so the compaction status — not a generic Working message — owns the status surface from `compaction_start` until `compaction_end`, and the interposed turn does not take it back early. The status paints as soon as the compaction starts rather than on the next animation frame, in the main chat and in an attached workflow-stage chat alike. Ordinary Working then resumes for the continuing stream on any successful mid-turn completion, including a compaction that found nothing to compact and therefore reports no result. A cancelled or failed compaction stops all activity instead. The main chat reports automatic cancellation; an attached workflow-stage chat clears the transient status because the abort event carries no error text. Failures retain their event-provided error text.
 
@@ -876,7 +876,7 @@ ctx.ui.setFooter((tui, theme, footerData) => ({
 ctx.ui.setFooter(undefined); // restore default
 ```
 
-`ctx.ui.getFooterDataProvider()` exposes the same read-only provider to embedded extension UIs. In isolated interactive mode Atomic maintains the provider inside the engine session, mirrors every `setStatus()` update into it, and uses the session cwd with the same cached Git-branch watcher, so synchronous renderers can read current status and branch data without an RPC round trip or per-render Git process.
+`ctx.ui.getFooterDataProvider()` exposes the same read-only provider to embedded extension UIs. In isolated interactive mode Orphus maintains the provider inside the engine session, mirrors every `setStatus()` update into it, and uses the session cwd with the same cached Git-branch watcher, so synchronous renderers can read current status and branch data without an RPC round trip or per-render Git process.
 
 Token stats available via `ctx.sessionManager.getBranch()` and `ctx.model`.
 

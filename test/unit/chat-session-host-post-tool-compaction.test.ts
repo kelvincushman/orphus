@@ -76,7 +76,7 @@ test("attached chat paints post-tool compaction status from the start event, not
 		host.applyAgentEvent({ type: "compaction_start", reason: "threshold", midTurn: true } as never);
 
 		assert.equal(renders(), beforeStart + 1, "compaction_start requests its own immediate paint");
-		assert.equal(workingLine(host), " ∀ Auto-compacting... (esc Cancel)");
+		assert.equal(workingLine(host), " ⊙ Auto-compacting... (esc Cancel)");
 	} finally {
 		host.dispose();
 		timers.restore();
@@ -94,13 +94,13 @@ test("attached chat keeps compaction precedence through the interposed turn_star
 		host.applyAgentEvent({ type: "compaction_start", reason: "threshold", midTurn: true } as never);
 
 		host.applyAgentEvent({ type: "turn_start" } as never);
-		assert.equal(workingLine(host), " ∀ Auto-compacting... (esc Cancel)");
+		assert.equal(workingLine(host), " ⊙ Auto-compacting... (esc Cancel)");
 
 		const beforeEnd = renders();
 		host.applyAgentEvent(midTurnEnd({ result: compactionResult }) as never);
 
 		assert.equal(renders(), beforeEnd + 1, "the resumed stream repaints without another tick or input");
-		assert.match(workingLine(host) ?? "", /^ ∀ /);
+		assert.match(workingLine(host) ?? "", /^ ⊙ /);
 		assert.doesNotMatch(workingLine(host) ?? "", /compacting/i);
 		assert.equal(host.hasAnimationTick(), true, "Working keeps animating after compaction");
 	} finally {
@@ -122,7 +122,7 @@ test("attached chat resumes Working after a successful post-tool no-op compactio
 		// Successful no-op: core emits compaction_end before the next turn_start.
 		host.applyAgentEvent(midTurnEnd({ result: undefined }) as never);
 
-		assert.match(workingLine(host) ?? "", /^ ∀ /);
+		assert.match(workingLine(host) ?? "", /^ ⊙ /);
 		assert.doesNotMatch(workingLine(host) ?? "", /compacting/i);
 		assert.equal(host.hasAnimationTick(), true);
 	} finally {

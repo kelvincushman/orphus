@@ -14,7 +14,7 @@ Where `<path>` is the working directory with `/` replaced by `-`.
 
 Sessions can be removed by deleting their `.jsonl` files under `~/.atomic/agent/sessions/` (legacy `~/.pi/agent/sessions/` may exist from older Pi installs).
 
-Atomic also supports deleting sessions interactively from `/resume` (select a session and press `CTRL+D`, then confirm). When available, Atomic uses the `trash` CLI to avoid permanent deletion.
+Orphus also supports deleting sessions interactively from `/resume` (select a session and press `CTRL+D`, then confirm). When available, Orphus uses the `trash` CLI to avoid permanent deletion.
 
 ## Session Version
 
@@ -32,7 +32,7 @@ Source on GitHub ([atomic](https://github.com/bastani-inc/atomic)):
 - [`packages/coding-agent/src/core/session-manager.ts`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/session-manager.ts) - Session entry types and SessionManager
 - [`packages/coding-agent/src/core/messages.ts`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/messages.ts) - Extended message types (BashExecutionMessage, CustomMessage, etc.)
 
-Base message and agent event types are provided by Atomic's installed runtime dependencies (`@earendil-works/pi-ai` and `@earendil-works/pi-agent-core`), not by separate `packages/ai` or `packages/agent` directories in this monorepo. For TypeScript definitions in your project, inspect `node_modules/@orphus/coding-agent/dist/`, `node_modules/@earendil-works/pi-ai/dist/`, and `node_modules/@earendil-works/pi-agent-core/dist/`.
+Base message and agent event types are provided by Orphus's installed runtime dependencies (`@earendil-works/pi-ai` and `@earendil-works/pi-agent-core`), not by separate `packages/ai` or `packages/agent` directories in this monorepo. For TypeScript definitions in your project, inspect `node_modules/@orphus/coding-agent/dist/`, `node_modules/@earendil-works/pi-ai/dist/`, and `node_modules/@earendil-works/pi-agent-core/dist/`.
 
 ## Message Types
 
@@ -116,9 +116,9 @@ interface Usage {
 
 The pi-ai `StopReason` type also includes `"pending"`, the reason a message carries while it is still streaming. The terminal event replaces it before the assistant message is written, so `"pending"` does not appear in session JSONL.
 
-A process can stop after a `toolUse` assistant message reaches JSONL but before every corresponding `toolResult` is appended. Atomic does not rewrite that append-only history. When the inactive session is reopened, its derived context supplies an error result for each unanswered call before rendering, compaction, or another provider request. The error states that execution was interrupted and its result is unavailable; it does not claim the tool had no side effects. Orphaned and duplicate results are also removed from provider-bound derived context. The original JSONL remains the authoritative record of what was actually persisted.
+A process can stop after a `toolUse` assistant message reaches JSONL but before every corresponding `toolResult` is appended. Orphus does not rewrite that append-only history. When the inactive session is reopened, its derived context supplies an error result for each unanswered call before rendering, compaction, or another provider request. The error states that execution was interrupted and its result is unavailable; it does not claim the tool had no side effects. Orphaned and duplicate results are also removed from provider-bound derived context. The original JSONL remains the authoritative record of what was actually persisted.
 
-### Extended Message Types (from Atomic coding-agent)
+### Extended Message Types (from Orphus coding-agent)
 
 ```typescript
 interface BashExecutionMessage {
@@ -150,7 +150,7 @@ interface BranchSummaryMessage {
 }
 ```
 
-`compactionSummary` is a historical message role that appears only in older session files; Atomic never produces it and treats historical occurrences as inert. Active verbatim boundaries are synthesized at rebuild time as visible `custom` messages with `customType: "compaction"`; `convertToLlm()` maps them to provider-facing user messages.
+`compactionSummary` is a historical message role that appears only in older session files; Orphus never produces it and treats historical occurrences as inert. Active verbatim boundaries are synthesized at rebuild time as visible `custom` messages with `customType: "compaction"`; `convertToLlm()` maps them to provider-facing user messages.
 
 ### AgentMessage Union
 
@@ -194,13 +194,13 @@ For sessions with a parent (created via `/fork`, `/clone`, or `newSession({ pare
 {"type":"session","version":3,"id":"uuid","timestamp":"2024-12-03T14:00:00.000Z","cwd":"/path/to/project","parentSession":"/path/to/original/session.jsonl"}
 ```
 
-Workflow-owned sessions carry both `internal: true` and complete `workflow` linkage. Atomic writes this classification before the transcript becomes visible wherever possible, including workflow stage forks and fresh/forked subagents. A session is excluded from normal resume history only when `internal` is the exact boolean `true` and `workflow.runId`, `workflow.stageId`, and `workflow.stageName` are all non-empty strings:
+Workflow-owned sessions carry both `internal: true` and complete `workflow` linkage. Orphus writes this classification before the transcript becomes visible wherever possible, including workflow stage forks and fresh/forked subagents. A session is excluded from normal resume history only when `internal` is the exact boolean `true` and `workflow.runId`, `workflow.stageId`, and `workflow.stageName` are all non-empty strings:
 
 ```json
 {"type":"session","version":3,"id":"uuid","timestamp":"2024-12-03T14:00:00.000Z","cwd":"/path/to/project","internal":true,"workflow":{"runId":"run-1","stageId":"stage-build","stageName":"build"}}
 ```
 
-Malformed, incomplete, workflow-only, or truthy non-boolean legacy markers remain visible in normal history. Atomic does not infer workflow ownership from `parentSession`, so ordinary user-created forks are unaffected. Valid workflow classification is inherited when an internal workflow transcript is branched or forked.
+Malformed, incomplete, workflow-only, or truthy non-boolean legacy markers remain visible in normal history. Orphus does not infer workflow ownership from `parentSession`, so ordinary user-created forks are unaffected. Valid workflow classification is inherited when an internal workflow transcript is branched or forked.
 
 ### SessionMessageEntry
 
@@ -238,7 +238,7 @@ An entry is active only when `details.strategy` is exactly `"verbatim-lines"`:
 {"type":"compaction","id":"c1","parentId":"m9","timestamp":"2026-07-13T10:00:00.000Z","summary":"[User]: fix the test\n(filtered 42 lines)\n[Assistant]: Fixed.","firstKeptEntryId":"m7","tokensBefore":51234,"details":{"strategy":"verbatim-lines","promptVersion":3,"rung":"planned","parameters":{"compression_ratio":0.5,"preserve_recent":2,"query":"fix the test"},"stats":{"linesBefore":812,"linesDeleted":417,"linesKept":395,"rangeCount":63,"tokensBefore":51234,"tokensAfter":24980,"percentReduction":51.2}}}
 ```
 
-On rebuild, Atomic emits one synthesized visible custom message: the durable `summary` with the kept tail—the original entries from a string `firstKeptEntryId` up to the boundary—serialized into the same transcript grammar and concatenated onto its end. Those entries are not re-emitted as separate messages, so a tail that starts or ends mid-turn cannot yield out-of-order provider blocks. The tail keeps full tool-result text and carries retained images as image blocks on the boundary message. When the field is `null`, the boundary carries the `summary` alone. In both cases, messages appended after the boundary are emitted as real messages. This exact state survives resume without rerunning a planner. `details.rung` is `"planned"` or `"extension"`, and `details.backupPath` is optional.
+On rebuild, Orphus emits one synthesized visible custom message: the durable `summary` with the kept tail—the original entries from a string `firstKeptEntryId` up to the boundary—serialized into the same transcript grammar and concatenated onto its end. Those entries are not re-emitted as separate messages, so a tail that starts or ends mid-turn cannot yield out-of-order provider blocks. The tail keeps full tool-result text and carries retained images as image blocks on the boundary message. When the field is `null`, the boundary carries the `summary` alone. In both cases, messages appended after the boundary are emitted as real messages. This exact state survives resume without rerunning a planner. `details.rung` is `"planned"` or `"extension"`, and `details.backupPath` is optional.
 
 Historical `compaction` records without `details.strategy: "verbatim-lines"` are retired summary-compaction records. They remain parseable and visible to audit/export tools but are inert in active LLM context.
 
@@ -250,7 +250,7 @@ Older Atomic versions stored logical entry/content-block deletions in `type:"con
 {"type":"context_compaction","id":"ctx12345","parentId":"f6g7h8i9","timestamp":"2024-12-03T14:12:00.000Z","promptVersion":1,"deletedTargets":[{"kind":"entry","entryId":"b2c3d4e5"}],"protectedEntryIds":["a1b2c3d4"],"stats":{"objectsBefore":20,"objectsAfter":19,"objectsDeleted":1,"tokensBefore":50000,"tokensAfter":43000,"percentReduction":14}}
 ```
 
-These records are archival and never produced or applied by current Atomic. When an old session resumes, previously hidden content may re-enter context until verbatim-line compaction creates an active boundary.
+These records are archival and never produced or applied by current Orphus. When an old session resumes, previously hidden content may re-enter context until verbatim-line compaction creates an active boundary.
 
 ### BranchSummaryEntry
 
@@ -262,7 +262,7 @@ Created when switching branches via `/tree` with an LLM generated summary of the
 
 Optional fields:
 - `details`: File tracking data (`{ readFiles: string[], modifiedFiles: string[] }`) for default, or custom data for extensions
-- `fromHook`: `true` if generated by an extension, `false`/`undefined` if Atomic-generated (legacy field name)
+- `fromHook`: `true` if generated by an extension, `false`/`undefined` if Orphus-generated (legacy field name)
 
 ### CustomEntry
 
@@ -326,9 +326,9 @@ Entries form a tree:
 `buildSessionContext()` walks the active branch from root to leaf and replays model, thinking-level, and context-window changes. It selects the latest `compaction` entry whose `details.strategy` is `"verbatim-lines"`.
 
 - With no active boundary, normal message, custom-message, and branch-summary entries are emitted verbatim.
-- With a boundary whose `firstKeptEntryId` is a string, Atomic emits a single custom-role `customType:"compaction"` message whose text is the durable string plus the losslessly serialized kept tail (the entries from that ID up to the boundary, with retained images kept as image blocks on that message), then the messages appended after the boundary.
-- With `firstKeptEntryId: null`, Atomic emits the boundary and post-boundary messages but no pre-boundary ordinary message.
-- If a corrupt/foreign boundary's non-null `firstKeptEntryId` is absent, Atomic emits the boundary followed by post-boundary messages rather than resurrecting all older content.
+- With a boundary whose `firstKeptEntryId` is a string, Orphus emits a single custom-role `customType:"compaction"` message whose text is the durable string plus the losslessly serialized kept tail (the entries from that ID up to the boundary, with retained images kept as image blocks on that message), then the messages appended after the boundary.
+- With `firstKeptEntryId: null`, Orphus emits the boundary and post-boundary messages but no pre-boundary ordinary message.
+- If a corrupt/foreign boundary's non-null `firstKeptEntryId` is absent, Orphus emits the boundary followed by post-boundary messages rather than resurrecting all older content.
 - Legacy `context_compaction` entries and non-verbatim `compaction` entries are skipped as inert archival records.
 ## Parsing Example
 

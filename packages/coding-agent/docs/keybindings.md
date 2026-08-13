@@ -2,11 +2,11 @@
 
 All keyboard shortcuts can be customized via `~/.atomic/agent/keybindings.json`. Each action can be bound to one or more keys.
 
-The config file uses the same namespaced keybinding ids that Atomic uses internally and that extension authors use in `keyHint()` and injected `keybindings` managers.
+The config file uses the same namespaced keybinding ids that Orphus uses internally and that extension authors use in `keyHint()` and injected `keybindings` managers.
 
 Older configs using pre-namespaced ids such as `cursorUp` or `expandTools` are migrated automatically to the namespaced ids on startup.
 
-After editing `keybindings.json`, run `/reload` in Atomic to apply the changes without restarting the session.
+After editing `keybindings.json`, run `/reload` in Orphus to apply the changes without restarting the session.
 
 ## Key Format
 
@@ -90,7 +90,7 @@ Modifier combinations: `ctrl+shift+x`, `alt+ctrl+x`, `ctrl+shift+alt+x`, `ctrl+1
 | `app.clipboard.pasteImage` | `ctrl+v` (`alt+v` on Windows) | Paste image from clipboard |
 | `app.message.copy` | `ctrl+x` | Copy the last assistant message (or the selected message in `/tree`) |
 
-When `app.clipboard.pasteImage` finds text rather than an image, Atomic inserts that clipboard text into the editor instead of reporting an image-paste failure.
+When `app.clipboard.pasteImage` finds text rather than an image, Orphus inserts that clipboard text into the editor instead of reporting an image-paste failure.
 
 A held paused queue by itself is idle for Ctrl+C handling. After an interruption settles, the next Ctrl+C clears the editor without releasing or dequeuing the hold, and a second quick idle press exits normally.
 
@@ -100,7 +100,7 @@ Both keys are recognized by their physical identity, not by the configured `app.
 
 Ctrl+C is the host's escape hatch whenever an engine-owned `ctx.ui.custom()` component or overlay holds input: those forward every key to the engine, so a component that never resolves would swallow Ctrl+C. Which component gets the press is decided per mount, in this order:
 
-1. If the engine is provably not answering, the first press terminates and replaces it — a wedged child cannot run the component's own handler either. "Not answering" means the watchdog has declared it unresponsive, a cooperative abort has gone unanswered past the same one-second threshold, a replacement has been waiting for readiness past it, or a replacement failed. A failed replacement keeps Ctrl+C armed so another press can try again; Atomic never retries on its own.
+1. If the engine is provably not answering, the first press terminates and replaces it — a wedged child cannot run the component's own handler either. "Not answering" means the watchdog has declared it unresponsive, a cooperative abort has gone unanswered past the same one-second threshold, a replacement has been waiting for readiness past it, or a replacement failed. A failed replacement keeps Ctrl+C armed so another press can try again; Orphus never retries on its own.
 2. Otherwise, if the component declared `handlesCtrlC` when it was mounted, it receives the press and keeps its own Skip, Close, or cancel behavior. The bundled workflow surfaces declare it. If the same component is still holding input on the next press, that press closes it.
 3. Otherwise the first press closes that one component, exactly as if it had been cancelled: its `ctx.ui.custom()` promise resolves with `undefined`, the editor comes back, and the engine — along with everything else it has mounted or is running — is left alone.
 
@@ -182,7 +182,7 @@ Create `~/.atomic/agent/keybindings.json`:
 
 Each action can have a single key or an array of keys. User config overrides defaults.
 
-On native Windows, `app.suspend` has no default binding because Windows terminals do not support Unix job control. If you bind it manually, Atomic shows a status message instead of suspending. In WSL, the normal Linux `ctrl+z`/`fg` behavior still applies.
+On native Windows, `app.suspend` has no default binding because Windows terminals do not support Unix job control. If you bind it manually, Orphus shows a status message instead of suspending. In WSL, the normal Linux `ctrl+z`/`fg` behavior still applies.
 
 ### Emacs Example
 

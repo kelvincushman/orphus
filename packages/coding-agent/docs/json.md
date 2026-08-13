@@ -4,7 +4,7 @@
 atomic --mode json "Your prompt"
 ```
 
-Outputs all session events as JSON lines to stdout. Useful for integrating Atomic into other tools or custom UIs.
+Outputs all session events as JSON lines to stdout. Useful for integrating Orphus into other tools or custom UIs.
 
 If a complete saved provider/model default names a provider that remains unsupported after provider registration, JSON mode writes the generic configuration diagnostic to stderr and exits nonzero before sending the prompt. It writes no human diagnostic to stdout, so any stdout records remain valid JSONL. This differs from ordinary supported-provider model or authentication fallback, which retains normal automatic model selection.
 
@@ -29,13 +29,13 @@ type AgentSessionEvent =
   | { type: "summarization_retry_finished" };
 ```
 
-`queue_update` emits the full pending steering and follow-up queues whenever they change. `session_info_changed`, `model_changed`, and `thinking_level_changed` report interactive session metadata changes. `compaction_start` and `compaction_end` cover manual and automatic verbatim line compaction: the model emits deleted ranges and Atomic mechanically reconstructs retained text.
+`queue_update` emits the full pending steering and follow-up queues whenever they change. `session_info_changed`, `model_changed`, and `thinking_level_changed` report interactive session metadata changes. `compaction_start` and `compaction_end` cover manual and automatic verbatim line compaction: the model emits deleted ranges and Orphus mechanically reconstructs retained text.
 
 For automatic compaction, `compaction_end.willRetry === true` means the agent is retrying the interrupted turn after compaction; `AgentSession.prompt()` waits for that continuation before resolving. This includes overflow recovery and live threshold compaction for retry-worthy interrupted work such as output-token truncation or OpenAI Responses output-budget underflow errors. Generic provider `invalid_request_body` failures still compact with `willRetry: false` when threshold compaction is warranted. If the same-model compact-and-retry overflow path is exhausted, `compaction_end` includes `unresolvedOverflow: true` plus an `errorMessage` so orchestration layers can fall back to another model instead of treating the prompt as successful. `result` and `errorMessage` are independent fields: a mid-turn compaction that commits a boundary and then fails the provider hard-input-limit gate emits both at once, so a non-null `result` alongside an `errorMessage` means the boundary is durable and only the follow-up request failed.
 
 Compaction planning and branch summaries reuse the configured retry policy for transient provider failures. Their `summarization_retry_*` events expose scheduling, each restarted request (including whether it belongs to branch summarization or a compaction reason), and retry-loop completion to JSON, RPC, SDK, and interactive consumers.
 
-Base events come from `AgentEvent` in `@earendil-works/pi-agent-core` (installed as an Atomic dependency):
+Base events come from `AgentEvent` in `@earendil-works/pi-agent-core` (installed as an Orphus dependency):
 
 ```typescript
 type AgentEvent =
@@ -57,7 +57,7 @@ type AgentEvent =
 
 ## Message Types
 
-Base messages come from `@earendil-works/pi-ai` (installed as an Atomic dependency):
+Base messages come from `@earendil-works/pi-ai` (installed as an Orphus dependency):
 - `UserMessage`
 - `AssistantMessage`
 - `ToolResultMessage`

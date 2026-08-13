@@ -63,7 +63,7 @@ test("ChatSessionHost advances the exact luminous ramp every lifecycle-relative 
 		},
 	});
 	const assertPhase = (color: string, bold: boolean, label: string): void => {
-		assert.equal(workingLine(host), " ∀ Working...", label);
+		assert.equal(workingLine(host), " ⊙ Working...", label);
 		assert.equal(renderedRgb(host), color, `${label} color`);
 		assert.equal(isBold(host), bold, `${label} weight`);
 	};
@@ -109,9 +109,9 @@ test("ChatSessionHost preserves caller-owned accent styling without a palette", 
 	try {
 		host.applyAgentEvent({ type: "agent_start" } as never);
 		timers.advanceBy(264);
-		assert.equal(rawWorkingLine(host), " <red>∀</red> Working...");
+		assert.equal(rawWorkingLine(host), " <red>⊙</red> Working...");
 		timers.advanceBy(88);
-		assert.equal(rawWorkingLine(host), " <red-bold>∀</red-bold> Working...");
+		assert.equal(rawWorkingLine(host), " <red-bold>⊙</red-bold> Working...");
 	} finally {
 		host.dispose();
 		timers.restore();
@@ -136,7 +136,7 @@ test("ChatSessionHost resets luminous phase and cadence on every turn start", ()
 
 		host.applyAgentEvent({ type: "turn_start" } as never);
 		assert.equal(selections, 1);
-		assert.equal(workingLine(host), " ∀ Schlepping...");
+		assert.equal(workingLine(host), " ⊙ Schlepping...");
 		assert.equal(renderedRgb(host), "#101010", "turn reset returns to deep neutral");
 		assert.equal(isBold(host), false, "turn reset returns to regular weight");
 		assert.equal(timers.intervalCount(), 1, "turn_start replaces rather than duplicates the timer");
@@ -193,7 +193,7 @@ test("ChatSessionHost ignores callbacks from replaced timers and after disposal"
 		assert.equal(renderRequests, baseline);
 
 		activeTick();
-		assert.match(workingLine(host) ?? "", /^ ∀ /);
+		assert.match(workingLine(host) ?? "", /^ ⊙ /);
 		assert.equal(renderRequests, baseline + 1);
 
 		host.dispose();
@@ -280,7 +280,7 @@ test("ChatSessionHost reduced motion keeps each lifecycle at an un-emphasized id
 		},
 	});
 	try {
-		assert.equal(workingLine(host), " ∀ Working...");
+		assert.equal(workingLine(host), " ⊙ Working...");
 		assert.equal(host.hasAnimationTick(), false);
 		host.applyAgentEvent({ type: "agent_start" } as never);
 		host.applyAgentEvent({ type: "turn_start" } as never);
@@ -291,7 +291,7 @@ test("ChatSessionHost reduced motion keeps each lifecycle at an un-emphasized id
 		} as never);
 
 		assert.equal(host.entries().length, 1, "reduced-motion content updates before its throttled paint");
-		assert.match(workingLine(host) ?? "", /^ ∀ /);
+		assert.match(workingLine(host) ?? "", /^ ⊙ /);
 		assert.equal(host.hasAnimationTick(), false);
 		assert.equal(timers.intervalCount(), 0);
 		assert.equal(timers.capturedAnimationCallbacks().length, 0);
@@ -300,7 +300,7 @@ test("ChatSessionHost reduced motion keeps each lifecycle at an un-emphasized id
 		assert.equal(renderRequests, beforeContentEvent);
 		timers.advanceBy(1);
 		assert.equal(renderRequests, beforeContentEvent + 1, "content repaints at 80ms without animation");
-		assert.match(workingLine(host) ?? "", /^ ∀ /);
+		assert.match(workingLine(host) ?? "", /^ ⊙ /);
 
 		host.applyAgentEvent({ type: "turn_end" } as never);
 		assert.deepEqual(host.renderWorkingStatus(64), []);

@@ -78,8 +78,8 @@ test("ChatSessionHost renders the lifecycle-origin one-cell Atomic identity in o
 		const lines = host.renderWorkingStatus(64);
 		assert.equal(lines.length, 2);
 		assert.equal(lines[0], "");
-		assert.equal(stripAnsi(lines[1] ?? "").trimEnd(), " ∀ Working...");
-		assert.deepEqual(stripAnsi(lines[1] ?? "").match(/∀/g), ["∀"]);
+		assert.equal(stripAnsi(lines[1] ?? "").trimEnd(), " ⊙ Working...");
+		assert.deepEqual(stripAnsi(lines[1] ?? "").match(/⊙/g), ["⊙"]);
 	} finally {
 		host.dispose();
 		if (previousReducedMotion === undefined) delete process.env.ORPHUS_REDUCED_MOTION;
@@ -94,7 +94,7 @@ test("ChatSessionHost keeps the Atomic identity static without a workflow animat
 		host.applyAgentEvent({ type: "agent_start" } as never);
 		assert.equal(host.hasAnimationTick(), false);
 		const lines = host.renderWorkingStatus(64);
-		assert.equal(stripAnsi(lines[1] ?? "").trimEnd(), " ∀ Working...");
+		assert.equal(stripAnsi(lines[1] ?? "").trimEnd(), " ⊙ Working...");
 	} finally {
 		host.dispose();
 		if (previousReducedMotion === undefined) delete process.env.ORPHUS_REDUCED_MOTION;

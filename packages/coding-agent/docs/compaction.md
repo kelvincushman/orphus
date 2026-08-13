@@ -1,8 +1,8 @@
 # Compaction & Branch Summarization
 
-LLMs have finite context windows. Atomic reduces transcript context with **verbatim line compaction** while preserving an exact count of recent context-visible messages as ordinary messages. Branch summarization is a separate, intentionally lossy feature used only when navigating away from a branch.
+LLMs have finite context windows. Orphus reduces transcript context with **verbatim line compaction** while preserving an exact count of recent context-visible messages as ordinary messages. Branch summarization is a separate, intentionally lossy feature used only when navigating away from a branch.
 
-Compaction runs entirely locally; no external compaction service is involved. It normally uses the active session model. If that model cannot rank the lines — a rate limit, a quota exhaustion, a provider error, a context overflow, or an empty plan — Atomic *borrows* the next model from your configured `fallbackModels` for that one planner request. **A configured fallback model may therefore receive the compaction transcript**, and it is sent with that provider's own credentials. Borrowing never changes the session's model or thinking level. The model only selects which lines to delete — Atomic reconstructs the retained text mechanically, so surviving lines are never rewritten.
+Compaction runs entirely locally; no external compaction service is involved. It normally uses the active session model. If that model cannot rank the lines — a rate limit, a quota exhaustion, a provider error, a context overflow, or an empty plan — Orphus *borrows* the next model from your configured `fallbackModels` for that one planner request. **A configured fallback model may therefore receive the compaction transcript**, and it is sent with that provider's own credentials. Borrowing never changes the session's model or thinking level. The model only selects which lines to delete — Orphus reconstructs the retained text mechanically, so surviving lines are never rewritten.
 
 ## Overview
 
@@ -19,7 +19,7 @@ There is one context-compaction door: `compact`.
 
 ### What "verbatim" means
 
-Atomic serializes the compactable part of the conversation into role-tagged lines:
+Orphus serializes the compactable part of the conversation into role-tagged lines:
 
 ```text
 [User]: Fix the failing parser test
@@ -36,7 +36,7 @@ The planner sees the same text numbered as `N→content` and returns only one-ba
 2,5
 ```
 
-Each line is `start,end` — unsigned decimal integers, one comma, no brackets or prose. Atomic safety-normalizes endpoints by swapping reversed pairs, clamping to the transcript, sorting, merging overlap/adjacency, and splitting around explicit protected spans. It then reconstructs from the original input lines. The model never writes, summarizes, reorders, or normalizes retained text. Every retained non-marker line is byte-identical to an input line and remains in input order.
+Each line is `start,end` — unsigned decimal integers, one comma, no brackets or prose. Orphus safety-normalizes endpoints by swapping reversed pairs, clamping to the transcript, sorting, merging overlap/adjacency, and splitting around explicit protected spans. It then reconstructs from the original input lines. The model never writes, summarizes, reorders, or normalizes retained text. Every retained non-marker line is byte-identical to an input line and remains in input order.
 
 ### Markers and repeated compaction
 
@@ -46,7 +46,7 @@ Each deleted span is replaced on its own line with exactly:
 (filtered N lines)
 ```
 
-The spelling is always plural, including `(filtered 1 lines)`. When a later compaction swallows an earlier marker, Atomic adds the earlier marker's count to the new marker. Adjacent old markers are folded too, so counts remain cumulative across repeated compactions. On repeated compaction, the planner receives the prior durable verbatim summary plus every currently active ordinary message except the exact protected tail.
+The spelling is always plural, including `(filtered 1 lines)`. When a later compaction swallows an earlier marker, Orphus adds the earlier marker's count to the new marker. Adjacent old markers are folded too, so counts remain cumulative across repeated compactions. On repeated compaction, the planner receives the prior durable verbatim summary plus every currently active ordinary message except the exact protected tail.
 
 ### Protected structure
 
@@ -86,7 +86,7 @@ The effective parameters appear in extension events and successful results:
 | `preserve_recent` | `2` | Exact number of newest context-visible messages protected client-side |
 | `query` | Last visible user message | Relevance focus for deciding which older lines to retain |
 
-`preserve_recent` counts context-visible messages without aligning the boundary to a user turn. An assistant message or tool result may therefore begin the kept tail. Because such a tail can start or end mid-turn, the kept messages are not replayed as structured message blocks: they are serialized with the same transcript grammar as the compacted region and appended to the end of the boundary string, so the whole boundary reaches the provider as one message. Serialization of the kept tail is lossless — tool results keep their full text instead of being truncated at 16k characters, and images stay attached as image blocks rather than becoming `[image]` markers — so protected content is preserved, not merely summarized. A value of `0` protects no messages and makes the entire active transcript compactable. If `query` is absent, Atomic derives it from the last visible user message.
+`preserve_recent` counts context-visible messages without aligning the boundary to a user turn. An assistant message or tool result may therefore begin the kept tail. Because such a tail can start or end mid-turn, the kept messages are not replayed as structured message blocks: they are serialized with the same transcript grammar as the compacted region and appended to the end of the boundary string, so the whole boundary reaches the provider as one message. Serialization of the kept tail is lossless — tool results keep their full text instead of being truncated at 16k characters, and images stay attached as image blocks rather than becoming `[image]` markers — so protected content is preserved, not merely summarized. A value of `0` protects no messages and makes the entire active transcript compactable. If `query` is absent, Orphus derives it from the last visible user message.
 
 The query is used whole and is never truncated. This matters for structured prompts: a truncated query would make section order the retention policy, because only the leading section could influence what the planner kept, and a constraint stated later in the prompt could not. Long queries are safe — an oversized planner request surfaces as an explicit provider-overflow failure rather than silent truncation — but `keepContext` tags, not query length, are the way to guarantee a span survives.
 
@@ -109,10 +109,10 @@ Configure defaults in `~/.atomic/agent/settings.json` or `.atomic/settings.json`
 ## When compaction runs
 
 - **Manual:** `/compact`, `ctx.compact()`, `session.compact()`, or RPC `{ "type": "compact" }`.
-- **Threshold:** automatic compaction starts when estimated context usage exceeds the effective input budget minus `reserveTokens`. Atomic checks both completed responses and the prospective next-turn context after tool results have been appended. A post-tool crossing is compacted before the active Pi tool loop sends its follow-up provider request.
+- **Threshold:** automatic compaction starts when estimated context usage exceeds the effective input budget minus `reserveTokens`. Orphus checks both completed responses and the prospective next-turn context after tool results have been appended. A post-tool crossing is compacted before the active Pi tool loop sends its follow-up provider request.
 - **Overflow:** an actual provider context overflow compacts and then retries the interrupted turn.
 
-Exactly the configured recent-message tail is outside the compactable region; Atomic does not force the final logical turn to remain outside it. After successful automatic compaction, input queued before compaction started resumes automatically once the active run becomes idle; pressing Escape is not required to release it. Pressing Escape while compaction is active cancels it like other session operations. In isolated interactive mode, cancellation and host UI response frames use an independent RPC control lane, so they can reach the engine while the ordinary `compact` request is still pending instead of waiting behind it. Atomic writes a backup snapshot immediately before appending a compaction boundary.
+Exactly the configured recent-message tail is outside the compactable region; Orphus does not force the final logical turn to remain outside it. After successful automatic compaction, input queued before compaction started resumes automatically once the active run becomes idle; pressing Escape is not required to release it. Pressing Escape while compaction is active cancels it like other session operations. In isolated interactive mode, cancellation and host UI response frames use an independent RPC control lane, so they can reach the engine while the ordinary `compact` request is still pending instead of waiting behind it. Orphus writes a backup snapshot immediately before appending a compaction boundary.
 
 Manual compaction is single-flight. A manual request made while another manual compaction is still in flight joins that run and receives its result instead of starting a second model call, so it emits no extra `compaction_start`/`compaction_end` pair and appends no extra boundary; `abortCompaction()` (Escape) still cancels the single owning run for every waiter. A manual request made while an automatic compaction is in flight is rejected immediately with an "automatic compaction is already in progress" error rather than racing it. In the interactive TUI, `/compact` typed while any compaction is active is refused with a warning; it is not queued, because queueing would only defer a duplicate compaction. Ordinary text typed during compaction is still queued as usual.
 
@@ -120,7 +120,7 @@ The post-tool check stays inside the active Pi loop: it runs the rung ladder onc
 
 ## Planning rungs and failure behavior
 
-Atomic asks a planner model, at the inherited session reasoning level and through the normal session stream/provider wrapper, to rank every eligible line in one global pass and apply one threshold. The entire compactable region is sent in one classifier request; it is never split into chunks. Manual, threshold, and overflow compaction all calculate the line target directly from the prepared `compression_ratio`. Explicit protected lines form a hard keep floor.
+Orphus asks a planner model, at the inherited session reasoning level and through the normal session stream/provider wrapper, to rank every eligible line in one global pass and apply one threshold. The entire compactable region is sent in one classifier request; it is never split into chunks. Manual, threshold, and overflow compaction all calculate the line target directly from the prepared `compression_ratio`. Explicit protected lines form a hard keep floor.
 
 **The planner sends no output cap.** Only the provider's own context clamp bounds the response, so reasoning tokens cannot crowd out the deletion records. The reasoning level is inherited from the session and is never modified between attempts; a `model:level` suffix on a `fallbackModels` entry sets the level for that candidate only.
 
@@ -156,7 +156,7 @@ credentials can still rank the lines. A load-bearing caller with no usable
 credentials anywhere still reaches the credential-free fresh rung; a recoverable
 caller reports the original authentication error and writes nothing.
 
-`settings.retry` still governs transport attempts *within* one candidate, with its existing backoff. When a candidate is exhausted, Atomic borrows the next entry from `settings.fallbackModels`, resolving that candidate's own credentials. Each candidate is tried at most once per compaction run, in configured order, keyed by `provider/model:thinkingLevel`. That walk is one monotonic pass over the configured list. Each position is inspected at most once — whether it fails to resolve to a model, has no usable credentials, duplicates an earlier identity, or yields a planner — so the order can never rewind to an earlier entry even if the registry or its credentials later change.
+`settings.retry` still governs transport attempts *within* one candidate, with its existing backoff. When a candidate is exhausted, Orphus borrows the next entry from `settings.fallbackModels`, resolving that candidate's own credentials. Each candidate is tried at most once per compaction run, in configured order, keyed by `provider/model:thinkingLevel`. That walk is one monotonic pass over the configured list. Each position is inspected at most once — whether it fails to resolve to a model, has no usable credentials, duplicates an earlier identity, or yields a planner — so the order can never rewind to an earlier entry even if the registry or its credentials later change.
 
 Borrowing never mutates the session: no `agent.state.model` write, no model-change or thinking-level entry, no system-prompt refresh, no `model_changed`/`model_select`/`model_fallback_start`, and no `agent.continue()`. After compaction returns, `session.model` is exactly what it was before, and the main chat's own fallback bookkeeping is untouched.
 
@@ -171,7 +171,7 @@ When every configured model is exhausted, what happens depends on how much the c
 
 A recoverable compaction fails honestly: it writes no compaction entry, schedules no continuation, and reports the typed cause through `compaction_end`. Manual compaction's recoverable urgency is fixed at the door: `session.compact()` projects only compaction parameters, so no runtime property on a caller-supplied object can raise it to `load_bearing` and reach the destructive rung. A load-bearing compaction always completes, falling through to the **fresh context window** rung described below.
 
-A syntactically valid usable result is accepted once after safety-only normalization, even when it deletes fewer lines or tokens than requested. Atomic never adds or restores model-selected deletions to force a target. During overflow recovery, the existing one-shot compact-and-retry continuation may therefore surface unresolved overflow naturally.
+A syntactically valid usable result is accepted once after safety-only normalization, even when it deletes fewer lines or tokens than requested. Orphus never adds or restores model-selected deletions to force a target. During overflow recovery, the existing one-shot compact-and-retry continuation may therefore surface unresolved overflow naturally.
 
 ### The fresh context window rung
 
@@ -181,11 +181,11 @@ A committed fresh boundary stays visible even when the following provider hard-i
 
 The ladder guarantees that *compaction* completes. It does not guarantee the *turn* succeeds: if every configured model is rate limited, the follow-up request will be too. What it buys is that a compaction failure does not additionally destroy the turn, that a healthy fallback model rescues quality when one exists, and that the retry starts from a small context.
 
-During a post-tool preflight, Atomic still gates the rebuilt context: if it is known to exceed the provider's hard input limit even after compaction, Atomic refuses to send the follow-up request and reports the limit failure clearly. The fresh rung's tail-dropping rule exists so that gate is reachable rather than hollow.
+During a post-tool preflight, Orphus still gates the rebuilt context: if it is known to exceed the provider's hard input limit even after compaction, Orphus refuses to send the follow-up request and reports the limit failure clearly. The fresh rung's tail-dropping rule exists so that gate is reachable rather than hollow.
 
 ### Length-truncated response recovery
 
-When the planner model's output is truncated at the provider's own limit (indicated by `stopReason: "length"`), Atomic silently recovers complete newline-terminated deletion records from the truncated response. Atomic sends no `max_tokens` of its own, so this reflects the provider's context clamp rather than a caller-imposed cap. A deterministic line parser validates each completed line (those followed by a newline) against the strict `start,end` grammar. The final fragment after the last newline is always discarded — even if it looks syntactically complete — because EOF may have cut a multi-digit integer (e.g. `300,30` could have intended `300,305`). If any completed line has invalid syntax or zero usable records survive validation, the attempt becomes an `unusable` outcome and the ladder advances.
+When the planner model's output is truncated at the provider's own limit (indicated by `stopReason: "length"`), Orphus silently recovers complete newline-terminated deletion records from the truncated response. Orphus sends no `max_tokens` of its own, so this reflects the provider's context clamp rather than a caller-imposed cap. A deterministic line parser validates each completed line (those followed by a newline) against the strict `start,end` grammar. The final fragment after the last newline is always discarded — even if it looks syntactically complete — because EOF may have cut a multi-digit integer (e.g. `300,30` could have intended `300,305`). If any completed line has invalid syntax or zero usable records survive validation, the attempt becomes an `unusable` outcome and the ladder advances.
 
 Example of truncated output:
 
@@ -211,7 +211,7 @@ Compaction range planning returned malformed output (diagnostic: /path/session-c
 
 The private sidecar uses `0600` permissions where supported and records the full planner response text, stop reason, provider error, usage, the request `maxTokens` (absent — no cap is sent), timestamp, failure category, and non-secret model metadata for **the model that made that attempt**, so a run rescued by a fallback leaves per-model evidence. It does not record API keys, request headers, the planner prompt, or the numbered transcript request. The raw response itself may contain sensitive text if the model echoed input, so treat the sidecar with the same care as its adjacent session file.
 
-Diagnostic categories distinguish malformed output, valid output with no usable ranges, provider errors, stream failures, reasoning starvation (`starved`), transient rate limiting (`rate_limited`), quota exhaustion (`quota`), and context overflow (`context_overflow`) — overflow is a distinct typed outcome in code, so it is distinct in the durable record too rather than folded into a generic provider failure. When a *borrowed* fallback model produces the accepted ranking, a separate `<session>-compaction-success-<timestamp>-<id>.json` sidecar records that model and its effective thinking level, so a rescued run leaves evidence for both the model that failed and the model that succeeded. Quota, billing, and usage-limit exhaustion get their own `quota` category, so they stay distinguishable from transient throttling in the durable record and not only in provider text. A limit record additionally sets `rateLimitExhausted`, derived from observed retry activity: `true` only when a retry was actually scheduled, and `false` for quota or for a throttled request under a disabled or zero retry budget. Atomic classifies the whole HTTP `5xx` class as rate limiting, which is a local broadening — pi-ai lists only selected statuses, so it may schedule no backoff for one Atomic types this way, and `rateLimitExhausted` reports that fact rather than assuming it. Every sidecar filename carries both a timestamp and a per-attempt identifier, and is created exclusively, so two attempts inside the same millisecond — routine across overflow trims or a fast fallback walk — cannot overwrite each other's evidence. In-memory sessions do not create sidecars. If the diagnostic write fails, Atomic preserves the original classification rather than replacing the planner outcome.
+Diagnostic categories distinguish malformed output, valid output with no usable ranges, provider errors, stream failures, reasoning starvation (`starved`), transient rate limiting (`rate_limited`), quota exhaustion (`quota`), and context overflow (`context_overflow`) — overflow is a distinct typed outcome in code, so it is distinct in the durable record too rather than folded into a generic provider failure. When a *borrowed* fallback model produces the accepted ranking, a separate `<session>-compaction-success-<timestamp>-<id>.json` sidecar records that model and its effective thinking level, so a rescued run leaves evidence for both the model that failed and the model that succeeded. Quota, billing, and usage-limit exhaustion get their own `quota` category, so they stay distinguishable from transient throttling in the durable record and not only in provider text. A limit record additionally sets `rateLimitExhausted`, derived from observed retry activity: `true` only when a retry was actually scheduled, and `false` for quota or for a throttled request under a disabled or zero retry budget. Orphus classifies the whole HTTP `5xx` class as rate limiting, which is a local broadening — pi-ai lists only selected statuses, so it may schedule no backoff when Orphus classifies a response this way, and `rateLimitExhausted` reports that fact rather than assuming it. Every sidecar filename carries both a timestamp and a per-attempt identifier, and is created exclusively, so two attempts inside the same millisecond — routine across overflow trims or a fast fallback walk — cannot overwrite each other's evidence. In-memory sessions do not create sidecars. If the diagnostic write fails, Orphus preserves the original classification rather than replacing the planner outcome.
 
 Interactive main chat and attached workflow stage chat treat `compaction_end` as the authority for cancellation and failure UI. A failed or cancelled `/compact` stops its spinner, shows the event-provided status or diagnostic path without a duplicate stack trace, writes no boundary, and leaves the session usable for another `/compact` attempt or a normal follow-up turn.
 
@@ -253,7 +253,7 @@ A successful run appends the existing pi-style `type:"compaction"` entry shape:
 
 There is no format-version bump and no new entry type. Both `"fresh"` and `plannerModel` are additive: they are absent on every existing entry and on any compaction that used the session model, so old readers are unaffected. A `"fresh"` boundary that had to drop the `preserve_recent` tail persists `firstKeptEntryId: null`.
 
-A `compaction` entry is active only when `details.strategy === "verbatim-lines"`. On rebuild, Atomic emits one visible custom-role boundary message: the durable `summary` with the kept tail—the entries from `firstKeptEntryId` up to the boundary—serialized and concatenated onto its end. The tail is never restored as separate assistant/tool-result blocks, so a tail that starts or ends mid-turn cannot produce out-of-order provider blocks; images inside the tail ride along as image blocks on that same boundary message. When no pre-boundary context-visible message is retained—such as with `preserve_recent: 0`—`firstKeptEntryId` is `null` and the boundary carries the `summary` alone. Messages appended after the boundary are always replayed as real messages. The boundary is converted to a user-role provider message and shown in the TUI as a collapsible compaction card.
+A `compaction` entry is active only when `details.strategy === "verbatim-lines"`. On rebuild, Orphus emits one visible custom-role boundary message: the durable `summary` with the kept tail—the entries from `firstKeptEntryId` up to the boundary—serialized and concatenated onto its end. The tail is never restored as separate assistant/tool-result blocks, so a tail that starts or ends mid-turn cannot produce out-of-order provider blocks; images inside the tail ride along as image blocks on that same boundary message. When no pre-boundary context-visible message is retained—such as with `preserve_recent: 0`—`firstKeptEntryId` is `null` and the boundary carries the `summary` alone. Messages appended after the boundary are always replayed as real messages. The boundary is converted to a user-role provider message and shown in the TUI as a collapsible compaction card.
 
 Resume does not rerun planning or re-derive deletions: the exact compacted string and nullable tail boundary are already in JSONL. Existing records with a string `firstKeptEntryId` keep their original resume behavior. Legacy `context_compaction` logical-deletion records and old `compaction` summary records without the discriminator are inert archival data. Their historical omissions are not reapplied when an old session resumes.
 
@@ -275,11 +275,11 @@ pi.on("session_before_compact", async (event) => {
 });
 ```
 
-`preparation` is a deep-frozen clone. An override changes only the compacted region text; Atomic retains the prepared boundary and persists the supplied text verbatim. Empty/whitespace text is rejected. The override path does not require provider credentials.
+`preparation` is a deep-frozen clone. An override changes only the compacted region text; Orphus retains the prepared boundary and persists the supplied text verbatim. Empty/whitespace text is rejected. The override path does not require provider credentials.
 
 ### `session_compact`
 
-After persistence, Atomic emits an observe-only event:
+After persistence, Orphus emits an observe-only event:
 
 ```typescript
 pi.on("session_compact", async (event) => {
@@ -296,7 +296,7 @@ Observer errors are isolated and cannot roll back the already-persisted boundary
 
 ### When It Triggers
 
-When you use `/tree` to navigate to a different branch, Atomic offers to summarize the work you're leaving. This injects context from the left branch into the new branch.
+When you use `/tree` to navigate to a different branch, Orphus offers to summarize the work you're leaving. This injects context from the left branch into the new branch.
 
 Branch summarization is a separate mechanism from context compaction. It generates a summary of the abandoned branch path and injects it into the new branch position. This is appropriate here because the alternative (losing branch context entirely on navigation) is worse than a lossy summary.
 
@@ -341,7 +341,7 @@ After navigation with summary:
 
 ### Cumulative File Tracking
 
-Branch summarization tracks files cumulatively. When generating a summary, Atomic extracts file operations from:
+Branch summarization tracks files cumulatively. When generating a summary, Orphus extracts file operations from:
 
 - Tool calls in the messages being summarized
 - Previous branch summary `details` (if any)
@@ -466,7 +466,7 @@ See `SessionBeforeTreeEvent` and `TreePreparation` in the types file.
 
 ## Summary request isolation
 
-Verbatim planning and branch summarization are standalone provider requests. Each receives a fresh routing session ID instead of reusing the chat's provider-affinity ID, and sets cache retention to `none` so it cannot write summary/planner prompts into the main prompt cache. Neither sends a `max_tokens` of its own. Existing API-key, header-only `ANTHROPIC_AUTH_TOKEN`, custom-header, abort, and bounded retry behavior still applies. These controls affect provider request routing/cache writes only; successful results are persisted through the normal Atomic session lifecycle.
+Verbatim planning and branch summarization are standalone provider requests. Each receives a fresh routing session ID instead of reusing the chat's provider-affinity ID, and sets cache retention to `none` so it cannot write summary/planner prompts into the main prompt cache. Neither sends a `max_tokens` of its own. Existing API-key, header-only `ANTHROPIC_AUTH_TOKEN`, custom-header, abort, and bounded retry behavior still applies. These controls affect provider request routing/cache writes only; successful results are persisted through the normal Orphus session lifecycle.
 
 **Isolation is per model, not per session.** When compaction borrows a fallback model, that request is built with the borrowed candidate's own API key, headers, and base URL; the session model's credentials are never sent to another provider. The corollary is a real data-flow change: **a model listed in `settings.fallbackModels` may receive the compaction transcript.** The list is user-authored, so the set of providers that can see it is yours to control — remove an entry if you do not want it to see transcript content.
 

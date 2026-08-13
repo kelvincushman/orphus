@@ -354,7 +354,7 @@ test("the terminal fence returns after a completed retained turn settles", () =>
 		emitDeliveryActivity({ type: "delivery_start", deliveryId: 2 });
 		emit({ type: "agent_start" } as AgentSessionEvent);
 		emit({ type: "turn_start" } as AgentSessionEvent);
-		assert.match(renderText(view), /∀\s+\S/, "the accepted retained turn must show Working");
+		assert.match(renderText(view), /⊙\s+\S/, "the accepted retained turn must show Working");
 
 		emit({ type: "turn_end" } as AgentSessionEvent);
 		emit({ type: "agent_end", messages: [] } as AgentSessionEvent);
