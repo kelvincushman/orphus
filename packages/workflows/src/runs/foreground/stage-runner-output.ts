@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
-import type { AgentSession, PromptOptions } from "@bastani/atomic";
+import type { AgentSession, PromptOptions } from "@orphus/coding-agent";
 import type { StageOutputOptions, StagePromptOptions, WorkflowMaxOutput } from "../../shared/types.js";
 import { ensureWorkflowArtifactRunDirectory, workflowArtifactRunPath } from "../../shared/workflow-artifacts.js";
 

@@ -59,7 +59,7 @@ function createFixtureRoot(): string {
 		version: "0.1.0",
 		private: true,
 		dependencies: {
-			"@bastani/atomic-natives": "0.1.0",
+			"@orphus/natives": "0.1.0",
 		},
 	});
 	writeFileSync(
@@ -74,7 +74,7 @@ function createFixtureRoot(): string {
 		name: "@fixture/alpha",
 		version: "0.1.0",
 		private: true,
-		optionalDependencies: { "@bastani/atomic-natives-linux-x64-musl": "0.1.0" },
+		optionalDependencies: { "@orphus/natives-linux-x64-musl": "0.1.0" },
 	});
 	writeJson(join(root, "packages", "beta", "package.json"), {
 		name: "@fixture/beta",
@@ -116,9 +116,9 @@ if (bindingPackageVersion !== '0.1.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHE
 			"": {
 				name: "fixture-monorepo",
 				version: "0.1.0",
-				dependencies: { "@bastani/atomic-natives": "0.1.0" },
+				dependencies: { "@orphus/natives": "0.1.0" },
 			},
-			"node_modules/@bastani/atomic-natives": { resolved: "packages/natives", link: true },
+			"node_modules/@orphus/natives": { resolved: "packages/natives", link: true },
 			"node_modules/@fixture/alpha": { resolved: "packages/alpha", link: true },
 			"node_modules/third-party": {
 				version: "9.9.9",
@@ -127,14 +127,14 @@ if (bindingPackageVersion !== '0.1.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHE
 			"packages/alpha": {
 				name: "@fixture/alpha",
 				version: "0.1.0",
-				dependencies: { "@bastani/atomic-natives": "0.1.0", "third-party": "9.9.9" },
+				dependencies: { "@orphus/natives": "0.1.0", "third-party": "9.9.9" },
 				optionalDependencies: {
-					"@bastani/atomic-natives-linux-x64-gnu": "0.1.0",
-					"@bastani/atomic-natives-linux-x64-musl": "0.1.0",
+					"@orphus/natives-linux-x64-gnu": "0.1.0",
+					"@orphus/natives-linux-x64-musl": "0.1.0",
 				},
 			},
 			"packages/beta": { name: "@fixture/beta", version: "0.1.0" },
-			"packages/natives": { name: "@bastani/atomic-natives", version: "0.1.0" },
+			"packages/natives": { name: "@orphus/natives", version: "0.1.0" },
 			// A nested third-party install under a workspace path -- the production
 			// shape (@napi-rs/cli under packages/natives/node_modules) that a bare
 			// `packages/` prefix check mistakes for a workspace entry.
@@ -172,13 +172,10 @@ describe("scripts/bump-version.ts", () => {
 
 			const rootPackageJson = readJson(join(root, "package.json"));
 			assert.equal(rootPackageJson.version, "1.2.3-alpha.1");
-			assert.equal(rootPackageJson.dependencies?.["@bastani/atomic-natives"], "1.2.3-alpha.1");
+			assert.equal(rootPackageJson.dependencies?.["@orphus/natives"], "1.2.3-alpha.1");
 			const alphaPackageJson = readJson(join(root, "packages", "alpha", "package.json"));
 			assert.equal(alphaPackageJson.version, "1.2.3-alpha.1");
-			assert.equal(
-				alphaPackageJson.optionalDependencies?.["@bastani/atomic-natives-linux-x64-musl"],
-				"1.2.3-alpha.1",
-			);
+			assert.equal(alphaPackageJson.optionalDependencies?.["@orphus/natives-linux-x64-musl"], "1.2.3-alpha.1");
 			assert.equal(readJson(join(root, "packages", "beta", "package.json")).version, "1.2.3-alpha.1");
 			assert.match(readFileSync(join(root, "Cargo.toml"), "utf8"), /version = "1\.2\.3-alpha\.1"/);
 			assert.match(
@@ -207,12 +204,12 @@ describe("scripts/bump-version.ts", () => {
 			// First-party ranges inside a workspace entry move with it, in every
 			// section, including the platform-suffixed native packages.
 			assert.equal(
-				lock.packages["packages/alpha"]?.optionalDependencies?.["@bastani/atomic-natives-linux-x64-musl"],
+				lock.packages["packages/alpha"]?.optionalDependencies?.["@orphus/natives-linux-x64-musl"],
 				"1.2.3-alpha.1",
 			);
-			assert.equal(lock.packages["packages/alpha"]?.dependencies?.["@bastani/atomic-natives"], "1.2.3-alpha.1");
+			assert.equal(lock.packages["packages/alpha"]?.dependencies?.["@orphus/natives"], "1.2.3-alpha.1");
 			assert.equal(
-				lock.packages["packages/alpha"]?.optionalDependencies?.["@bastani/atomic-natives-linux-x64-gnu"],
+				lock.packages["packages/alpha"]?.optionalDependencies?.["@orphus/natives-linux-x64-gnu"],
 				"1.2.3-alpha.1",
 			);
 			// Third-party pins and the resolved link entries are left exactly alone:

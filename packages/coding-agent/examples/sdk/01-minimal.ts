@@ -5,7 +5,7 @@
  * from cwd and ~/.atomic/agent (legacy ~/.pi/agent also works). Model chosen from settings or first available.
  */
 
-import { createAgentSession } from "@bastani/atomic";
+import { createAgentSession } from "@orphus/coding-agent";
 
 const { session } = await createAgentSession();
 

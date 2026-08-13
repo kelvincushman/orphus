@@ -1,5 +1,5 @@
-import type { CreateAgentSessionOptions, DefaultResourceLoaderInheritanceSnapshot } from "@bastani/atomic";
 import type { Api, Model } from "@earendil-works/pi-ai/compat";
+import type { CreateAgentSessionOptions, DefaultResourceLoaderInheritanceSnapshot } from "@orphus/coding-agent";
 import type { StageSessionRuntime } from "../runs/foreground/stage-runner.js";
 import type { SessionManager } from "../shared/persistence-restore.js";
 import type { RunStatus, StageStatus } from "../shared/store-types.js";

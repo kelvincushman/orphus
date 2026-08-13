@@ -1,4 +1,4 @@
-import type { ToolDefinition } from "@bastani/atomic";
+import type { ToolDefinition } from "@orphus/coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 
 type ToolResultRenderer = NonNullable<ToolDefinition["renderResult"]>;

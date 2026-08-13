@@ -1,8 +1,8 @@
-> Atomic can create extensions. Ask it to build one for your use case.
+> Orphus can create extensions. Ask it to build one for your use case.
 
 # Extensions
 
-Extensions are TypeScript modules that extend Atomic's behavior. They can subscribe to lifecycle events, register custom tools callable by the LLM, add commands, and more.
+Extensions are TypeScript modules that extend Orphus's behavior. They can subscribe to lifecycle events, register custom tools callable by the LLM, add commands, and more.
 
 > **Placement for /reload:** Put extensions in `~/.atomic/agent/extensions/` (global) or `.atomic/extensions/` (project-local) for auto-discovery; legacy `.pi` paths remain supported. Use `atomic -e ./path.ts` only for quick tests. Extensions in auto-discovered locations can be hot-reloaded with `/reload`.
 
@@ -56,7 +56,7 @@ See [examples/extensions/](https://github.com/bastani-inc/atomic/tree/main/packa
 
 ## Startup and lazy discovery
 
-Atomic keeps the interactive startup path responsive by registering lightweight command/tool wrappers first and deferring noncritical discovery work until after the session is usable. Built-in MCP, workflow, subagent, web-access, and Intercom extensions expose their public commands/tools immediately, but expensive server connections, workflow module evaluation, result-watcher priming, cleanup scans, and browser/provider loading may run in the background or on first explicit use. Commands such as `/workflow list`, named workflow runs/inputs, failed or durable workflow resume, `/mcp`, direct MCP tool calls, `mcp({ search })`, `mcp({ describe })`, `mcp({ server })`, and explicit reload/setup flows still wait for the resources they need before returning results; cold-cache MCP proxy `describe` first narrows hydration to prefix-matched or explicitly requested servers without starting unrelated servers after a prefix-directed miss, cold-cache unscoped MCP proxy `search` intentionally hydrates all uncached lazy servers so it can search the full configured tool set, env-selected MCP direct tools warm only their selected servers and refresh live tool registration when ready, paused live-workflow resume/pickers bypass full workflow discovery, autocomplete falls back to current/admin completions when lazy discovery fails, and workflow session restore reads only lightweight config during `session_start` so persisted-run settings apply without evaluating workflow modules.
+Orphus keeps the interactive startup path responsive by registering lightweight command/tool wrappers first and deferring noncritical discovery work until after the session is usable. Built-in MCP, workflow, subagent, web-access, and Intercom extensions expose their public commands/tools immediately, but expensive server connections, workflow module evaluation, result-watcher priming, cleanup scans, and browser/provider loading may run in the background or on first explicit use. Commands such as `/workflow list`, named workflow runs/inputs, failed or durable workflow resume, `/mcp`, direct MCP tool calls, `mcp({ search })`, `mcp({ describe })`, `mcp({ server })`, and explicit reload/setup flows still wait for the resources they need before returning results; cold-cache MCP proxy `describe` first narrows hydration to prefix-matched or explicitly requested servers without starting unrelated servers after a prefix-directed miss, cold-cache unscoped MCP proxy `search` intentionally hydrates all uncached lazy servers so it can search the full configured tool set, env-selected MCP direct tools warm only their selected servers and refresh live tool registration when ready, paused live-workflow resume/pickers bypass full workflow discovery, autocomplete falls back to current/admin completions when lazy discovery fails, and workflow session restore reads only lightweight config during `session_start` so persisted-run settings apply without evaluating workflow modules.
 
 Web-access and Intercom first-use calls await one shared lazy initializer plus the latest active lifecycle replay before executing. Failed initializer/replay attempts remain retryable. Session-scoped leases retire candidates synchronously on shutdown, reject calls spanning teardown, and require fresh initialization after restart; shutdown awaits retired replay/initializer cleanup before the extension instance can be replaced, and Intercom serializes replay with live lifecycle forwarding so matching ends and newer model selections cannot be overtaken by stale replay. Aborting one web-access caller during a shared wait does not cancel initialization for other callers, and host abort after provider/curator execution preserves the exact abort reason while explicit curator user cancellation remains result-shaped. Non-empty `web_search`/`fetch_content` batches with no successful items are marked as tool errors with stage diagnostics; partial successes remain successful and retain their completed items.
 
@@ -64,7 +64,7 @@ Bundled MCP startup, proxy calls, direct tools, and readiness-critical commands 
 
 ## Interactive callback isolation
 
-Interactive Atomic sessions run the agent engine, extensions, tools, hooks, workflow code, and extension-owned render components in a supervised child process. The terminal host owns stdin and cached rendering, so a synchronous busy loop in one callback cannot stop keyboard handling, spinners, or render scheduling. The engine sends a heartbeat every 50 ms; Atomic identifies the active callback after a 250 ms heartbeat gap and marks the engine unresponsive after one second.
+Interactive Orphus sessions run the agent engine, extensions, tools, hooks, workflow code, and extension-owned render components in a supervised child process. The terminal host owns stdin and cached rendering, so a synchronous busy loop in one callback cannot stop keyboard handling, spinners, or render scheduling. The engine sends a heartbeat every 50 ms; Orphus identifies the active callback after a 250 ms heartbeat gap and marks the engine unresponsive after one second.
 
 Escape requests the engine's own cooperative cancellation and waits for it, for as long as the engine takes. There is no deadline on that wait, and Escape never terminates or replaces the engine, so an interrupt cannot discard in-flight tool state.
 
@@ -86,9 +86,9 @@ await ctx.ui.custom<string | undefined>(
 
 Both safety keys are matched by physical identity rather than by the configured `app.clear` action, so rebinding `app.clear` — even to Escape — can neither route Escape into a stop/restart branch nor take the host route away from Ctrl+C. A configured `app.clear` on any other key keeps its ordinary editor-clear behavior, and key-release events never act.
 
-The second is an engine that is provably not answering, reported as `Interactive engine is not responding; restarting.`. That means the watchdog has called it unresponsive, a cooperative abort has been outstanding longer than that same one-second threshold, a replacement has been waiting for readiness longer than it, or a replacement failed outright. This case takes precedence over everything above: the first press terminates and replaces the engine even behind a component that declared `handlesCtrlC`, because a wedged child cannot run that component's handler either. The readiness case has no heartbeat and no watchdog diagnostic at all, so Ctrl+C is the only way out of a replacement that hangs before it becomes ready; a repeat press can stop an overdue replacement and start another, while a replacement that is still fresh is never stopped by a stray press. A failed replacement keeps Ctrl+C armed indefinitely, so recovery stays available without Atomic ever retrying on its own.
+The second is an engine that is provably not answering, reported as `Interactive engine is not responding; restarting.`. That means the watchdog has called it unresponsive, a cooperative abort has been outstanding longer than that same one-second threshold, a replacement has been waiting for readiness longer than it, or a replacement failed outright. This case takes precedence over everything above: the first press terminates and replaces the engine even behind a component that declared `handlesCtrlC`, because a wedged child cannot run that component's handler either. The readiness case has no heartbeat and no watchdog diagnostic at all, so Ctrl+C is the only way out of a replacement that hangs before it becomes ready; a repeat press can stop an overdue replacement and start another, while a replacement that is still fresh is never stopped by a stray press. A failed replacement keeps Ctrl+C armed indefinitely, so recovery stays available without Orphus ever retrying on its own.
 
-If an engine generation dies for any reason (crash, SIGKILL, closed stdin, malformed transport, explicit stop), the host tears that generation's UI down immediately rather than waiting for the next `engine_ready`. Every mounted remote component is closed newest-first so a nested overlay never restores focus to a layer that has already gone, each `ctx.ui.custom()` promise settles, `select`/`confirm`/`input`/`editor` dialogs opened by that generation are cancelled without answering the replacement child, widget keys are released — both component-factory widgets and line widgets, and only those a newer generation has not taken over — terminal modes are reset, the editor is remounted and refocused unless a surviving native modal owns input, and the blocking inline custom-UI depth unwinds to zero. Frames that generation had buffered die with it, so a mount frame from a dead child can never remount UI into the replacement, and a child that exits during the startup window — after it reported ready but before the host finished attaching — is still recovered rather than leaving a live TUI bound to a dead engine. Atomic then makes one automatic replacement attempt and reports `Interactive engine stopped unexpectedly; restarting. Cause (<kind>): <summary>.`; the bounded summary retains the process exit code or signal when available but never includes child stderr, which may contain provider output or secrets. A failed replacement reports `Interactive engine restart failed: …`, leaves the editor usable, and stays recoverable with Ctrl+C. A child that dies while that replacement is still starting does not trigger another automatic attempt either — it simply keeps Ctrl+C armed. A submission the engine never accepted is returned to the editor as a draft instead of being discarded — exactly as it was typed, including surrounding whitespace and expanded paste content, placed ahead of anything typed while the send was still pending and separated by a blank line. Submissions still queued behind it come back with it, in the order they were entered. Each submission carries its own draft, so two entries that differ only in whitespace can never restore each other's text. A restored draft is the whole report: Atomic does not add a red transport error beside it.
+If an engine generation dies for any reason (crash, SIGKILL, closed stdin, malformed transport, explicit stop), the host tears that generation's UI down immediately rather than waiting for the next `engine_ready`. Every mounted remote component is closed newest-first so a nested overlay never restores focus to a layer that has already gone, each `ctx.ui.custom()` promise settles, `select`/`confirm`/`input`/`editor` dialogs opened by that generation are cancelled without answering the replacement child, widget keys are released — both component-factory widgets and line widgets, and only those a newer generation has not taken over — terminal modes are reset, the editor is remounted and refocused unless a surviving native modal owns input, and the blocking inline custom-UI depth unwinds to zero. Frames that generation had buffered die with it, so a mount frame from a dead child can never remount UI into the replacement, and a child that exits during the startup window — after it reported ready but before the host finished attaching — is still recovered rather than leaving a live TUI bound to a dead engine. Orphus then makes one automatic replacement attempt and reports `Interactive engine stopped unexpectedly; restarting. Cause (<kind>): <summary>.`; the bounded summary retains the process exit code or signal when available but never includes child stderr, which may contain provider output or secrets. A failed replacement reports `Interactive engine restart failed: …`, leaves the editor usable, and stays recoverable with Ctrl+C. A child that dies while that replacement is still starting does not trigger another automatic attempt either — it simply keeps Ctrl+C armed. A submission the engine never accepted is returned to the editor as a draft instead of being discarded — exactly as it was typed, including surrounding whitespace and expanded paste content, placed ahead of anything typed while the send was still pending and separated by a blank line. Submissions still queued behind it come back with it, in the order they were entered. Each submission carries its own draft, so two entries that differ only in whitespace can never restore each other's text. A restored draft is the whole report: Orphus does not add a red transport error beside it.
 
 If the generation dies after an assistant tool call was persisted but before its result was recorded, reopening the inactive session derives an error result for each unanswered call. This closes the provider's tool-call/result pair and lets the transcript render, compact, and accept another prompt. The repair is not appended to the JSONL and deliberately says the result is unavailable: admitted work may have produced side effects, so inspect the filesystem or external system before retrying the command.
 
@@ -100,7 +100,7 @@ An announcement can still be in the pipe when the child dies, so a dead generati
 
 Session teardown fences engine recovery: disposal stops the current child, cancels an in-flight replacement, and waits for it before returning, so no engine child — and no host initialization — outlives the session that started it.
 
-The engine child is launched with an environment that never contains Atomic's engine-only control values (engine role, host PID, guardian path, and any `--api-key` credential). They travel in an owner-only bootstrap file whose path is a private CLI argument; the child reads it once, freezes the values, and unlinks exactly that file. Recursive cleanup of the file's directory belongs to the host that created it, never to a path read from arguments. This matters for extensions: under Bun a child process spawned without an explicit `env` inherits the runtime's launch-time environment, so a value placed in the engine's environment could not be taken back by deleting it later. Because the engine never receives those values in its environment, `Bun.spawn()`, `Bun.spawnSync()`, and `node:child_process` calls from extension and hook code cannot leak them either. Passing an explicit `env` derived from `process.env` remains the recommended practice for anything an extension spawns.
+The engine child is launched with an environment that never contains Orphus's engine-only control values (engine role, host PID, guardian path, and any `--api-key` credential). They travel in an owner-only bootstrap file whose path is a private CLI argument; the child reads it once, freezes the values, and unlinks exactly that file. Recursive cleanup of the file's directory belongs to the host that created it, never to a path read from arguments. This matters for extensions: under Bun a child process spawned without an explicit `env` inherits the runtime's launch-time environment, so a value placed in the engine's environment could not be taken back by deleting it later. Because the engine never receives those values in its environment, `Bun.spawn()`, `Bun.spawnSync()`, and `node:child_process` calls from extension and hook code cannot leak them either. Passing an explicit `env` derived from `process.env` remains the recommended practice for anything an extension spawns.
 
 Dialogs and `ctx.ui.custom()` components are proxied to the host as rendered lines with asynchronous input forwarding. Custom UI results must be JSON-safe. APIs that require a synchronous callback in the terminal process—raw `onTerminalInput` transforms, synchronous `getEditorText`, custom editor factories, autocomplete wrappers, component-factory widgets, and custom header/footer factories—are unavailable in isolated interactive mode and produce a warning rather than executing extension code in the host. Print and public RPC modes retain their existing execution model.
 
@@ -113,7 +113,7 @@ For structured forms use `ctx.ui.hostInputForm(request)`. It accepts JSON-safe f
 Create `~/.atomic/agent/extensions/my-extension.ts`:
 
 ```typescript
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import { Type } from "typebox";
 
 export default function (pi: ExtensionAPI) {
@@ -174,7 +174,7 @@ Extensions are auto-discovered from:
 | `.atomic/extensions/*.ts` | Project-local |
 | `.atomic/extensions/*/index.ts` | Project-local (subdirectory) |
 
-Atomic also discovers extensions and package resources inherited from legacy `~/.pi/agent` and `.pi` configuration. When an inherited Pi extension uses the exact same tool, command, prompt, flag, or shortcut name as an extension bundled with Atomic, Atomic keeps the bundled registration and ignores only that conflicting inherited registration. Other resources from the inherited extension remain available. Interactive startup reports all such overlaps in one yellow summary; print and RPC modes apply the same winners without changing the Pi settings or package files.
+Orphus also discovers extensions and package resources inherited from legacy `~/.pi/agent` and `.pi` configuration. When an inherited Pi extension uses the exact same tool, command, prompt, flag, or shortcut name as an extension bundled with Orphus, Orphus keeps the bundled registration and ignores only that conflicting inherited registration. Other resources from the inherited extension remain available. Interactive startup reports all such overlaps in one yellow summary; print and RPC modes apply the same winners without changing the Pi settings or package files.
 
 This compatibility rule applies only to inherited Pi resources. Extensions configured through `.atomic` or passed explicitly with `--extension` retain the normal intentional override and load-order behavior described below.
 
@@ -193,13 +193,13 @@ Additional paths via `settings.json`:
 }
 ```
 
-To share extensions via npm or git as Atomic packages, see [Atomic packages](/packages).
+To share extensions via npm or git as Orphus packages, see [Orphus packages](/packages).
 
 ## Available Imports
 
 | Package | Purpose |
 |---------|---------|
-| `@bastani/atomic` | Extension types (`ExtensionAPI`, `ExtensionContext`, events) |
+| `@orphus/coding-agent` | Extension types (`ExtensionAPI`, `ExtensionContext`, events) |
 | `typebox` | Schema definitions for tool parameters |
 | `@earendil-works/pi-ai` | AI utilities (`StringEnum` for Google-compatible enums) |
 | `@earendil-works/pi-tui` | TUI components for custom rendering |
@@ -212,7 +212,7 @@ bun install
 
 Imports from `node_modules/` are resolved automatically.
 
-For distributed Atomic packages installed with `atomic install` (npm or git), runtime deps must be in `dependencies`. Package installation uses production dependency installs by default, so `devDependencies` are not available at runtime; when `npmCommand` is configured, git packages use plain `install` for compatibility with wrappers.
+For distributed Orphus packages installed with `atomic install` (npm or git), runtime deps must be in `dependencies`. Package installation uses production dependency installs by default, so `devDependencies` are not available at runtime; when `npmCommand` is configured, git packages use plain `install` for compatibility with wrappers.
 
 Node.js built-ins (`node:fs`, `node:path`, etc.) are also available.
 
@@ -221,7 +221,7 @@ Node.js built-ins (`node:fs`, `node:path`, etc.) are also available.
 An extension exports a default factory function that receives `ExtensionAPI`. The factory can be synchronous or asynchronous:
 
 ```typescript
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 
 export default function (pi: ExtensionAPI) {
   // Subscribe to events
@@ -243,14 +243,14 @@ export default function (pi: ExtensionAPI) {
 
 Extensions are loaded via [jiti](https://github.com/unjs/jiti), so TypeScript works without compilation.
 
-If the factory returns a `Promise`, Atomic awaits it before continuing startup. That means async initialization completes before `session_start`, before `resources_discover`, and before provider registrations queued via `pi.registerProvider()` are flushed.
+If the factory returns a `Promise`, Orphus awaits it before continuing startup. That means async initialization completes before `session_start`, before `resources_discover`, and before provider registrations queued via `pi.registerProvider()` are flushed.
 
 ### Async factory functions
 
 Use an async factory for one-time startup work such as fetching remote configuration or dynamically discovering available models.
 
 ```typescript
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 
 export default async function (pi: ExtensionAPI) {
   const response = await fetch("http://localhost:1234/v1/models");
@@ -327,20 +327,20 @@ Defer background resource startup until `session_start` or the command/tool/even
     "zod": "^3.0.0",
     "chalk": "^5.0.0"
   },
-  "atomic": {
+  "orphus": {
     "extensions": ["./src/index.ts"]
   }
 }
 ```
 
-The manifest key is the configured Atomic app name (`atomic` here, from the running Atomic package/config), not the extension package's own `"name"` field. The legacy `pi` key is still accepted as a compatibility shim. Run `bun install` in the extension directory, then imports from `node_modules/` work automatically.
+The manifest key is the configured Orphus app name (`orphus` here, from the running Orphus package/config; the legacy `atomic` key is also accepted), not the extension package's own `"name"` field. The legacy `pi` key is still accepted as a compatibility shim. Run `bun install` in the extension directory, then imports from `node_modules/` work automatically.
 
 ## Events
 
 ### Lifecycle Overview
 
 ```
-Atomic starts
+Orphus starts
   │
   ├─► project_trust (user/global and CLI extensions only, before project resources load)
   ├─► session_start { reason: "startup" }
@@ -413,7 +413,7 @@ exit (CTRL+C, CTRL+D, SIGHUP, SIGTERM)
 
 #### project_trust
 
-Fired before Atomic decides whether to trust a project with dynamic configs (`.atomic`, legacy `.pi`, or `.agents/skills`). It runs during startup and when session replacement (for example `/resume`) enters a cwd whose trust has not been resolved in the current process. Only user/global extensions and CLI `-e` extensions participate; project-local extensions are not loaded until after trust is resolved.
+Fired before Orphus decides whether to trust a project with dynamic configs (`.atomic`, legacy `.pi`, or `.agents/skills`). It runs during startup and when session replacement (for example `/resume`) enters a cwd whose trust has not been resolved in the current process. Only user/global extensions and CLI `-e` extensions participate; project-local extensions are not loaded until after trust is resolved.
 
 ```typescript
 pi.on("project_trust", async (event, ctx) => {
@@ -426,7 +426,7 @@ pi.on("project_trust", async (event, ctx) => {
 });
 ```
 
-A `project_trust` handler must return `{ trusted: "yes" | "no" | "undecided" }`. A user/global or CLI extension that returns `"yes"` or `"no"` owns the decision; the first yes/no decision wins and suppresses the built-in trust prompt. Use `remember: true` to persist a yes/no decision; otherwise it applies only to the current process. Return `"undecided"` to let later handlers or the built-in trust flow decide. Check `ctx.hasUI` before prompting. If no handler returns yes/no, normal trust resolution continues: saved `trust.json` decisions apply first, then `defaultProjectTrust` controls whether Atomic asks, trusts, or declines by default.
+A `project_trust` handler must return `{ trusted: "yes" | "no" | "undecided" }`. A user/global or CLI extension that returns `"yes"` or `"no"` owns the decision; the first yes/no decision wins and suppresses the built-in trust prompt. Use `remember: true` to persist a yes/no decision; otherwise it applies only to the current process. Return `"undecided"` to let later handlers or the built-in trust flow decide. Check `ctx.hasUI` before prompting. If no handler returns yes/no, normal trust resolution continues: saved `trust.json` decisions apply first, then `defaultProjectTrust` controls whether Orphus asks, trusts, or declines by default.
 
 ### Resource Events
 
@@ -490,7 +490,7 @@ pi.on("session_before_switch", async (event, ctx) => {
 });
 ```
 
-After a successful switch or new-session action, Atomic emits `session_shutdown` for the old extension instance, reloads and rebinds extensions for the new session, then emits `session_start` with `reason: "new" | "resume"` and `previousSessionFile`.
+After a successful switch or new-session action, Orphus emits `session_shutdown` for the old extension instance, reloads and rebinds extensions for the new session, then emits `session_start` with `reason: "new" | "resume"` and `previousSessionFile`.
 Do cleanup work in `session_shutdown`, then reestablish any in-memory state in `session_start`.
 
 #### session_before_fork
@@ -507,12 +507,12 @@ pi.on("session_before_fork", async (event, ctx) => {
 });
 ```
 
-After a successful fork or clone, Atomic emits `session_shutdown` for the old extension instance, reloads and rebinds extensions for the new session, then emits `session_start` with `reason: "fork"` and `previousSessionFile`.
+After a successful fork or clone, Orphus emits `session_shutdown` for the old extension instance, reloads and rebinds extensions for the new session, then emits `session_start` with `reason: "fork"` and `previousSessionFile`.
 Do cleanup work in `session_shutdown`, then reestablish any in-memory state in `session_start`.
 
 #### session_before_compact / session_compact
 
-Fired by `/compact` and auto-compaction, including a threshold crossing detected after tool results enter the prospective next-turn context. Atomic prepares the complete active transcript except for the exact newest `preserve_recent` context-visible messages. Extensions may cancel or provide a complete, non-empty `compactedText` replacement for that region; they cannot move `firstKeptEntryId`. The override is persisted verbatim and works without provider credentials. A successful post-tool compaction returns its rebuilt context directly to the already-active Pi loop; it does not start a separate continuation. Cancellation or failure prevents that loop's follow-up provider request.
+Fired by `/compact` and auto-compaction, including a threshold crossing detected after tool results enter the prospective next-turn context. Orphus prepares the complete active transcript except for the exact newest `preserve_recent` context-visible messages. Extensions may cancel or provide a complete, non-empty `compactedText` replacement for that region; they cannot move `firstKeptEntryId`. The override is persisted verbatim and works without provider credentials. A successful post-tool compaction returns its rebuilt context directly to the already-active Pi loop; it does not start a separate continuation. Cancellation or failure prevents that loop's follow-up provider request.
 
 ```typescript
 pi.on("session_before_compact", async (event) => {
@@ -609,13 +609,13 @@ pi.on("before_agent_start", async (event, ctx) => {
 });
 ```
 
-The `systemPromptOptions` field gives extensions access to the same structured data Atomic uses to build the system prompt. This lets you inspect what Atomic has loaded — custom prompts, guidelines, tool snippets, context files, skills — without re-discovering resources or re-parsing flags. Use it when your extension needs to make deep, informed changes to the system prompt while respecting user-provided configuration.
+The `systemPromptOptions` field gives extensions access to the same structured data Orphus uses to build the system prompt. This lets you inspect what Orphus has loaded — custom prompts, guidelines, tool snippets, context files, skills — without re-discovering resources or re-parsing flags. Use it when your extension needs to make deep, informed changes to the system prompt while respecting user-provided configuration.
 
 Inside `before_agent_start`, `event.systemPrompt` and `ctx.getSystemPrompt()` both reflect the chained system prompt as of the current handler. Later `before_agent_start` handlers can still modify it again.
 
 #### agent_start / agent_end / agent_settled
 
-`agent_start` begins a low-level run. `agent_end` fires when that run ends, but Atomic may still retry, compact and retry, or deliver queued follow-ups. Use `agent_settled` when a status integration needs to know Atomic has no automatic continuation left.
+`agent_start` begins a low-level run. `agent_end` fires when that run ends, but Orphus may still retry, compact and retry, or deliver queued follow-ups. Use `agent_settled` when a status integration needs to know Orphus has no automatic continuation left.
 
 ```typescript
 pi.on("agent_start", async (_event, ctx) => {});
@@ -728,7 +728,7 @@ pi.on("before_provider_headers", (event, ctx) => {
 
 Fired after the provider-specific payload is built, right before the request is sent. Handlers run in extension load order. Returning `undefined` keeps the payload unchanged. Returning any other value replaces the payload for later handlers and for the actual request.
 
-This hook can rewrite provider-level system instructions or remove them entirely. Those payload-level changes are not reflected by `ctx.getSystemPrompt()`, which reports Atomic's system prompt string rather than the final serialized provider payload.
+This hook can rewrite provider-level system instructions or remove them entirely. Those payload-level changes are not reflected by `ctx.getSystemPrompt()`, which reports Orphus's system prompt string rather than the final serialized provider payload.
 
 ```typescript
 pi.on("before_provider_request", (event, ctx) => {
@@ -801,7 +801,7 @@ Use this to update extension UI when `pi.setThinkingLevel()`, model changes, or 
 
 Fired after `tool_execution_start`, before the tool executes. **Can block.** Use `isToolCallEventType` to narrow and get typed inputs.
 
-Before `tool_call` runs, Atomic waits for previously emitted Agent events to finish draining through `AgentSession`. This means `ctx.sessionManager` is up to date through the current assistant tool-calling message.
+Before `tool_call` runs, Orphus waits for previously emitted Agent events to finish draining through `AgentSession`. This means `ctx.sessionManager` is up to date through the current assistant tool-calling message.
 
 In the default parallel tool execution mode, sibling tool calls from the same assistant message are preflighted sequentially, then executed concurrently. `tool_call` is not guaranteed to see sibling tool results from that same assistant message in `ctx.sessionManager`.
 
@@ -814,7 +814,7 @@ Behavior guarantees:
 - Return values from `tool_call` only control blocking via `{ block: true, reason?: string }`
 
 ```typescript
-import { isToolCallEventType } from "@bastani/atomic";
+import { isToolCallEventType } from "@orphus/coding-agent";
 
 pi.on("tool_call", async (event, ctx) => {
   // event.toolName - "bash", "read", "write", "edit", "find", "search", etc.
@@ -855,7 +855,7 @@ export type MyToolInput = Static<typeof myToolSchema>;
 Use `isToolCallEventType` with explicit type parameters:
 
 ```typescript
-import { isToolCallEventType } from "@bastani/atomic";
+import { isToolCallEventType } from "@orphus/coding-agent";
 import type { MyToolInput } from "my-extension";
 
 pi.on("tool_call", (event) => {
@@ -879,7 +879,7 @@ In parallel tool mode, `tool_result` and `tool_execution_end` may interleave in 
 Use `ctx.signal` for nested async work inside the handler. This lets Escape cancel model calls, `fetch()`, and other abort-aware operations started by the extension.
 
 ```typescript
-import { isBashToolResult, isSearchToolResult } from "@bastani/atomic";
+import { isBashToolResult, isSearchToolResult } from "@orphus/coding-agent";
 
 pi.on("tool_result", async (event, ctx) => {
   // event.toolName, event.toolCallId, event.input
@@ -911,7 +911,7 @@ pi.on("tool_result", async (event, ctx) => {
 Fired when user executes `!` or `!!` commands. **Can intercept.**
 
 ```typescript
-import { createLocalBashOperations } from "@bastani/atomic";
+import { createLocalBashOperations } from "@orphus/coding-agent";
 
 pi.on("user_bash", (event, ctx) => {
   // event.command - the bash command
@@ -1003,7 +1003,7 @@ Current working directory.
 Use `CONFIG_DIR_NAME` instead of hardcoding `.atomic` (or legacy `.pi`) when constructing project-local config paths. Rebranded distributions can use a different config directory name.
 
 ```typescript
-import { CONFIG_DIR_NAME, type ExtensionAPI } from "@bastani/atomic";
+import { CONFIG_DIR_NAME, type ExtensionAPI } from "@orphus/coding-agent";
 import { join } from "node:path";
 
 export default function (pi: ExtensionAPI) {
@@ -1052,7 +1052,7 @@ for (const { model, thinkingLevel } of ctx.scopedModels) {
 Both types are exported: `ScopedModel` for one entry, `ExtensionScopedModels` for the accessor's own type. They are declared at the public extension type path (`core/extensions/types.ts`) and re-exported from the package root, so an extension never reaches into an internal module to describe what it just read.
 
 ```typescript
-import type { ExtensionScopedModels, ScopedModel } from "@bastani/atomic";
+import type { ExtensionScopedModels, ScopedModel } from "@orphus/coding-agent";
 
 function firstScoped(scope: ExtensionScopedModels): ScopedModel | undefined {
   return scope[0];
@@ -1069,7 +1069,7 @@ Use this for abort-aware nested work started by extension handlers, for example:
 - file or process helpers that accept `AbortSignal`
 
 `ctx.signal` is typically defined during active turn events such as `tool_call`, `tool_result`, `message_update`, and `turn_end`.
-It is usually `undefined` in idle or non-turn contexts such as session events, extension commands, and shortcuts fired while Atomic is idle.
+It is usually `undefined` in idle or non-turn contexts such as session events, extension commands, and shortcuts fired while Orphus is idle.
 
 ```typescript
 pi.on("tool_result", async (event, ctx) => {
@@ -1103,7 +1103,7 @@ pi.registerCommand("project-status", {
 
 ### ctx.shutdown()
 
-Request a graceful shutdown of Atomic.
+Request a graceful shutdown of Orphus.
 
 - **Interactive mode:** Deferred until the agent becomes idle (after processing all queued steering and follow-up messages).
 - **RPC mode:** Deferred until the next idle state (after completing the current command response, when waiting for the next command).
@@ -1132,7 +1132,7 @@ if (usage && usage.tokens > 100_000) {
 
 ### ctx.compact()
 
-Trigger Atomic's verbatim line compactor without awaiting completion. The planner emits numbered deleted-line ranges only; Atomic validates them and reconstructs retained text mechanically. Use `compression_ratio` (fraction of compactable lines to keep), client-side `preserve_recent` (an exact context-visible message count), and `query` to tune the run, and `onComplete`/`onError` for follow-up actions.
+Trigger Orphus's verbatim line compactor without awaiting completion. The planner emits numbered deleted-line ranges only; Orphus validates them and reconstructs retained text mechanically. Use `compression_ratio` (fraction of compactable lines to keep), client-side `preserve_recent` (an exact context-visible message count), and `query` to tune the run, and `onComplete`/`onError` for follow-up actions.
 
 ```typescript
 ctx.compact({
@@ -1152,7 +1152,7 @@ The planner cannot author context text: only validated line ranges enter the mec
 
 ### ctx.getSystemPrompt()
 
-Returns Atomic's current system prompt string.
+Returns Orphus's current system prompt string.
 
 - During `before_agent_start`, this reflects chained system-prompt changes made so far for the current turn.
 - It does not include later `context` message mutations.
@@ -1282,7 +1282,7 @@ Options:
 To discover available sessions, use the static `SessionManager.list()` or `SessionManager.listAll()` methods:
 
 ```typescript
-import { SessionManager } from "@bastani/atomic";
+import { SessionManager } from "@orphus/coding-agent";
 
 pi.registerCommand("switch", {
   description: "Switch to another session",
@@ -1376,7 +1376,7 @@ Tools run with `ExtensionContext`, so they cannot call `ctx.reload()` directly. 
 Example tool the LLM can call to trigger reload:
 
 ```typescript
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import { Type } from "typebox";
 
 export default function (pi: ExtensionAPI) {
@@ -1423,11 +1423,11 @@ Use `promptSnippet` to opt a custom tool into a one-line entry in `Available too
 
 See [dynamic-tools.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/dynamic-tools.ts) for a full example.
 
-Use Atomic's export rather than importing `StringEnum` directly from Pi. It preserves Pi's Google-compatible runtime schema while keeping the schema typed against Atomic's direct TypeBox version.
+Use Orphus's export rather than importing `StringEnum` directly from Pi. It preserves Pi's Google-compatible runtime schema while keeping the schema typed against Orphus's direct TypeBox version.
 
 ```typescript
 import { Type } from "typebox";
-import { StringEnum } from "@bastani/atomic";
+import { StringEnum } from "@orphus/coding-agent";
 
 pi.registerTool({
   name: "my_tool",
@@ -1464,7 +1464,7 @@ pi.registerTool({
 
 ### pi.sendMessage(message, options?)
 
-Inject a custom message into the session. The call returns `void | Promise<void>` for compatibility with synchronous hosts; use `await Promise.resolve(pi.sendMessage(...))` when admission or routing failure must be observed. Atomic's AgentSession runtime returns an admission receipt: it settles after the message is accepted by the local queue or workflow late-message route, without waiting for the resulting model turn to finish.
+Inject a custom message into the session. The call returns `void | Promise<void>` for compatibility with synchronous hosts; use `await Promise.resolve(pi.sendMessage(...))` when admission or routing failure must be observed. Orphus's AgentSession runtime returns an admission receipt: it settles after the message is accepted by the local queue or workflow late-message route, without waiting for the resulting model turn to finish.
 
 ```typescript
 pi.sendMessage({
@@ -1490,7 +1490,7 @@ pi.sendMessage({
 
 ### pi.sendMessages(messages, options?)
 
-Atomically admit a batch of custom messages in array order. The call returns `void | Promise<void>` for compatibility with synchronous hosts; use `await Promise.resolve(pi.sendMessages(...))` when admission or routing failure must be observed. The promise is an admission receipt and does not wait for the resulting model turn. Admission is indivisible; use this when a prelude and terminal notice must stay contiguous without globally serializing other extension work.
+Admit a batch of custom messages in array order. The call returns `void | Promise<void>` for compatibility with synchronous hosts; use `await Promise.resolve(pi.sendMessages(...))` when admission or routing failure must be observed. The promise is an admission receipt and does not wait for the resulting model turn. Admission is indivisible; use this when a prelude and terminal notice must stay contiguous without globally serializing other extension work.
 
 ```typescript
 pi.sendMessages([
@@ -1601,7 +1601,7 @@ Labels persist in the session and survive restarts. Use them to mark important p
 
 Register a command.
 
-If multiple extensions register the same command name, Atomic keeps them all and assigns numeric invocation suffixes in load order, for example `/review:1` and `/review:2`.
+If multiple extensions register the same command name, Orphus keeps them all and assigns numeric invocation suffixes in load order, for example `/review:1` and `/review:2`.
 
 ```typescript
 pi.registerCommand("stats", {
@@ -1777,7 +1777,7 @@ Register or override a model provider dynamically. Useful for proxies, custom en
 
 Calls made during the extension factory function are queued and applied once the runner initialises. Calls made after that — for example from a command handler following a user setup flow — take effect immediately without requiring a `/reload`.
 
-If you need to discover models from a remote endpoint, prefer an async extension factory over deferring the fetch to `session_start`. Atomic waits for the factory before startup continues, so the registered models are available immediately, including to `atomic --list-models`.
+If you need to discover models from a remote endpoint, prefer an async extension factory over deferring the fetch to `session_start`. Orphus waits for the factory before startup continues, so the registered models are available immediately, including to `atomic --list-models`.
 
 ```typescript
 // Register a new provider with custom models
@@ -1856,7 +1856,7 @@ pi.registerProvider("local-server", {
 - `authHeader` - If true, adds `Authorization: Bearer` header automatically.
 - `models` - Array of model definitions. If provided, replaces all existing models for this provider. Model definitions can set `baseUrl` to override the provider endpoint for that model.
 - `oauth` - OAuth provider config for `/login` support. When provided, the provider appears in the login menu.
-- `auth.apiKey` - Provider-owned API-key or connection setup for `/login`. Its `name` appears in the provider list and `login({ signal, prompt })` returns the credential Atomic persists. Extension providers registered only in the isolated interactive engine child are synchronized into the host's `/login` list; their login callback and credential-dependent model refresh still execute in the child, while prompts are rendered by the terminal host.
+- `auth.apiKey` - Provider-owned API-key or connection setup for `/login`. Its `name` appears in the provider list and `login({ signal, prompt })` returns the credential Orphus persists. Extension providers registered only in the isolated interactive engine child are synchronized into the host's `/login` list; their login callback and credential-dependent model refresh still execute in the child, while prompts are rendered by the terminal host.
 - `streamSimple` - Custom streaming implementation for non-standard APIs.
 
 See [Custom providers](/custom-provider) for advanced topics: custom streaming APIs, OAuth details, model definition reference.
@@ -1931,7 +1931,7 @@ Pass the real target file path to `withFileMutationQueue()`, not the raw user ar
 Queue the entire mutation window on that target path. That includes read-modify-write logic, not just the final write.
 
 ```typescript
-import { withFileMutationQueue } from "@bastani/atomic";
+import { withFileMutationQueue } from "@orphus/coding-agent";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
@@ -1956,7 +1956,7 @@ async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
 
 ```typescript
 import { Type } from "typebox";
-import { StringEnum } from "@bastani/atomic";
+import { StringEnum } from "@orphus/coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 
 pi.registerTool({
@@ -1968,7 +1968,7 @@ pi.registerTool({
     "Use my_tool for todo planning instead of direct file edits when the user asks for a task list."
   ],
   parameters: Type.Object({
-    action: StringEnum(["list", "add"] as const),  // Atomic's Pi-compatible TypeBox helper
+    action: StringEnum(["list", "add"] as const),  // Orphus's Pi-compatible TypeBox helper
     text: Type.Optional(Type.String()),
   }),
   prepareArguments(args) {
@@ -2013,7 +2013,7 @@ pi.registerTool({
 
 **Signaling errors:** To mark a tool execution as failed (sets `isError: true` on the result and reports it to the LLM), throw an error from `execute`. Returning a value never sets the error flag regardless of what properties you include in the return object.
 
-**Early termination:** Return `terminate: true` from `execute()` to hint that the automatic follow-up LLM call should be skipped after the current tool batch. This only takes effect when every finalized tool result in that batch is terminating. Atomic does not register `structured_output` in normal agent sessions by default; use `createStructuredOutputTool({ schema, capture, output, name })` when an extension, SDK session, workflow stage, or subagent runtime needs a schema-backed final-answer tool. The factory uses the supplied schema as the tool parameters directly, captures the tool arguments as whatever JSON value matches the schema, emits the same pretty-printed JSON as the terminating tool-result text for `atomic -p`, optionally writes them to the configured `output.outputPath`, and terminates the turn. In text print mode, a terminating result from a factory-created structured-output tool is emitted to stdout as the final response. Custom factory names are opt-in tools: if you register `final_decision`, include `final_decision` in any explicit `tools` allowlist; if you register the default `structured_output` name, it is available only to that session/runtime.
+**Early termination:** Return `terminate: true` from `execute()` to hint that the automatic follow-up LLM call should be skipped after the current tool batch. This only takes effect when every finalized tool result in that batch is terminating. Orphus does not register `structured_output` in normal agent sessions by default; use `createStructuredOutputTool({ schema, capture, output, name })` when an extension, SDK session, workflow stage, or subagent runtime needs a schema-backed final-answer tool. The factory uses the supplied schema as the tool parameters directly, captures the tool arguments as whatever JSON value matches the schema, emits the same pretty-printed JSON as the terminating tool-result text for `atomic -p`, optionally writes them to the configured `output.outputPath`, and terminates the turn. In text print mode, a terminating result from a factory-created structured-output tool is emitted to stdout as the final response. Custom factory names are opt-in tools: if you register `final_decision`, include `final_decision` in any explicit `tools` allowlist; if you register the default `structured_output` name, it is available only to that session/runtime.
 
 ```typescript
 // Correct: throw to signal an error
@@ -2025,7 +2025,7 @@ async execute(toolCallId, params) {
 }
 ```
 
-**Important:** Use `StringEnum` from `@bastani/atomic` for string enums. It retains Pi's Google-compatible schema and composes with Atomic's direct TypeBox types; `Type.Union`/`Type.Literal` doesn't work with Google's API.
+**Important:** Use `StringEnum` from `@orphus/coding-agent` for string enums. It retains Pi's Google-compatible schema and composes with Orphus's direct TypeBox types; `Type.Union`/`Type.Literal` doesn't work with Google's API.
 
 #### Constrained sampling
 
@@ -2051,9 +2051,9 @@ Exact modes:
 - `{ type: "grammar", variants: { openai_lark?: string, openai_regex?: string } }` requests an OpenAI custom grammar tool; Lark wins when both non-empty variants are present.
 - `false` explicitly opts out. Its runtime effect matches omission, but public tool inspection preserves `false` as a present property.
 
-Atomic preserves the optional property's exact own-key state across wrappers, active-session inspection, staged extension inspection, bundled tools, and isolated transport: omission stays absent; explicitly present `undefined` stays present; `false` and config objects remain unchanged. This distinction matters to SDK/extension code that uses `Object.hasOwn()` rather than an ordinary property read.
+Orphus preserves the optional property's exact own-key state across wrappers, active-session inspection, staged extension inspection, bundled tools, and isolated transport: omission stays absent; explicitly present `undefined` stays present; `false` and config objects remain unchanged. This distinction matters to SDK/extension code that uses `Object.hasOwn()` rather than an ordinary property read.
 
-Grammar tools require an object schema with exactly one required string property. They are emitted only when model metadata advertises `supportsOpenAIGrammarTools` (also exposed as Atomic's `supportsGrammarTools` alias); otherwise provider handling falls back to the normal function/JSON-schema path. Older OpenAI models and gateways that rewrite schemas cannot honor custom grammar tools. Typed RPC clients receive these claims through optional `ModelInfo.compat`. See [Custom Models](/models#constrained-tool-sampling) and [RPC](/rpc#get_available_models).
+Grammar tools require an object schema with exactly one required string property. They are emitted only when model metadata advertises `supportsOpenAIGrammarTools` (also exposed as Orphus's `supportsGrammarTools` alias); otherwise provider handling falls back to the normal function/JSON-schema path. Older OpenAI models and gateways that rewrite schemas cannot honor custom grammar tools. Typed RPC clients receive these claims through optional `ModelInfo.compat`. See [Custom Models](/models#constrained-tool-sampling) and [RPC](/rpc#get_available_models).
 
 **Argument preparation:** `prepareArguments(args)` is optional. If defined, it runs before schema validation and before `execute()`. Use it only when a custom tool must normalize arguments before validation. Return the object you want validated against `parameters`, keep the public schema strict, and avoid advertising deprecated fields.
 
@@ -2119,7 +2119,7 @@ Built-in tool implementations:
 Built-in tools support pluggable operations for delegating to remote systems (SSH, containers, etc.):
 
 ```typescript
-import { createReadTool, createBashTool, type ReadOperations } from "@bastani/atomic";
+import { createReadTool, createBashTool, type ReadOperations } from "@orphus/coding-agent";
 
 // Create tool with custom operations
 const remoteRead = createReadTool(cwd, {
@@ -2150,7 +2150,7 @@ For `user_bash`, extensions can reuse atomic's local shell backend via `createLo
 The bash tool also supports a spawn hook to adjust the command, cwd, or env before execution:
 
 ```typescript
-import { createBashTool } from "@bastani/atomic";
+import { createBashTool } from "@orphus/coding-agent";
 
 const bashTool = createBashTool(cwd, {
   spawnHook: ({ command, cwd, env }) => ({
@@ -2180,7 +2180,7 @@ import {
   formatSize,        // Human-readable size (e.g., "50KB", "1.5MB")
   DEFAULT_MAX_BYTES, // 50KB
   DEFAULT_MAX_LINES, // 2000
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 
 async execute(toolCallId, params, signal, onUpdate, ctx) {
   const output = await runCommand();
@@ -2316,7 +2316,7 @@ If a slot intentionally has no visible content, return an empty `Component` such
 Use `keyHintIfBound()` when an affordance should disappear if the action has no effective keybinding. Add surrounding punctuation only when the helper returns text:
 
 ```typescript
-import { keyHintIfBound } from "@bastani/atomic";
+import { keyHintIfBound } from "@orphus/coding-agent";
 
 renderResult(result, { expanded }, theme, context) {
   let text = theme.fg("success", "✓ Done");
@@ -2543,7 +2543,7 @@ ctx.ui.setTheme(lightTheme!);  // Or switch by Theme object
 ctx.ui.theme.fg("accent", "styled text");  // Access current theme
 ```
 
-Atomic's default working indicator keeps the literal one-cell `∀` fixed while following the active theme's optional `workingIndicator` tone overrides through a dark → accent → bright/bold → accent → dark ramp every 88ms. Any omitted tones are derived from selected-surface, `accent`, and `text` roles. `NO_COLOR` keeps regular/bold activity without foreground-color escapes, and `ORPHUS_REDUCED_MOTION=1` uses a static regular accent `∀` without a timer. Custom working-indicator frames and intervals are rendered verbatim. If you want colors, add them to the frame strings yourself, for example with `ctx.ui.theme.fg(...)`.
+Orphus's default working indicator keeps the literal one-cell `∀` fixed while following the active theme's optional `workingIndicator` tone overrides through a dark → accent → bright/bold → accent → dark ramp every 88ms. Any omitted tones are derived from selected-surface, `accent`, and `text` roles. `NO_COLOR` keeps regular/bold activity without foreground-color escapes, and `ORPHUS_REDUCED_MOTION=1` uses a static regular accent `∀` without a timer. Custom working-indicator frames and intervals are rendered verbatim. If you want colors, add them to the frame strings yourself, for example with `ctx.ui.theme.fg(...)`.
 
 These APIs customize presentation only; they do not start work or emit an extension stream event before prompt startup. See [Working Indicator Customization](/tui#pattern-4b-working-indicator-customization) for accepted-prompt, pre-stream, and agent-turn handoff timing.
 
@@ -2665,7 +2665,7 @@ See [TUI components](/tui) for the full `OverlayOptions` API and [overlay-qa-tes
 Replace the main input editor with a custom implementation (vim mode, emacs mode, etc.):
 
 ```typescript
-import { CustomEditor, type ExtensionAPI } from "@bastani/atomic";
+import { CustomEditor, type ExtensionAPI } from "@orphus/coding-agent";
 import { matchesKey } from "@earendil-works/pi-tui";
 
 class VimEditor extends CustomEditor {
@@ -2765,7 +2765,7 @@ theme.strikethrough(text)
 For syntax highlighting in custom tool renderers:
 
 ```typescript
-import { highlightCode, getLanguageFromPath } from "@bastani/atomic";
+import { highlightCode, getLanguageFromPath } from "@orphus/coding-agent";
 
 // Highlight code with explicit language
 const highlighted = highlightCode("const x = 1;", "typescript", theme);

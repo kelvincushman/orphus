@@ -294,7 +294,7 @@ describe("find and search builtins", () => {
 			) => Promise<{ totalMatches?: number; total_matches?: number }>;
 		};
 		try {
-			native = createRequire(import.meta.url)("@bastani/atomic-natives") as typeof native;
+			native = createRequire(import.meta.url)("@orphus/natives") as typeof native;
 		} catch {
 			return;
 		}

@@ -2,9 +2,9 @@
   <img src="https://raw.githubusercontent.com/nicobailon/pi-subagents/main/banner.png" alt="Atomic subagents" width="1100">
 </p>
 
-# @bastani/subagents
+# @orphus/subagents
 
-`@bastani/subagents` lets Atomic delegate work to focused child agents. It is Atomic's bundled adaptation of upstream `pi-subagents`; use it for code review, scouting, implementation, parallel audits, saved workflows, background jobs, and anything else that benefits from a second or third set of model eyes.
+`@orphus/subagents` lets Atomic delegate work to focused child agents. It is Atomic's bundled adaptation of upstream `pi-subagents`; use it for code review, scouting, implementation, parallel audits, saved workflows, background jobs, and anything else that benefits from a second or third set of model eyes.
 
 Use subagents selectively for bounded specialist delegation while the parent remains in control: one focused agent, a sequential chain, or parallel independent tasks. Keep interactive, exploratory, conceptual, and conversation-led work inline. Multiple steps, files, tests, validation, or parallelism alone do not require a workflow. For a clearly delegated, well-defined autonomous job that is likely long-running/background-oriented or materially needs durable stages, checkpoints, resumability, HIL, gates, retries, or bounded loops, use an appropriate workflow instead. Choose async subagents only when background execution is genuinely useful; foreground is appropriate when the parent needs the result before proceeding.
 
@@ -12,7 +12,7 @@ https://github.com/user-attachments/assets/702554ec-faaf-4635-80aa-fb5d6e292fd1
 
 ## Installation
 
-Atomic bundles this extension through `@bastani/atomic`; no separate install is required for Atomic users.
+Atomic bundles this extension through `@orphus/coding-agent`; no separate install is required for Atomic users.
 
 For upstream Pi installs, use:
 
@@ -216,7 +216,7 @@ Add `autofix` to `/parallel-review` or `/parallel-cleanup` to apply only the syn
 
 ## Optional intercom companion
 
-Atomic subagents work without intercom. Atomic bundles `@bastani/intercom`; upstream Pi users can install `pi-intercom` if they want child agents to talk back to the parent session while they are running.
+Atomic subagents work without intercom. Atomic bundles `@orphus/intercom`; upstream Pi users can install `pi-intercom` if they want child agents to talk back to the parent session while they are running.
 
 ```bash
 pi install npm:pi-intercom
@@ -362,7 +362,7 @@ Agent locations, lowest to highest priority:
 
 | Scope | Path |
 |-------|------|
-| Builtin | bundled with `@bastani/atomic` / `~/.atomic/agent/extensions/subagent/agents/` |
+| Builtin | bundled with `@orphus/coding-agent` / `~/.atomic/agent/extensions/subagent/agents/` |
 | User | `~/.atomic/agent/agents/**/*.md` |
 | Project | `.atomic/agents/**/*.md` |
 

@@ -5,7 +5,7 @@
  * `node --test scripts/*.test.mjs` is the whole story -- no vitest, no config,
  * no transform. That matters most for this script in particular: it is the one
  * that turns the root `package-lock.json` into the shrinkwrap published inside
- * `@bastani/atomic`, so it now sits directly on the lockfile that `npm ci`
+ * `@orphus/coding-agent`, so it now sits directly on the lockfile that `npm ci`
  * verifies rather than beside a second, unverified one.
  */
 import assert from "node:assert/strict";
@@ -32,7 +32,7 @@ test("the shrinkwrap is derived from the lockfile npm ci verifies", async () => 
 	const lock = JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8"));
 	assert.equal(generated.lockfileVersion, 3);
 	assert.equal(generated.requires, true);
-	assert.equal(generated.name, "@bastani/atomic");
+	assert.equal(generated.name, "@orphus/coding-agent");
 
 	// Every resolved dependency must carry the exact version and integrity the
 	// root lockfile pinned. A shrinkwrap that drifted from it would ship users a

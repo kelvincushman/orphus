@@ -3,7 +3,7 @@ import type { Socket } from "net";
 /**
  * Write a length-prefixed message to a socket.
  * Format: 4-byte big-endian length + JSON payload.
- * Mirrors @bastani/intercom framing so the two brokers stay protocol-cousins.
+ * Mirrors @orphus/intercom framing so the two brokers stay protocol-cousins.
  */
 export function writeMessage(socket: Socket, msg: unknown): void {
   const json = JSON.stringify(msg);

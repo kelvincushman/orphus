@@ -1,4 +1,4 @@
-import type { CreateAgentSessionOptions } from "@bastani/atomic";
+import type { CreateAgentSessionOptions } from "@orphus/coding-agent";
 import type { WorkflowModelCatalogPort, WorkflowModelInfo } from "../shared/types.js";
 import type { PiModelContext } from "./public-types.js";
 

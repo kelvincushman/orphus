@@ -1,4 +1,4 @@
-# @bastani/roundtable
+# @orphus/roundtable
 
 Group chat rooms between local Atomic/pi agent sessions — with a hard,
 deterministic bound on what the discussion costs each agent's context window.
@@ -56,7 +56,7 @@ digest-vs-transcript context cost per agent.
 
 ## Relationship to intercom
 
-`@bastani/intercom` is targeted 1:1 messaging with reply-waiting (`ask`).
+`@orphus/intercom` is targeted 1:1 messaging with reply-waiting (`ask`).
 Roundtable is many-to-many discussion with pull-based bounded reads. They share
 the same framing protocol and paths conventions and complement each other:
 intercom to task one session, roundtable to deliberate among several.

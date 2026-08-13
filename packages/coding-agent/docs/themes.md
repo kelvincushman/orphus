@@ -1,4 +1,4 @@
-> Atomic can create themes. Ask it to build one for your setup.
+> Orphus can create themes. Ask it to build one for your setup.
 
 # Themes
 
@@ -16,7 +16,7 @@ Themes are JSON files that define colors for the TUI.
 
 ## Locations
 
-Atomic loads themes from:
+Orphus loads themes from:
 
 - Built-in: `dark`, `light`, `catppuccin-frappe`, `catppuccin-latte`, `catppuccin-macchiato`, `catppuccin-mocha`
 - Global: `~/.atomic/agent/themes/*.json` (legacy `~/.pi/agent/themes/*.json`)
@@ -37,9 +37,9 @@ Select a theme via `/settings` or in `settings.json`:
 }
 ```
 
-Use `"theme": "light-theme/dark-theme"` for automatic mode. Atomic chooses the first theme when the terminal reports a light color scheme and the second theme for dark terminals, and it follows terminal color-scheme changes when supported.
+Use `"theme": "light-theme/dark-theme"` for automatic mode. Orphus chooses the first theme when the terminal reports a light color scheme and the second theme for dark terminals, and it follows terminal color-scheme changes when supported.
 
-On first run, Atomic detects your terminal background and defaults to `dark` or `light`.
+On first run, Orphus detects your terminal background and defaults to `dark` or `light`.
 
 ## Creating a Custom Theme
 
@@ -118,7 +118,7 @@ vim ~/.atomic/agent/themes/my-theme.json
 
 3. Select the theme via `/settings`.
 
-**Hot reload:** When you edit the currently active custom theme file, Atomic reloads it automatically for immediate visual feedback.
+**Hot reload:** When you edit the currently active custom theme file, Orphus reloads it automatically for immediate visual feedback.
 
 ## Theme Format
 
@@ -150,7 +150,7 @@ vim ~/.atomic/agent/themes/my-theme.json
 - `name` is required, must be unique, and must not contain `/`.
 - `vars` is optional. Define reusable colors here, then reference them in `colors` or `workingIndicator`.
 - `colors` must define all 51 required tokens.
-- `workingIndicator` is optional and may override any subset of the six tones in the outward half of the ordinary `∀` ramp; Atomic derives omitted tones from selected background, accent, and text roles, then mirrors the palette back after `peak`. Explicit numeric values from 0 through 255 remain exact terminal palette indices. When a numeric index from 0 through 15 seeds an omitted tone, Atomic mixes from its built-in approximation of the common ANSI RGB value; the terminal still controls the actual appearance of the explicit index. Both explicit and derived tones update on theme hot reload.
+- `workingIndicator` is optional and may override any subset of the six tones in the outward half of the ordinary `∀` ramp; Orphus derives omitted tones from selected background, accent, and text roles, then mirrors the palette back after `peak`. Explicit numeric values from 0 through 255 remain exact terminal palette indices. When a numeric index from 0 through 15 seeds an omitted tone, Orphus mixes from its built-in approximation of the common ANSI RGB value; the terminal still controls the actual appearance of the explicit index. Both explicit and derived tones update on theme hot reload.
 
 The `$schema` field enables editor auto-completion and validation.
 
@@ -279,7 +279,7 @@ Four formats are supported:
 
 ### Terminal Compatibility
 
-Atomic uses 24-bit RGB colors. Most modern terminals support this (iTerm2, Kitty, WezTerm, Windows Terminal, VS Code). For older terminals with only 256-color support, Atomic falls back to the nearest approximation.
+Orphus uses 24-bit RGB colors. Most modern terminals support this (iTerm2, Kitty, WezTerm, Windows Terminal, VS Code). For older terminals with only 256-color support, Orphus falls back to the nearest approximation.
 
 Check truecolor support:
 

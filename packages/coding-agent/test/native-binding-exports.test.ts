@@ -22,7 +22,7 @@ const requireNativeBinding = process.env.ORPHUS_REQUIRE_NATIVE_BINDING_SMOKE ===
 let binding: object | undefined;
 let loadError: Error | undefined;
 try {
-	binding = createRequire(import.meta.url)("@bastani/atomic-natives") as object;
+	binding = createRequire(import.meta.url)("@orphus/natives") as object;
 } catch (error) {
 	loadError = error instanceof Error ? error : new Error(String(error));
 }

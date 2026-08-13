@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { ExtensionContext } from "@bastani/atomic";
-import { CONFIG_DIR_NAME } from "@bastani/atomic";
+import type { ExtensionContext } from "@orphus/coding-agent";
+import { CONFIG_DIR_NAME } from "@orphus/coding-agent";
 import type { SubagentToolResult } from "../shared/types.ts";
 import {
 	allAgents,

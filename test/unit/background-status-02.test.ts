@@ -60,7 +60,7 @@ function makeRun(overrides: Partial<RunSnapshot> = {}): RunSnapshot {
 // pauseRun
 // ---------------------------------------------------------------------------
 
-import type { AgentSession } from "@bastani/atomic";
+import type { AgentSession } from "@orphus/coding-agent";
 import type {
 	StageControlHandle,
 	StageControlStatus,

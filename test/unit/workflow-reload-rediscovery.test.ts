@@ -138,7 +138,7 @@ async function writeWorkflow(
 	await writeFile(
 		path,
 		[
-			`import { workflow } from "@bastani/workflows";`,
+			`import { workflow } from "@orphus/workflows";`,
 			`import { Type } from "typebox";`,
 			options.named ? `export const namedWorkflow = ${definition};` : `export default ${definition};`,
 		].join("\n"),

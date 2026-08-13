@@ -135,8 +135,8 @@ Adds: a **Rust toolchain** ([rustup](https://rustup.rs)) for the native bindings
 **API key** for whichever provider you use.
 
 ```bash
-npm run build --workspace=@bastani/atomic-natives   # native bindings (needs Rust)
-npm run build --workspace=@bastani/atomic           # builds dist/cli.js
+npm run build --workspace=@orphus/natives   # native bindings (needs Rust)
+npm run build --workspace=@orphus/coding-agent           # builds dist/cli.js
 export ANTHROPIC_API_KEY=...                        # or GEMINI_API_KEY, OPENAI_API_KEY, …
 node packages/coding-agent/dist/cli.js --provider anthropic --model claude-opus
 ```
@@ -463,7 +463,7 @@ TUI design-token spec. It has nothing to say about rooms.)
 ## Lineage and thanks
 
 Orphus builds on the shoulders of [Atomic](https://github.com/bastani-inc/atomic)
-(MIT) — a fork of the Pi agent harness — whose `@bastani/intercom` package
+(MIT) — a fork of the Pi agent harness — whose `@orphus/intercom` package
 (descended from [pi-intercom](https://github.com/nicobailon/pi-intercom)) proved
 lazy, broker-based agent messaging on this runtime. Orphus extends the idea from
 targeted 1:1 messaging to bounded many-to-many deliberation.

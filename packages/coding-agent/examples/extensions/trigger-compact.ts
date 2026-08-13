@@ -1,4 +1,4 @@
-import type { ExtensionAPI, ExtensionContext } from "@bastani/atomic";
+import type { ExtensionAPI, ExtensionContext } from "@orphus/coding-agent";
 
 const COMPACT_THRESHOLD_TOKENS = 100_000;
 

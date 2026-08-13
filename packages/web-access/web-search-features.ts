@@ -1,4 +1,4 @@
-import type { ExtensionAPI, ExtensionContext } from "@bastani/atomic";
+import type { ExtensionAPI, ExtensionContext } from "@orphus/coding-agent";
 import { fetchAllContent } from "./extract.js";
 import { clearCloneCache } from "./github-extract.js";
 import { registerContentTools } from "./content-tools.js";

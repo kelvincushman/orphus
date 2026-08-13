@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { type AgentSession, WORKFLOW_STAGE_SUBAGENT_GUARD_ENV } from "@bastani/atomic";
+import { type AgentSession, WORKFLOW_STAGE_SUBAGENT_GUARD_ENV } from "@orphus/coding-agent";
 import { Type } from "typebox";
 import { afterEach, beforeEach, describe, test } from "vitest";
 import { workflow } from "../../packages/workflows/src/authoring/workflow.js";

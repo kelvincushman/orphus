@@ -1,9 +1,11 @@
 import { appendFileSync, existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
+import type { Api, Model } from "@earendil-works/pi-ai/compat";
 import {
 	type AgentSession,
 	type AgentSessionEvent,
 	type AgentSessionEventListener,
+	CONFIG_DIR_NAME,
 	type CreateAgentSessionOptions,
 	createAgentSession,
 	DefaultResourceLoader,
@@ -13,7 +15,7 @@ import {
 	type SessionStats,
 	SettingsManager,
 	type SubagentIntercomIdentity,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 import {
 	type ChildIdentity,
 	type NativeAdmissionResult,
@@ -21,8 +23,7 @@ import {
 	type NativeExecutionGuardResult,
 	type TerminationCause as NativeTerminationCause,
 	SubagentControl,
-} from "@bastani/atomic-natives";
-import type { Api, Model } from "@earendil-works/pi-ai/compat";
+} from "@orphus/natives";
 import type { AgentConfig } from "../../agents/agent-types.ts";
 import { ensureArtifactsDir, writeArtifact, writeMetadata } from "../../shared/artifacts.ts";
 import {
@@ -398,7 +399,7 @@ function validatePath(pathValue: string): void {
 
 function trustedSessionRoot(parent: ParentContext, requestedRoot?: string): string {
 	validatePath(parent.path);
-	const root = resolve(requestedRoot ?? join(process.cwd(), ".atomic", "subagents"));
+	const root = resolve(requestedRoot ?? join(process.cwd(), CONFIG_DIR_NAME, "subagents"));
 	const child = resolve(root, ...parent.path.split("/"));
 	if (relative(root, child).startsWith("..")) throw new Error("subagent session root escapes trusted root");
 	return root;

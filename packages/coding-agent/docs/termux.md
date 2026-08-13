@@ -1,8 +1,8 @@
 # Termux (Android) Setup
 
-Atomic runs on Android via [Termux](https://termux.dev/), a terminal emulator and Linux environment for Android.
+Orphus runs on Android via [Termux](https://termux.dev/), a terminal emulator and Linux environment for Android.
 
-Termux uses Android's bionic libc, not Alpine's musl libc. Atomic's Alpine musl archives target x64 and arm64 musl Linux only; they are not Termux packages and do not provide an Android target. Android ARM64 still has no Atomic native target, so musl support does not change Termux's native-addon limitations.
+Termux uses Android's bionic libc, not Alpine's musl libc. Orphus's Alpine musl archives target x64 and arm64 musl Linux only; they are not Termux packages and do not provide an Android target. Android ARM64 still has no Orphus native target, so musl support does not change Termux's native-addon limitations.
 
 ## Prerequisites
 
@@ -18,20 +18,20 @@ pkg update && pkg upgrade
 # Install dependencies
 pkg install nodejs termux-api git
 
-# Install Atomic with npm (included with Termux's nodejs package)
-npm install -g @bastani/atomic
+# Install Orphus with npm (included with Termux's nodejs package)
+npm install -g @orphus/coding-agent
 
 # If you have installed Bun separately in Termux, you can use Bun instead:
-# bun add -g @bastani/atomic
+# bun add -g @orphus/coding-agent
 
 # Create config directory
 mkdir -p ~/.atomic/agent
 
-# Run Atomic
+# Run Orphus
 atomic
 ```
 
-Atomic does not require package install scripts. If you want to disable dependency lifecycle scripts during the Atomic install, you can add `--ignore-scripts` to the install command.
+Orphus does not require package install scripts. If you want to disable dependency lifecycle scripts during the Orphus install, you can add `--ignore-scripts` to the install command.
 
 ## Clipboard Support
 
@@ -103,7 +103,7 @@ termux-camera-photo out.jpg   # Take photo
 ## Limitations
 
 - **No image clipboard**: Termux clipboard API only supports text
-- **No Atomic native target on Android ARM64**: Termux uses Android's bionic libc rather than Alpine's musl libc, so Alpine musl archives are not usable as Termux targets; optional native dependencies such as the clipboard module are unavailable and skipped during installation
+- **No Orphus native target on Android ARM64**: Termux uses Android's bionic libc rather than Alpine's musl libc, so Alpine musl archives are not usable as Termux targets; optional native dependencies such as the clipboard module are unavailable and skipped during installation
 - **Storage access**: To access files in `/storage/emulated/0` (Downloads, etc.), run `termux-setup-storage` once to grant permissions
 
 ## Troubleshooting
@@ -134,5 +134,5 @@ If npm fails, try clearing the cache before retrying:
 
 ```bash
 npm cache clean --force
-npm install -g @bastani/atomic
+npm install -g @orphus/coding-agent
 ```

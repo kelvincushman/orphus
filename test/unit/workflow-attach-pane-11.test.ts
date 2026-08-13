@@ -12,7 +12,7 @@
  */
 
 import assert from "node:assert/strict";
-import type { AgentSession } from "@bastani/atomic";
+import type { AgentSession } from "@orphus/coding-agent";
 import { describe, test } from "vitest";
 import { createPostMortemHandleResolver } from "../../packages/workflows/src/extension/postmortem-deps.js";
 import type { StageControlHandle } from "../../packages/workflows/src/runs/foreground/stage-control-registry.js";

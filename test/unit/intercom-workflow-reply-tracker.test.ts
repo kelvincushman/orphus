@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { ExtensionContext } from "@bastani/atomic";
+import type { ExtensionContext } from "@orphus/coding-agent";
 import { test } from "vitest";
 import { WorkflowStageAdmissionBoundary } from "../../packages/coding-agent/src/core/workflow-stage-admission.js";
 import { ReplyTracker } from "../../packages/intercom/reply-tracker.js";

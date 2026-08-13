@@ -4,7 +4,7 @@
  * Control session persistence: in-memory, new file, continue, or open specific.
  */
 
-import { createAgentSession, SessionManager } from "@bastani/atomic";
+import { createAgentSession, SessionManager } from "@orphus/coding-agent";
 
 // In-memory (no persistence)
 const { session: inMemory } = await createAgentSession({

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import { test } from "vitest";
 import registerSubagentExtension from "../../packages/subagents/src/extension/index.js";
 import { SUBAGENT_ASYNC_COMPLETE_EVENT } from "../../packages/subagents/src/shared/types.js";

@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { CONFIG_DIR_NAME } from "@orphus/coding-agent";
 import { runGit, runGitChecked } from "./worktree-git.js";
 import { performPostCreationSetup } from "./worktree-post-create.js";
 import { findCanonicalGitRoot } from "./worktree-root.js";
@@ -91,11 +92,11 @@ function buildWorktreeBranch(runId: string, index: number): string {
 }
 
 function buildWorktreePath(mainRoot: string, runId: string, index: number): string {
-	return path.join(mainRoot, ".atomic", "worktrees", flattenedWorktreeName(runId, index));
+	return path.join(mainRoot, CONFIG_DIR_NAME, "worktrees", flattenedWorktreeName(runId, index));
 }
 
 function ensureWorktreeIgnore(mainRoot: string): void {
-	const worktreesRoot = path.join(mainRoot, ".atomic", "worktrees");
+	const worktreesRoot = path.join(mainRoot, CONFIG_DIR_NAME, "worktrees");
 	fs.mkdirSync(worktreesRoot, { recursive: true });
 	fs.writeFileSync(path.join(worktreesRoot, ".gitignore"), "*\n", "utf8");
 }

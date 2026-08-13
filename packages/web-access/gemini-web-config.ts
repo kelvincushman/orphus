@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { APP_NAME } from "@bastani/atomic";
+import { APP_NAME } from "@orphus/coding-agent";
 import { findReadableConfigPath } from "./config-paths.ts";
 
 const CONFIG_PATH = findReadableConfigPath();

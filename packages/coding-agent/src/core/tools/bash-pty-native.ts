@@ -1,7 +1,7 @@
 import { createModuleRequire } from "../../utils/module-require.ts";
 import { getShellConfig, getShellEnv } from "../../utils/shell.ts";
 
-const NATIVE_PACKAGE = "@bastani/atomic-natives";
+const NATIVE_PACKAGE = "@orphus/natives";
 
 interface NativePtyRunResult {
 	exitCode?: number;

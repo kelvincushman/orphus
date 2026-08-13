@@ -20,8 +20,8 @@
  *   atomic -e ./tool-override.ts
  */
 
-import { type ExtensionAPI, getAgentDir, withFileMutationQueue } from "@bastani/atomic";
 import type { TextContent } from "@earendil-works/pi-ai/compat";
+import { type ExtensionAPI, getAgentDir, withFileMutationQueue } from "@orphus/coding-agent";
 import { constants, readFileSync } from "fs";
 import { access, appendFile, readFile } from "fs/promises";
 import { join, resolve } from "path";

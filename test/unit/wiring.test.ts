@@ -3,7 +3,7 @@
  */
 
 import assert from "node:assert/strict";
-import type { CreateAgentSessionOptions } from "@bastani/atomic";
+import type { CreateAgentSessionOptions } from "@orphus/coding-agent";
 import { describe, test } from "vitest";
 import type { RuntimeWiringSurface } from "../../packages/workflows/src/extension/wiring.js";
 import { buildRuntimeAdapters } from "../../packages/workflows/src/extension/wiring.js";

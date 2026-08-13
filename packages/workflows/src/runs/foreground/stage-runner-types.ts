@@ -1,4 +1,4 @@
-import type { AgentSession, CreateAgentSessionOptions, PromptOptions, SettingsManager } from "@bastani/atomic";
+import type { AgentSession, CreateAgentSessionOptions, PromptOptions, SettingsManager } from "@orphus/coding-agent";
 import type {
 	CompleteStageOpts,
 	StageContext,

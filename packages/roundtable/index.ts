@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import { RoundtableClient } from "./broker/client.ts";
 import { ensureBrokerRunning } from "./broker/spawn.ts";
 import { resolveMemoryConfig } from "./memory/dossier.ts";

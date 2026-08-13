@@ -1,4 +1,4 @@
-import { getEnvValue, WORKFLOW_STAGE_SUBAGENT_GUARD_ENV } from "@bastani/atomic";
+import { getEnvValue, WORKFLOW_STAGE_SUBAGENT_GUARD_ENV } from "@orphus/coding-agent";
 import {
 	type ExpandedWorkflowStage,
 	expandedStageLabel,

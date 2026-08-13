@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { Static, TSchema } from "@bastani/workflows";
+import type { Static, TSchema } from "@orphus/workflows";
 import { Type } from "typebox";
 import { describe, test } from "vitest";
 import * as workflows from "../../packages/workflows/src/index.js";
@@ -17,7 +17,7 @@ describe("public entrypoint", () => {
 		assert.equal("runWorkflow" in workflows, true);
 		assert.throws(
 			() => (workflows.runWorkflow as () => never)(),
-			/@bastani\/workflows no longer exports runWorkflow; author workflows with workflow\(\{\.\.\.\}\)/,
+			/@orphus\/workflows no longer exports runWorkflow; author workflows with workflow\(\{\.\.\.\}\)/,
 		);
 		assert.equal("WorkflowOptions" in workflows, false);
 		assert.equal("WorkflowRunOptions" in workflows, false);

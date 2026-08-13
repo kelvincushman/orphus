@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { WORKFLOW_STAGE_SUBAGENT_GUARD_ENV } from "@bastani/atomic";
 import type { Api, Model } from "@earendil-works/pi-ai/compat";
+import { WORKFLOW_STAGE_SUBAGENT_GUARD_ENV } from "@orphus/coding-agent";
 import { test } from "vitest";
 import type { PiExecuteContext } from "../../packages/workflows/src/extension/public-types.js";
 import type { ExtensionRuntime } from "../../packages/workflows/src/extension/runtime.js";

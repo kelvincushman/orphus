@@ -14,7 +14,7 @@
  * extensions system using pi.registerTool().
  */
 
-import { createAgentSession, SessionManager } from "@bastani/atomic";
+import { createAgentSession, SessionManager } from "@orphus/coding-agent";
 
 // Read-only mode (no edit/write)
 const { session: readOnlySession } = await createAgentSession({

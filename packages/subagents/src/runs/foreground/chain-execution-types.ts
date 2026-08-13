@@ -1,5 +1,5 @@
-import type { ExtensionContext } from "@bastani/atomic";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
+import type { ExtensionContext } from "@orphus/coding-agent";
 import type { AgentConfig } from "../../agents/agents.ts";
 import type { ModelInfo } from "../../shared/model-info.ts";
 import type { ChainStep, ParallelStep, ResolvedStepBehavior } from "../../shared/settings.ts";

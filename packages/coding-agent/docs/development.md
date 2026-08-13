@@ -15,10 +15,10 @@ This monorepo runs a hybrid toolchain matching upstream pi: npm installs, builds
 
 ```bash
 npm run test:unit
-npm run build --workspace=@bastani/atomic
+npm run build --workspace=@orphus/coding-agent
 ```
 
-Atomic keeps the caller's current working directory when launched from development wrappers.
+Orphus keeps the caller's current working directory when launched from development wrappers.
 
 ## Forking / Rebranding
 
@@ -33,7 +33,7 @@ Configure via `package.json`:
 }
 ```
 
-Change `name`, `configDir`, and the `bin` field for your fork. The app-specific `<appName>Config` key is preferred; legacy `piConfig` remains a backwards-compatible shim. Atomic sets these to `atomic`, `.atomic`, and the `atomic` executable. Affects CLI banner, config paths, and environment variable names.
+Change `name`, `configDir`, and the `bin` field for your fork. The app-specific `<appName>Config` key is preferred; legacy `piConfig` remains a backwards-compatible shim. Orphus sets these to `orphus`, `.orphus`, and the `orphus` executable (with the Atomic and Pi spellings accepted as legacy fallbacks). Affects CLI banner, config paths, and environment variable names.
 
 ## Path Resolution
 
@@ -66,14 +66,14 @@ npm run test:integration          # Run integration tests
 npm run test:all                  # Run all tests
 npm run test:scripts              # Run the repository script tests under node --test
 # Run the package Vitest suite (Node-hosted)
-npm run test --workspace=@bastani/atomic -- test/specific.test.ts
+npm run test --workspace=@orphus/coding-agent -- test/specific.test.ts
 # Run its Bun-hosted half. Required: the SQLite selector tests load bun:sqlite,
 # which the shipped binary has and Node does not.
 ```
 
 ## Deterministic installs
 
-`@bastani/atomic` ships `packages/coding-agent/npm-shrinkwrap.json` so package-manager installs resolve the same dependency tree every time. Contributors working from a source checkout can validate that the checked-in shrinkwrap is up to date with:
+`@orphus/coding-agent` ships `packages/coding-agent/npm-shrinkwrap.json` so package-manager installs resolve the same dependency tree every time. Contributors working from a source checkout can validate that the checked-in shrinkwrap is up to date with:
 
 ```bash
 bun run scripts/generate-coding-agent-shrinkwrap.mjs --check
@@ -87,8 +87,8 @@ Atomic's release bases remain at the `0.0.0` placeholder. `scripts/cut-release.t
 
 ```
 packages/
-  coding-agent/ # Atomic CLI, agent loop, providers, TUI, and core runtime
-  workflows/    # First-party workflow extension bundled into Atomic
+  coding-agent/ # Orphus CLI, agent loop, providers, TUI, and core runtime
+  workflows/    # First-party workflow extension bundled into Orphus
   subagents/    # Built-in subagent orchestration and reusable agents
   mcp/          # Built-in MCP adapter extension
   web-access/   # Built-in web search and content extraction tools

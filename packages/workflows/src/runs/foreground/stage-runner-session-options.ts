@@ -1,4 +1,4 @@
-import { type CreateAgentSessionOptions, SessionManager } from "@bastani/atomic";
+import { type CreateAgentSessionOptions, SessionManager } from "@orphus/coding-agent";
 import type { StageOptions } from "../../shared/types.js";
 import type { WorkflowResolvedModelCandidate } from "../shared/model-fallback.js";
 

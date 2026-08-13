@@ -4,7 +4,7 @@ import {
 	isCodexFastModeCandidateModelId,
 	SettingsManager,
 	shouldApplyCodexFastModeForScope,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 import { splitKnownThinkingSuffix } from "./model-info.ts";
 
 export interface ResolveSubagentModelFastModeInput {

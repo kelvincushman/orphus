@@ -18,7 +18,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CreateAgentSessionOptions } from "@bastani/atomic";
+import type { CreateAgentSessionOptions } from "@orphus/coding-agent";
 import { Type } from "typebox";
 import { describe, test } from "vitest";
 import { workflow } from "../../packages/workflows/src/authoring/workflow.js";

@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import type net from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CreateAgentSessionOptions, ExtensionContext } from "@bastani/atomic";
+import type { CreateAgentSessionOptions, ExtensionContext } from "@orphus/coding-agent";
 import { test } from "vitest";
 import { DeliveredMessageCache } from "../../packages/intercom/broker/delivered-message-cache.js";
 import { type BrokerConnectedSession, handleBrokerSend } from "../../packages/intercom/broker/send-handler.js";

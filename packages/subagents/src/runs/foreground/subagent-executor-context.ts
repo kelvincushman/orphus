@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { ExtensionContext } from "@bastani/atomic";
+import type { ExtensionContext } from "@orphus/coding-agent";
 import { resolveExecutionAgentScope } from "../../agents/agent-scope.ts";
 import {
 	applyIntercomBridgeToAgent,

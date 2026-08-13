@@ -1,4 +1,4 @@
-> Atomic can create prompt templates. Ask it to build one for your workflow.
+> Orphus can create prompt templates. Ask it to build one for your workflow.
 
 # Prompt Templates
 
@@ -6,7 +6,7 @@ Prompt templates are Markdown snippets that expand into full prompts. Type `/nam
 
 ## Locations
 
-Atomic loads prompt templates from:
+Orphus loads prompt templates from:
 
 - Global: `~/.atomic/agent/prompts/*.md` (legacy `~/.pi/agent/prompts/*.md`)
 - Project: `.atomic/prompts/*.md` (legacy `.pi/prompts/*.md`, only after the project is trusted)

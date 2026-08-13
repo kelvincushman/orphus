@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createBashToolDefinition, createLocalBashOperations } from "../src/core/tools/bash.ts";
 
 function isNativeUnavailable(error: unknown): boolean {
-	return error instanceof Error && error.message.includes("Native PTY package @bastani/atomic-natives is unavailable");
+	return error instanceof Error && error.message.includes("Native PTY package @orphus/natives is unavailable");
 }
 
 describe("native bash PTY execution", () => {
@@ -78,7 +78,7 @@ describe("native bash PTY execution", () => {
 			};
 		};
 		try {
-			native = createRequire(import.meta.url)("@bastani/atomic-natives") as typeof native;
+			native = createRequire(import.meta.url)("@orphus/natives") as typeof native;
 		} catch {
 			return;
 		}

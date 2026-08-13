@@ -9,7 +9,7 @@ const repoRoot = resolve(scriptDir, "..");
 const codingAgentDir = join(repoRoot, "packages/coding-agent");
 const rootLockfilePath = join(repoRoot, "package-lock.json");
 const shrinkwrapPath = join(codingAgentDir, "npm-shrinkwrap.json");
-const internalPackageNames = new Set(["@bastani/atomic-natives"]);
+const internalPackageNames = new Set(["@orphus/natives"]);
 const defaultNpmRegistry = "https://registry.npmjs.org";
 const embeddedPostgresSymlinkReason =
 	"postinstall rehydrates Postgres native/lib symlinks that npm tarballs cannot contain; Atomic also hydrates them at runtime for script-less installs";
@@ -155,7 +155,7 @@ function platformDescriptorFromNapiTarget(packageJson, target) {
 	};
 	const mapping = mappings[target];
 	if (!mapping) {
-		throw new Error(`Unsupported @bastani/atomic-natives napi target in shrinkwrap generator: ${target}`);
+		throw new Error(`Unsupported @orphus/natives napi target in shrinkwrap generator: ${target}`);
 	}
 	return {
 		name: `${packageJson.name}-${mapping.suffix}`,
@@ -185,7 +185,7 @@ function buildInternalPackageEntries(workspaces) {
 	const entries = new Map();
 	for (const [name, workspace] of workspaces) {
 		const packageJson = workspace.packageJson;
-		if (name !== "@bastani/atomic-natives") {
+		if (name !== "@orphus/natives") {
 			continue;
 		}
 

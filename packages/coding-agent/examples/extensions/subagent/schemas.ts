@@ -1,4 +1,4 @@
-import { StringEnum } from "@bastani/atomic";
+import { StringEnum } from "@orphus/coding-agent";
 import { Type } from "typebox";
 
 export const MAX_PARALLEL_TASKS = 50;

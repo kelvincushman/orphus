@@ -1,6 +1,6 @@
-import { getMarkdownTheme, keyHintIfBound } from "@bastani/atomic";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import { type Component, Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
+import { getMarkdownTheme, keyHintIfBound } from "@orphus/coding-agent";
 import { formatDuration, formatTokens, formatUsage, shortenPath } from "../shared/formatters.ts";
 import type { AgentProgress, AsyncJobStep, Details } from "../shared/types.ts";
 import { getSingleResultOutput } from "../shared/utils.ts";

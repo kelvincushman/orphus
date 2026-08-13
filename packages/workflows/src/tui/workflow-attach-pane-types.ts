@@ -1,5 +1,5 @@
-import type { ChatMessageRenderOptions, ReadonlyFooterDataProvider } from "@bastani/atomic";
 import type { EditorComponent, EditorTheme, TUI } from "@earendil-works/pi-tui";
+import type { ChatMessageRenderOptions, ReadonlyFooterDataProvider } from "@orphus/coding-agent";
 import type { EnsurePostMortemStageHandleResult } from "../runs/foreground/postmortem-stage-chat.js";
 import type { StageControlRegistry } from "../runs/foreground/stage-control-registry.js";
 import type { StageUiBroker } from "../shared/stage-ui-broker.js";

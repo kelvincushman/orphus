@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 /*
  * Issue #1208 acceptance test: prove that an installed third-party package can
- * type-check `import { workflow } from "@bastani/workflows"` plus `Type` from `typebox` (and the
- * `@bastani/workflows/builtin/*` composition imports) under `tsc` (NodeNext) with
+ * type-check `import { workflow } from "@orphus/workflows"` plus `Type` from `typebox` (and the
+ * `@orphus/workflows/builtin/*` composition imports) under `tsc` (NodeNext) with
  * NO hand-authored .d.ts, NO `declare module` shim, and NO tsconfig `paths` alias —
- * using only the externally-resolvable types shipped through @bastani/atomic.
+ * using only the externally-resolvable types shipped through @orphus/coding-agent.
  *
- * It packs the built @bastani/atomic with `bun pm pack`, then materializes throwaway
+ * It packs the built @orphus/coding-agent with `bun pm pack`, then materializes throwaway
  * external consumers OUTSIDE the repo (system temp dir), installs the tarball plus a
  * `typebox` peer, and runs `bunx tsc --noEmit` against each, asserting the expected
  * pass/fail. This is the real end-to-end validation for the static-types fix; the
@@ -39,10 +39,10 @@ type Variant = {
 const TARBALL_DEP = "__TARBALL__";
 
 // Workflow file exercising the documented authoring import + a builtin composition import.
-const WORKFLOW_FILE = `import { workflow } from "@bastani/workflows";
+const WORKFLOW_FILE = `import { workflow } from "@orphus/workflows";
 import { Type, type Static } from "typebox";
-import openClaudeDesignDefault from "@bastani/workflows/builtin/open-claude-design";
-import { openClaudeDesign } from "@bastani/workflows/builtin";
+import openClaudeDesignDefault from "@orphus/workflows/builtin/open-claude-design";
+import { openClaudeDesign } from "@orphus/workflows/builtin";
 
 const NameSchema = Type.String({ default: "world" });
 type Name = Static<typeof NameSchema>;
@@ -72,8 +72,8 @@ function consumerPackageJson(name: string, atomic: object): string {
 			type: "module",
 			private: true,
 			atomic,
-			dependencies: { "@bastani/atomic": TARBALL_DEP },
-			peerDependencies: { "@bastani/atomic": "*", typebox: "^1.1.24" },
+			dependencies: { "@orphus/coding-agent": TARBALL_DEP },
+			peerDependencies: { "@orphus/coding-agent": "*", typebox: "^1.1.24" },
 			devDependencies: { typebox: "^1.1.24", typescript: "^5.7.3" },
 		},
 		null,
@@ -103,32 +103,32 @@ function tsconfig(extra: object): string {
 const VARIANTS: readonly Variant[] = [
 	{
 		name: "workflow-only-types-optin",
-		description: 'Pure workflow-only package; single opt-in via compilerOptions.types ["@bastani/atomic/workflows/ambient"].',
+		description: 'Pure workflow-only package; single opt-in via compilerOptions.types ["@orphus/coding-agent/workflows/ambient"].',
 		expect: "pass",
 		files: {
 			"package.json": consumerPackageJson("wf-types-optin", { workflows: ["./workflows"] }),
-			"tsconfig.json": tsconfig({ types: ["@bastani/atomic/workflows/ambient"] }),
+			"tsconfig.json": tsconfig({ types: ["@orphus/coding-agent/workflows/ambient"] }),
 			"workflows/hello.ts": WORKFLOW_FILE,
 		},
 	},
 	{
 		name: "workflow-only-reference-directive",
-		description: 'Pure workflow-only package; single opt-in via /// <reference types="@bastani/atomic/workflows/ambient" />.',
+		description: 'Pure workflow-only package; single opt-in via /// <reference types="@orphus/coding-agent/workflows/ambient" />.',
 		expect: "pass",
 		files: {
 			"package.json": consumerPackageJson("wf-reference", { workflows: ["./workflows"] }),
 			"tsconfig.json": tsconfig({}),
-			"workflows/hello.ts": `/// <reference types="@bastani/atomic/workflows/ambient" />\n${WORKFLOW_FILE}`,
+			"workflows/hello.ts": `/// <reference types="@orphus/coding-agent/workflows/ambient" />\n${WORKFLOW_FILE}`,
 		},
 	},
 	{
 		name: "auto-include-via-atomic-import",
-		description: "Package that also imports @bastani/atomic; ambient is auto-included via the root types reference, ZERO tsconfig types entry.",
+		description: "Package that also imports @orphus/coding-agent; ambient is auto-included via the root types reference, ZERO tsconfig types entry.",
 		expect: "pass",
 		files: {
 			"package.json": consumerPackageJson("ext-and-workflow", { extensions: ["./src/index.ts"], workflows: ["./workflows"] }),
 			"tsconfig.json": tsconfig({}),
-			"src/index.ts": `import { VERSION } from "@bastani/atomic";\nexport const myExtensionVersion: string = VERSION;\n`,
+			"src/index.ts": `import { VERSION } from "@orphus/coding-agent";\nexport const myExtensionVersion: string = VERSION;\n`,
 			"workflows/hello.ts": WORKFLOW_FILE,
 		},
 	},
@@ -136,7 +136,7 @@ const VARIANTS: readonly Variant[] = [
 		name: "negative-no-optin",
 		description: "Negative control: pure workflow-only package with NO opt-in must fail with TS2307 (the bug this fix closes).",
 		expect: "fail",
-		mustInclude: ["TS2307", "@bastani/workflows"],
+		mustInclude: ["TS2307", "@orphus/workflows"],
 		files: {
 			"package.json": consumerPackageJson("wf-no-optin", { workflows: ["./workflows"] }),
 			"tsconfig.json": tsconfig({}),
@@ -158,7 +158,7 @@ function fail(message: string): never {
 
 function main(): void {
 	if (!skipBuild) {
-		console.log("• Building @bastani/atomic (set SKIP_BUILD=1 to reuse current dist)...");
+		console.log("• Building @orphus/coding-agent (set SKIP_BUILD=1 to reuse current dist)...");
 		const build = run("bun", ["run", "build"], codingAgentRoot);
 		if (build.status !== 0) {
 			console.error(build.output);
@@ -172,7 +172,7 @@ function main(): void {
 	const workRoot = mkdtempSync(join(tmpdir(), "atomic-wf-types-"));
 	console.log(`• Fixture root: ${workRoot}`);
 
-	console.log("• Packing @bastani/atomic with `bun pm pack`...");
+	console.log("• Packing @orphus/coding-agent with `bun pm pack`...");
 	const pack = run("bun", ["pm", "pack", "--destination", workRoot], codingAgentRoot);
 	if (pack.status !== 0) {
 		console.error(pack.output);
@@ -224,5 +224,5 @@ function main(): void {
 
 // Surface the package version we are validating against for log context.
 const pkgVersion = (JSON.parse(readFileSync(join(codingAgentRoot, "package.json"), "utf-8")) as { version?: string }).version;
-console.log(`Verifying externally-resolvable @bastani/workflows types for @bastani/atomic@${pkgVersion ?? "?"}\n`);
+console.log(`Verifying externally-resolvable @orphus/workflows types for @orphus/coding-agent@${pkgVersion ?? "?"}\n`);
 main();

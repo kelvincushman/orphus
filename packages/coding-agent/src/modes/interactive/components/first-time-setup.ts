@@ -56,7 +56,7 @@ export class FirstTimeSetupComponent extends Container {
 				new Text(
 					theme.fg(
 						"muted",
-						"This choice and a random tracking ID are stored locally in settings.json.\nAtomic does not transmit analytics data in this release. You can change this setting anytime.",
+						"This choice and a random tracking ID are stored locally in settings.json.\nOrphus does not transmit analytics data in this release. You can change this setting anytime.",
 					),
 					1,
 					0,

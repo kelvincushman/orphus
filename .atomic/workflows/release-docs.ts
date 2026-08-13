@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { workflow } from "@bastani/workflows";
+import { workflow } from "@orphus/workflows";
 import { Type } from "typebox";
 import {
   currentBranchName,

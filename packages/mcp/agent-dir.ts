@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import { APP_NAME, CONFIG_DIR_NAME, getAgentDirs as getAtomicAgentDirs, getEnvValue } from "@bastani/atomic";
+import { APP_NAME, CONFIG_DIR_NAME, getAgentDirs as getAtomicAgentDirs, getEnvValue } from "@orphus/coding-agent";
 
 export function getAgentDir(): string {
   const configured = getEnvValue(`${APP_NAME.toUpperCase()}_CODING_AGENT_DIR`)?.trim();

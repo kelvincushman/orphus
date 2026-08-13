@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import type { Message, SessionInfo } from "./types.js";
 
 export const INTERCOM_DETACH_REQUEST_EVENT = "pi-intercom:detach-request";

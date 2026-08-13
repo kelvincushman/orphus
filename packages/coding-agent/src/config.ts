@@ -201,7 +201,7 @@ export function getBundledInteractiveAssetPath(name: string): string {
 }
 
 // =============================================================================
-// App Config (from package.json <appName>Config, with piConfig as a legacy shim)
+// App Config (from package.json orphusConfig, with <appName>Config and piConfig as shims)
 // =============================================================================
 
 interface AppConfig {
@@ -213,6 +213,7 @@ interface AppConfig {
 interface PackageJson extends Record<string, unknown> {
 	name?: string;
 	version?: string;
+	orphusConfig?: AppConfig;
 	piConfig?: AppConfig;
 }
 
@@ -229,17 +230,26 @@ function appNameFromPackageName(packageName: string | undefined): string | undef
 	return localName && localName.length > 0 ? localName : undefined;
 }
 
+function isAppConfig(candidate: unknown): candidate is AppConfig {
+	return candidate !== null && typeof candidate === "object" && !Array.isArray(candidate);
+}
+
+/**
+ * The app's own identity block. `orphusConfig` is the canonical key and is read
+ * first, because the package name no longer contains the app name: the scope
+ * rename made the derived `${appName}Config` lookup resolve to the workspace
+ * name (`coding-agent`), not the product. `piConfig` remains as the inherited
+ * schema key so a manifest written for upstream still identifies its app.
+ */
 function readAppConfig(packageJson: PackageJson, appName: string | undefined): AppConfig | undefined {
-	if (appName) {
-		const appConfig = packageJson[`${appName}Config`];
-		if (appConfig && typeof appConfig === "object" && !Array.isArray(appConfig)) {
-			return appConfig as AppConfig;
-		}
+	if (isAppConfig(packageJson.orphusConfig)) return packageJson.orphusConfig as AppConfig;
+	if (appName && isAppConfig(packageJson[`${appName}Config`])) {
+		return packageJson[`${appName}Config`] as AppConfig;
 	}
 	return packageJson.piConfig;
 }
 
-export const PACKAGE_NAME: string = pkg.name || "@bastani/atomic";
+export const PACKAGE_NAME: string = pkg.name || "@orphus/coding-agent";
 const packageAppName = appNameFromPackageName(PACKAGE_NAME);
 const appConfig = readAppConfig(pkg, packageAppName);
 export const APP_NAME: string = appConfig?.name || packageAppName || "pi";

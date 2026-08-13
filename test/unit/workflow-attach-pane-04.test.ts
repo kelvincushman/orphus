@@ -13,8 +13,8 @@
  */
 
 import assert from "node:assert/strict";
-import type { AgentSession } from "@bastani/atomic";
 import { Key } from "@earendil-works/pi-tui";
+import type { AgentSession } from "@orphus/coding-agent";
 import { describe, test } from "vitest";
 import type { StageControlHandle } from "../../packages/workflows/src/runs/foreground/stage-control-registry.js";
 import { createStageControlRegistry } from "../../packages/workflows/src/runs/foreground/stage-control-registry.js";

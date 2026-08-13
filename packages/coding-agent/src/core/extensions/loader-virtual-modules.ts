@@ -45,7 +45,7 @@ async function loadVirtualModules(): Promise<Record<string, object>> {
 		"@earendil-works/pi-ai": piAi,
 		"@earendil-works/pi-ai/compat": piAi,
 		"@earendil-works/pi-ai/oauth": piAiOauth,
-		"@bastani/atomic": piCodingAgent,
+		"@orphus/coding-agent": piCodingAgent,
 		"@mariozechner/pi-agent-core": piAgentCore,
 		"@mariozechner/pi-tui": piTui,
 		"@mariozechner/pi-ai": piAi,
@@ -420,7 +420,7 @@ function getAliases(): Record<string, string> {
 	const piAiProvidersEntry = resolveWorkspaceOrImport("ai/dist/providers/all.js", "@earendil-works/pi-ai");
 
 	_aliases = {
-		"@bastani/atomic": piCodingAgentEntry,
+		"@orphus/coding-agent": piCodingAgentEntry,
 		"@earendil-works/pi-coding-agent": piCodingAgentEntry,
 		"@earendil-works/pi-agent-core": piAgentCoreEntry,
 		"@earendil-works/pi-tui": piTuiEntry,

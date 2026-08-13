@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { pathToFileURL } from "node:url";
-import { APP_NAME, CONFIG_DIR_NAME, getAgentDirs, getEnvValue, getProjectConfigPaths } from "@bastani/atomic";
+import { APP_NAME, CONFIG_DIR_NAME, getAgentDirs, getEnvValue, getProjectConfigPaths } from "@orphus/coding-agent";
 
 const HOME = os.homedir();
 const AGENT_DIR_ENV = `${APP_NAME.toUpperCase()}_CODING_AGENT_DIR`;

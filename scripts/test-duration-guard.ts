@@ -299,8 +299,8 @@ function scriptInvocation(command: string[]): { cwd: string; name: string } | un
 	const cwd =
 		workspace === undefined
 			? "."
-			: workspace.startsWith("@bastani/")
-				? `packages/${workspace === "@bastani/atomic" ? "coding-agent" : workspace.slice("@bastani/".length)}`
+			: workspace.startsWith("@orphus/")
+				? `packages/${workspace === "@orphus/coding-agent" ? "coding-agent" : workspace.slice("@orphus/".length)}`
 				: workspace;
 	return { cwd, name };
 }

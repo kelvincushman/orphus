@@ -1,6 +1,6 @@
 import type { Component } from "@earendil-works/pi-tui";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import type { KeybindingsManager, Theme } from "@bastani/atomic";
+import type { KeybindingsManager, Theme } from "@orphus/coding-agent";
 import type { SessionInfo } from "../types.js";
 
 function formatKeyLabel(key: string): string {

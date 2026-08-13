@@ -267,7 +267,7 @@ test("repository declarations resolve to their real budgets", async () => {
 	const installed = declaredTimeouts(
 		await readText(join(root, "test/integration/installed-package-node-extensions.test.ts")),
 	);
-	assert.equal(installed.get("installed @bastani/atomic loads builtin extensions under Node"), 240_000);
+	assert.equal(installed.get("installed @orphus/coding-agent loads builtin extensions under Node"), 240_000);
 	const notification = declaredTimeouts(
 		await readText(join(root, "test/unit/subagents-notification-content.test.ts")),
 	);
@@ -286,7 +286,7 @@ test("the suite budget is read from the command or the package script it runs", 
 	assert.equal(await resolveDefaultTimeoutMs(["vitest", "--run", "--project", "unit"], root), 30_000);
 	// The coding-agent project keeps its own config and its own platform branch.
 	assert.equal(
-		await resolveDefaultTimeoutMs(["npm", "run", "test", "--workspace=@bastani/atomic"], root),
+		await resolveDefaultTimeoutMs(["npm", "run", "test", "--workspace=@orphus/coding-agent"], root),
 		process.platform === "win32" ? 90_000 : 30_000,
 	);
 	// A command that is not vitest has no testTimeout, so the gate stays off
@@ -304,7 +304,7 @@ test("the suite budget is read from the command or the package script it runs", 
 	const agent = join(root, "packages/coding-agent");
 	const agentBudget = process.platform === "win32" ? 90_000 : 30_000;
 	assert.equal(
-		await resolveDefaultTimeoutMs(["npm", "run", "test", "--workspace=@bastani/atomic"], root),
+		await resolveDefaultTimeoutMs(["npm", "run", "test", "--workspace=@orphus/coding-agent"], root),
 		agentBudget,
 	);
 	assert.equal(await resolveDefaultTimeoutMs(["bun", "--bun", "vitest", "--run"], agent), agentBudget);

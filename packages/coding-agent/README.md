@@ -1,4 +1,4 @@
-> Atomic fork note: this package is vendored from pi's `packages/coding-agent` and rebranded via `package.json` as `@bastani/atomic`, CLI binary `atomic`, `piConfig.name = "atomic"`, and `piConfig.configDir = ".atomic"`.
+> Atomic fork note: this package is vendored from pi's `packages/coding-agent` and rebranded via `package.json` as `@orphus/coding-agent`, CLI binary `atomic`, `piConfig.name = "atomic"`, and `piConfig.configDir = ".atomic"`.
 
 <p align="center">
   <a href="https://pi.dev">
@@ -7,7 +7,7 @@
 </p>
 <p align="center">
   <a href="https://discord.com/invite/3cU7Bz4UPx"><img alt="Discord" src="https://img.shields.io/badge/discord-community-5865F2?style=flat-square&logo=discord&logoColor=white" /></a>
-  <a href="https://www.npmjs.com/package/@bastani/atomic"><img alt="npm" src="https://img.shields.io/npm/v/@bastani/atomic?style=flat-square" /></a>
+  <a href="https://www.npmjs.com/package/@orphus/coding-agent"><img alt="npm" src="https://img.shields.io/npm/v/@orphus/coding-agent?style=flat-square" /></a>
 </p>
 > New issues and PRs from new contributors are auto-closed by default. Maintainers review auto-closed issues daily. See [CONTRIBUTING.md](../../CONTRIBUTING.md).
 
@@ -54,13 +54,13 @@ Public OSS session data can help improve models, prompts, tools, and evaluations
 ## Quick Start
 
 ```bash
-bun install -g @bastani/atomic
+bun install -g @orphus/coding-agent
 ```
 
 Or with npm:
 
 ```bash
-npm install -g @bastani/atomic
+npm install -g @orphus/coding-agent
 ```
 
 Authenticate with an API key:
@@ -429,7 +429,7 @@ See [docs/packages.md](docs/packages.md).
 ### SDK
 
 ```typescript
-import { createAgentSession, SessionManager } from "@bastani/atomic";
+import { createAgentSession, SessionManager } from "@orphus/coding-agent";
 
 // By default, createAgentSession builds a ModelRuntime from the active agent
 // directory's auth.json and models.json.

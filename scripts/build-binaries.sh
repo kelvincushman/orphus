@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Build @bastani/atomic binaries for all platforms locally.
+# Build @orphus/coding-agent binaries for all platforms locally.
 # Mirrors .github/workflows/publish.yml binary build.
 #
 # Usage:
@@ -101,7 +101,7 @@ if [[ "$SKIP_DEPS" == "false" ]]; then
     natives_version="$(node -p 'require("./packages/natives/package.json").version')"
     natives_targets=()
     for natives_platform in darwin-arm64 darwin-x64 linux-x64-gnu linux-arm64-gnu linux-x64-musl linux-arm64-musl win32-x64-msvc win32-arm64-msvc; do
-        natives_targets+=("@bastani/atomic-natives-${natives_platform}@${natives_version}")
+        natives_targets+=("@orphus/natives-${natives_platform}@${natives_version}")
     done
     # A versionless release base pins every manifest at the 0.0.0 placeholder, and
     # nothing is published under it, so the fetch can only fail. Skip it rather
@@ -137,15 +137,15 @@ if compgen -G "packages/natives/native/*.node" >/dev/null; then
     echo "==> Using existing Atomic native binding artifacts..."
 else
     echo "==> Building Atomic native bindings for host platform..."
-    npm run build --workspace=@bastani/atomic-natives
+    npm run build --workspace=@orphus/natives
 fi
 
 if [[ "$SKIP_PACKAGE_BUILD" == "false" ]]; then
-    echo "==> Building @bastani/atomic package..."
+    echo "==> Building @orphus/coding-agent package..."
     cd packages/coding-agent
     npm run build
 else
-    echo "==> Reusing caller-built @bastani/atomic package (--skip-package-build)"
+    echo "==> Reusing caller-built @orphus/coding-agent package (--skip-package-build)"
     test -f packages/coding-agent/dist/bun/cli.js || {
         echo "Missing packages/coding-agent/dist/bun/cli.js; cannot use --skip-package-build" >&2
         exit 1
@@ -254,10 +254,10 @@ for platform in "${PLATFORMS[@]}"; do
         # but its optional @embedded-postgres/* packages contain glibc binaries only.
         rm -rf "binaries/$platform/node_modules/@embedded-postgres"
     fi
-    rm -rf "binaries/$platform/node_modules/@bastani/atomic-natives/npm"
-    find "binaries/$platform/node_modules/@bastani/atomic-natives" -maxdepth 1 -type f -name 'atomic_natives.*.node' -delete
+    rm -rf "binaries/$platform/node_modules/@orphus/natives/npm"
+    find "binaries/$platform/node_modules/@orphus/natives" -maxdepth 1 -type f -name 'atomic_natives.*.node' -delete
     atomic_native="$(atomic_native_filename "$platform")"
-    atomic_native_dir="binaries/$platform/node_modules/@bastani/atomic-natives/native"
+    atomic_native_dir="binaries/$platform/node_modules/@orphus/natives/native"
     if [ ! -f "$atomic_native_dir/$atomic_native" ]; then
         echo "Missing Atomic native binding for $platform: $atomic_native_dir/$atomic_native" >&2
         echo "Build or download all Atomic native artifacts before building release archives." >&2

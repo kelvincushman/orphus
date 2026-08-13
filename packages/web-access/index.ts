@@ -1,4 +1,4 @@
-import type { ExtensionAPI, ExtensionContext, HandlerFn, MessageRenderer, RegisteredCommand, ToolDefinition } from "@bastani/atomic";
+import type { ExtensionAPI, ExtensionContext, HandlerFn, MessageRenderer, RegisteredCommand, ToolDefinition } from "@orphus/coding-agent";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";

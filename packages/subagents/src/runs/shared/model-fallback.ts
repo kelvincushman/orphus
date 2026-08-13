@@ -1,10 +1,14 @@
-import type { ModelFallbackFailureKind, ModelFallbackFailureSignal, ModelFallbackFailureSource } from "@bastani/atomic";
+import type {
+	ModelFallbackFailureKind,
+	ModelFallbackFailureSignal,
+	ModelFallbackFailureSource,
+} from "@orphus/coding-agent";
 import {
 	errorMessage,
 	isRetryableModelFailure,
 	modelFailureMessage,
 	normalizeModelFailureSignal,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 import {
 	type ModelInfo as AvailableModelInfo,
 	splitKnownThinkingSuffix,

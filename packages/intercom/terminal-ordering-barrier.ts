@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import { SUBAGENT_TERMINAL_ORDERING_BARRIER_EVENT, type InboundMessageEntry } from "./intercom-utils.js";
 import type { InboundIdleQueue } from "./inbound-idle-queue.js";
 

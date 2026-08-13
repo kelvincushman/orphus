@@ -20,7 +20,8 @@
  */
 
 import path from "node:path";
-import type { ExtensionAPI, ExtensionContext } from "@bastani/atomic";
+import { RealFSProvider, VM } from "@earendil-works/gondolin";
+import type { ExtensionAPI, ExtensionContext } from "@orphus/coding-agent";
 import {
 	type BashOperations,
 	createBashTool,
@@ -41,8 +42,7 @@ import {
 	truncateHead,
 	truncateLine,
 	type WriteOperations,
-} from "@bastani/atomic";
-import { RealFSProvider, VM } from "@earendil-works/gondolin";
+} from "@orphus/coding-agent";
 
 const GUEST_WORKSPACE = "/workspace";
 const DEFAULT_GREP_LIMIT = 100;

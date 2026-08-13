@@ -1,4 +1,4 @@
-import { runCallback } from "@bastani/atomic";
+import { runCallback } from "@orphus/coding-agent";
 
 export function nextEventLoopTurn(): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, 0));

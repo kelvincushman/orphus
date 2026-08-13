@@ -1,4 +1,4 @@
-import { createStructuredOutputTool, type StructuredOutputCapture } from "@bastani/atomic";
+import { createStructuredOutputTool, type StructuredOutputCapture } from "@orphus/coding-agent";
 import type { Static, TSchema } from "typebox";
 import type { StageOptions } from "../../shared/types.js";
 

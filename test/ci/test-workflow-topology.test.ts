@@ -115,7 +115,7 @@ test("build-consuming steps stay in the job that produced the build", async () =
 	const blocks = await jobs();
 
 	const suites = jobSteps(blocks.get("suites") as string);
-	assert.ok(stepIndex(suites, "Build @bastani/atomic package") < stepIndex(suites, "Unit tests"));
+	assert.ok(stepIndex(suites, "Build @orphus/coding-agent package") < stepIndex(suites, "Unit tests"));
 	assert.ok(stepIndex(suites, "Unit tests") < stepIndex(suites, "Integration tests"));
 	assert.match(namedStep(suites, "Integration tests"), /ORPHUS_REQUIRE_INSTALLED_NODE_SMOKE: "1"/u);
 	assert.match(blocks.get("suites") as string, /uses: actions\/setup-node@/u);
@@ -133,7 +133,9 @@ test("build-consuming steps stay in the job that produced the build", async () =
 	assert.match(blocks.get("agent-suite") as string, /uses: dtolnay\/rust-toolchain@/u);
 
 	const archive = jobSteps(blocks.get("release-archive") as string);
-	assert.ok(stepIndex(archive, "Build @bastani/atomic package") < stepIndex(archive, "Build native release binary"));
+	assert.ok(
+		stepIndex(archive, "Build @orphus/coding-agent package") < stepIndex(archive, "Build native release binary"),
+	);
 	assert.ok(
 		stepIndex(archive, "Build native release binary") < stepIndex(archive, "Smoke test Linux release archive"),
 	);
@@ -226,7 +228,7 @@ test("every retried suite still runs through the duration guard unmodified", asy
 	assert.deepEqual(invocations, [
 		"npm run test:unit",
 		"npm run test:integration",
-		"npm run test --workspace=@bastani/atomic",
+		"npm run test --workspace=@orphus/coding-agent",
 	]);
 	assert.equal(workflow.split("run-flaky-test-suite.ts").length - 1, invocations.length);
 	assert.doesNotMatch(workflow, /--parallel|--shard|--concurrent|--max-concurrency/u);

@@ -49,7 +49,7 @@ Rejected alternatives:
 ### Entry point
 
 `packages/roundtable/bin/orphus-roundtable-mcp.ts`, declared as a second bin on
-`@bastani/roundtable` alongside `orphus-roles`. Not a new package: it is the same
+`@orphus/roundtable` alongside `orphus-roles`. Not a new package: it is the same
 contribution, ships with the same builtin, and reuses `broker/client.ts` and
 `broker/framing.ts` rather than reimplementing the wire protocol.
 
@@ -64,7 +64,7 @@ the monolithic `@modelcontextprotocol/sdk` with focused `@modelcontextprotocol/s
 and `client` packages. Both went stable on 2026-07-27.
 
 Zod 4.4.3 is already installed and satisfies the SDK's `zod ^4.2.0` dependency, so
-this adds no schema library. `@bastani/mcp` stays on SDK 1.30.0 (`2025-11-25`);
+this adds no schema library. `@orphus/mcp` stays on SDK 1.30.0 (`2025-11-25`);
 the package names differ, so the two coexist without conflict.
 
 ### Identity

@@ -14,7 +14,7 @@
  */
 
 import assert from "node:assert/strict";
-import type { AgentSessionEvent } from "@bastani/atomic";
+import type { AgentSessionEvent } from "@orphus/coding-agent";
 import { describe, test } from "vitest";
 import {
 	StageQueuedUserMessageBuffer,

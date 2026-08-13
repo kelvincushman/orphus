@@ -1,13 +1,13 @@
 ---
 title: "Intercom"
-description: "Direct messaging between Atomic sessions on the same machine"
+description: "Direct messaging between Orphus sessions on the same machine"
 ---
 
-> Atomic sessions can talk to each other. Press ALT+M to message another session, or ask the agent to coordinate with a peer.
+> Orphus sessions can talk to each other. Press ALT+M to message another session, or ask the agent to coordinate with a peer.
 
 # Intercom
 
-Atomic bundles `@bastani/intercom`, a first-party extension for direct 1:1 messaging between Atomic sessions on the same machine. Send context, findings, or requests from one session to another — whether you're driving the conversation or letting agents coordinate. Connections are lazy and tool-driven: the extension registers its commands and tools at startup, but a session does not connect until you or the model actually invoke Intercom. No separate install is needed.
+Orphus bundles `@orphus/intercom`, a first-party extension for direct 1:1 messaging between Orphus sessions on the same machine. Send context, findings, or requests from one session to another — whether you're driving the conversation or letting agents coordinate. Connections are lazy and tool-driven: the extension registers its commands and tools at startup, but a session does not connect until you or the model actually invoke Intercom. No separate install is needed.
 
 **Key capabilities:**
 - **Session messaging** - `send`, `ask` (blocking, 10-minute timeout), `reply`, `pending`, `list`, and `status` via the `intercom` tool
@@ -116,7 +116,7 @@ Found the issue — UserService.validate() doesn't check for null input.
 See auth.ts:142-156.
 ```
 
-The reply hint (enabled by default) points to `intercom({ action: "reply", ... })`, so recipients never need raw sender or `replyTo` IDs. Idle recipients get a new turn immediately; busy interactive recipients receive the message once they go idle. Attachment content is included in the agent-visible body, and messages are rendered inline and stored in Atomic session history.
+The reply hint (enabled by default) points to `intercom({ action: "reply", ... })`, so recipients never need raw sender or `replyTo` IDs. Idle recipients get a new turn immediately; busy interactive recipients receive the message once they go idle. Attachment content is included in the agent-visible body, and messages are rendered inline and stored in Orphus session history.
 
 ## How Connection Works
 
@@ -129,7 +129,7 @@ A session becomes intercom-connected when all of these are true:
 - the model or user has invoked an Intercom surface in that session, **or** the parent runtime is authorizing an Intercom-enabled child supervisor relationship
 - the local broker is running or can be auto-started
 
-The session list only shows intercom-connected sessions, not every open Atomic process on the machine.
+The session list only shows intercom-connected sessions, not every open Orphus process on the machine.
 
 Name sessions with `/name` so they can target each other (for example `/name planner` and `/name worker`). If a session is unnamed, Intercom exposes a runtime-only fallback alias like `subagent-chat-1a2b3c4d` so other sessions can still target it. That alias is not persisted as the session title, so resume pickers keep showing the transcript snippet instead of a generic name.
 
@@ -185,7 +185,7 @@ A session's home group is resolved with this precedence: explicit stage/task/sub
 
 ## Coordination Patterns
 
-The most natural use of Intercom is splitting a task between two sessions — one holds the big picture, the other does the hands-on work. Open two terminals, start Atomic in each, and name them so they can find each other:
+The most natural use of Intercom is splitting a task between two sessions — one holds the big picture, the other does the hands-on work. Open two terminals, start Orphus in each, and name them so they can find each other:
 
 ```
 # Terminal 1                    # Terminal 2
@@ -225,7 +225,7 @@ The bundled `intercom` skill (`/skill:intercom`) has copy-paste ready patterns f
 
 ```xml
 <intercom>
-Coordinate with other local Atomic sessions on related codebases. Use `/skill:intercom` for patterns.
+Coordinate with other local Orphus sessions on related codebases. Use `/skill:intercom` for patterns.
 
 **When:** Same codebase (parallel work), reference codebase (consulting patterns), related repos (shared libraries).
 
@@ -237,7 +237,7 @@ Coordinate with other local Atomic sessions on related codebases. Use `/skill:in
 
 ## Subagent Escalation: contact_supervisor
 
-When Atomic's [subagent runtime](/subagents) admits a delegated child, the child session gets a subagent-only `contact_supervisor` tool in addition to the regular `intercom` tool. Normal sessions never see `contact_supervisor`.
+When Orphus's [subagent runtime](/subagents) admits a delegated child, the child session gets a subagent-only `contact_supervisor` tool in addition to the regular `intercom` tool. Normal sessions never see `contact_supervisor`.
 
 ### When the Tool Appears
 
@@ -350,7 +350,7 @@ workflow({
 
 When neither `enabled` nor `delivery` is set, async direct `parallel`/`chain` runs default to `control-and-result` when Intercom is available; otherwise delivery is off. Treat Intercom payloads from async direct runs as user-visible workflow output.
 
-While a workflow stage generation is open, incoming Intercom messages are admitted through the stage session's native steering/follow-up queue. If that stage is busy running a foreground subagent, Atomic synchronously reserves the message in the stage generation before starting the exact child's probe/commit detach handshake. Model-visible queue insertion waits inside that reservation until detach is acknowledged or the owner is unclaimed/disappears, so terminal stage close cannot overtake and silently drop the message. The stage drains the admitted delivery before publishing its terminal snapshot. A destination-side admission failure returns a correlated actionable error to a blocking asker instead of waiting for the 10-minute reply timeout.
+While a workflow stage generation is open, incoming Intercom messages are admitted through the stage session's native steering/follow-up queue. If that stage is busy running a foreground subagent, Orphus synchronously reserves the message in the stage generation before starting the exact child's probe/commit detach handshake. Model-visible queue insertion waits inside that reservation until detach is acknowledged or the owner is unclaimed/disappears, so terminal stage close cannot overtake and silently drop the message. The stage drains the admitted delivery before publishing its terminal snapshot. A destination-side admission failure returns a correlated actionable error to a blocking asker instead of waiting for the 10-minute reply timeout.
 ### Subagent Control Notices
 
 The `subagent` tool's `control` options select which control events notify the parent and over which channels:
@@ -364,13 +364,13 @@ If live child-to-parent coordination is needed, invoke `intercom({ action: "stat
 
 ### Delivery Ordering
 
-During a foreground subagent run, Atomic probes for the exact live foreground owner before delivery: the matching child reserves the request, accepts a generation-scoped detach commit, and acknowledges it before messages enter the parent's model-visible steering queue. A commit accepted by one member of a foreground parallel group releases supervision for all active siblings while retaining their in-process session ownership, allowing the aggregate tool call to return. If the owner disappears between probe and commit, a still-current receiver uses its ordinary fallback route rather than dropping the broker-delivered message. Blocking calls stay alive until the exact threaded reply; generation cancellation or replacement invalidates stale handshakes.
+During a foreground subagent run, Orphus probes for the exact live foreground owner before delivery: the matching child reserves the request, accepts a generation-scoped detach commit, and acknowledges it before messages enter the parent's model-visible steering queue. A commit accepted by one member of a foreground parallel group releases supervision for all active siblings while retaining their in-process session ownership, allowing the aggregate tool call to return. If the owner disappears between probe and commit, a still-current receiver uses its ordinary fallback route rather than dropping the broker-delivered message. Blocking calls stay alive until the exact threaded reply; generation cancellation or replacement invalidates stale handshakes.
 
 For delegated background children, queued messages and terminal lifecycle notices are ordered per child: pre-terminal messages are admitted FIFO and atomically together with the paused, completed, or failed notice, exact terminal-identity deduplication prevents double admission, failed dispatches remain retryable, and correlated ask replies bypass unrelated queued sends. See [Subagents](/subagents) for the full coordination contract.
 
 ## Configuration
 
-Create `~/.atomic/agent/intercom/config.json`. The legacy `~/.pi/agent/intercom/config.json` fallback is read when the Atomic config is absent:
+Create `~/.atomic/agent/intercom/config.json`. The legacy `~/.pi/agent/intercom/config.json` fallback is read when the Orphus config is absent:
 
 ```json
 {
@@ -394,7 +394,7 @@ Create `~/.atomic/agent/intercom/config.json`. The legacy `~/.pi/agent/intercom/
 | `status` | — | Optional custom status suffix shown after the automatic lifecycle status, for example `thinking · researching` |
 | `group` | `"default"` | Home intercom group for this session (see [Groups](#groups)). Overridden by env `ORPHUS_INTERCOM_GROUP` / `PI_INTERCOM_GROUP` and by workflow/orchestrator per-session injection. |
 
-The default `npx --no-install tsx` pair is a compatibility sentinel: Intercom recognizes it and starts the broker through the current Atomic runtime (`process.execPath`). Node-based installs use that runtime with a resolved `tsx` CLI, falling back to Atomic's bundled `jiti` loader when `tsx` is unavailable; Bun source-checkout runs use the current Bun executable directly; standalone Atomic binaries re-enter the split launcher through a narrow internal broker handoff. Default startup therefore does not rely on `npx`, `tsx`, or `bun` being on `PATH`. Explicit custom broker commands still work — for example, to intentionally use Bun from `PATH`:
+The default `npx --no-install tsx` pair is a compatibility sentinel: Intercom recognizes it and starts the broker through the current Orphus runtime (`process.execPath`). Node-based installs use that runtime with a resolved `tsx` CLI, falling back to Orphus's bundled `jiti` loader when `tsx` is unavailable; Bun source-checkout runs use the current Bun executable directly; standalone Orphus binaries re-enter the split launcher through a narrow internal broker handoff. Default startup therefore does not rely on `npx`, `tsx`, or `bun` being on `PATH`. Explicit custom broker commands still work — for example, to intentionally use Bun from `PATH`:
 
 ```json
 {
@@ -420,7 +420,7 @@ Intercom publishes live session status automatically: sessions register as `idle
 
 ```mermaid
 graph TB
-    subgraph A["Atomic Session A"]
+    subgraph A["Orphus Session A"]
         A1[Intercom Client]
         A2[intercom tool]
         A3[UI overlays]
@@ -431,7 +431,7 @@ graph TB
         B2[Message Router]
     end
 
-    subgraph B["Atomic Session B"]
+    subgraph B["Orphus Session B"]
         B3[Intercom Client]
         B4[intercom tool]
         B5[UI overlays]
@@ -446,7 +446,7 @@ The broker is a standalone process that manages session registration and message
 
 Transport is local IPC only — a Unix domain socket on macOS/Linux or a named pipe on Windows — using length-prefixed JSON (4-byte length + payload) with request correlation for session listing, explicit delivery failures, and validation of malformed or out-of-order messages. `ask` stays client-side: the broker routes plain messages, and the client waits for the matching reply before returning it as the tool result.
 
-Runtime files live under the active agent directory — `~/.atomic/agent/intercom/` by default, or below `ORPHUS_CODING_AGENT_DIR` when set (the legacy `PI_CODING_AGENT_DIR` alias is honored when the Atomic variable is unset):
+Runtime files live under the active agent directory — `~/.atomic/agent/intercom/` by default, or below `ORPHUS_CODING_AGENT_DIR` when set (the legacy `PI_CODING_AGENT_DIR` alias is honored when the Orphus variable is unset):
 
 - `broker.sock` — Unix domain socket (macOS/Linux; Windows uses a named pipe instead)
 - `broker-launch.vbs` — Windows helper script to launch the broker without a console window
@@ -464,7 +464,7 @@ Async extension work (startup, inbound flushes, reconnects, overlays, and relays
 | **Primary use** | User orchestrating sessions | Autonomous agent swarms |
 | **Discovery** | Broker-based (real-time) | File-based registry |
 | **Messages** | Private, session-to-session | Broadcast to all agents |
-| **Persistence** | In Atomic session history | Shared coordination files |
+| **Persistence** | In Orphus session history | Shared coordination files |
 
 Use a shared-room messenger for multi-agent swarms working on one shared task. Use Intercom when you want to manually coordinate your own sessions or have one agent reach out to another specific session.
 
@@ -473,7 +473,7 @@ Use a shared-room messenger for multi-agent swarms working on one shared task. U
 - **Same machine only** — Uses local sockets/pipes, no network support
 - **No dedicated intercom log** — Messages are kept in session history; there is no separate intercom transcript or inbox
 - **No attachments UI** — `file`, `snippet`, and `context` attachments are supported in the protocol, but not in the compose overlay
-- **Only connected sessions appear** — The list shows sessions that have connected to the broker, not every open Atomic process
+- **Only connected sessions appear** — The list shows sessions that have connected to the broker, not every open Orphus process
 - **Broker lifecycle** — The broker auto-spawns on first use and exits when idle; sessions reconnect automatically if it restarts
 
 ## Related Docs

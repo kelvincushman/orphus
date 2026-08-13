@@ -1,4 +1,4 @@
-import type { AgentSession } from "@bastani/atomic";
+import type { AgentSession } from "@orphus/coding-agent";
 import { errorMessage } from "../shared/model-fallback.js";
 import type { StageSessionRuntime } from "./stage-runner-types.js";
 

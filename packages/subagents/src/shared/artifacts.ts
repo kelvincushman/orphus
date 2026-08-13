@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getAgentConfigPaths } from "@bastani/atomic";
+import { getAgentConfigPaths } from "@orphus/coding-agent";
 import { appendToActiveEventWriter } from "./event-jsonl-writer.ts";
 import { publishFileExclusive, unlinkIfPresent } from "./exclusive-file-publication.js";
 import { type ArtifactPaths, TEMP_ARTIFACTS_DIR } from "./types.ts";

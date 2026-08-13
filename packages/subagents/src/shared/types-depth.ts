@@ -2,13 +2,13 @@
  * Recursion-depth guard helpers for nested subagent execution.
  */
 
-import type { ExtensionContext, SessionWorkflowMetadata } from "@bastani/atomic";
+import type { ExtensionContext, SessionWorkflowMetadata } from "@orphus/coding-agent";
 import {
 	APP_NAME,
 	getEnvValue,
 	WORKFLOW_SESSION_METADATA_ENV,
 	WORKFLOW_STAGE_SUBAGENT_GUARD_ENV,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 import { DEFAULT_SUBAGENT_MAX_DEPTH, MAX_SUBAGENT_NESTING_DEPTH } from "./types-runtime.ts";
 
 const ENV_PREFIX = APP_NAME.toUpperCase();

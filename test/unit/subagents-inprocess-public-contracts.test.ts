@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ExtensionAPI, ExtensionContext } from "@bastani/atomic";
+import type { ExtensionAPI, ExtensionContext } from "@orphus/coding-agent";
 import { afterEach, beforeEach, test } from "vitest";
 import type { AgentConfig } from "../../packages/subagents/src/agents/agent-types.js";
 import { createAsyncJobTracker } from "../../packages/subagents/src/runs/background/async-job-tracker.js";

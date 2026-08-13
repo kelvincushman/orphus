@@ -1,4 +1,4 @@
-import type { ExtensionContext } from "@bastani/atomic";
+import type { ExtensionContext } from "@orphus/coding-agent";
 import { handleManagementAction } from "../../agents/agent-management.ts";
 import { resolveExecutionAgentScope } from "../../agents/agent-scope.ts";
 import { clearPendingForegroundControlNotices } from "../../extension/control-notices.ts";

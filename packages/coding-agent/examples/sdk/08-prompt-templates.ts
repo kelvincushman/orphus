@@ -11,7 +11,7 @@ import {
 	getAgentDir,
 	type PromptTemplate,
 	SessionManager,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 
 // Define custom templates
 const deployTemplate: PromptTemplate = {

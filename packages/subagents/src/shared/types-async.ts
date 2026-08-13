@@ -3,7 +3,7 @@
  */
 
 import type { FSWatcher } from "node:fs";
-import type { ExtensionContext } from "@bastani/atomic";
+import type { ExtensionContext } from "@orphus/coding-agent";
 import type {
 	ActivityState,
 	ChainOutputMap,

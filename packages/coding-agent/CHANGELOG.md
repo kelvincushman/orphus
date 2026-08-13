@@ -2,7 +2,16 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Workspace packages carry the `@orphus/*` scope.** `@bastani/atomic` is now `@orphus/coding-agent`, `@bastani/atomic-natives` is `@orphus/natives`, and the remaining seven keep their names under the new scope. This is a source-level rename of a workspace that is not published to npm, so nothing an installed user runs changes — but anyone building from a clone updates their imports, and `git merge upstream/main` now conflicts on import lines, so upstream changes are cherry-picked rather than merged wholesale.
+- The app identity block in `packages/coding-agent/package.json` is `orphusConfig`. The scope rename means the package name no longer contains the app name, so the derived `<appName>Config` lookup would resolve to `coding-agent`; `orphusConfig` is read first and `piConfig` remains as the inherited-schema shim. `atomicConfig` is gone.
+- The working indicator is Orphus's own mark: a round table seen from above (`⊙`) with the decision at its centre, replacing the `∀` this tree inherited from Atomic. The ten-step luminance ramp, 88ms cadence, `NO_COLOR` behaviour, and reduced-motion static frame are unchanged.
+
 ### Fixed
+
+- Runtime working directories are created under the configured Orphus config dir instead of a hardcoded `.atomic`. Subagent artifacts, subagent and workflow worktrees, durable workflow run artifacts, the embedded-Postgres data root, and the run-history fallback all wrote to `.atomic/…` regardless of configuration — so a fresh install with no Atomic history still grew `.atomic` directories inside user projects. Every one now resolves through `CONFIG_DIR_NAME` (`.orphus` by default); reads of existing configuration keep their `.atomic`/`.pi` fallbacks, so prior installs are unaffected.
+- The workflow authoring prompt told the model to report new workflows under `.atomic/workflows/`, sending hand-authored workflows to the legacy directory even though discovery prefers `.orphus`. It now names `.orphus/workflows/`.
 
 - A roundtable activity ping delivered after session replacement no longer kills the process. `AgentSession.dispose()` invalidates extension ctxs without emitting `session_shutdown`, so the replaced session's roundtable instance survived as an orphan; its next coalesced ping threw from a timer callback and took the whole process down — a `/fleet` run that pins the orchestrator model died before its first turn whenever retained rooms had unread activity. Pings are best-effort by contract: delivery failure now quiesces the orphaned instance (drops the ping, disconnects it from the broker) and the replacement session's own instance serves the rooms.
 

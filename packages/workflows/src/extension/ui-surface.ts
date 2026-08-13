@@ -1,4 +1,4 @@
-import type { ChatMessageRenderOptions } from "@bastani/atomic";
+import type { ChatMessageRenderOptions } from "@orphus/coding-agent";
 
 // ---------------------------------------------------------------------------
 // UI adapter — maps pi ctx.ui dialog surface to WorkflowUIAdapter
@@ -6,7 +6,7 @@ import type { ChatMessageRenderOptions } from "@bastani/atomic";
 
 /**
  * Subset of pi's ExtensionUIDialogOptions consumed by the adapter.
- * Structurally matched against @bastani/atomic
+ * Structurally matched against @orphus/coding-agent
  * ExtensionUIDialogOptions.
  */
 export interface PiUIDialogOptions {
@@ -74,7 +74,7 @@ export interface PiOverlayHandle {
 /**
  * Options accepted by Pi/pi's real `ctx.ui.custom(factory, options)`
  * overlay primitive. Aligned with the shape documented in
- * `@bastani/atomic docs/tui.md` and
+ * `@orphus/coding-agent docs/tui.md` and
  * `@earendil-works/pi-tui dist/tui.d.ts`.
  *
  * Host-compatibility note: pi's interactive
@@ -209,7 +209,7 @@ export type PiHostInputFormFunction = (request: PiHostInputFormRequest) => Promi
 
 /**
  * JSON-safe session-selector row for the host-native session picker
- * capability. Structural mirror of @bastani/atomic `HostSessionPickerRow` —
+ * capability. Structural mirror of @orphus/coding-agent `HostSessionPickerRow` —
  * `SessionInfo` with `created`/`modified` flattened to epoch millis.
  */
 export interface PiHostSessionPickerRow {
@@ -317,7 +317,7 @@ export type PiEditorFactory = (
 
 /**
  * Structural type for the pi UI dialog surface.
- * Matches @bastani/atomic ExtensionUIContext dialog methods.
+ * Matches @orphus/coding-agent ExtensionUIContext dialog methods.
  * All fields optional — presence is checked at runtime before building adapter.
  */
 export interface PiUISurface {

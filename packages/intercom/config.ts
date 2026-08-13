@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "fs";
-import { getAgentConfigPaths } from "@bastani/atomic";
+import { getAgentConfigPaths } from "@orphus/coding-agent";
 
 export interface IntercomConfig {
   /** Broker command used to spawn the broker process (e.g. "npx", "bun", or "node") */

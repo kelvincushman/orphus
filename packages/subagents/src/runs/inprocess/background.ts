@@ -1,4 +1,4 @@
-import type { ExtensionAPI, SessionWorkflowMetadata } from "@bastani/atomic";
+import type { ExtensionAPI, SessionWorkflowMetadata } from "@orphus/coding-agent";
 import type { AgentConfig } from "../../agents/agents.ts";
 import type { SupervisorAuthorization } from "../../intercom/supervisor-authorization.ts";
 import type { ModelInfo } from "../../shared/model-info.ts";

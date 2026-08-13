@@ -1,8 +1,8 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { APP_NAME } from "@bastani/atomic";
 import type { Message } from "@earendil-works/pi-ai/compat";
+import { APP_NAME } from "@orphus/coding-agent";
 import { Compile } from "typebox/compile";
 import type { JsonSchemaObject } from "../../shared/types.ts";
 

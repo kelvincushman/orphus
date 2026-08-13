@@ -1,4 +1,4 @@
-import type { SubagentChildPolicy } from "@bastani/atomic";
+import type { SubagentChildPolicy } from "@orphus/coding-agent";
 
 export type ChildModePolicy = SubagentChildPolicy;
 

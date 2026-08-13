@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { CONFIG_DIR_NAME } from "@bastani/atomic";
+import { CONFIG_DIR_NAME } from "@orphus/coding-agent";
 import { EXA_USAGE_PATH, findReadableConfigPath } from "./config-paths.ts";
 import { activityMonitor } from "./activity.js";
 import { searchWithExaMcp, callExaMcp } from "./exa-mcp.js";

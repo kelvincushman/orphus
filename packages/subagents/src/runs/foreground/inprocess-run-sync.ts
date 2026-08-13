@@ -1,5 +1,6 @@
 import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { CONFIG_DIR_NAME } from "@orphus/coding-agent";
 import type { AgentConfig } from "../../agents/agent-types.ts";
 import { ensureArtifactsDir, getArtifactPaths, writeArtifact } from "../../shared/artifacts.ts";
 import type {
@@ -180,7 +181,7 @@ export async function runSingleInProcess(
 		...(options.intercomGroup ? { intercomGroup: options.intercomGroup } : {}),
 		...(orchestrationContext ? { orchestrationContext } : {}),
 	};
-	const sessionRoot = options.sessionDir ?? join(options.artifactsDir ?? cwd, ".atomic", "subagents");
+	const sessionRoot = options.sessionDir ?? join(options.artifactsDir ?? cwd, CONFIG_DIR_NAME, "subagents");
 	const control = getOrCreateSubagentControl(parent, sessionRoot);
 	control.registerAgents([agent]);
 	const artifactsDir =

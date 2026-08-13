@@ -67,14 +67,14 @@ const labels: Readonly<Record<CompactionReason, string>> = {
 };
 
 describe("chat session compaction status", () => {
-	it("renders Atomic's ∀ indicator with an escape cancel hint", () => {
+	it("renders Atomic's ⊙ indicator with an escape cancel hint", () => {
 		const state = makeState();
 		state.compacting = true;
 		state.statusMessage = "Auto-compacting...";
 
 		const rendered = renderChatSessionWorkingStatus(state, 80).join("\n");
 
-		expect(rendered).toContain("∀");
+		expect(rendered).toContain("⊙");
 		expect(rendered).toContain("Auto-compacting... (esc Cancel)");
 	});
 
@@ -172,7 +172,7 @@ test("branch-summary hydration leaves the ordinary working spinner available", (
 	assert.equal(host.statusText(), "");
 	assert.equal(host.isCompacting(), false);
 	const rendered = host.renderWorkingStatus(100).join("\n");
-	assert.match(rendered, /∀/);
+	assert.match(rendered, /⊙/);
 	assert.match(rendered, /Working\.\.\./);
 	assert.doesNotMatch(rendered, /summarizing branch…/);
 	host.dispose();

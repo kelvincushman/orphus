@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ExtensionAPI, ExtensionContext } from "@bastani/atomic";
+import type { ExtensionAPI, ExtensionContext } from "@orphus/coding-agent";
 import { afterEach, beforeEach, describe, test } from "vitest";
 import { initializeMcp } from "../../packages/mcp/init.js";
 import { McpServerManager } from "../../packages/mcp/server-manager.js";

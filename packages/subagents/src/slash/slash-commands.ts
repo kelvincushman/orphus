@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { type ExtensionAPI, type ExtensionContext, keyHintIfBound } from "@bastani/atomic";
 import { Key, matchesKey } from "@earendil-works/pi-tui";
+import { type ExtensionAPI, type ExtensionContext, keyHintIfBound } from "@orphus/coding-agent";
 import { type ChainConfig, discoverAgents, discoverAgentsAll } from "../agents/agents.ts";
 import type { SubagentParamsLike } from "../runs/foreground/subagent-executor.ts";
 import {

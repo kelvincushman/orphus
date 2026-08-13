@@ -18,7 +18,7 @@
 
 import { mkdir, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { CONFIG_DIR_NAME } from "@bastani/atomic";
+import { CONFIG_DIR_NAME } from "@orphus/coding-agent";
 import type { Store } from "../shared/store.js";
 import type { StoreSnapshot } from "../shared/store-types.js";
 import type { WorkflowRuntimeConfig } from "../shared/types.js";

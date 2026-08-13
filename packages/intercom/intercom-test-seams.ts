@@ -1,4 +1,4 @@
-import type { ExtensionContext } from "@bastani/atomic";
+import type { ExtensionContext } from "@orphus/coding-agent";
 import type { Message, SessionInfo } from "./types.js";
 
 export interface IntercomExtensionTestOverrides {

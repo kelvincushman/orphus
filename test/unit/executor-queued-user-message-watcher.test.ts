@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { AgentSessionEvent } from "@bastani/atomic";
+import type { AgentSessionEvent } from "@orphus/coding-agent";
 import { describe, test } from "vitest";
 import { createQueuedUserMessageConsumptionWatcher } from "../../packages/workflows/src/runs/foreground/executor-queued-user-message.js";
 import { RESUME_CONTINUATION_PROMPT } from "../../packages/workflows/src/shared/resume-continuation.js";

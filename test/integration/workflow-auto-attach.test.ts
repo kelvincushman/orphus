@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { WORKFLOW_STAGE_SUBAGENT_GUARD_ENV } from "@bastani/atomic";
+import { WORKFLOW_STAGE_SUBAGENT_GUARD_ENV } from "@orphus/coding-agent";
 import { afterAll, afterEach, beforeAll, describe, test } from "vitest";
 import type { ExtensionAPI, PiToolOpts, WorkflowToolArgs } from "../../packages/workflows/src/extension/index.js";
 import type { WorkflowToolResult } from "../../packages/workflows/src/extension/render-result.js";
@@ -75,7 +75,7 @@ beforeAll(async () => {
 	fixturePath = join(fixtureDirectory, "auto-attach-workflows.ts");
 	await writeFile(
 		fixturePath,
-		`import { workflow } from "@bastani/workflows";
+		`import { workflow } from "@orphus/workflows";
 import { Type } from "typebox";
 
 export const attachEnabled = workflow({

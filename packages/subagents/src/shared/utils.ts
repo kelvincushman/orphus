@@ -4,8 +4,8 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getAgentDir as getAtomicAgentDir } from "@bastani/atomic";
 import type { Message } from "@earendil-works/pi-ai/compat";
+import { getAgentDir as getAtomicAgentDir } from "@orphus/coding-agent";
 import { formatToolCall } from "./formatters.ts";
 import type {
 	AgentProgress,

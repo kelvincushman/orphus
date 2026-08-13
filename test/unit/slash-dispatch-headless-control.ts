@@ -244,7 +244,7 @@ describe("/workflow command in non-interactive (-p) mode (#1156 regressions)", (
 	test.sequential("issue #1156: headless terminal workflow failure throws a command-visible error", async () => {
 		const resource = await registerWorkflowCommandWithResource(
 			"terminal-failure.ts",
-			`import { workflow } from "@bastani/workflows";
+			`import { workflow } from "@orphus/workflows";
 
 export default workflow({
   name: "terminal-failure",
@@ -271,7 +271,7 @@ export default workflow({
 	test.sequential("issue #1156: headless /workflow success emits a printable terminal detail summary", async () => {
 		const resource = await registerWorkflowCommandWithResource(
 			"headless-terminal-success.ts",
-			`import { workflow } from "@bastani/workflows";
+			`import { workflow } from "@orphus/workflows";
 import { Type } from "typebox";
 
 export default workflow({

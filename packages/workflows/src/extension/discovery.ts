@@ -21,7 +21,7 @@
  */
 
 import { join } from "node:path";
-import { CONFIG_DIR_NAMES, getAgentDirs, getProjectConfigPaths } from "@bastani/atomic";
+import { CONFIG_DIR_NAMES, getAgentDirs, getProjectConfigPaths } from "@orphus/coding-agent";
 import * as bundledManifest from "../../builtin/index.js";
 import type { WorkflowDefinition } from "../shared/types.js";
 import type { WorkflowRegistry } from "../workflows/registry.js";

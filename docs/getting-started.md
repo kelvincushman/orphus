@@ -119,7 +119,7 @@ Orphus is not published to npm. To run from a checkout instead, build the
 binary:
 
 ```bash
-npm run build --workspace=@bastani/atomic
+npm run build --workspace=@orphus/coding-agent
 ```
 
 Set a key for whichever provider you use — `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,

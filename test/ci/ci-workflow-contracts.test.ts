@@ -286,7 +286,7 @@ test("Alpine smoke consumes the x64 musl artifact and installs its runtime libra
 	assert.match(alpine, /atomic-linux-x64-musl\.tar\.gz/u);
 	assert.match(alpine, /apk add --no-cache libgcc libstdc\+\+/u);
 	assert.match(alpine, /node:22-alpine/u);
-	assert.match(alpine, /require\("\/smoke\/atomic\/node_modules\/@bastani\/atomic-natives"\)/u);
+	assert.match(alpine, /require\("\/smoke\/atomic\/node_modules\/@orphus\/natives"\)/u);
 });
 
 test("release build retains Atomic native, smoke, shrinkwrap, metadata, and asset contracts", async () => {

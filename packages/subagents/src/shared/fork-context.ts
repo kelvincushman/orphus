@@ -1,5 +1,5 @@
 import * as fs from "node:fs";
-import { SessionManager } from "@bastani/atomic";
+import { SessionManager } from "@orphus/coding-agent";
 
 type SubagentExecutionContext = "fresh" | "fork";
 

@@ -75,8 +75,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@bastani/atomic-natives-android-arm64')
-        const bindingPackageVersion = require('@bastani/atomic-natives-android-arm64/package.json').version
+        const binding = require('@orphus/natives-android-arm64')
+        const bindingPackageVersion = require('@orphus/natives-android-arm64/package.json').version
         if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -91,8 +91,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@bastani/atomic-natives-android-arm-eabi')
-        const bindingPackageVersion = require('@bastani/atomic-natives-android-arm-eabi/package.json').version
+        const binding = require('@orphus/natives-android-arm-eabi')
+        const bindingPackageVersion = require('@orphus/natives-android-arm-eabi/package.json').version
         if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -112,8 +112,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@bastani/atomic-natives-win32-x64-gnu')
-        const bindingPackageVersion = require('@bastani/atomic-natives-win32-x64-gnu/package.json').version
+        const binding = require('@orphus/natives-win32-x64-gnu')
+        const bindingPackageVersion = require('@orphus/natives-win32-x64-gnu/package.json').version
         if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -128,8 +128,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@bastani/atomic-natives-win32-x64-msvc')
-        const bindingPackageVersion = require('@bastani/atomic-natives-win32-x64-msvc/package.json').version
+        const binding = require('@orphus/natives-win32-x64-msvc')
+        const bindingPackageVersion = require('@orphus/natives-win32-x64-msvc/package.json').version
         if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -145,8 +145,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@bastani/atomic-natives-win32-ia32-msvc')
-        const bindingPackageVersion = require('@bastani/atomic-natives-win32-ia32-msvc/package.json').version
+        const binding = require('@orphus/natives-win32-ia32-msvc')
+        const bindingPackageVersion = require('@orphus/natives-win32-ia32-msvc/package.json').version
         if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -161,8 +161,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@bastani/atomic-natives-win32-arm64-msvc')
-        const bindingPackageVersion = require('@bastani/atomic-natives-win32-arm64-msvc/package.json').version
+        const binding = require('@orphus/natives-win32-arm64-msvc')
+        const bindingPackageVersion = require('@orphus/natives-win32-arm64-msvc/package.json').version
         if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -180,8 +180,8 @@ function requireNative() {
       loadErrors.push(e)
     }
     try {
-      const binding = require('@bastani/atomic-natives-darwin-universal')
-      const bindingPackageVersion = require('@bastani/atomic-natives-darwin-universal/package.json').version
+      const binding = require('@orphus/natives-darwin-universal')
+      const bindingPackageVersion = require('@orphus/natives-darwin-universal/package.json').version
       if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
         throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
       }
@@ -196,8 +196,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@bastani/atomic-natives-darwin-x64')
-        const bindingPackageVersion = require('@bastani/atomic-natives-darwin-x64/package.json').version
+        const binding = require('@orphus/natives-darwin-x64')
+        const bindingPackageVersion = require('@orphus/natives-darwin-x64/package.json').version
         if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -212,8 +212,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@bastani/atomic-natives-darwin-arm64')
-        const bindingPackageVersion = require('@bastani/atomic-natives-darwin-arm64/package.json').version
+        const binding = require('@orphus/natives-darwin-arm64')
+        const bindingPackageVersion = require('@orphus/natives-darwin-arm64/package.json').version
         if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -232,8 +232,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@bastani/atomic-natives-freebsd-x64')
-        const bindingPackageVersion = require('@bastani/atomic-natives-freebsd-x64/package.json').version
+        const binding = require('@orphus/natives-freebsd-x64')
+        const bindingPackageVersion = require('@orphus/natives-freebsd-x64/package.json').version
         if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -248,8 +248,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@bastani/atomic-natives-freebsd-arm64')
-        const bindingPackageVersion = require('@bastani/atomic-natives-freebsd-arm64/package.json').version
+        const binding = require('@orphus/natives-freebsd-arm64')
+        const bindingPackageVersion = require('@orphus/natives-freebsd-arm64/package.json').version
         if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -269,8 +269,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@bastani/atomic-natives-linux-x64-musl')
-          const bindingPackageVersion = require('@bastani/atomic-natives-linux-x64-musl/package.json').version
+          const binding = require('@orphus/natives-linux-x64-musl')
+          const bindingPackageVersion = require('@orphus/natives-linux-x64-musl/package.json').version
           if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -285,8 +285,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@bastani/atomic-natives-linux-x64-gnu')
-          const bindingPackageVersion = require('@bastani/atomic-natives-linux-x64-gnu/package.json').version
+          const binding = require('@orphus/natives-linux-x64-gnu')
+          const bindingPackageVersion = require('@orphus/natives-linux-x64-gnu/package.json').version
           if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -303,8 +303,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@bastani/atomic-natives-linux-arm64-musl')
-          const bindingPackageVersion = require('@bastani/atomic-natives-linux-arm64-musl/package.json').version
+          const binding = require('@orphus/natives-linux-arm64-musl')
+          const bindingPackageVersion = require('@orphus/natives-linux-arm64-musl/package.json').version
           if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -319,8 +319,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@bastani/atomic-natives-linux-arm64-gnu')
-          const bindingPackageVersion = require('@bastani/atomic-natives-linux-arm64-gnu/package.json').version
+          const binding = require('@orphus/natives-linux-arm64-gnu')
+          const bindingPackageVersion = require('@orphus/natives-linux-arm64-gnu/package.json').version
           if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -337,8 +337,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@bastani/atomic-natives-linux-arm-musleabihf')
-          const bindingPackageVersion = require('@bastani/atomic-natives-linux-arm-musleabihf/package.json').version
+          const binding = require('@orphus/natives-linux-arm-musleabihf')
+          const bindingPackageVersion = require('@orphus/natives-linux-arm-musleabihf/package.json').version
           if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -353,8 +353,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@bastani/atomic-natives-linux-arm-gnueabihf')
-          const bindingPackageVersion = require('@bastani/atomic-natives-linux-arm-gnueabihf/package.json').version
+          const binding = require('@orphus/natives-linux-arm-gnueabihf')
+          const bindingPackageVersion = require('@orphus/natives-linux-arm-gnueabihf/package.json').version
           if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -371,8 +371,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@bastani/atomic-natives-linux-loong64-musl')
-          const bindingPackageVersion = require('@bastani/atomic-natives-linux-loong64-musl/package.json').version
+          const binding = require('@orphus/natives-linux-loong64-musl')
+          const bindingPackageVersion = require('@orphus/natives-linux-loong64-musl/package.json').version
           if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -387,8 +387,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@bastani/atomic-natives-linux-loong64-gnu')
-          const bindingPackageVersion = require('@bastani/atomic-natives-linux-loong64-gnu/package.json').version
+          const binding = require('@orphus/natives-linux-loong64-gnu')
+          const bindingPackageVersion = require('@orphus/natives-linux-loong64-gnu/package.json').version
           if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -405,8 +405,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@bastani/atomic-natives-linux-riscv64-musl')
-          const bindingPackageVersion = require('@bastani/atomic-natives-linux-riscv64-musl/package.json').version
+          const binding = require('@orphus/natives-linux-riscv64-musl')
+          const bindingPackageVersion = require('@orphus/natives-linux-riscv64-musl/package.json').version
           if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -421,8 +421,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@bastani/atomic-natives-linux-riscv64-gnu')
-          const bindingPackageVersion = require('@bastani/atomic-natives-linux-riscv64-gnu/package.json').version
+          const binding = require('@orphus/natives-linux-riscv64-gnu')
+          const bindingPackageVersion = require('@orphus/natives-linux-riscv64-gnu/package.json').version
           if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -438,8 +438,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@bastani/atomic-natives-linux-ppc64-gnu')
-        const bindingPackageVersion = require('@bastani/atomic-natives-linux-ppc64-gnu/package.json').version
+        const binding = require('@orphus/natives-linux-ppc64-gnu')
+        const bindingPackageVersion = require('@orphus/natives-linux-ppc64-gnu/package.json').version
         if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -454,8 +454,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@bastani/atomic-natives-linux-s390x-gnu')
-        const bindingPackageVersion = require('@bastani/atomic-natives-linux-s390x-gnu/package.json').version
+        const binding = require('@orphus/natives-linux-s390x-gnu')
+        const bindingPackageVersion = require('@orphus/natives-linux-s390x-gnu/package.json').version
         if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -474,8 +474,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@bastani/atomic-natives-openharmony-arm64')
-        const bindingPackageVersion = require('@bastani/atomic-natives-openharmony-arm64/package.json').version
+        const binding = require('@orphus/natives-openharmony-arm64')
+        const bindingPackageVersion = require('@orphus/natives-openharmony-arm64/package.json').version
         if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -490,8 +490,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@bastani/atomic-natives-openharmony-x64')
-        const bindingPackageVersion = require('@bastani/atomic-natives-openharmony-x64/package.json').version
+        const binding = require('@orphus/natives-openharmony-x64')
+        const bindingPackageVersion = require('@orphus/natives-openharmony-x64/package.json').version
         if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -506,8 +506,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@bastani/atomic-natives-openharmony-arm')
-        const bindingPackageVersion = require('@bastani/atomic-natives-openharmony-arm/package.json').version
+        const binding = require('@orphus/natives-openharmony-arm')
+        const bindingPackageVersion = require('@orphus/natives-openharmony-arm/package.json').version
         if (bindingPackageVersion !== '0.0.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -643,16 +643,16 @@ if (!nativeBinding || forceWasi) {
     let candidateError = null
     let candidateFailed = false
     try {
-      candidateError = __napiWasiResolveCandidate('@bastani/atomic-natives-wasm32-wasi', true, undefined)
+      candidateError = __napiWasiResolveCandidate('@orphus/natives-wasm32-wasi', true, undefined)
       candidateFailed = candidateError !== null
       if (!candidateFailed) {
         if (process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          const bindingPackageVersion = require('@bastani/atomic-natives-wasm32-wasi/package.json').version
+          const bindingPackageVersion = require('@orphus/natives-wasm32-wasi/package.json').version
           if (bindingPackageVersion !== '0.0.0') {
             throw new Error(`WASI binding package version mismatch, expected 0.0.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
         }
-        wasiBinding = require('@bastani/atomic-natives-wasm32-wasi')
+        wasiBinding = require('@orphus/natives-wasm32-wasi')
         nativeBinding = wasiBinding
         wasiBindingLoaded = true
       }

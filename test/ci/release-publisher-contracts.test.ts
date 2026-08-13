@@ -16,14 +16,14 @@ type NativeManifest = {
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const packageVersion = "1.2.3-alpha.1";
 const nativePackageNames = [
-	"@bastani/atomic-natives-darwin-arm64",
-	"@bastani/atomic-natives-darwin-x64",
-	"@bastani/atomic-natives-linux-arm64-gnu",
-	"@bastani/atomic-natives-linux-arm64-musl",
-	"@bastani/atomic-natives-linux-x64-gnu",
-	"@bastani/atomic-natives-linux-x64-musl",
-	"@bastani/atomic-natives-win32-arm64-msvc",
-	"@bastani/atomic-natives-win32-x64-msvc",
+	"@orphus/natives-darwin-arm64",
+	"@orphus/natives-darwin-x64",
+	"@orphus/natives-linux-arm64-gnu",
+	"@orphus/natives-linux-arm64-musl",
+	"@orphus/natives-linux-x64-gnu",
+	"@orphus/natives-linux-x64-musl",
+	"@orphus/natives-win32-arm64-msvc",
+	"@orphus/natives-win32-x64-msvc",
 ] as const;
 
 const nativeBinaryNames = [
@@ -91,7 +91,7 @@ test("prepared native root tarball contains all eight exact-version optional dep
 		assert.equal(extracted.exitCode, 0, extracted.stderr.toString());
 		const packedJson = extracted.stdout.toString();
 		const packed = JSON.parse(packedJson) as NativeManifest;
-		assert.equal(packed.name, "@bastani/atomic-natives");
+		assert.equal(packed.name, "@orphus/natives");
 		assert.equal(packed.version, version);
 		assert.deepEqual(Object.keys(packed.optionalDependencies ?? {}).sort(), [...nativePackageNames].sort());
 		for (const dependency of nativePackageNames) {
@@ -104,7 +104,7 @@ test("prepared native root tarball contains all eight exact-version optional dep
 
 test("publish pipeline prepares exact native package set and publishes in dependency order", async () => {
 	const workflow = await readText(`${root}/.github/workflows/publish.yml`);
-	const expectedOrder = [...nativePackageNames, "@bastani/atomic-natives", "@bastani/atomic"].join(" ");
+	const expectedOrder = [...nativePackageNames, "@orphus/natives", "@orphus/coding-agent"].join(" ");
 	assert.match(workflow, /prepublish:native -- --skip-optional-publish/u);
 	assert.match(workflow, /Expected exactly ten npm packages/u);
 	assert.match(workflow, /atomic-linux-x64-musl\.tar\.gz.*atomic-linux-arm64-musl\.tar\.gz/u);
