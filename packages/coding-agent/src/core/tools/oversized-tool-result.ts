@@ -73,7 +73,13 @@ function hasImageBlock(content: readonly (TextContent | ImageContent)[]): boolea
 }
 
 /** Concatenate the text blocks of a tool result into a single string. */
-function collectText(content: readonly (TextContent | ImageContent)[]): string {
+/**
+ * Concatenate the text blocks of a tool result. Exported so context accounting
+ * measures a result exactly as the persistence threshold does — two independent
+ * length calculations would drift, and the whole point of the accounting is that
+ * its numbers match the bound they describe.
+ */
+export function collectText(content: readonly (TextContent | ImageContent)[]): string {
 	return content
 		.filter((block): block is TextContent => block.type === "text")
 		.map((block) => block.text)

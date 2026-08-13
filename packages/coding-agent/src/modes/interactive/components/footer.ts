@@ -255,6 +255,15 @@ export class FooterComponent implements Component {
 				),
 			);
 		}
+		// What tool results have cost this session's context window. Behind the
+		// experimental flag: it is instrumentation for measuring the boundary work,
+		// not something every session needs a permanent footer line for.
+		if (areExperimentalFeaturesEnabled()) {
+			const contextSummary = this.session.contextAccounting.summary();
+			if (contextSummary) {
+				lines.push(truncateToWidth(this.renderStyle.muted(contextSummary), width, this.renderStyle.dim("...")));
+			}
+		}
 		return lines;
 	}
 }
