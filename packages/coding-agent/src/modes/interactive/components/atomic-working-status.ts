@@ -2,8 +2,12 @@ import { type Component, Loader, type LoaderIndicatorOptions, Text, type TUI } f
 import { ansi256ToHex, fgAnsi, hexToRgb } from "../theme/color-utils.ts";
 import { theme } from "../theme/theme.ts";
 
-/** Orphus's literal one-cell identity follows the approved ten-step luminance ramp. */
-export const ORPHUS_WORKING_FRAMES = ["∀", "∀", "∀", "∀", "∀", "∀", "∀", "∀", "∀", "∀"] as const;
+/**
+ * Orphus's literal one-cell identity follows the approved ten-step luminance ramp.
+ * The mark is a round table seen from above with the decision at its centre — the
+ * glyph the harness is named for. It was `∀` while this tree was Atomic.
+ */
+export const ORPHUS_WORKING_FRAMES = ["⊙", "⊙", "⊙", "⊙", "⊙", "⊙", "⊙", "⊙", "⊙", "⊙"] as const;
 export const ORPHUS_WORKING_BOLD_PHASES = [false, false, false, false, true, true, true, false, false, false] as const;
 export const ORPHUS_WORKING_FRAME_MS = 88;
 

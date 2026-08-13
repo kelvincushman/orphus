@@ -18,6 +18,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { CONFIG_DIR_NAME } from "@bastani/atomic";
 import {
 	cleanupWorktrees as cleanupSubagentWorktrees,
 	createWorktrees as createSubagentWorktrees,
@@ -72,7 +73,7 @@ test("temporary worktree uses main-root path, flattened branch, and post-creatio
 			symlinkDirectories: ["deps"],
 		});
 		const worktree = setup.worktrees[0]!;
-		assert.equal(worktree.path, join(repo, ".atomic", "worktrees", "feature+name-0"));
+		assert.equal(worktree.path, join(repo, CONFIG_DIR_NAME, "worktrees", "feature+name-0"));
 		assert.equal(worktree.agentCwd, join(worktree.path, "packages", "api"));
 		assert.equal(worktree.branch, "worktree-feature+name-0");
 		assert.equal(runGitChecked(worktree.path, ["branch", "--show-current"]).trim(), worktree.branch);
@@ -108,7 +109,7 @@ test("non-ignored local settings propagate without leaking into patches and repe
 		assert.doesNotMatch(readFileSync(diff.patchPath, "utf8"), /settings\.(?:local\.)?json|secret/);
 		cleanupWorktrees(first);
 		first = undefined;
-		assert.equal(readFileSync(join(repo, ".atomic", "worktrees", ".gitignore"), "utf8"), "*\n");
+		assert.equal(readFileSync(join(repo, CONFIG_DIR_NAME, "worktrees", ".gitignore"), "utf8"), "*\n");
 		second = createWorktrees(repo, "settings/second", 1, { baseBranch: "main", symlinkDirectories: [] });
 		assert.equal(existsSync(second.worktrees[0]!.path), true);
 		writeFileSync(join(repo, "packages", "api", "tracked.txt"), "modified\n");
@@ -127,7 +128,7 @@ test("linked-worktree invocation anchors temporary worktrees at the main root", 
 		runGitChecked(repo, ["worktree", "add", "--detach", linked]);
 		setup = createWorktrees(join(linked, "packages", "api"), "inside/linked", 1, { baseBranch: "main" });
 		const created = setup.worktrees[0]!;
-		assert.equal(created.path, join(repo, ".atomic", "worktrees", "inside+linked-0"));
+		assert.equal(created.path, join(repo, CONFIG_DIR_NAME, "worktrees", "inside+linked-0"));
 		assert.equal(created.agentCwd, join(created.path, "packages", "api"));
 		assert.equal(created.branch, "worktree-inside+linked-0");
 	} finally {
@@ -241,7 +242,7 @@ test("subagent worktrees use the same linked-invocation lifecycle", () => {
 	try {
 		runGitChecked(repo, ["worktree", "add", "--detach", linked]);
 		setup = createSubagentWorktrees(linked, "subagent/nested", 1);
-		assert.equal(setup.worktrees[0]!.path, join(repo, ".atomic", "worktrees", "subagent+nested-0"));
+		assert.equal(setup.worktrees[0]!.path, join(repo, CONFIG_DIR_NAME, "worktrees", "subagent+nested-0"));
 		assert.equal(setup.worktrees[0]!.branch, "worktree-subagent+nested-0");
 	} finally {
 		if (setup) cleanupSubagentWorktrees(setup);
@@ -264,7 +265,7 @@ unixTest("post-creation setup failure removes the worktree and branch", () => {
 				}),
 			/invalid JSON/,
 		);
-		assert.equal(existsSync(join(repo, ".atomic", "worktrees", "failed+setup-0")), false);
+		assert.equal(existsSync(join(repo, CONFIG_DIR_NAME, "worktrees", "failed+setup-0")), false);
 		assert.equal(runGitChecked(repo, ["branch", "--list", "worktree-failed+setup-0"]).trim(), "");
 	} finally {
 		rmSync(root, { recursive: true, force: true });

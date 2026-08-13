@@ -187,13 +187,13 @@ describe("InteractiveMode compaction events", () => {
 		});
 	}
 
-	it("shows Atomic's ∀ indicator and a cancel hint while auto-compacting", async () => {
+	it("shows Atomic's ⊙ indicator and a cancel hint while auto-compacting", async () => {
 		const { mode } = makeMode();
 
 		await emit(mode, { type: "compaction_start", reason: "threshold" });
 
 		const status = renderedText(mode.statusContainer);
-		expect(status).toContain("∀ Auto-compacting... (esc Cancel)");
+		expect(status).toContain("⊙ Auto-compacting... (esc Cancel)");
 		expect(status).not.toMatch(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/);
 
 		await emit(mode, {
