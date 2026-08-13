@@ -156,3 +156,81 @@ jobs:
           path: .ci-diagnostics/
           if-no-files-found: ignore
           retention-days: 14
+
+  # The review gate. CodeRabbit reports its check as PASSING even when it
+  # declined to review — the summary comment then says "Review skipped", and
+  # the reason has twice been something nobody would notice: path filters that
+  # had silently become an allowlist (#69), and a file-count ceiling on a large
+  # rename (#82). A gate that goes green without reviewing is worse than no
+  # gate, because the process believes it ran.
+  #
+  # This job fails when the robot skipped, so a hollow gate is red. Two escapes,
+  # both deliberate and visible: the `review-exempt` label (for changes no robot
+  # can usefully review), or a `Substitute-review:` line in the PR body pointing
+  # at whatever stood in — an independent reviewer, a human pass, a fleet gate.
+  review-gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Require a review that actually ran
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # A failed labels read must not silently remove the escape hatch: an
+          # `if` condition suppresses set -e, so 403/5xx would read as "label
+          # absent". Capture, then branch.
+          labels=""
+          if ! labels=$(gh api "repos/$REPO/issues/$PR/labels" --jq '.[].name' 2>&1); then
+            echo "::error::Could not read PR labels, so the review-exempt escape hatch cannot be evaluated: $labels"
+            exit 1
+          fi
+          if printf '%s\n' "$labels" | grep -qx 'review-exempt'; then
+            echo "::notice::review-exempt label present — review gate waived deliberately."
+            exit 0
+          fi
+
+          body=$(gh api "repos/$REPO/pulls/$PR" --jq '.body // ""')
+          if printf '%s' "$body" | grep -qiE '^Substitute-review:[[:space:]]*\S'; then
+            echo "::notice::Substitute review declared in the PR body."
+            exit 0
+          fi
+
+          # Look for the reviewer's SKIP NOTICE anywhere in its comments, not
+          # just the newest one: any later comment (a chat auto-reply is enough)
+          # would otherwise displace it and turn the gate green on a PR that was
+          # never reviewed — the precise failure this job exists to prevent.
+          # --paginate applies --jq per page, so filter after collecting.
+          #
+          # The reviewer posts asynchronously on the same webhook that starts
+          # this job, so poll rather than fail on an empty list.
+          deadline=$(( $(date +%s) + 720 ))
+          while :; do
+            comments=$(gh api "repos/$REPO/issues/$PR/comments" --paginate 2>/dev/null \
+              | jq -s 'add // [] | map(select(.user.login | startswith("coderabbit")) | .body)')
+            count=$(printf '%s' "$comments" | jq 'length')
+
+            if [ "$count" -gt 0 ]; then
+              if printf '%s' "$comments" | jq -r '.[]' | grep -qiE 'review (was )?skipped'; then
+                echo "::error::The automated review reported its check as PASSING but SKIPPED the review."
+                printf '%s' "$comments" | jq -r '.[]' | grep -iE 'skipped|exceed|filter' | head -5 || true
+                echo "::error::Fix the cause, split the PR, or declare a substitute: add a 'Substitute-review: <what reviewed this>' line to the PR body, or the review-exempt label."
+                exit 1
+              fi
+              echo "Automated review completed with no skip notice."
+              exit 0
+            fi
+
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "::error::No automated-review comment appeared within 12 minutes. This gate needs a completed review, the review-exempt label, or a 'Substitute-review:' line in the PR body."
+              exit 1
+            fi
+            sleep 30
+          done
