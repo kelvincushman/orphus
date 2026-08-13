@@ -1,6 +1,6 @@
 # Shell Aliases
 
-Atomic runs bash in non-interactive mode (`bash -c`), which doesn't expand aliases by default.
+Orphus runs bash in non-interactive mode (`bash -c`), which doesn't expand aliases by default.
 
 To enable your shell aliases, add to `~/.atomic/agent/settings.json` (legacy `~/.pi/agent/settings.json` is also read):
 

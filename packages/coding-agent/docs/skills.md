@@ -1,10 +1,10 @@
-> Atomic can create skills. Ask it to build one for your use case.
+> Orphus can create skills. Ask it to build one for your use case.
 
 # Skills
 
 Skills are self-contained capability packages that the agent loads on-demand. A skill provides specialized workflows, setup instructions, helper scripts, and reference documentation for specific tasks.
 
-Atomic implements the [Agent Skills standard](https://agentskills.io/specification), warning about violations but remaining lenient.
+Orphus implements the [Agent Skills standard](https://agentskills.io/specification), warning about violations but remaining lenient.
 
 ## Table of Contents
 
@@ -21,7 +21,7 @@ Atomic implements the [Agent Skills standard](https://agentskills.io/specificati
 
 > **Security:** Skills can instruct the model to perform any action and may include executable code the model invokes. Review skill content before use.
 
-Atomic loads skills from:
+Orphus loads skills from:
 
 - Global:
   - `~/.atomic/agent/skills/` (legacy `~/.pi/agent/skills/`)
@@ -63,7 +63,7 @@ For project-level Claude Code skills, add to `.atomic/settings.json` (legacy `.p
 
 ## How Skills Work
 
-1. At startup, Atomic scans skill locations and extracts names and descriptions
+1. At startup, Orphus scans skill locations and extracts names and descriptions
 2. The system prompt includes available skills in XML format per the [specification](https://agentskills.io/integrate-skills)
 3. When a task matches, the agent uses `read` to load the full SKILL.md (models don't always do this; use prompting or `/skill:name` to force it)
 4. The agent follows the instructions, using relative paths to reference scripts and assets
@@ -183,7 +183,7 @@ description: Helps with PDFs.
 
 ## Validation
 
-Atomic validates skills against the Agent Skills standard. Most issues produce warnings but still load the skill:
+Orphus validates skills against the Agent Skills standard. Most issues produce warnings but still load the skill:
 
 - Name doesn't match parent directory
 - Name exceeds 64 characters or contains invalid characters

@@ -18,7 +18,7 @@ npm run test:unit
 npm run build --workspace=@bastani/atomic
 ```
 
-Atomic keeps the caller's current working directory when launched from development wrappers.
+Orphus keeps the caller's current working directory when launched from development wrappers.
 
 ## Forking / Rebranding
 
@@ -33,7 +33,7 @@ Configure via `package.json`:
 }
 ```
 
-Change `name`, `configDir`, and the `bin` field for your fork. The app-specific `<appName>Config` key is preferred; legacy `piConfig` remains a backwards-compatible shim. Atomic sets these to `atomic`, `.atomic`, and the `atomic` executable. Affects CLI banner, config paths, and environment variable names.
+Change `name`, `configDir`, and the `bin` field for your fork. The app-specific `<appName>Config` key is preferred; legacy `piConfig` remains a backwards-compatible shim. Orphus sets these to `orphus`, `.orphus`, and the `orphus` executable (with the Atomic and Pi spellings accepted as legacy fallbacks). Affects CLI banner, config paths, and environment variable names.
 
 ## Path Resolution
 
@@ -87,8 +87,8 @@ Atomic's release bases remain at the `0.0.0` placeholder. `scripts/cut-release.t
 
 ```
 packages/
-  coding-agent/ # Atomic CLI, agent loop, providers, TUI, and core runtime
-  workflows/    # First-party workflow extension bundled into Atomic
+  coding-agent/ # Orphus CLI, agent loop, providers, TUI, and core runtime
+  workflows/    # First-party workflow extension bundled into Orphus
   subagents/    # Built-in subagent orchestration and reusable agents
   mcp/          # Built-in MCP adapter extension
   web-access/   # Built-in web search and content extraction tools

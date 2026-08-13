@@ -1,6 +1,6 @@
 # Windows Setup
 
-Atomic requires a bash shell on Windows. Checked locations (in order):
+Orphus requires a bash shell on Windows. Checked locations (in order):
 
 1. Custom path from `~/.atomic/agent/settings.json` (legacy `~/.pi/agent/settings.json` also supported)
 2. Git Bash (`C:\Program Files\Git\bin\bash.exe`)
@@ -18,12 +18,12 @@ For most users, [Git for Windows](https://git-scm.com/download/win) is sufficien
 
 ## Filesystem Watchers
 
-On Windows, Atomic canonicalizes paths before starting native filesystem watchers. If a watcher target cannot be canonicalized or still contains an unsafe 8.3 short-name component such as `USERNA~1`, Atomic avoids native `fs.watch` for that target and uses polling where the feature supports it. This protects long-running sessions, async subagent result notifications, footer git status refreshes, and custom theme reloads from Windows/libuv path-prefix assertion crashes.
+On Windows, Orphus canonicalizes paths before starting native filesystem watchers. If a watcher target cannot be canonicalized or still contains an unsafe 8.3 short-name component such as `USERNA~1`, Orphus avoids native `fs.watch` for that target and uses polling where the feature supports it. This protects long-running sessions, async subagent result notifications, footer git status refreshes, and custom theme reloads from Windows/libuv path-prefix assertion crashes.
 
 ## Self-Update Behavior
 
-`atomic update --self` can update Windows installations that Atomic can identify as writable global package-manager installs. `atomic update` includes the same self-update step before updating packages unless you pass `--extensions`.
+`atomic update --self` can update Windows installations that Orphus can identify as writable global package-manager installs. `atomic update` includes the same self-update step before updating packages unless you pass `--extensions`.
 
-When self-update starts on Windows, Atomic first cleans any previous `.atomic-native-quarantine` directory under the global package root. If native add-ons from the current install are loaded by the running process, Atomic moves those files into a per-run quarantine directory and copies them back into place before invoking the package manager. This lets the package manager replace native dependency files that Windows would otherwise keep locked.
+When self-update starts on Windows, Orphus first cleans any previous `.atomic-native-quarantine` directory under the global package root. If native add-ons from the current install are loaded by the running process, Orphus moves those files into a per-run quarantine directory and copies them back into place before invoking the package manager. This lets the package manager replace native dependency files that Windows would otherwise keep locked.
 
-If Atomic cannot safely self-update the current installation, it exits with a clear message instead of guessing. The message explains that the install is unsupported, unmanaged, or not writable; prints the detected executable path when available; and tells you to update Atomic with the package manager, wrapper, source checkout, or release artifact that originally installed it. Standalone Bun binaries direct users to the current [Atomic releases](https://github.com/bastani-inc/atomic/releases/latest), never upstream Pi artifacts.
+If Orphus cannot safely self-update the current installation, it exits with a clear message instead of guessing. The message explains that the install is unsupported, unmanaged, or not writable; prints the detected executable path when available; and tells you to update Orphus with the package manager, wrapper, source checkout, or release artifact that originally installed it. Standalone Bun binaries direct users to the current [Orphus releases](https://github.com/bastani-inc/atomic/releases/latest), never upstream Pi artifacts.

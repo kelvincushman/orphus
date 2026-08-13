@@ -1,4 +1,4 @@
-# Using Atomic
+# Using Orphus
 
 This page collects day-to-day usage details that do not fit on the quickstart page.
 
@@ -19,7 +19,7 @@ The editor can be replaced temporarily by built-in UI such as `/settings` or by 
 
 On an interactive TTY, the startup ∀ assembles from two separated halves in whole-column steps, lands its shadow and session identity, then reveals the one-time manifesto beat. Any key—including Ctrl+C—completes the sequence immediately before normal input routing continues. Terminals narrower than the mark show compact textual identity throughout assembly instead of a blank startup area. Quiet startup suppresses the sequence; a mounted interactive UI without a TTY, or with `ORPHUS_REDUCED_MOTION=1`, starts in the complete settled state. `NO_COLOR` suppresses foreground color across the mark, metadata, and manifesto while retaining weight emphasis.
 
-While ordinary agent work is active, the exact one-cell `∀` remains visible and follows a pronounced ten-frame dark → accent → bright/bold → accent → dark luminance ramp at an 88ms cadence. Optional theme tone overrides control any terminal-supported foreground phase exactly, including palette indices 0–255; Atomic derives omitted tones from selected-surface, `accent`, and `text` roles. Dark, light, custom, and dynamically reloaded themes therefore remain correct without changing glyph shape or geometry. It occupies the same inline, one-row footprint as the standard spinner: one glyph immediately before the existing text. Main and workflow-stage chat preserve all 453 of Atomic's original randomized whimsical working verbs, selecting one message per turn; even the longest fits the tested 64-column surface. Every agent and SDK turn resets to the dark regular phase with a fresh lifecycle-relative cadence, while turn, terminal, error, replacement, and disposal paths stop the active timer cleanly. Restoring the ordinary indicator after an extension override also resets its phase and cadence; extension-provided frames and intervals remain unchanged and render verbatim. Under `NO_COLOR`, regular/bold weight preserves visible activity without foreground-color escapes. With `ORPHUS_REDUCED_MOTION=1`, `∀` remains static, regular, and accent-colored without an animation timer. Factual retry, fallback, error, cancellation, and compaction status suppresses the thematic indicator, while blocker and human-approval/prompt surfaces hide ordinary work chrome and factual receipts remain verbatim.
+While ordinary agent work is active, the exact one-cell `∀` remains visible and follows a pronounced ten-frame dark → accent → bright/bold → accent → dark luminance ramp at an 88ms cadence. Optional theme tone overrides control any terminal-supported foreground phase exactly, including palette indices 0–255; Orphus derives omitted tones from selected-surface, `accent`, and `text` roles. Dark, light, custom, and dynamically reloaded themes therefore remain correct without changing glyph shape or geometry. It occupies the same inline, one-row footprint as the standard spinner: one glyph immediately before the existing text. Main and workflow-stage chat preserve all 453 of Atomic's original randomized whimsical working verbs, selecting one message per turn; even the longest fits the tested 64-column surface. Every agent and SDK turn resets to the dark regular phase with a fresh lifecycle-relative cadence, while turn, terminal, error, replacement, and disposal paths stop the active timer cleanly. Restoring the ordinary indicator after an extension override also resets its phase and cadence; extension-provided frames and intervals remain unchanged and render verbatim. Under `NO_COLOR`, regular/bold weight preserves visible activity without foreground-color escapes. With `ORPHUS_REDUCED_MOTION=1`, `∀` remains static, regular, and accent-colored without an animation timer. Factual retry, fallback, error, cancellation, and compaction status suppresses the thematic indicator, while blocker and human-approval/prompt surfaces hide ordinary work chrome and factual receipts remain verbatim.
 
 ### Editor Features
 
@@ -61,8 +61,8 @@ Type `/` in the editor to open command completion. Extensions can register custo
 | `/reload` | Reload keybindings, extensions, skills, prompts, and context files |
 | `/hotkeys` | Show all keyboard shortcuts |
 | `/changelog` | Display version history |
-| `/exit` | Exit Atomic |
-| `/quit` | Quit Atomic |
+| `/exit` | Exit Orphus |
+| `/quit` | Quit Orphus |
 
 ## Message Queue
 
@@ -74,9 +74,9 @@ You can submit messages while the agent is still working:
 - **Ctrl+C** aborts active/queued work and pauses queued messages in place. They remain queued, in their original per-queue order, until you submit the next ordinary chat message; that submission resumes the chat and makes each queued item eligible once. After the abort settles, a later idle Ctrl+C clears the editor without releasing the hold, and a second quick idle press exits.
 - **ALT+Up** explicitly retrieves queued messages back to the editor without aborting active work or resuming a paused session. Even when retrieval empties the queue, the pause remains active until the next ordinary submission.
 
-Both abort routes are cooperative: they ask the agent to stop and wait for it — Escape waits as long as the agent needs — and never terminate the engine that runs your tools. Ctrl+C additionally acts as an escape hatch: it always reaches Atomic when an extension's custom UI has taken over the screen — closing that UI if it does not handle the key itself — and it replaces the engine when it stops answering entirely, including a replacement that hangs before it finishes starting or one that failed to start. A message that could not be sent comes back to the editor rather than being lost: exactly as you typed it, with pasted content intact, placed above anything you typed while the send was pending and separated by a blank line, together with anything still queued behind it in the order you entered it. Atomic does not also show a red error for it. See [Keybindings](/keybindings#application).
+Both abort routes are cooperative: they ask the agent to stop and wait for it — Escape waits as long as the agent needs — and never terminate the engine that runs your tools. Ctrl+C additionally acts as an escape hatch: it always reaches Orphus when an extension's custom UI has taken over the screen — closing that UI if it does not handle the key itself — and it replaces the engine when it stops answering entirely, including a replacement that hangs before it finishes starting or one that failed to start. A message that could not be sent comes back to the editor rather than being lost: exactly as you typed it, with pasted content intact, placed above anything you typed while the send was pending and separated by a blank line, together with anything still queued behind it in the order you entered it. Orphus does not also show a red error for it. See [Keybindings](/keybindings#application).
 
-On Windows Terminal, ALT+Enter is fullscreen by default. Remap it as described in [Terminal setup](/terminal-setup) if you want Atomic to receive the shortcut.
+On Windows Terminal, ALT+Enter is fullscreen by default. Remap it as described in [Terminal setup](/terminal-setup) if you want Orphus to receive the shortcut.
 
 Configure delivery in [Settings](/settings) with `steeringMode` and `followUpMode`.
 
@@ -94,7 +94,7 @@ atomic --name "Refactor"   # Set the session display name
 atomic --fork <path|id>    # Fork a session into a new session file
 ```
 
-When `--session-id` does not match an exact session in the current project, Atomic warns that no session was found and then creates the requested new session. Reusing an existing exact ID opens it without that warning.
+When `--session-id` does not match an exact session in the current project, Orphus warns that no session was found and then creates the requested new session. Reusing an existing exact ID opens it without that warning.
 
 Useful session commands:
 
@@ -102,13 +102,13 @@ Useful session commands:
 - `/tree` navigates the in-file session tree and can summarize abandoned branches.
 - `/fork` creates a new session from an earlier user message.
 - `/clone` duplicates the current active branch into a new session file.
-- `/compact` uses verbatim line compaction: the model selects one-based numbered ranges to delete, Atomic validates them, and retained text is reconstructed mechanically with `(filtered N lines)` markers. Exactly the configured number of newest context-visible messages remains ordinary; the default is two and zero preserves none.
+- `/compact` uses verbatim line compaction: the model selects one-based numbered ranges to delete, Orphus validates them, and retained text is reconstructed mechanically with `(filtered N lines)` markers. Exactly the configured number of newest context-visible messages remains ordinary; the default is two and zero preserves none.
 
 See [Sessions](/sessions) and [Compaction](/compaction) for details.
 
 ## Context Files
 
-Atomic loads `AGENTS.md` or `CLAUDE.md` at startup from:
+Orphus loads `AGENTS.md` or `CLAUDE.md` at startup from:
 
 - `~/.atomic/agent/AGENTS.md` for global instructions
 - parent directories, walking up from the current working directory
@@ -118,7 +118,7 @@ Use context files for project conventions, commands, safety rules, and preferenc
 
 ### System Prompt Files
 
-Atomic's default `Guidelines` section applies Orwell's six writing rules to every standard session:
+Orphus's default `Guidelines` section applies Orwell's six writing rules to every standard session:
 
 1. Never use a familiar printed metaphor, simile, or figure of speech.
 2. Never use a long word where a short one will do.
@@ -160,19 +160,19 @@ atomic --print -- "- leading-dash prompt"
 atomic install <source> [-l]       # Install package, -l for project-local
 atomic remove <source> [-l]        # Remove package
 atomic uninstall <source> [-l]     # Alias for remove
-atomic update [source|self|atomic] # Update Atomic only, or one package source
-atomic update --all                # Update Atomic and packages; reconcile pinned git refs
+atomic update [source|self|atomic] # Update Orphus only, or one package source
+atomic update --all                # Update Orphus and packages; reconcile pinned git refs
 atomic update --extensions         # Update packages only; reconcile pinned git refs
 atomic update --models             # Force-refresh authenticated provider model catalogs
-atomic update --self               # Update Atomic only
+atomic update --self               # Update Orphus only
 atomic update --extension <src>    # Update one package
 atomic list                        # List installed packages
 atomic config                      # Enable/disable package resources
 ```
 
-These commands manage Atomic packages and `atomic update` can update the Atomic CLI installation. To uninstall Atomic itself, see [Quickstart](/quickstart#uninstall). `atomic config` and project package commands accept `--approve`/`--no-approve` to trust or ignore project-local settings for one command. `atomic update` never prompts for project trust.
+These commands manage Orphus packages and `atomic update` can update the Orphus CLI installation. To uninstall Orphus itself, see [Quickstart](/quickstart#uninstall). `atomic config` and project package commands accept `--approve`/`--no-approve` to trust or ignore project-local settings for one command. `atomic update` never prompts for project trust.
 
-See [Atomic Packages](/packages) for package sources and security notes.
+See [Orphus Packages](/packages) for package sources and security notes.
 
 ### Credential Commands
 
@@ -181,7 +181,7 @@ atomic auth print-api-key --model <model> [--provider <p>]
 atomic auth print-bearer-token --model <model> [--provider <p>] [--min-expiry <dur>]
 ```
 
-Print one configured credential for an external client — a proxy, a script, or another tool that needs the same key Atomic already holds. The credential goes to **stdout and nothing else**; warnings, provider selection, refresh notices, and help all go to stderr, so `KEY=$(atomic auth print-api-key --model gpt-5.5)` can never capture a diagnostic.
+Print one configured credential for an external client — a proxy, a script, or another tool that needs the same key Orphus already holds. The credential goes to **stdout and nothing else**; warnings, provider selection, refresh notices, and help all go to stderr, so `KEY=$(atomic auth print-api-key --model gpt-5.5)` can never capture a diagnostic.
 
 `--model` is required. There is no ambient "current model", so the command cannot emit a credential you did not name. When several configured providers offer the model, pass `--provider` to choose one. `--provider` and `--model` are the only options either subcommand accepts: any other flag — including `--export`, `--session-dir`, `--print`, and `--help` — is a usage error rather than a flag this path happens to ignore.
 
@@ -216,13 +216,13 @@ Stdout is empty on every non-zero exit but one. Once the credential reaches stdo
 | `--mode rpc` | RPC mode over stdin/stdout; see [RPC mode](/rpc) |
 | `--export <in> [out]` | Export a session to HTML |
 
-In print mode, Atomic also reads piped stdin and merges it into the initial prompt:
+In print mode, Orphus also reads piped stdin and merges it into the initial prompt:
 
 ```bash
 cat README.md | atomic -p "Summarize this text"
 ```
 
-When a print-mode turn correctly finishes by calling an opt-in terminating structured-output tool created with `createStructuredOutputTool` (for example from an extension, SDK caller, or workflow item with a schema), Atomic ends after that tool result without an extra follow-up assistant turn. Print-mode stdout contains the terminating structured JSON payload, so `atomic -p` remains script-friendly while the same value is also available through the SDK `capture` sink, tool `details`, a configured file sink, workflow `result.structured`, or subagent `result.structuredOutput`. This also works for custom factory names such as `final_decision`. Non-terminating or unrelated tool results are not printed as the final response.
+When a print-mode turn correctly finishes by calling an opt-in terminating structured-output tool created with `createStructuredOutputTool` (for example from an extension, SDK caller, or workflow item with a schema), Orphus ends after that tool result without an extra follow-up assistant turn. Print-mode stdout contains the terminating structured JSON payload, so `atomic -p` remains script-friendly while the same value is also available through the SDK `capture` sink, tool `details`, a configured file sink, workflow `result.structured`, or subagent `result.structuredOutput`. This also works for custom factory names such as `final_decision`. Non-terminating or unrelated tool results are not printed as the final response.
 
 ### Model Options
 
@@ -345,15 +345,15 @@ atomic --tools read,search,find,ls -p "Review the code"
 | `ORPHUS_PACKAGE_DIR` | Override package directory, useful for Nix/Guix store paths |
 | `ORPHUS_REDUCED_MOTION` | Set to `1` to skip startup choreography and render the ordinary working identity as a static regular accent `∀` without a timer |
 | `ORPHUS_OFFLINE` | Disable startup network operations, including update checks, package update checks, and install/update telemetry |
-| `ORPHUS_SKIP_VERSION_CHECK` | Skip the Atomic version update check at startup. This prevents the latest-version request |
+| `ORPHUS_SKIP_VERSION_CHECK` | Skip the Orphus version update check at startup. This prevents the latest-version request |
 | `ORPHUS_TELEMETRY` | Override install/update telemetry: `1`/`true`/`yes` or `0`/`false`/`no`. This does not disable update checks |
-| `NODE_COMPILE_CACHE` | Override the directory for Node's persistent compile cache, which Atomic enables automatically on Node >= 22.8 to speed up startup (most noticeable on Windows). Set `NODE_DISABLE_COMPILE_CACHE=1` to opt out |
+| `NODE_COMPILE_CACHE` | Override the directory for Node's persistent compile cache, which Orphus enables automatically on Node >= 22.8 to speed up startup (most noticeable on Windows). Set `NODE_DISABLE_COMPILE_CACHE=1` to opt out |
 | `PI_CACHE_RETENTION` | Provider/upstream-specific prompt-cache retention knob; set to `long` where supported |
 | `VISUAL`, `EDITOR` | External editor for CTRL+G |
 
 Every foreground or background bash execution receives one execution-time snapshot of the active session:
 
-| Atomic variable | Exact compatibility alias | Value |
+| Orphus variable | Exact compatibility alias | Value |
 |-----------------|---------------------------|-------|
 | `ORPHUS_SESSION_ID` | `PI_SESSION_ID` | Active session ID |
 | `ORPHUS_SESSION_FILE` | `PI_SESSION_FILE` | Active session JSONL path; omitted for unsaved sessions |
@@ -361,12 +361,12 @@ Every foreground or background bash execution receives one execution-time snapsh
 | `ORPHUS_MODEL` | `PI_MODEL` | Active model ID; omitted when no model is selected |
 | `ORPHUS_REASONING_LEVEL` | `PI_REASONING_LEVEL` | Active reasoning level |
 
-The snapshot is taken when the command executes, not when the tool is created, so resumed sessions, workflow stages, isolated sessions, model changes, and concurrent sessions cannot reuse stale metadata. Atomic preserves all unrelated inherited and caller-supplied environment variables; only the ten names above are cleared and overlaid. Factory-created bash tools expose the same metadata by default and can set `exposeSessionEnvironment: false` to omit it.
+The snapshot is taken when the command executes, not when the tool is created, so resumed sessions, workflow stages, isolated sessions, model changes, and concurrent sessions cannot reuse stale metadata. Orphus preserves all unrelated inherited and caller-supplied environment variables; only the ten names above are cleared and overlaid. Factory-created bash tools expose the same metadata by default and can set `exposeSessionEnvironment: false` to omit it.
 
-`PI_*` aliases are also supported for app-specific `ORPHUS_*` variables for legacy compatibility. For example, [Intercom](/intercom) honors `PI_CODING_AGENT_DIR` when `ORPHUS_CODING_AGENT_DIR` is unset and still reads legacy `~/.pi/agent/intercom/config.json` when the Atomic config is absent. `PI_CACHE_RETENTION` is not one of those aliases and has no `ORPHUS_*` equivalent. Use `PI_CACHE_RETENTION=long` when configuring prompt-cache retention for providers/upstreams that support long-lived caches. Intercom's default broker starter works across Node-based installs, Bun source checkouts, and standalone Atomic binaries without requiring `npx`, `tsx`, or `bun` to be present on `PATH`; custom broker commands remain explicit opt-in overrides.
+`PI_*` aliases are also supported for app-specific `ORPHUS_*` variables for legacy compatibility. For example, [Intercom](/intercom) honors `PI_CODING_AGENT_DIR` when `ORPHUS_CODING_AGENT_DIR` is unset and still reads legacy `~/.pi/agent/intercom/config.json` when the Orphus config is absent. `PI_CACHE_RETENTION` is not one of those aliases and has no `ORPHUS_*` equivalent. Use `PI_CACHE_RETENTION=long` when configuring prompt-cache retention for providers/upstreams that support long-lived caches. Intercom's default broker starter works across Node-based installs, Bun source checkouts, and standalone Orphus binaries without requiring `npx`, `tsx`, or `bun` to be present on `PATH`; custom broker commands remain explicit opt-in overrides.
 
 ## Design Principles
 
-Atomic keeps the core CLI small, while this distribution bundles first-party package extensions for workflows, subagents, MCP, web access, and [intercom](/intercom). Other workflows can still be installed as extensions or packages, or handled externally with tools such as containers and tmux.
+Orphus keeps the core CLI small, while this distribution bundles first-party package extensions for workflows, subagents, MCP, web access, and [intercom](/intercom). Other workflows can still be installed as extensions or packages, or handled externally with tools such as containers and tmux.
 
 For the full rationale, read the [blog post](https://mariozechner.at/posts/2025-11-30-pi-coding-agent/).

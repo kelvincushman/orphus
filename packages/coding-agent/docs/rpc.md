@@ -31,7 +31,7 @@ If a complete saved provider/model default names a provider that remains unsuppo
 
 RPC mode uses strict JSONL semantics with LF (`\n`) as the only record delimiter.
 
-Atomic does not impose a size limit on RPC or isolated interactive-engine JSONL records. Commands, responses, events, and render frames are serialized in full. Clients and extensions must account for the memory and latency cost of large records and must not add a smaller line limit unless they intend to reject valid Atomic output.
+Orphus does not impose a size limit on RPC or isolated interactive-engine JSONL records. Commands, responses, events, and render frames are serialized in full. Clients and extensions must account for the memory and latency cost of large records and must not add a smaller line limit unless they intend to reject valid Orphus output.
 
 This matters for clients:
 - Split records on `\n` only
@@ -280,7 +280,7 @@ Response contains an array of full [Model](#model) objects:
 }
 ```
 
-The subprocess protocol returns full `Model` objects. The exported TypeScript `RpcClient.getAvailableModels()` keeps its smaller backward-compatible `ModelInfo` shape (`provider`, `id`, `contextWindow`, `reasoning`) and adds optional `compat`. When present, `compat` exposes constrained-sampling capability claims including `supportsStrictTools`, `supportsStrictMode`, canonical `supportsOpenAIGrammarTools`, and Atomic's synchronized `supportsGrammarTools` alias. Treat absence as unknown/unsupported; do not infer enforcement from the provider name.
+The subprocess protocol returns full `Model` objects. The exported TypeScript `RpcClient.getAvailableModels()` keeps its smaller backward-compatible `ModelInfo` shape (`provider`, `id`, `contextWindow`, `reasoning`) and adds optional `compat`. When present, `compat` exposes constrained-sampling capability claims including `supportsStrictTools`, `supportsStrictMode`, canonical `supportsOpenAIGrammarTools`, and Orphus's synchronized `supportsGrammarTools` alias. Treat absence as unknown/unsupported; do not infer enforcement from the provider name.
 
 ```typescript
 const models = await client.getAvailableModels();
@@ -412,7 +412,7 @@ Response:
 
 #### compact
 
-Run Atomic's verbatim line compactor. The selected session model receives the complete active numbered transcript except for exactly the newest `preserve_recent` context-visible messages and returns bare `start,end` deletion records; Atomic validates them and mechanically reconstructs retained lines with `(filtered N lines)` markers. The default tail is two messages, with no user-turn alignment. A value of zero sends the entire active transcript and persists `firstKeptEntryId: null`. The command appends a durable `compaction` entry with `details.strategy: "verbatim-lines"`.
+Run Orphus's verbatim line compactor. The selected session model receives the complete active numbered transcript except for exactly the newest `preserve_recent` context-visible messages and returns bare `start,end` deletion records; Orphus validates them and mechanically reconstructs retained lines with `(filtered N lines)` markers. The default tail is two messages, with no user-turn alignment. A value of zero sends the entire active transcript and persists `firstKeptEntryId: null`. The command appends a durable `compaction` entry with `details.strategy: "verbatim-lines"`.
 
 ```json
 {"type": "compact"}
@@ -517,7 +517,7 @@ Response:
 }
 ```
 
-While the command runs, Atomic emits ordered deltas correlated by the command `id`:
+While the command runs, Orphus emits ordered deltas correlated by the command `id`:
 
 ```json
 {"type":"bash_execution_update","id":"req-1","channel":"stdout","delta":"building...\n"}
@@ -1099,7 +1099,7 @@ If compaction failed (e.g., API quota exceeded), `result` is `null`, `aborted` i
 
 If overflow recovery exhausts the same-model compact-and-retry attempt, `compaction_end` includes `"unresolvedOverflow": true` and an `errorMessage`. Workflow orchestration treats that signal as a context-length failure that can advance configured model fallback tiers.
 
-There is no `context_compact` command; Atomic reports it as an unknown command. Use `compact`. Only `compaction_start` and `compaction_end` events are emitted.
+There is no `context_compact` command; Orphus reports it as an unknown command. Use `compact`. Only `compaction_start` and `compaction_end` events are emitted.
 
 ### auto_retry_start / auto_retry_end
 
@@ -1420,7 +1420,7 @@ Source files and installed definitions:
 }
 ```
 
-`contextWindow` is the model's token budget used by Atomic's local budgeting, footer/stats, and compaction logic.
+`contextWindow` is the model's token budget used by Orphus's local budgeting, footer/stats, and compaction logic.
 
 ### UserMessage
 

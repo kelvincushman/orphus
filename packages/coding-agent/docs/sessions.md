@@ -1,6 +1,6 @@
 # Sessions
 
-Atomic saves conversations as sessions so you can continue work, branch from earlier turns, and revisit previous paths.
+Orphus saves conversations as sessions so you can continue work, branch from earlier turns, and revisit previous paths.
 
 ## Session Storage
 
@@ -19,7 +19,7 @@ Use `/session` in interactive mode to see the current session file, session ID, 
 
 ### Custom session directories
 
-Use `--session-dir <dir>`, `ORPHUS_CODING_AGENT_SESSION_DIR`, or the matching settings override to save the active chat session outside the default `~/.atomic/agent/sessions/` store. When a workflow runs from a session that uses one of these non-default directories, Atomic also writes workflow stage transcripts to that same directory so a headless command such as `atomic --mode json --session-dir <dir> -p '/workflow <name> ...'` captures the main transcript and all stage transcripts together. Workflow definitions can still set a per-stage `sessionDir`; that explicit stage directory wins over the inherited host directory. If the host session uses the default session store, workflow stages keep the previous default behavior and write to the global store unless a stage explicitly sets `sessionDir`.
+Use `--session-dir <dir>`, `ORPHUS_CODING_AGENT_SESSION_DIR`, or the matching settings override to save the active chat session outside the default `~/.atomic/agent/sessions/` store. When a workflow runs from a session that uses one of these non-default directories, Orphus also writes workflow stage transcripts to that same directory so a headless command such as `atomic --mode json --session-dir <dir> -p '/workflow <name> ...'` captures the main transcript and all stage transcripts together. Workflow definitions can still set a per-stage `sessionDir`; that explicit stage directory wins over the inherited host directory. If the host session uses the default session store, workflow stages keep the previous default behavior and write to the global store unless a stage explicitly sets `sessionDir`.
 
 For the JSONL file format and SessionManager API, see [Session Format](/session-format).
 
@@ -42,7 +42,7 @@ For the JSONL file format and SessionManager API, see [Session Format](/session-
 
 `/resume` opens an interactive session picker for the current project. `atomic -r` opens the same picker at startup.
 
-When Atomic reconstructs a resumed session, the latest active verbatim `compaction` entry supplies one boundary text message: the durable compacted transcript string with the kept tail serialized and appended to its end rather than replayed as separate message blocks. A zero-retention boundary stores `firstKeptEntryId: null` and replays no pre-boundary ordinary message. Resume does not rerun a planner or re-derive omissions. Legacy logical-deletion `context_compaction` entries are inert archival records, so previously hidden content can re-enter context in sessions created by older versions.
+When Orphus reconstructs a resumed session, the latest active verbatim `compaction` entry supplies one boundary text message: the durable compacted transcript string with the kept tail serialized and appended to its end rather than replayed as separate message blocks. A zero-retention boundary stores `firstKeptEntryId: null` and replays no pre-boundary ordinary message. Resume does not rerun a planner or re-derive omissions. Legacy logical-deletion `context_compaction` entries are inert archival records, so previously hidden content can re-enter context in sessions created by older versions.
 
 In the picker you can:
 
@@ -53,7 +53,7 @@ In the picker you can:
 - rename with CTRL+R
 - delete with CTRL+D, then confirm
 
-When available, Atomic uses the `trash` CLI for deletion instead of permanently removing files.
+When available, Orphus uses the `trash` CLI for deletion instead of permanently removing files.
 
 The picker opens instantly: its header, search field, and loading indicator paint on the first frame, then sessions are discovered and parsed off the terminal's UI loop. Large session directories are scanned in cooperative batches and a single very large transcript is parsed in yielding chunks, so search, navigation, and cancel stay responsive and no individual session can freeze the picker while it loads. Closing the picker cancels any in-flight scan and discards stale results, so a slow load that finishes after you leave never updates the list.
 
@@ -142,7 +142,7 @@ Use `/tree` when you want to keep alternatives together. Use `/fork` or `/clone`
 
 ## Branch Summaries
 
-When `/tree` switches away from one branch to another, Atomic can summarize the abandoned branch and attach that summary at the new position. This preserves important context from the path you left without replaying the whole branch.
+When `/tree` switches away from one branch to another, Orphus can summarize the abandoned branch and attach that summary at the new position. This preserves important context from the path you left without replaying the whole branch.
 
 When prompted, choose one of:
 

@@ -1,6 +1,6 @@
 # Providers
 
-Atomic supports subscription-based providers via OAuth and API-key providers via environment variables or the auth file. Built-in catalogs ship with Atomic; configured and native providers may refresh newer catalogs independently and cache them in `~/.atomic/agent/models-store.json` for offline use.
+Orphus supports subscription-based providers via OAuth and API-key providers via environment variables or the auth file. Built-in catalogs ship with Orphus; configured and native providers may refresh newer catalogs independently and cache them in `~/.atomic/agent/models-store.json` for offline use.
 
 ## Table of Contents
 
@@ -25,11 +25,11 @@ Use `/login` in interactive mode, then select a provider:
 - xAI (Grok/X subscription)
 - Radius
 
-Use `/login <provider>` (for example `/login openrouter` or `/login kimi-coding`) to jump directly to a provider, then select subscription or API-key authentication when both are available. OpenRouter opens its provider-owned browser PKCE flow and asks whether it should mint a new API key; complete the browser redirect before returning to Atomic. On a remote or headless machine the browser cannot reach the loopback callback, so the OpenRouter login also accepts a pasted value: give it the final redirect URL, or the authorization code on its own. Claude and ChatGPT (Codex) offer the same paste fallback, as does an extension provider that sets `usesCallbackServer`. Kimi Code displays its provider-owned device URL/code and polls until approval, then refreshes expired tokens automatically. Built-in and extension-provided OAuth use the same direct and isolated-session lifecycle: engine-only extensions expose only safe display metadata to the terminal, while acquisition, transactional persistence, and logout remain engine-owned. Credentials and executable provider functions never cross to the isolated frontend; model-catalog refresh is separate bounded background work.
+Use `/login <provider>` (for example `/login openrouter` or `/login kimi-coding`) to jump directly to a provider, then select subscription or API-key authentication when both are available. OpenRouter opens its provider-owned browser PKCE flow and asks whether it should mint a new API key; complete the browser redirect before returning to Orphus. On a remote or headless machine the browser cannot reach the loopback callback, so the OpenRouter login also accepts a pasted value: give it the final redirect URL, or the authorization code on its own. Claude and ChatGPT (Codex) offer the same paste fallback, as does an extension provider that sets `usesCallbackServer`. Kimi Code displays its provider-owned device URL/code and polls until approval, then refreshes expired tokens automatically. Built-in and extension-provided OAuth use the same direct and isolated-session lifecycle: engine-only extensions expose only safe display metadata to the terminal, while acquisition, transactional persistence, and logout remain engine-owned. Credentials and executable provider functions never cross to the isolated frontend; model-catalog refresh is separate bounded background work.
 
-Escape or Ctrl+C quietly cancels the matching login, including immediate/pre-device native aborts, and leaves the previously committed credential and catalog unchanged. Provider denial, device expiry, timeout, browser/network/protocol failure, malformed responses, token exchange, and persistence failures remain visible. Atomic claims success when the provider flow and credential persistence complete; it does not wait for model-catalog or ambient-availability refresh work.
+Escape or Ctrl+C quietly cancels the matching login, including immediate/pre-device native aborts, and leaves the previously committed credential and catalog unchanged. Provider denial, device expiry, timeout, browser/network/protocol failure, malformed responses, token exchange, and persistence failures remain visible. Orphus claims success when the provider flow and credential persistence complete; it does not wait for model-catalog or ambient-availability refresh work.
 
-Use `/logout` to clear credentials. Logout immediately invalidates authentication in the active interactive engine and removes the selected provider from both `~/.atomic/agent/auth.json` and any effective legacy `~/.pi/agent/auth.json`, so the provider remains logged out after restart. Environment variables, command-line credentials, and `models.json` configuration cannot be cleared by Atomic; when one of those sources still authenticates the provider, the logout status names the remaining source.
+Use `/logout` to clear credentials. Logout immediately invalidates authentication in the active interactive engine and removes the selected provider from both `~/.atomic/agent/auth.json` and any effective legacy `~/.pi/agent/auth.json`, so the provider remains logged out after restart. Environment variables, command-line credentials, and `models.json` configuration cannot be cleared by Orphus; when one of those sources still authenticates the provider, the logout status names the remaining source.
 
 ### Token Refresh
 
@@ -40,7 +40,7 @@ A stored OAuth token is refreshed once fewer than **five minutes** of validity r
 - Requires ChatGPT Plus or Pro subscription
 - Officially endorsed by OpenAI: [Codex for OSS](https://developers.openai.com/community/codex-for-oss)
 
-If the Codex backend reports that an OAuth/auth token was invalidated or revoked, retry the request once in case the rejection is transient. If it persists, run `/logout` and select **OpenAI ChatGPT Plus/Pro**, then run `/login`, authenticate that subscription again, and retry the request. Atomic displays these recovery steps with the provider error; it does not automatically delete the stored credential or repeatedly retry a definitive authentication rejection.
+If the Codex backend reports that an OAuth/auth token was invalidated or revoked, retry the request once in case the rejection is transient. If it persists, run `/logout` and select **OpenAI ChatGPT Plus/Pro**, then run `/login`, authenticate that subscription again, and retry the request. Orphus displays these recovery steps with the provider error; it does not automatically delete the stored credential or repeatedly retry a definitive authentication rejection.
 
 ### Codex Fast Mode
 
@@ -50,7 +50,7 @@ Run `/fast` in interactive mode to enable OpenAI priority service tier separatel
 
 Anthropic subscription auth is active for Claude Pro/Max accounts. Third-party harness usage draws from [extra usage](https://claude.ai/settings/usage) and is billed per token, not against Claude plan limits.
 
-For gateway-issued Anthropic bearer credentials, set `ANTHROPIC_AUTH_TOKEN` without `ANTHROPIC_API_KEY` or `ANTHROPIC_OAUTH_TOKEN`. A populated bearer token counts as configured Anthropic authentication, so `/model`, saved/default selection, cycling, RPC catalogs, and isolated model pickers keep Anthropic models available. Atomic sends it as `Authorization: Bearer …` for normal turns, branch summaries, and Verbatim Compaction without replacing caller-supplied custom headers.
+For gateway-issued Anthropic bearer credentials, set `ANTHROPIC_AUTH_TOKEN` without `ANTHROPIC_API_KEY` or `ANTHROPIC_OAUTH_TOKEN`. A populated bearer token counts as configured Anthropic authentication, so `/model`, saved/default selection, cycling, RPC catalogs, and isolated model pickers keep Anthropic models available. Orphus sends it as `Authorization: Bearer …` for normal turns, branch summaries, and Verbatim Compaction without replacing caller-supplied custom headers.
 
 Claude Opus 5 is available from the bundled/dynamic Anthropic and Amazon Bedrock catalogs. With bearer-only Anthropic auth, select the exact `anthropic/claude-opus-5-*` entry through `/model`; Bedrock uses its catalog-advertised inference profile. `xhigh` appears only when the chosen entry advertises it. Bedrock requests retain adaptive thinking, prompt caching, and AWS validation/error details from the provider runtime.
 
@@ -65,7 +65,7 @@ Claude Opus 5 is available from the bundled/dynamic Anthropic and Amazon Bedrock
 
 #### Endpoint routing for `COPILOT_GITHUB_TOKEN`
 
-OAuth logins get their Copilot host from the token GitHub issues during login. Environment-token auth has no such exchange, so Atomic resolves the host itself, highest precedence first:
+OAuth logins get their Copilot host from the token GitHub issues during login. Environment-token auth has no such exchange, so Orphus resolves the host itself, highest precedence first:
 
 1. `COPILOT_API_TARGET`, then `GITHUB_COPILOT_BASE_URL` — an explicit host or full URL
 2. the `proxy-ep=` segment embedded in `COPILOT_GITHUB_TOKEN`
@@ -96,13 +96,13 @@ export ANTHROPIC_API_KEY=sk-ant-...
 atomic
 ```
 
-After a successful API-key or OAuth login, Atomic persists the credential and immediately marks that provider available against the model snapshot already loaded in the active session. It does not make login wait for cache restoration, ambient-availability checks, or another model-catalog request. Open `/model` to use that authenticated snapshot immediately; the selector restores and refreshes dynamic catalogs in the background with a 15-second deadline and keeps selection responsive if a provider is slow or unavailable.
+After a successful API-key or OAuth login, Orphus persists the credential and immediately marks that provider available against the model snapshot already loaded in the active session. It does not make login wait for cache restoration, ambient-availability checks, or another model-catalog request. Open `/model` to use that authenticated snapshot immediately; the selector restores and refreshes dynamic catalogs in the background with a 15-second deadline and keeps selection responsive if a provider is slow or unavailable.
 
-`/logout` follows the same transaction boundary in reverse: once the stored credential is deleted, Atomic immediately removes that stored-auth projection and returns to the editor without refreshing model catalogs. A short, bounded local probe preserves models when authentication still exists through an environment variable or runtime key. Refresh work that began before either login or logout cannot later overwrite the newer credential snapshot.
+`/logout` follows the same transaction boundary in reverse: once the stored credential is deleted, Orphus immediately removes that stored-auth projection and returns to the editor without refreshing model catalogs. A short, bounded local probe preserves models when authentication still exists through an environment variable or runtime key. Refresh work that began before either login or logout cannot later overwrite the newer credential snapshot.
 
 On a remote or headless machine, paste the authorization code or final redirect URL into the login prompt when the provider offers manual entry. A completed exchange must either return to the editor or show an error; it does not require deleting `~/.atomic`. Existing OAuth credentials use the same `auth.json` schema after the pi-ai model-runtime migration and are loaded in place.
 
-Remote pi.dev catalogs persist their ETag and are revalidated with `If-None-Match`; an empty `304` keeps the cached models and counts as a successful check. Atomic renders the cached snapshot immediately, preserves each provider's last usable catalog on refresh failure, and prefers newer bundled data over stale remote overlays. See [Custom Models](/models#catalog-freshness-and-precedence).
+Remote pi.dev catalogs persist their ETag and are revalidated with `If-None-Match`; an empty `304` keeps the cached models and counts as a successful check. Orphus renders the cached snapshot immediately, preserves each provider's last usable catalog on refresh failure, and prefers newer bundled data over stale remote overlays. See [Custom Models](/models#catalog-freshness-and-precedence).
 
 | Provider | Environment Variable | `auth.json` key |
 |----------|----------------------|------------------|
@@ -142,7 +142,7 @@ Remote pi.dev catalogs persist their ETag and are revalidated with `If-None-Matc
 | Xiaomi MiMo Token Plan (Amsterdam) | `XIAOMI_TOKEN_PLAN_AMS_API_KEY` | `xiaomi-token-plan-ams` |
 | Xiaomi MiMo Token Plan (Singapore) | `XIAOMI_TOKEN_PLAN_SGP_API_KEY` | `xiaomi-token-plan-sgp` |
 
-Reference for environment variables and `auth.json` keys: `findEnvKeys()` / `getEnvApiKey()` in the installed `@earendil-works/pi-ai` dependency (`node_modules/@earendil-works/pi-ai/dist/env-api-keys.d.ts`). The private provider map those functions use is in `node_modules/@earendil-works/pi-ai/dist/env-api-keys.js`; Atomic does not include a separate `packages/ai` source directory in this monorepo.
+Reference for environment variables and `auth.json` keys: `findEnvKeys()` / `getEnvApiKey()` in the installed `@earendil-works/pi-ai` dependency (`node_modules/@earendil-works/pi-ai/dist/env-api-keys.d.ts`). The private provider map those functions use is in `node_modules/@earendil-works/pi-ai/dist/env-api-keys.js`; Orphus does not include a separate `packages/ai` source directory in this monorepo.
 
 #### Auth File
 
@@ -186,7 +186,7 @@ API-key credentials may include provider-scoped `env` values. They take preceden
 }
 ```
 
-Use this when Atomic should use provider settings different from the project shell environment.
+Use this when Orphus should use provider settings different from the project shell environment.
 
 
 ### Key Resolution
@@ -299,7 +299,7 @@ AI Gateway authentication uses `CLOUDFLARE_API_KEY` as `cf-aig-authorization`. U
 | Stored BYOK | Cloudflare token only | Cloudflare injects provider keys stored in the AI Gateway dashboard |
 | Inline BYOK | Cloudflare token plus upstream `Authorization` header | The request supplies the upstream provider key |
 
-For normal Atomic usage, prefer unified billing or stored BYOK. Inline BYOK requires configuring an additional upstream `Authorization` header for the Cloudflare AI Gateway provider, for example via a `models.json` provider/model override.
+For normal Orphus usage, prefer unified billing or stored BYOK. Inline BYOK requires configuring an additional upstream `Authorization` header for the Cloudflare AI Gateway provider, for example via a `models.json` provider/model override.
 
 ### Cloudflare Workers AI
 
@@ -311,7 +311,7 @@ export CLOUDFLARE_ACCOUNT_ID=...
 atomic --provider cloudflare-workers-ai --model "@cf/moonshotai/kimi-k2.6"
 ```
 
-Atomic automatically sets `x-session-affinity` for [prefix caching](https://developers.cloudflare.com/workers-ai/features/prompt-caching/) discounts.
+Orphus automatically sets `x-session-affinity` for [prefix caching](https://developers.cloudflare.com/workers-ai/features/prompt-caching/) discounts.
 
 ### Google Vertex AI
 
@@ -337,7 +337,7 @@ For router-mode discovery, load/unload management, and Hugging Face downloads wi
 
 ## Stop Reasons
 
-Every provider reports why it ended a turn. Atomic stores one of `stop`, `length`, `toolUse`, `error`, or `aborted`; the provider's own string (`end_turn`, `MAX_TOKENS`, `tool_calls`, and so on) is mapped onto it.
+Every provider reports why it ended a turn. Orphus stores one of `stop`, `length`, `toolUse`, `error`, or `aborted`; the provider's own string (`end_turn`, `MAX_TOKENS`, `tool_calls`, and so on) is mapped onto it.
 
 A terminal reason the mapping does not recognise is now reported as a **provider error** naming the raw value, instead of being reported as an ordinary successful stop. The turn fails visibly rather than looking like a model that chose to stop early, which matters most for a truncation or safety stop a new provider version invents. Reasons that already mapped to a successful stop are unchanged, and a provider that stops on its own safety or refusal signal still surfaces the raw reason in the error text (for example `Provider stopped with: SAFETY`).
 

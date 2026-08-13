@@ -1,17 +1,17 @@
 # Settings
 
-Atomic uses JSON settings files with project settings overriding global settings.
+Orphus uses JSON settings files with project settings overriding global settings.
 
 | Location | Scope |
 |----------|-------|
 | `~/.atomic/agent/settings.json` | Global (all projects) |
 | `.atomic/settings.json` | Project (current directory) |
 
-Edit directly or use `/settings` for common options. Atomic also reads legacy `~/.pi/agent/settings.json` and `.pi/settings.json` as compatibility fallbacks, with `.atomic` paths taking precedence.
+Edit directly or use `/settings` for common options. Orphus also reads legacy `~/.pi/agent/settings.json` and `.pi/settings.json` as compatibility fallbacks, with `.atomic` paths taking precedence.
 
 ## Project Trust
 
-On interactive startup, Atomic asks before trusting a project folder that contains trust-gated project inputs and has no saved decision for the folder or a parent folder in `~/.atomic/agent/trust.json`. Trusting a project allows Atomic to load project-local `.atomic/settings.json` and `.atomic` resources, legacy `.pi/settings.json` and `.pi` resources, project-local context files, install missing project packages, and execute project extensions.
+On interactive startup, Orphus asks before trusting a project folder that contains trust-gated project inputs and has no saved decision for the folder or a parent folder in `~/.atomic/agent/trust.json`. Trusting a project allows Orphus to load project-local `.atomic/settings.json` and `.atomic` resources, legacy `.pi/settings.json` and `.pi` resources, project-local context files, install missing project packages, and execute project extensions.
 
 Non-interactive modes (`-p`, `--mode json`, and `--mode rpc`) do not show a trust prompt. Without an applicable saved trust decision, they use `defaultProjectTrust` from global settings: `ask` (default) and `never` ignore trust-gated project inputs, while `always` trusts them. Pass `--approve`/`-a` or `--no-approve`/`-na` to override project trust for one run.
 
@@ -19,11 +19,11 @@ If no extension or saved decision applies, `defaultProjectTrust` controls the fa
 
 `atomic config` and package commands use the same project trust flow. Pass `--approve` to trust project-local settings for one command or `--no-approve` to ignore them.
 
-Use `/trust` in interactive mode to save a project trust decision for future sessions, including trust for the immediate parent folder. It writes `~/.atomic/agent/trust.json` only; the current session is not reloaded, so restart Atomic for changes to take effect.
+Use `/trust` in interactive mode to save a project trust decision for future sessions, including trust for the immediate parent folder. It writes `~/.atomic/agent/trust.json` only; the current session is not reloaded, so restart Orphus for changes to take effect.
 
-If a bare directory starts without trust-gated inputs, Atomic may run the interactive session as implicitly trusted. Inert state directories such as `.atomic/todos/` and `.atomic/sessions/` do not require trust and do not disable deferred resource startup. On the normal interactive TTY fast path, Atomic paints the shell and makes the input editor responsive before scanning bundled extension packages, skills, prompts, themes, context files, and system-prompt files. After the input handler is ready, Atomic starts extension/resource loading in the background. If the first submitted prompt arrives before that loading settles, Atomic keeps the prompt spinner visible and waits at the readiness gate before calling the model so extension tools, prompt templates, skills, resources, and extension-registered provider updates are available on that first turn. Deferred loading uses async discovery and cooperative yields around resource-loading work, so visible typing, Enter, Ctrl+C, rendering, and the normal prompt spinner remain responsive while the background work finishes. Startup does not show a resource-loading spinner before the user submits a prompt. Explicit provider/model selection, explicit resource flags, system-prompt inputs, metadata commands, non-TTY modes, and unresolved project-trust prompts stay on the synchronous path because those operations need complete resources before the session is created. When resources finish loading, Atomic shows the normal resources disclosure so newly added skills, prompts, themes, and extensions are visible. If trust-requiring config appears later, Atomic prompts again on the next launch until you explicitly save a persistent trust decision; the only automatic persistence of implicit startup trust is the existing `/reload` flow after reload discovers trust-requiring resources in an already-trusted session.
+If a bare directory starts without trust-gated inputs, Orphus may run the interactive session as implicitly trusted. Inert state directories such as `.atomic/todos/` and `.atomic/sessions/` do not require trust and do not disable deferred resource startup. On the normal interactive TTY fast path, Orphus paints the shell and makes the input editor responsive before scanning bundled extension packages, skills, prompts, themes, context files, and system-prompt files. After the input handler is ready, Orphus starts extension/resource loading in the background. If the first submitted prompt arrives before that loading settles, Orphus keeps the prompt spinner visible and waits at the readiness gate before calling the model so extension tools, prompt templates, skills, resources, and extension-registered provider updates are available on that first turn. Deferred loading uses async discovery and cooperative yields around resource-loading work, so visible typing, Enter, Ctrl+C, rendering, and the normal prompt spinner remain responsive while the background work finishes. Startup does not show a resource-loading spinner before the user submits a prompt. Explicit provider/model selection, explicit resource flags, system-prompt inputs, metadata commands, non-TTY modes, and unresolved project-trust prompts stay on the synchronous path because those operations need complete resources before the session is created. When resources finish loading, Orphus shows the normal resources disclosure so newly added skills, prompts, themes, and extensions are visible. If trust-requiring config appears later, Orphus prompts again on the next launch until you explicitly save a persistent trust decision; the only automatic persistence of implicit startup trust is the existing `/reload` flow after reload discovers trust-requiring resources in an already-trusted session.
 
-Settings and trust JSON files may start with a UTF-8 BOM, as commonly written by older Windows tools; Atomic strips that leading marker before parsing.
+Settings and trust JSON files may start with a UTF-8 BOM, as commonly written by older Windows tools; Orphus strips that leading marker before parsing.
 
 ## All Settings
 
@@ -39,7 +39,7 @@ Settings and trust JSON files may start with a UTF-8 BOM, as commonly written by
 | `showCacheMissNotices` | boolean | `false` | Show transcript notices for significant prompt-cache misses and their attributed wasted tokens |
 | `fallbackModels` | string[] | - | Ordered fallback models, written as `"provider/model"` with optional model-supported reasoning suffixes such as `:high`, `:xhigh`, or `:max`. Used by main-chat turns and, since compaction fallback rungs, borrowed for compaction planner requests |
 
-`defaultProvider` and `defaultModel` form one exact saved selection when both are present. Atomic waits for built-in, configured, and extension provider registration before classifying that provider. If it remains unsupported, Atomic does not silently switch providers: interactive mode stays live with a generic configuration warning; print and JSON modes write the warning to stderr and exit nonzero before prompting (with JSON stdout remaining JSONL-clean); and RPC rejects `prompt` until a successful explicit `set_model` selects an available model or an explicit model cycle returns a different available model. A null or unchanged cycle does not clear the condition. If the provider is supported but its saved model is unknown or lacks configured authentication, normal automatic selection of an available authenticated model remains enabled; the same is true when either field is omitted. Valid extension-provider defaults can resolve after deferred extension loading. Update an unsupported pair or choose a model with `/model`.
+`defaultProvider` and `defaultModel` form one exact saved selection when both are present. Orphus waits for built-in, configured, and extension provider registration before classifying that provider. If it remains unsupported, Orphus does not silently switch providers: interactive mode stays live with a generic configuration warning; print and JSON modes write the warning to stderr and exit nonzero before prompting (with JSON stdout remaining JSONL-clean); and RPC rejects `prompt` until a successful explicit `set_model` selects an available model or an explicit model cycle returns a different available model. A null or unchanged cycle does not clear the condition. If the provider is supported but its saved model is unknown or lacks configured authentication, normal automatic selection of an available authenticated model remains enabled; the same is true when either field is omitted. Valid extension-provider defaults can resolve after deferred extension loading. Update an unsupported pair or choose a model with `/model`.
 
 #### thinkingBudgets
 
@@ -56,17 +56,17 @@ Settings and trust JSON files may start with a UTF-8 BOM, as commonly written by
 
 #### fallbackModels
 
-`fallbackModels` gives ordinary main-chat turns an ordered model fallback chain. Atomic starts with the selected/default model. If that model exhausts the normal same-model auto-retry loop for a retryable provider/model failure — including rate limits and quota/usage-limit exhaustion such as a provider reporting `The usage limit has been reached` — Atomic switches to the next configured fallback model and continues the same turn. If `retry.enabled` is `false`, Atomic skips same-model retries and moves directly to the next fallback for retryable failures. Non-retryable task failures and cancellations do not trigger model fallback. After a successful or exhausted fallback turn, Atomic restores the user-selected primary before the next user turn; an explicit `/model` choice during fallback cancels that restore.
+`fallbackModels` gives ordinary main-chat turns an ordered model fallback chain. Orphus starts with the selected/default model. If that model exhausts the normal same-model auto-retry loop for a retryable provider/model failure — including rate limits and quota/usage-limit exhaustion such as a provider reporting `The usage limit has been reached` — Orphus switches to the next configured fallback model and continues the same turn. If `retry.enabled` is `false`, Orphus skips same-model retries and moves directly to the next fallback for retryable failures. Non-retryable task failures and cancellations do not trigger model fallback. After a successful or exhausted fallback turn, Orphus restores the user-selected primary before the next user turn; an explicit `/model` choice during fallback cancels that restore.
 
 A failure that another request to the same model cannot repair — a rejected credential, an unavailable model, a request that model cannot serve — takes that model out of the chain for the rest of the turn at **every** reasoning level, so a candidate that differs only by its `:low`/`:high` suffix is skipped rather than spent. Transient rate-limit and transport failures keep those reasoning variants, because retrying them can succeed.
 
-Context overflow keeps its normal recovery order: compaction runs first, and a compactable overflow costs no fallback candidate. Only once compaction is disabled, fails, or reports the overflow unresolved does Atomic advance to the next configured candidate, which is how a larger-context model gets a chance at the turn.
+Context overflow keeps its normal recovery order: compaction runs first, and a compactable overflow costs no fallback candidate. Only once compaction is disabled, fails, or reports the overflow unresolved does Orphus advance to the next configured candidate, which is how a larger-context model gets a chance at the turn.
 
 Changing the reasoning level during a fallback turn is not a model choice, so it does not cancel the restore: the next turn still starts on the user-selected primary, carrying the reasoning level you picked. Only an explicit `/model` selection or model cycle cancels it.
 
-The same list is also **borrowed by compaction**. When the compaction range planner cannot produce a usable plan on the current model — a rate limit, quota exhaustion, provider error, context overflow, or an empty plan — Atomic runs one planner request against the next configured candidate, using that candidate's own credentials. **A configured fallback model may therefore receive the compaction transcript.** Borrowing is planner-only: it never changes the session model, thinking level, or model history, it appends no model-change entry, and it emits no fallback status. See [Compaction](/compaction#planning-rungs-and-failure-behavior).
+The same list is also **borrowed by compaction**. When the compaction range planner cannot produce a usable plan on the current model — a rate limit, quota exhaustion, provider error, context overflow, or an empty plan — Orphus runs one planner request against the next configured candidate, using that candidate's own credentials. **A configured fallback model may therefore receive the compaction transcript.** Borrowing is planner-only: it never changes the session model, thinking level, or model history, it appends no model-change entry, and it emits no fallback status. See [Compaction](/compaction#planning-rungs-and-failure-behavior).
 
-Fallback entries should be fully qualified `provider/model` ids. Add a reasoning suffix to a candidate to override the effort for that fallback only; valid suffixes are `:off`, `:minimal`, `:low`, `:medium`, `:high`, `:xhigh`, and `:max`. Atomic clamps or hides levels that the selected model's capability map does not support.
+Fallback entries should be fully qualified `provider/model` ids. Add a reasoning suffix to a candidate to override the effort for that fallback only; valid suffixes are `:off`, `:minimal`, `:low`, `:medium`, `:high`, `:xhigh`, and `:max`. Orphus clamps or hides levels that the selected model's capability map does not support.
 
 ```json
 {
@@ -86,7 +86,7 @@ Fallback attempts are visible as model changes in the session transcript and as 
 
 ### Codex Fast Mode
 
-Use `/fast` in interactive mode to edit these settings. Atomic applies fast mode only to supported `openai/*` and `openai-codex/*` providers, not `github-copilot/*` or other OpenAI-compatible providers. Chat and workflow-stage scopes are independent. When fast mode is active for the current supported model, Atomic shows `fast` after the model name in the chat footer and workflow stage model labels. Enable the workflow scope deliberately for broad fan-outs because each eligible stage can consume priority-tier requests.
+Use `/fast` in interactive mode to edit these settings. Orphus applies fast mode only to supported `openai/*` and `openai-codex/*` providers, not `github-copilot/*` or other OpenAI-compatible providers. Chat and workflow-stage scopes are independent. When fast mode is active for the current supported model, Orphus shows `fast` after the model name in the chat footer and workflow stage model labels. Enable the workflow scope deliberately for broad fan-outs because each eligible stage can consume priority-tier requests.
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
@@ -111,7 +111,7 @@ Use `/fast` in interactive mode to edit these settings. Atomic applies fast mode
 | `defaultProjectTrust` | string | `"ask"` | Fallback project trust behavior: `"ask"`, `"always"`, or `"never"`. Global setting only |
 | `collapseChangelog` | boolean | `false` | Show condensed changelog after updates |
 | `enableInstallTelemetry` | boolean | `true` | Send an anonymous install/update version ping after first install or changelog-detected updates. This does not control update checks |
-| `firstRunOnboardingStartedVersion` | string | - | Internal first-run onboarding start marker used when no prior Atomic startup state identifies the user as returning |
+| `firstRunOnboardingStartedVersion` | string | - | Internal first-run onboarding start marker used when no prior Orphus startup state identifies the user as returning |
 | `onboardedVersion` | string | - | Internal one-time first-run onboarding completion marker. Returning-user detection from prior startup state or displaying the first-run workflow-engine explanation sets it |
 | `enableAnalytics` | boolean | `false` | Opt in to analytics during first-run setup |
 | `trackingId` | string | - | Locally generated analytics identifier when analytics is enabled |
@@ -123,16 +123,16 @@ Use `/fast` in interactive mode to edit these settings. Atomic applies fast mode
 | `autocompleteMaxVisible` | number | `5` | Max visible items in autocomplete dropdown (3-20) |
 | `showHardwareCursor` | boolean | `false` | Show the terminal cursor while TUI positions it for IME support |
 
-Ctrl+G in main chat, embedded chat, and extension editor dialogs uses one shared asynchronous launcher. Atomic chooses `externalEditor`, then `$VISUAL`, then `$EDITOR`, then Notepad on Windows or `nano` elsewhere. Each edit uses a private `atomic-editor-*` directory containing only `prompt.md`, removes the directory recursively afterward, and never scans the system temporary directory. A successful empty edit is preserved; a failed editor leaves the original text unchanged, and the TUI always restarts and renders after the editor exits.
+Ctrl+G in main chat, embedded chat, and extension editor dialogs uses one shared asynchronous launcher. Orphus chooses `externalEditor`, then `$VISUAL`, then `$EDITOR`, then Notepad on Windows or `nano` elsewhere. Each edit uses a private `atomic-editor-*` directory containing only `prompt.md`, removes the directory recursively afterward, and never scans the system temporary directory. A successful empty edit is preserved; a failed editor leaves the original text unchanged, and the TUI always restarts and renders after the editor exits.
 
 ### Telemetry and update checks
 
-`enableInstallTelemetry` only controls the anonymous install/update ping to `https://pi.dev/api/report-install`. Opting out of telemetry does not disable update checks; Atomic can still fetch the npm registry latest package metadata at `https://registry.npmjs.org/@bastani/atomic/latest` to look for the latest version.
+`enableInstallTelemetry` only controls the anonymous install/update ping to `https://pi.dev/api/report-install`. Opting out of telemetry does not disable update checks; Orphus can still fetch the npm registry latest package metadata at `https://registry.npmjs.org/@bastani/atomic/latest` to look for the latest version.
 
-Set `ORPHUS_SKIP_VERSION_CHECK=1` to disable the Atomic version update check. Use `--offline` or `ORPHUS_OFFLINE=1` to disable all startup network operations described here, including update checks, package update checks, and install/update telemetry. Legacy `PI_*` aliases are also supported for app-specific environment variables.
+Set `ORPHUS_SKIP_VERSION_CHECK=1` to disable the Orphus version update check. Use `--offline` or `ORPHUS_OFFLINE=1` to disable all startup network operations described here, including update checks, package update checks, and install/update telemetry. Legacy `PI_*` aliases are also supported for app-specific environment variables.
 
 
-On a genuine first run, Atomic previews available themes and asks whether to opt into analytics. The choice and locally generated identifier are stored as `enableAnalytics` and `trackingId`; analytics remains off unless explicitly enabled.
+On a genuine first run, Orphus previews available themes and asks whether to opt into analytics. The choice and locally generated identifier are stored as `enableAnalytics` and `trackingId`; analytics remains off unless explicitly enabled.
 
 ### Network proxy
 
@@ -180,7 +180,7 @@ On a genuine first run, Atomic previews available themes and asks whether to opt
 }
 ```
 
-The model emits numbered line ranges only; Atomic reconstructs retained text mechanically. `preserve_recent` is enforced client-side and is not a provider parameter. Atomic does not widen this exact message count to a user-turn boundary or force a final logical turn to remain outside compaction.
+The model emits numbered line ranges only; Orphus reconstructs retained text mechanically. `preserve_recent` is enforced client-side and is not a provider parameter. Orphus does not widen this exact message count to a user-turn boundary or force a final logical turn to remain outside compaction.
 
 ### Branch Summary
 
@@ -197,12 +197,12 @@ The model emits numbered line ranges only; Atomic reconstructs retained text mec
 | `retry.maxRetries` | number | `3` | Maximum agent-level retry attempts |
 | `retry.baseDelayMs` | number | `2000` | Base delay for agent-level exponential backoff (2s, 4s, 8s) |
 | `retry.provider.timeoutMs` | number | SDK default | Provider/SDK request timeout in milliseconds |
-| `retry.provider.maxRetries` | number | `0` | Provider/SDK retry attempts. Leave unset/`0` to let Atomic's agent-level retry handle transient failures |
+| `retry.provider.maxRetries` | number | `0` | Provider/SDK retry attempts. Leave unset/`0` to let Orphus's agent-level retry handle transient failures |
 | `retry.provider.maxRetryDelayMs` | number | `60000` | Max server-requested delay before failing (60s) |
 
 When a provider requests a retry delay longer than `retry.provider.maxRetryDelayMs` (e.g., Google's "quota will reset after 5h"), the request fails immediately with an informative error instead of waiting silently. Set to `0` to disable the cap.
 
-`retry.provider.maxRetries` follows upstream Pi's behavior and defaults to `0` SDK/provider retries. Atomic still performs agent-level retries via `retry.maxRetries`; set `retry.provider.maxRetries` explicitly only when you want the underlying provider SDK to retry before Atomic observes the failure.
+`retry.provider.maxRetries` follows upstream Pi's behavior and defaults to `0` SDK/provider retries. Orphus still performs agent-level retries via `retry.maxRetries`; set `retry.provider.maxRetries` explicitly only when you want the underlying provider SDK to retry before Orphus observes the failure.
 
 ```json
 {
@@ -225,7 +225,7 @@ When a provider requests a retry delay longer than `retry.provider.maxRetryDelay
 |---------|------|---------|-------------|
 | `httpIdleTimeoutMs` | number or string | `600000` | HTTP idle timeout as milliseconds, a duration such as `"30s"`, `"5m"`, or `"1h"`, or `"disabled"`. `0` also disables it. |
 
-Atomic applies this timeout to the global HTTP dispatcher used by `fetch` and provider SDK HTTP clients. The default is 600,000 ms (10 minutes), which keeps slow long-context requests working while reclaiming stale idle connections. Atomic does not impose a separate fixed connect-phase timeout; connection failures surface through the provider and agent retry/error paths.
+Orphus applies this timeout to the global HTTP dispatcher used by `fetch` and provider SDK HTTP clients. The default is 600,000 ms (10 minutes), which keeps slow long-context requests working while reclaiming stale idle connections. Orphus does not impose a separate fixed connect-phase timeout; connection failures surface through the provider and agent retry/error paths.
 
 The `/settings` picker offers these presets:
 
@@ -281,7 +281,7 @@ The `/settings` picker offers these presets:
 }
 ```
 
-`bashInterceptor.enabled` is intentionally `false` unless configured. Enable it from `/settings` or set it to `true` in JSON when you want Atomic to steer shell anti-patterns to `read`/`search`/`find`/`edit`/`write` and let extensions intercept model `bash` tool calls through the same `user_bash` event used by interactive `!` commands.
+`bashInterceptor.enabled` is intentionally `false` unless configured. Enable it from `/settings` or set it to `true` in JSON when you want Orphus to steer shell anti-patterns to `read`/`search`/`find`/`edit`/`write` and let extensions intercept model `bash` tool calls through the same `user_bash` event used by interactive `!` commands.
 
 `npmCommand` is used for all npm package-manager operations, including installs, uninstalls, and dependency installs inside git packages. Use argv-style entries exactly as the process should be launched. When `npmCommand` is configured, git package dependency installs use plain `install` to avoid npm-specific flags in wrappers or alternate package managers.
 
@@ -363,7 +363,7 @@ Object form filters which resources to load:
 }
 ```
 
-See [Atomic packages](/packages) for package management details.
+See [Orphus packages](/packages) for package management details.
 
 ## Example
 
