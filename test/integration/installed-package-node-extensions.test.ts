@@ -110,7 +110,7 @@ function buildInstalledLayout(): string {
 			const scopeDir = join(layoutNodeModules, entry);
 			fs.mkdirSync(scopeDir);
 			for (const scoped of fs.readdirSync(source)) {
-				if (scoped === "atomic") continue;
+				if (scoped === "coding-agent") continue;
 				linkDir(join(source, scoped), join(scopeDir, scoped));
 			}
 			continue;
