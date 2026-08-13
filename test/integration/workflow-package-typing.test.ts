@@ -10,12 +10,12 @@ import { moduleDir } from "../helpers/runtime.js";
 const repoRoot = resolve(moduleDir(import.meta.url), "../..");
 const workflowsPackage = join(repoRoot, "packages", "workflows");
 describe("standalone workflow package typing", () => {
-	test("type-checks workflow from @bastani/workflows and Type from typebox without a local shim", () => {
+	test("type-checks workflow from @orphus/workflows and Type from typebox without a local shim", () => {
 		const fixtureRoot = join(tmpdir(), `atomic-workflow-types-${randomUUID()}`);
 		try {
 			mkdirSync(join(fixtureRoot, "src"), { recursive: true });
-			mkdirSync(join(fixtureRoot, "node_modules", "@bastani"), { recursive: true });
-			symlinkSync(workflowsPackage, join(fixtureRoot, "node_modules", "@bastani", "workflows"), "dir");
+			mkdirSync(join(fixtureRoot, "node_modules", "@orphus"), { recursive: true });
+			symlinkSync(workflowsPackage, join(fixtureRoot, "node_modules", "@orphus", "workflows"), "dir");
 			symlinkSync(join(repoRoot, "node_modules", "typebox"), join(fixtureRoot, "node_modules", "typebox"), "dir");
 			writeFileSync(
 				join(fixtureRoot, "package.json"),
@@ -25,7 +25,7 @@ describe("standalone workflow package typing", () => {
 						private: true,
 						type: "module",
 						dependencies: {
-							"@bastani/workflows": "file:../../packages/workflows",
+							"@orphus/workflows": "file:../../packages/workflows",
 						},
 						devDependencies: {
 							typescript: "^7.0.2",
@@ -52,7 +52,7 @@ describe("standalone workflow package typing", () => {
 							typeRoots: [join(repoRoot, "node_modules", "@types")],
 							types: ["bun"],
 							paths: {
-								"@bastani/atomic": [join(repoRoot, "packages", "coding-agent", "src", "index.ts")],
+								"@orphus/coding-agent": [join(repoRoot, "packages", "coding-agent", "src", "index.ts")],
 								"@earendil-works/pi-tui": [
 									join(repoRoot, "node_modules", "@earendil-works", "pi-tui", "dist", "index.d.ts"),
 								],
@@ -74,16 +74,16 @@ describe("standalone workflow package typing", () => {
   createStore,
   workflow,
   run,
-} from "@bastani/workflows";
+} from "@orphus/workflows";
 import { Type } from "typebox";
-import { openClaudeDesign } from "@bastani/workflows/builtin";
-import openClaudeDesignDefault from "@bastani/workflows/builtin/open-claude-design";
+import { openClaudeDesign } from "@orphus/workflows/builtin";
+import openClaudeDesignDefault from "@orphus/workflows/builtin/open-claude-design";
 import type {
   FanOutAndSynthesizeWorkflowOutputs,
   FanOutAndSynthesizeWorkflowRunInputs,
   OpenClaudeDesignWorkflowOutputs,
-} from "@bastani/workflows/builtin";
-import type { ExtensionUIContext, KeybindingsManager, Theme } from "@bastani/atomic";
+} from "@orphus/workflows/builtin";
+import type { ExtensionUIContext, KeybindingsManager, Theme } from "@orphus/coding-agent";
 import type { Component, OverlayHandle, OverlayOptions, TUI } from "@earendil-works/pi-tui";
 import type {
   AgentSessionAdapter,
@@ -94,12 +94,12 @@ import type {
   WorkflowRuntimeConfig, WorkflowTaskSessionOptions, WorkflowToolError, WorkflowToolOutcome, WorkflowUIAdapter,
   WorkflowCustomUiComponent, WorkflowCustomUiFactory, WorkflowCustomUiKeybindings, WorkflowCustomUiOptions,
   WorkflowCustomUiOverlayHandle, WorkflowCustomUiOverlayOptions, WorkflowCustomUiTheme, WorkflowCustomUiTui,
-} from "@bastani/workflows";
-import { runWorkflow } from "@bastani/workflows";
+} from "@orphus/workflows";
+import { runWorkflow } from "@orphus/workflows";
 // @ts-expect-error WorkflowOptions was removed with the object-form runWorkflow API.
-import type { WorkflowOptions } from "@bastani/workflows";
+import type { WorkflowOptions } from "@orphus/workflows";
 // @ts-expect-error WorkflowRunOptions was removed with the object-form runWorkflow API.
-import type { WorkflowRunOptions } from "@bastani/workflows";
+import type { WorkflowRunOptions } from "@orphus/workflows";
 declare const extensionUiForTypes: ExtensionUIContext;
 const authoredWorkflow = workflow({
   name: "Standalone Typing Fixture",
@@ -443,7 +443,7 @@ const taskSession: WorkflowTaskSessionOptions = { prompt: "hello", tools: ["bash
   parameters: Type.Object({ value: Type.String() }),
   async execute(_toolCallId, params) { void params; return { content: [{ type: "text", text: "ok" }] }; },
 }] };
-type StageSnapshotStatus = import("@bastani/workflows").StageSnapshot["status"];
+type StageSnapshotStatus = import("@orphus/workflows").StageSnapshot["status"];
 const skippedStageStatus: StageSnapshotStatus = "skipped";
 const awaitingInputStageStatus: StageSnapshotStatus = "awaiting_input";
 const blockedStageSnapshotStatus: StageSnapshotStatus = "blocked";

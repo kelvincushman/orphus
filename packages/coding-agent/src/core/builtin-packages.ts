@@ -25,43 +25,43 @@ interface WorkspaceBuiltinSpec {
 
 const WORKSPACE_BUILTINS: readonly WorkspaceBuiltinSpec[] = [
 	{
-		packageName: "@bastani/workflows",
+		packageName: "@orphus/workflows",
 		workspaceDirName: "workflows",
 		distDirName: "workflows",
 		requiredEntry: join("src", "extension", "index.ts"),
 	},
 	{
-		packageName: "@bastani/subagents",
+		packageName: "@orphus/subagents",
 		workspaceDirName: "subagents",
 		distDirName: "subagents",
 		requiredEntry: join("src", "extension", "index.ts"),
 	},
 	{
-		packageName: "@bastani/mcp",
+		packageName: "@orphus/mcp",
 		workspaceDirName: "mcp",
 		distDirName: "mcp",
 		requiredEntry: "index.ts",
 	},
 	{
-		packageName: "@bastani/web-access",
+		packageName: "@orphus/web-access",
 		workspaceDirName: "web-access",
 		distDirName: "web-access",
 		requiredEntry: "index.ts",
 	},
 	{
-		packageName: "@bastani/intercom",
+		packageName: "@orphus/intercom",
 		workspaceDirName: "intercom",
 		distDirName: "intercom",
 		requiredEntry: "index.ts",
 	},
 	{
-		packageName: "@bastani/roundtable",
+		packageName: "@orphus/roundtable",
 		workspaceDirName: "roundtable",
 		distDirName: "roundtable",
 		requiredEntry: "index.ts",
 	},
 	{
-		packageName: "@bastani/fleet",
+		packageName: "@orphus/fleet",
 		workspaceDirName: "fleet",
 		distDirName: "fleet",
 		requiredEntry: "index.ts",

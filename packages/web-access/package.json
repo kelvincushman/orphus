@@ -1,5 +1,5 @@
 {
-  "name": "@bastani/web-access",
+  "name": "@orphus/web-access",
   "version": "0.0.0",
   "private": true,
   "description": "Atomic extension for web search, URL fetching, GitHub repo cloning, PDF/video extraction. Fork of: https://github.com/nicobailon/pi-web-access",
@@ -30,11 +30,11 @@
     ]
   },
   "peerDependencies": {
-    "@bastani/atomic": "*",
+    "@orphus/coding-agent": "*",
     "@earendil-works/pi-tui": "^0.83.0"
   },
   "peerDependenciesMeta": {
-    "@bastani/atomic": {
+    "@orphus/coding-agent": {
       "optional": true
     },
     "@earendil-works/pi-tui": {

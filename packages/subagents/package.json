@@ -1,5 +1,5 @@
 {
-  "name": "@bastani/subagents",
+  "name": "@orphus/subagents",
   "version": "0.0.0",
   "private": true,
   "description": "Atomic extension for delegating tasks to subagents with chains, parallel execution, and background runs. Fork of: https://github.com/nicobailon/pi-subagents",
@@ -37,13 +37,13 @@
     ]
   },
   "peerDependencies": {
-    "@bastani/atomic": "*",
+    "@orphus/coding-agent": "*",
     "@earendil-works/pi-agent-core": "^0.83.0",
     "@earendil-works/pi-ai": "^0.83.0",
     "@earendil-works/pi-tui": "^0.83.0"
   },
   "peerDependenciesMeta": {
-    "@bastani/atomic": {
+    "@orphus/coding-agent": {
       "optional": true
     },
     "@earendil-works/pi-agent-core": {

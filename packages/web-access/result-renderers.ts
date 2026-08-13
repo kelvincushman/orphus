@@ -1,4 +1,4 @@
-import { keyHintIfBound, type ToolDefinition } from "@bastani/atomic";
+import { keyHintIfBound, type ToolDefinition } from "@orphus/coding-agent";
 import { Box, Text } from "@earendil-works/pi-tui";
 import { formatSeconds } from "./utils.js";
 

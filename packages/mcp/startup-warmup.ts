@@ -1,4 +1,4 @@
-import type { SubagentChildPolicy } from "@bastani/atomic";
+import type { SubagentChildPolicy } from "@orphus/coding-agent";
 import type { McpExtensionState } from "./state.js";
 import { getMissingConfiguredDirectToolServers } from "./direct-tools.ts";
 import { loadMetadataCache } from "./metadata-cache.js";

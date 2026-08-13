@@ -1,5 +1,5 @@
-import type { ExtensionContext } from "@bastani/atomic";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
+import type { ExtensionContext } from "@orphus/coding-agent";
 import type { SubagentParamsLike } from "../runs/foreground/subagent-executor.ts";
 import {
 	type Details,

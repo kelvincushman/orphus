@@ -18,7 +18,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CONFIG_DIR_NAME } from "@bastani/atomic";
+import { CONFIG_DIR_NAME } from "@orphus/coding-agent";
 import {
 	cleanupWorktrees as cleanupSubagentWorktrees,
 	createWorktrees as createSubagentWorktrees,

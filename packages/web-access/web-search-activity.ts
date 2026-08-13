@@ -1,4 +1,4 @@
-import type { ExtensionContext } from "@bastani/atomic";
+import type { ExtensionContext } from "@orphus/coding-agent";
 import { Text, truncateToWidth } from "@earendil-works/pi-tui";
 import { activityMonitor, type ActivityEntry } from "./activity.js";
 

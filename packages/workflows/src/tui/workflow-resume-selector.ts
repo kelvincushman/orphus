@@ -1,4 +1,4 @@
-import type { SessionInfo } from "@bastani/atomic";
+import type { SessionInfo } from "@orphus/coding-agent";
 import { isWorkflowRunResumable } from "../durable/resume-eligibility.js";
 import type { DurableWorkflowDeleteOutcome } from "../durable/retention-policy.js";
 import type { ResumableWorkflowEntry } from "../durable/types.js";
@@ -180,7 +180,7 @@ const EMPTY_CATALOG: WorkflowResumeCatalogRows = { durable: [], completed: [] };
 
 export const WORKFLOW_RESUME_PICKER_UNAVAILABLE =
 	"The workflow resume picker requires the host session-picker capability (ctx.ui.hostSessionPicker), " +
-	"which this host does not expose. Update @bastani/atomic, or resume directly with: /workflow resume <id>";
+	"which this host does not expose. Update @orphus/coding-agent, or resume directly with: /workflow resume <id>";
 
 function toPickerRow(session: SessionInfo): PiHostSessionPickerRow {
 	return {

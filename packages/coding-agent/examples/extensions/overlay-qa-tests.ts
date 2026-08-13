@@ -19,8 +19,8 @@
  *   /overlay-streaming  - Multiple input panels with simulated streaming (Tab to cycle focus)
  */
 
-import type { ExtensionAPI, ExtensionCommandContext } from "@bastani/atomic";
 import type { OverlayAnchor, OverlayHandle, OverlayOptions } from "@earendil-works/pi-tui";
+import type { ExtensionAPI, ExtensionCommandContext } from "@orphus/coding-agent";
 import { AnimationDemoComponent, StreamingOverflowComponent } from "./overlay-qa-animation-components.js";
 import { FocusDemoController } from "./overlay-qa-focus-components.js";
 import {

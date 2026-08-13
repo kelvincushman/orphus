@@ -10,7 +10,7 @@ Atomic's Pi-compatible extension points, so it works with that integration as-is
    lookup finds it:
    ```bash
    npm ci --ignore-scripts
-   npm run build --workspace=@bastani/atomic
+   npm run build --workspace=@orphus/coding-agent
    mkdir -p "$HOME/.local/bin"
    ln -sf "$PWD/packages/coding-agent/dist/cli.js" "$HOME/.local/bin/orphus"
    export PATH="$HOME/.local/bin:$PATH"

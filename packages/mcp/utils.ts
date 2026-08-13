@@ -1,5 +1,5 @@
-import type { ExtensionAPI } from "@bastani/atomic";
-import { unflattenArgumentsWithSchema } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
+import { unflattenArgumentsWithSchema } from "@orphus/coding-agent";
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
 import type { McpConfig, ServerEntry } from "./types.ts";

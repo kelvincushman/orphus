@@ -1,5 +1,5 @@
 import * as path from "node:path";
-import type { ExtensionContext } from "@bastani/atomic";
+import type { ExtensionContext } from "@orphus/coding-agent";
 import { cleanupOldNestedRuntimeDirs } from "../runs/inprocess/runtime-support/nested-api.ts";
 import { cleanupAllArtifactDirs, cleanupOldArtifacts, getArtifactsDir } from "../shared/artifacts.ts";
 import { cleanupOldChainDirs } from "../shared/settings.ts";

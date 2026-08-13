@@ -10,8 +10,8 @@
  * correct for that point in history.
  */
 
-import { type ExtensionAPI, type ExtensionContext, StringEnum, type Theme } from "@bastani/atomic";
 import { matchesKey, Text, truncateToWidth } from "@earendil-works/pi-tui";
+import { type ExtensionAPI, type ExtensionContext, StringEnum, type Theme } from "@orphus/coding-agent";
 import { Type } from "typebox";
 
 interface Todo {

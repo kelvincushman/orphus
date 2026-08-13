@@ -15,7 +15,7 @@ import type { Alias } from "vite";
 export const repositoryRoot = fileURLToPath(new URL(".", import.meta.url));
 
 /**
- * `@bastani/atomic` resolves to its unbuilt source under test. Without this,
+ * `@orphus/coding-agent` resolves to its unbuilt source under test. Without this,
  * packages/workflows/src/engine/workflow-activity.ts fails to resolve the host
  * entry and takes test/unit/executor-concurrency-limiter.test.ts down with it.
  */
@@ -49,7 +49,7 @@ const workspaceSourceAliases: readonly Alias[] =
 
 /** Every alias each vitest project shares. */
 export const sharedAliases: readonly Alias[] = [
-	{ find: /^@bastani\/atomic$/, replacement: atomicSrcIndex },
+	{ find: /^@orphus\/coding-agent$/, replacement: atomicSrcIndex },
 	...workspaceSourceAliases,
 ];
 

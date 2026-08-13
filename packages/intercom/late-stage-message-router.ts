@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import type { InboundMessageEntry } from "./intercom-utils.js";
 import type { InboundMessageAdmission, InboundMessageReservation } from "./inbound-message-admission.js";
 import type { IntercomContext, ReplyTracker } from "./reply-tracker.js";

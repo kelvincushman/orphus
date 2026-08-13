@@ -3,7 +3,7 @@ import type {
   MessageRenderer, ModelSelectEvent, RegisteredCommand, SessionShutdownEvent,
   SessionStartEvent, ToolDefinition, ToolExecutionEndEvent, ToolExecutionStartEvent,
   TurnEndEvent, TurnStartEvent,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 
 type CapturedCommand = Omit<RegisteredCommand, "name" | "sourceInfo">;
 type CapturedShortcut = Parameters<ExtensionAPI["registerShortcut"]>[1];

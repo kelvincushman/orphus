@@ -1,4 +1,4 @@
-# @bastani/atomic-natives
+# @orphus/natives
 
 Native Rust bindings for Atomic via N-API.
 

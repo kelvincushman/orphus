@@ -1,5 +1,5 @@
 {
-  "name": "@bastani/roundtable",
+  "name": "@orphus/roundtable",
   "version": "0.0.0",
   "private": true,
   "description": "Atomic extension providing group chat rooms between agent sessions with token-budgeted digests that keep inter-agent discussion out of the context window until pulled.",
@@ -50,10 +50,10 @@
     ]
   },
   "peerDependencies": {
-    "@bastani/atomic": "*"
+    "@orphus/coding-agent": "*"
   },
   "peerDependenciesMeta": {
-    "@bastani/atomic": {
+    "@orphus/coding-agent": {
       "optional": true
     }
   },

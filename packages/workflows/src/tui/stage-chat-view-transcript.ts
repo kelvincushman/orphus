@@ -1,5 +1,5 @@
-import type { ChatMessageEntry } from "@bastani/atomic";
 import type { Component } from "@earendil-works/pi-tui";
+import type { ChatMessageEntry } from "@orphus/coding-agent";
 import type { StageNotice } from "../shared/store-types.js";
 import type { GraphTheme } from "./graph-theme.js";
 import type { NoticeEntry, TranscriptDebugEntry, TranscriptEntry } from "./stage-chat-view-types.js";

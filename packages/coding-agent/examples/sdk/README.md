@@ -39,7 +39,7 @@ import {
   ModelRuntime,
   SessionManager,
   SettingsManager,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 
 // Credential and model setup
 const modelRuntime = await ModelRuntime.create();

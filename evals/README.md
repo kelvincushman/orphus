@@ -19,8 +19,8 @@ Run commands from this `evals/` directory. Choose one provider configuration bel
 
 Common options:
 
-- `--agent-kwarg version=next` installs `@bastani/atomic@next` inside the sandbox. Omit it for `@latest`, or pass a concrete npm version/tag without the leading `@` (for example `--agent-kwarg version=0.9.3-alpha.1`).
-- `--force-build` rebuilds the task image so the `npm install -g @bastani/atomic@...` layer re-runs. Without it, Docker layer caching reuses a previously installed Atomic even after a new version is published to the tag, so benchmark runs can silently test a stale build. All commands below include it.
+- `--agent-kwarg version=next` installs `@orphus/coding-agent@next` inside the sandbox. Omit it for `@latest`, or pass a concrete npm version/tag without the leading `@` (for example `--agent-kwarg version=0.9.3-alpha.1`).
+- `--force-build` rebuilds the task image so the `npm install -g @orphus/coding-agent@...` layer re-runs. Without it, Docker layer caching reuses a previously installed Atomic even after a new version is published to the tag, so benchmark runs can silently test a stale build. All commands below include it.
 - `--agent-kwarg thinking=xhigh` configures Atomic's reasoning level for models that support it.
 - `--agent-kwarg disallowed_subscriptions=github-copilot` excludes matching providers from copied local subscription auth. The default is empty: every valid local entry remains eligible unless explicitly denied, with no known-provider allowlist. Pass multiple names as a comma-separated string or JSON list.
 - `--n-tasks` and `--include-task-name` control which Deep SWE tasks run.

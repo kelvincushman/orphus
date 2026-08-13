@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createAgentSession, SessionManager, SettingsManager } from "@bastani/atomic";
+import { createAgentSession, SessionManager, SettingsManager } from "@orphus/coding-agent";
 import { test } from "vitest";
 import type { AgentConfig } from "../../packages/subagents/src/agents/agent-types.ts";
 import { createChildResourceLoader } from "../../packages/subagents/src/runs/inprocess/runner.ts";

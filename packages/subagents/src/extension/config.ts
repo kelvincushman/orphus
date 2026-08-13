@@ -1,5 +1,5 @@
 import * as fs from "node:fs";
-import { getAgentConfigPaths } from "@bastani/atomic";
+import { getAgentConfigPaths } from "@orphus/coding-agent";
 import type { ExtensionConfig } from "../shared/types.ts";
 
 export function loadConfig(): ExtensionConfig {

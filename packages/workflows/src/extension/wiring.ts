@@ -4,7 +4,7 @@
  *
  * `buildRuntimeAdapters` uses pi's in-process SDK (`createAgentSession`)
  * for workflow stages. The factory is imported directly from
- * `@bastani/atomic` (a peer dependency) because the
+ * `@orphus/coding-agent` (a peer dependency) because the
  * modern pi `ExtensionAPI` does NOT inject `createAgentSession` onto the
  * extension surface — it is a top-level package export. Workflow authors
  * can pass `createAgentSession` options directly to
@@ -21,7 +21,7 @@
  *            pi docs/sdk.md createAgentSession
  */
 
-import type { CreateAgentSessionOptions, DefaultResourceLoaderInheritanceSnapshot } from "@bastani/atomic";
+import type { CreateAgentSessionOptions, DefaultResourceLoaderInheritanceSnapshot } from "@orphus/coding-agent";
 import type { StageAdapters, StageSessionCreateResult, StageSessionRuntime } from "../runs/foreground/stage-runner.js";
 import { resolveStageGroup, stageHasIntercomAccess } from "../shared/intercom-group.js";
 import { type StageUiBroker, stageUiBroker } from "../shared/stage-ui-broker.js";
@@ -72,7 +72,7 @@ export type {
  * Minimal pi runtime surface needed to build stage adapters.
  *
  * SDK stage creation imports `createAgentSession` directly from
- * `@bastani/atomic` (≥ 0.74 — the pi SDK exposes it as a
+ * `@orphus/coding-agent` (≥ 0.74 — the pi SDK exposes it as a
  * top-level package export, NOT on the `ExtensionAPI` surface). The
  * optional `createAgentSession` field here is a test seam so callers can
  * inject a stub session factory; production code does not require it.
@@ -167,7 +167,7 @@ async function createPiSdkAgentSession(
 	options?: CreateAgentSessionOptions,
 	prepareOptions?: PrepareAtomicStageSessionOptions,
 ): Promise<StageSessionCreateResult> {
-	const sdk = (await import("@bastani/atomic")) as PiCodingAgentSdk;
+	const sdk = (await import("@orphus/coding-agent")) as PiCodingAgentSdk;
 	let settingsManager: ReturnType<PiCodingAgentSdk["SettingsManager"]["create"]> | undefined;
 	try {
 		const sessionOptions = await prepareAtomicStageSessionOptions(options, sdk, {
@@ -411,7 +411,7 @@ function makeStageExtensionUiContext(ui: PiUISurface, meta: StageExecutionMeta |
  *   2. `pi.createAgentSession` — wiring-surface test seam.
  *   3. in-process test stub when running under `bun:test` / `node:test`.
  *   4. lazy dynamic import of `createAgentSession` from
- *      `@bastani/atomic` — the canonical production
+ *      `@orphus/coding-agent` — the canonical production
  *      default (pi SDK ≥ 0.74 exposes it as a top-level package export,
  *      NOT on the `ExtensionAPI` surface).
  */

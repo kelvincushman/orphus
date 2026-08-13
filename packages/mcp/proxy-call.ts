@@ -1,4 +1,4 @@
-import type { ToolInfo } from "@bastani/atomic";
+import type { ToolInfo } from "@orphus/coding-agent";
 import type { McpExtensionState } from "./state.js";
 import type { McpContent, ToolMetadata } from "./types.ts";
 import { getServerPrefix } from "./types.ts";

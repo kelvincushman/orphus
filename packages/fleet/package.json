@@ -1,5 +1,5 @@
 {
-  "name": "@bastani/fleet",
+  "name": "@orphus/fleet",
   "version": "0.0.0",
   "private": true,
   "description": "Orphus extension for community-shareable fleet orchestration: blueprints bind teams of agents with pre-assigned skills to deliberation rooms and dispatch fan-out.",
@@ -36,10 +36,10 @@
     "skills": ["./skills"]
   },
   "peerDependencies": {
-    "@bastani/atomic": "*"
+    "@orphus/coding-agent": "*"
   },
   "peerDependenciesMeta": {
-    "@bastani/atomic": {
+    "@orphus/coding-agent": {
       "optional": true
     }
   },

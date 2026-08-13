@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CONFIG_DIR_NAME, getAgentConfigPaths, getProjectConfigDirs } from "@bastani/atomic";
+import { CONFIG_DIR_NAME, getAgentConfigPaths, getProjectConfigDirs } from "@orphus/coding-agent";
 
 export function getUserChainDir(): string {
 	return getAgentConfigPaths("chains")[0] ?? path.join(os.homedir(), CONFIG_DIR_NAME, "agent", "chains");

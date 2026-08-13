@@ -18,7 +18,7 @@
  *  - DESIGN.md §5 Components — picker-row-* tokens
  */
 
-import { keyText } from "@bastani/atomic";
+import { keyText } from "@orphus/coding-agent";
 import { isWorkflowRunResumable, type WorkflowRunResumeCandidate } from "../durable/resume-eligibility.js";
 import { runIndicatorStatus } from "../shared/run-indicator-status.js";
 import { isTopLevelWorkflowRun } from "../shared/run-visibility.js";

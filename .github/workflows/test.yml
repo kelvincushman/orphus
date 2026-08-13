@@ -83,12 +83,12 @@ jobs:
         run: npm ci --ignore-scripts
       # Measured at 42s Linux / 86s Windows, both inside the existing caps.
       - name: Build native bindings for the root suites
-        run: npm run build --workspace=@bastani/atomic-natives
+        run: npm run build --workspace=@orphus/natives
       # Both suites below consume this build. test/unit/pi-0.82.1-artifacts.test.ts
       # silently degrades to test.skip when packages/coding-agent/dist is absent,
       # so moving the unit suite out of this job would lose coverage without
       # failing anything.
-      - name: Build @bastani/atomic package
+      - name: Build @orphus/coding-agent package
         working-directory: packages/coding-agent
         run: npm run build
       - name: Unit tests (one bounded flake retry)
@@ -164,11 +164,11 @@ jobs:
       # by ORPHUS_REQUIRE_NATIVE_BINDING_SMOKE below, so the vitest suite must
       # stay behind this build.
       - name: Build native bindings for package tests
-        run: npm run build --workspace=@bastani/atomic-natives
+        run: npm run build --workspace=@orphus/natives
       - name: coding-agent vitest suite (one bounded flake retry)
         run: >-
           bun run scripts/run-flaky-test-suite.ts --label "coding-agent tests (${{ matrix.binary_platform }})"
-          -- npm run test --workspace=@bastani/atomic
+          -- npm run test --workspace=@orphus/coding-agent
         env:
           ORPHUS_REQUIRE_NATIVE_BINDING_SMOKE: "1"
       - name: Upload flaky-test diagnostics
@@ -227,7 +227,7 @@ jobs:
           toolchain: stable
       - name: Install dependencies
         run: npm ci --ignore-scripts
-      - name: Build @bastani/atomic package
+      - name: Build @orphus/coding-agent package
         working-directory: packages/coding-agent
         run: npm run build
       - name: Build native release binary
@@ -255,9 +255,9 @@ jobs:
             builtin/web-access/index.ts \
             builtin/intercom/package.json \
             builtin/intercom/index.ts \
-            node_modules/@bastani/atomic-natives/package.json \
-            node_modules/@bastani/atomic-natives/native/index.js \
-            node_modules/@bastani/atomic-natives/native/atomic_natives.linux-x64-gnu.node \
+            node_modules/@orphus/natives/package.json \
+            node_modules/@orphus/natives/native/index.js \
+            node_modules/@orphus/natives/native/atomic_natives.linux-x64-gnu.node \
             node_modules/@modelcontextprotocol/ext-apps/package.json \
             node_modules/@mozilla/readability/package.json; do
             test -f "$smoke_dir/atomic/$required_path" || {
@@ -307,9 +307,9 @@ jobs:
             "builtin/web-access/index.ts",
             "builtin/intercom/package.json",
             "builtin/intercom/index.ts",
-            "node_modules/@bastani/atomic-natives/package.json",
-            "node_modules/@bastani/atomic-natives/native/index.js",
-            "node_modules/@bastani/atomic-natives/native/atomic_natives.win32-x64-msvc.node",
+            "node_modules/@orphus/natives/package.json",
+            "node_modules/@orphus/natives/native/index.js",
+            "node_modules/@orphus/natives/native/atomic_natives.win32-x64-msvc.node",
             "node_modules/@modelcontextprotocol/ext-apps/package.json",
             "node_modules/@mozilla/readability/package.json"
           )) {

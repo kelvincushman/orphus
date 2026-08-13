@@ -12,7 +12,7 @@ import type {
 	CreateAgentSessionOptions,
 	DefaultResourceLoaderInheritanceSnapshot,
 	PackageSource,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 import { describe, test } from "vitest";
 import type {
 	PiCodingAgentSdk,

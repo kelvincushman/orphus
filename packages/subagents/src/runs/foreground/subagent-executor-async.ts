@@ -1,4 +1,4 @@
-import { APP_NAME } from "@bastani/atomic";
+import { APP_NAME } from "@orphus/coding-agent";
 import { normalizeSkillInput } from "../../agents/skills.ts";
 import { resolveSubagentIntercomTarget } from "../../intercom/intercom-bridge.ts";
 import { collectKnownModelProviders, toModelInfo } from "../../shared/model-info.ts";

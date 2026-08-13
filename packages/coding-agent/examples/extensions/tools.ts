@@ -9,9 +9,9 @@
  * 2. Use /tools to open the tool selector
  */
 
-import type { ExtensionAPI, ExtensionContext, ToolInfo } from "@bastani/atomic";
-import { getSettingsListTheme } from "@bastani/atomic";
 import { Container, type SettingItem, SettingsList } from "@earendil-works/pi-tui";
+import type { ExtensionAPI, ExtensionContext, ToolInfo } from "@orphus/coding-agent";
+import { getSettingsListTheme } from "@orphus/coding-agent";
 
 // State persisted to session
 interface ToolsState {

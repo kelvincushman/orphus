@@ -1,4 +1,4 @@
-import type { AgentSessionEvent } from "@bastani/atomic";
+import type { AgentSessionEvent } from "@orphus/coding-agent";
 import type { StageChatViewContext } from "./stage-chat-view-types.js";
 
 export function replayPendingToolExecutions(ctx: StageChatViewContext): void {

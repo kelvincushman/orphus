@@ -13,7 +13,7 @@ import type {
 	SettingsManager,
 	ToolDefinition,
 	VerbatimCompactionResult,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 import type { TSchema } from "typebox";
 import type * as AuthoringContract from "./authoring-contract.js";
 import type { ToolNodeSnapshot } from "./store-types.js";

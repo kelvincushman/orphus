@@ -1,5 +1,5 @@
 /**
- * Non-cyclic public SDK surface for @bastani/workflows.
+ * Non-cyclic public SDK surface for @orphus/workflows.
  *
  * Keep public runtime exports here when they are safe to load during workflow
  * discovery. The package root re-exports this module directly.
@@ -10,7 +10,7 @@ export { KEEP_CONTEXT_CLOSE_TAG, KEEP_CONTEXT_OPEN_TAG, keepContext } from "./au
 export { workflow } from "./authoring/workflow.js";
 
 const REMOVED_RUN_WORKFLOW_MESSAGE =
-	"@bastani/workflows no longer exports runWorkflow; author workflows with workflow({...})";
+	"@orphus/workflows no longer exports runWorkflow; author workflows with workflow({...})";
 
 /**
  * @deprecated Removed imperative workflow API. Kept as a runtime migration

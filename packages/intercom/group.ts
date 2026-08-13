@@ -1,4 +1,4 @@
-import { getEnvValue } from "@bastani/atomic";
+import { getEnvValue } from "@orphus/coding-agent";
 
 /** The implicit group every ungrouped session belongs to. */
 export const DEFAULT_GROUP = "default";

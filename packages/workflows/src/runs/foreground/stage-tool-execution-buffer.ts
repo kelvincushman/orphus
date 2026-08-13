@@ -1,4 +1,4 @@
-import type { AgentSessionEvent } from "@bastani/atomic";
+import type { AgentSessionEvent } from "@orphus/coding-agent";
 
 interface PendingToolExecution {
 	start: AgentSessionEvent;

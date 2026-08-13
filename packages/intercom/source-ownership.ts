@@ -1,4 +1,4 @@
-import { type SubagentChildPolicy } from "@bastani/atomic";
+import { type SubagentChildPolicy } from "@orphus/coding-agent";
 import type { Message } from "./types.js";
 
 export function buildSubagentMessageSource(

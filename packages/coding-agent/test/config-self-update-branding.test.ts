@@ -24,12 +24,12 @@ const unixOnly = process.platform === "win32" ? describe.skip : describe;
 
 describe("standalone Orphus update guidance", () => {
 	it("directs unmanaged bun binaries to the Orphus releases and the installer", () => {
-		const instruction = getSelfUpdateUnavailableInstructionForRuntime(binaryRuntime(), "@bastani/atomic");
+		const instruction = getSelfUpdateUnavailableInstructionForRuntime(binaryRuntime(), "@orphus/coding-agent");
 		expect(instruction).toContain("https://github.com/kelvincushman/orphus/releases/latest");
 		expect(instruction).toContain(ORPHUS_INSTALLER_ONE_LINER);
 		expect(instruction).not.toContain("bastani-inc");
 		expect(instruction).not.toContain("pi-mono");
-		expect(getUpdateInstructionForRuntime(binaryRuntime(), "@bastani/atomic")).toBe(instruction);
+		expect(getUpdateInstructionForRuntime(binaryRuntime(), "@orphus/coding-agent")).toBe(instruction);
 	});
 });
 
@@ -51,14 +51,14 @@ unixOnly("archive-install self-update", () => {
 	});
 
 	it("re-runs the canonical installer for install.sh layouts", () => {
-		const command = getSelfUpdateCommandForRuntime(binaryRuntime(executable), "@bastani/atomic");
+		const command = getSelfUpdateCommandForRuntime(binaryRuntime(executable), "@orphus/coding-agent");
 		expect(command).toBeDefined();
 		expect(command?.command).toBe("sh");
 		expect(command?.args).toEqual(["-c", ORPHUS_INSTALLER_ONE_LINER]);
 	});
 
 	it("tells install.sh layouts that self-update runs the installer", () => {
-		const instruction = getUpdateInstructionForRuntime(binaryRuntime(executable), "@bastani/atomic");
+		const instruction = getUpdateInstructionForRuntime(binaryRuntime(executable), "@orphus/coding-agent");
 		expect(instruction).toContain(ORPHUS_INSTALLER_ONE_LINER);
 		expect(instruction).not.toContain("releases/latest");
 	});
@@ -66,11 +66,11 @@ unixOnly("archive-install self-update", () => {
 	it("does not treat a bare binary outside the layout as an archive install", () => {
 		const bare = join(root, "orphus-standalone");
 		writeFileSync(bare, "#!/bin/sh\n");
-		expect(getSelfUpdateCommandForRuntime(binaryRuntime(bare), "@bastani/atomic")).toBeUndefined();
+		expect(getSelfUpdateCommandForRuntime(binaryRuntime(bare), "@orphus/coding-agent")).toBeUndefined();
 	});
 
 	it("requires the current pointer, not just a versions directory", () => {
 		rmSync(join(root, "current"));
-		expect(getSelfUpdateCommandForRuntime(binaryRuntime(executable), "@bastani/atomic")).toBeUndefined();
+		expect(getSelfUpdateCommandForRuntime(binaryRuntime(executable), "@orphus/coding-agent")).toBeUndefined();
 	});
 });

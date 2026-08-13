@@ -1,6 +1,6 @@
-import type { Theme } from "@bastani/atomic";
 import type { OverlayAnchor, OverlayOptions, TUI } from "@earendil-works/pi-tui";
 import { matchesKey } from "@earendil-works/pi-tui";
+import type { Theme } from "@orphus/coding-agent";
 import { BaseOverlay } from "./overlay-qa-shared.js";
 
 export class AnchorTestComponent extends BaseOverlay {

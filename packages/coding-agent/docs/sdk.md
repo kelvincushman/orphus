@@ -16,7 +16,7 @@ See [examples/sdk/](https://github.com/bastani-inc/atomic/tree/main/packages/cod
 ## Quick Start
 
 ```typescript
-import { createAgentSession, ModelRuntime, SessionManager } from "@bastani/atomic";
+import { createAgentSession, ModelRuntime, SessionManager } from "@orphus/coding-agent";
 
 const modelRuntime = await ModelRuntime.create();
 
@@ -37,7 +37,7 @@ await session.prompt("What files are in the current directory?");
 `ModelRuntime` is the canonical asynchronous provider runtime when an integration wants provider-owned credentials, dynamic catalogs, and native providers in one object:
 
 ```typescript
-import { createAgentSession, ModelRuntime, SessionManager } from "@bastani/atomic";
+import { createAgentSession, ModelRuntime, SessionManager } from "@orphus/coding-agent";
 
 const modelRuntime = await ModelRuntime.create();
 const { session } = await createAgentSession({
@@ -54,24 +54,24 @@ The package root also exports `buildContextEntries`, `sessionEntryToContextMessa
 
 ## Installation
 
-Install `@bastani/atomic` as a project dependency with npm, pnpm, or Bun:
+Install `@orphus/coding-agent` as a project dependency with npm, pnpm, or Bun:
 
 With npm:
 
 ```bash
-npm install @bastani/atomic
+npm install @orphus/coding-agent
 ```
 
 With pnpm:
 
 ```bash
-pnpm add @bastani/atomic
+pnpm add @orphus/coding-agent
 ```
 
 With Bun:
 
 ```bash
-bun add @bastani/atomic
+bun add @orphus/coding-agent
 ```
 
 Orphus does not require package install scripts. If you want to disable dependency lifecycle scripts during the Orphus install, you can add `--ignore-scripts` to the install command.
@@ -87,7 +87,7 @@ The main factory function for a single `AgentSession`.
 `createAgentSession()` uses a `ResourceLoader` to supply extensions, skills, prompt templates, themes, and context files. If you do not provide one, it uses `DefaultResourceLoader` with standard discovery.
 
 ```typescript
-import { createAgentSession, SessionManager } from "@bastani/atomic";
+import { createAgentSession, SessionManager } from "@orphus/coding-agent";
 
 // Minimal: defaults with DefaultResourceLoader
 const { session } = await createAgentSession();
@@ -174,7 +174,7 @@ import {
   createAgentSessionServices,
   getAgentDir,
   SessionManager,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 
 const createRuntime: CreateAgentSessionRuntimeFactory = async ({ cwd, sessionManager, sessionStartEvent }) => {
   const services = await createAgentSessionServices({ cwd });
@@ -420,7 +420,7 @@ When you pass a custom `ResourceLoader`, `cwd` and `agentDir` no longer control 
 
 ```typescript
 import { getModel } from "@earendil-works/pi-ai/compat";
-import { ModelRuntime } from "@bastani/atomic";
+import { ModelRuntime } from "@orphus/coding-agent";
 
 const modelRuntime = await ModelRuntime.create();
 
@@ -464,7 +464,7 @@ If no model is provided:
 Credential resolution combines runtime API-key overrides, stored `auth.json` credentials, environment variables, and the active `models.json` provider configuration. OAuth acquisition is provider-owned and runs through `ModelRuntime.login()`.
 
 ```typescript
-import { AuthStorage, ModelRuntime } from "@bastani/atomic";
+import { AuthStorage, ModelRuntime } from "@orphus/coding-agent";
 
 const authStorage = AuthStorage.create();
 const modelRuntime = await ModelRuntime.create({ credentials: authStorage });
@@ -499,7 +499,7 @@ const builtinsOnly = await ModelRuntime.create({ modelsPath: null });
 Use a `ResourceLoader` to override the system prompt:
 
 ```typescript
-import { createAgentSession, DefaultResourceLoader } from "@bastani/atomic";
+import { createAgentSession, DefaultResourceLoader } from "@orphus/coding-agent";
 
 const loader = new DefaultResourceLoader({
   systemPromptOverride: () => "You are a helpful assistant.",
@@ -523,7 +523,7 @@ Specify which tools to expose by name:
 - `noTools: "builtin"` disables default built-ins while keeping extension and custom tools enabled, except names listed in `excludedTools`
 
 ```typescript
-import { createAgentSession } from "@bastani/atomic";
+import { createAgentSession } from "@orphus/coding-agent";
 
 // Read-only mode
 const { session } = await createAgentSession({
@@ -556,7 +556,7 @@ Orphus's built-in `bash` tool matches upstream pi: when `bash` is enabled, comma
 When you pass a custom `cwd`, `createAgentSession()` builds selected built-in tools for that cwd.
 
 ```typescript
-import { createAgentSession, SessionManager } from "@bastani/atomic";
+import { createAgentSession, SessionManager } from "@orphus/coding-agent";
 
 const cwd = "/path/to/project";
 
@@ -580,7 +580,7 @@ const { session } = await createAgentSession({
 
 ```typescript
 import { Type } from "typebox";
-import { createAgentSession, defineTool } from "@bastani/atomic";
+import { createAgentSession, defineTool } from "@orphus/coding-agent";
 
 // Inline custom tool
 const myTool = defineTool({
@@ -622,7 +622,7 @@ import {
   createAgentSession,
   createStructuredOutputTool,
   type StructuredOutputCapture,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 
 const DecisionSchema = Type.Object({
   approved: Type.Boolean(),
@@ -675,7 +675,7 @@ await createAgentSession({
 Extensions are loaded by the `ResourceLoader`. `DefaultResourceLoader` discovers extensions from `~/.atomic/agent/extensions/` and `.atomic/extensions/` first, then legacy `~/.pi/agent/extensions/` and `.pi/extensions/`, plus settings.json extension sources.
 
 ```typescript
-import { createAgentSession, DefaultResourceLoader } from "@bastani/atomic";
+import { createAgentSession, DefaultResourceLoader } from "@orphus/coding-agent";
 
 const loader = new DefaultResourceLoader({
   additionalExtensionPaths: ["/path/to/my-extension.ts"],
@@ -697,7 +697,7 @@ Extensions can register tools, subscribe to events, add commands, and more. See 
 **Event Bus:** Extensions can communicate via `pi.events`. Pass a shared `eventBus` to `DefaultResourceLoader` if you need to emit or listen from outside:
 
 ```typescript
-import { createEventBus, DefaultResourceLoader } from "@bastani/atomic";
+import { createEventBus, DefaultResourceLoader } from "@orphus/coding-agent";
 
 const eventBus = createEventBus();
 const loader = new DefaultResourceLoader({
@@ -717,7 +717,7 @@ import {
   createAgentSession,
   DefaultResourceLoader,
   type Skill,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 
 const customSkill: Skill = {
   name: "my-skill",
@@ -743,7 +743,7 @@ const { session } = await createAgentSession({ resourceLoader: loader });
 ### Context Files
 
 ```typescript
-import { createAgentSession, DefaultResourceLoader } from "@bastani/atomic";
+import { createAgentSession, DefaultResourceLoader } from "@orphus/coding-agent";
 
 const loader = new DefaultResourceLoader({
   agentsFilesOverride: (current) => ({
@@ -767,7 +767,7 @@ import {
   createAgentSession,
   DefaultResourceLoader,
   type PromptTemplate,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 
 const customCommand: PromptTemplate = {
   name: "deploy",
@@ -802,7 +802,7 @@ import {
   createAgentSessionServices,
   getAgentDir,
   SessionManager,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 
 // In-memory (no persistence)
 const { session } = await createAgentSession({
@@ -896,7 +896,7 @@ sm.createBranchedSession(leafId);       // Extract path to new file
 ### Settings Management
 
 ```typescript
-import { createAgentSession, SettingsManager, SessionManager } from "@bastani/atomic";
+import { createAgentSession, SettingsManager, SessionManager } from "@orphus/coding-agent";
 
 // Default: loads from files (global + project merged)
 const { session } = await createAgentSession({
@@ -952,7 +952,7 @@ Use `DefaultResourceLoader` to discover extensions, skills, prompts, themes, and
 import {
   DefaultResourceLoader,
   getAgentDir,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 
 const loader = new DefaultResourceLoader({
   cwd,
@@ -1003,7 +1003,7 @@ import {
   ModelRuntime,
   SessionManager,
   SettingsManager,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 
 // Create a runtime with custom credential storage and no models.json.
 const authStorage = AuthStorage.create("/custom/agent/auth.json");
@@ -1085,7 +1085,7 @@ import {
   getAgentDir,
   InteractiveMode,
   SessionManager,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 
 const createRuntime: CreateAgentSessionRuntimeFactory = async ({ cwd, sessionManager, sessionStartEvent }) => {
   const services = await createAgentSessionServices({ cwd });
@@ -1125,7 +1125,7 @@ import {
   getAgentDir,
   runPrintMode,
   SessionManager,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 
 const createRuntime: CreateAgentSessionRuntimeFactory = async ({ cwd, sessionManager, sessionStartEvent }) => {
   const services = await createAgentSessionServices({ cwd });
@@ -1162,7 +1162,7 @@ import {
   getAgentDir,
   runRpcMode,
   SessionManager,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 
 const createRuntime: CreateAgentSessionRuntimeFactory = async ({ cwd, sessionManager, sessionStartEvent }) => {
   const services = await createAgentSessionServices({ cwd });

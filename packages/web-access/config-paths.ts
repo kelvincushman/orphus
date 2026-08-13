@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { getUserConfigPaths } from "@bastani/atomic";
+import { getUserConfigPaths } from "@orphus/coding-agent";
 
 export const WEB_SEARCH_CONFIG_PATHS = getUserConfigPaths("web-search.json");
 export const WEB_SEARCH_CONFIG_PATH = WEB_SEARCH_CONFIG_PATHS[0] ?? "~/.atomic/web-search.json";

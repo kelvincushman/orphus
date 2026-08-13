@@ -111,7 +111,7 @@ describe("workflow-first execution routing", () => {
 	test("teaches compositional imports and nested builtin workflows", () => {
 		for (const phrase of [
 			"Workflow definitions are normal TypeScript modules",
-			"@bastani/workflows/builtin",
+			"@orphus/workflows/builtin",
 			"ctx.workflow(childDefinition, { inputs, stageName })",
 			"Imported children may nest more workflows",
 			"maxDepth",
@@ -522,7 +522,7 @@ describe("workflow-first execution routing", () => {
 			"dynamic fan-out",
 			"adversarial verification",
 			"bounded loop",
-			"@bastani/workflows/builtin",
+			"@orphus/workflows/builtin",
 			"ctx.workflow(...)",
 			"Nested children",
 			"maxDepth",

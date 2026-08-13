@@ -26,7 +26,7 @@ const DEFAULT_DIGEST_BUDGET = 2000;
 const DEFAULT_PER_MESSAGE_CAP = 600;
 const DEFAULT_ROUNDS = 2;
 const MAX_ROUNDS = 10;
-/** Mirrors MAX_PARALLEL_TASKS in @bastani/subagents — the dispatch ceiling. */
+/** Mirrors MAX_PARALLEL_TASKS in @orphus/subagents — the dispatch ceiling. */
 const MAX_TEAM_MEMBERS = 50;
 const BLUEPRINT_VERSION = 1;
 

@@ -139,8 +139,8 @@ extension fails at import and takes the whole run down, which looks like dozens
 of unrelated failures:
 
 ```bash
-npm run build --workspace=@bastani/atomic-natives
-npm run build --workspace=@bastani/atomic
+npm run build --workspace=@orphus/natives
+npm run build --workspace=@orphus/coding-agent
 npm run test:unit
 ```
 

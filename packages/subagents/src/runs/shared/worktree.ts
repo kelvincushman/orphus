@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { CONFIG_DIR_NAME, createGitEnvironment } from "@bastani/atomic";
+import { CONFIG_DIR_NAME, createGitEnvironment } from "@orphus/coding-agent";
 import { performPostCreationSetup } from "./worktree-post-create.js";
 import { findCanonicalGitRoot } from "./worktree-root.js";
 export interface WorktreeSetup {

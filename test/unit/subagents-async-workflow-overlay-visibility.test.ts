@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { ExtensionAPI, ExtensionContext, ReadonlyFooterDataProvider } from "@bastani/atomic";
+import type { ExtensionAPI, ExtensionContext, ReadonlyFooterDataProvider } from "@orphus/coding-agent";
 import { afterEach, describe, test } from "vitest";
 import { createAsyncJobTracker } from "../../packages/subagents/src/runs/background/async-job-tracker.js";
 import type { AsyncStatus, SubagentState } from "../../packages/subagents/src/shared/types.js";

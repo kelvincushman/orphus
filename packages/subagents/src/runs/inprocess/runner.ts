@@ -1,5 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
+import type { Api, Model } from "@earendil-works/pi-ai/compat";
 import {
 	type AgentSession,
 	type AgentSessionEvent,
@@ -14,7 +15,7 @@ import {
 	type SessionStats,
 	SettingsManager,
 	type SubagentIntercomIdentity,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 import {
 	type ChildIdentity,
 	type NativeAdmissionResult,
@@ -22,8 +23,7 @@ import {
 	type NativeExecutionGuardResult,
 	type TerminationCause as NativeTerminationCause,
 	SubagentControl,
-} from "@bastani/atomic-natives";
-import type { Api, Model } from "@earendil-works/pi-ai/compat";
+} from "@orphus/natives";
 import type { AgentConfig } from "../../agents/agent-types.ts";
 import { ensureArtifactsDir, writeArtifact, writeMetadata } from "../../shared/artifacts.ts";
 import {

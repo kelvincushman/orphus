@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { CreateAgentSessionOptions } from "@bastani/atomic";
+import type { CreateAgentSessionOptions } from "@orphus/coding-agent";
 import { test } from "vitest";
 import { resolveHomeGroup } from "../../packages/intercom/group.js";
 import { buildRuntimeAdapters } from "../../packages/workflows/src/extension/wiring.js";

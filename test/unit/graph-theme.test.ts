@@ -6,7 +6,7 @@
  *
  * cross-ref:
  *   - src/tui/graph-theme.ts `deriveGraphThemeFromPiTheme`
- *   - node_modules/@bastani/atomic/src/modes/theme/theme.ts
+ *   - node_modules/@orphus/coding-agent/src/modes/theme/theme.ts
  */
 
 import assert from "node:assert/strict";

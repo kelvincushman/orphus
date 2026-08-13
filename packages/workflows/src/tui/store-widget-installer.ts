@@ -43,7 +43,7 @@ import {
 	type ReactiveWidgetRenderState,
 	type ReactiveWidgetTimerApi,
 	type ReactiveWidgetTimerHandle,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 import type { Store } from "../shared/store.js";
 import { readGraphStoreSnapshot, subscribeStoreInvalidation } from "../shared/store-observation.js";
 import type { StoreSnapshot } from "../shared/store-types.js";

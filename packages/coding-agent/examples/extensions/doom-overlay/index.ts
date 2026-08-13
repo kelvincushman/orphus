@@ -9,7 +9,7 @@
  * This demonstrates that overlays can handle real-time game rendering at 35 FPS.
  */
 
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import { DoomOverlayComponent } from "./doom-component.ts";
 import { DoomEngine } from "./doom-engine.ts";
 import { ensureWadFile } from "./wad-finder.ts";

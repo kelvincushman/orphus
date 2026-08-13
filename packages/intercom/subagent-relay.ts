@@ -1,4 +1,4 @@
-import type { ExtensionAPI, ExtensionContext } from "@bastani/atomic";
+import type { ExtensionAPI, ExtensionContext } from "@orphus/coding-agent";
 import { randomUUID } from "crypto";
 import type { IntercomClient } from "./broker/client.js";
 import type { SessionInfo, Message } from "./types.js";

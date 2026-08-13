@@ -4,6 +4,8 @@
 
 ### Changed
 
+- **Workspace packages carry the `@orphus/*` scope.** `@bastani/atomic` is now `@orphus/coding-agent`, `@bastani/atomic-natives` is `@orphus/natives`, and the remaining seven keep their names under the new scope. This is a source-level rename of a workspace that is not published to npm, so nothing an installed user runs changes — but anyone building from a clone updates their imports, and `git merge upstream/main` now conflicts on import lines, so upstream changes are cherry-picked rather than merged wholesale.
+- The app identity block in `packages/coding-agent/package.json` is `orphusConfig`. The scope rename means the package name no longer contains the app name, so the derived `<appName>Config` lookup would resolve to `coding-agent`; `orphusConfig` is read first and `piConfig` remains as the inherited-schema shim. `atomicConfig` is gone.
 - The working indicator is Orphus's own mark: a round table seen from above (`⊙`) with the decision at its centre, replacing the `∀` this tree inherited from Atomic. The ten-step luminance ramp, 88ms cadence, `NO_COLOR` behaviour, and reduced-motion static frame are unchanged.
 
 ### Fixed

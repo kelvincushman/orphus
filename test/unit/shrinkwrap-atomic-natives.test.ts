@@ -21,28 +21,25 @@ interface ShrinkwrapModule {
 const stampedReleaseVersion = "9.8.7-alpha.1";
 
 const expectedNativeOptionalPackages = [
-	"@bastani/atomic-natives-darwin-arm64",
-	"@bastani/atomic-natives-darwin-x64",
-	"@bastani/atomic-natives-linux-arm64-gnu",
-	"@bastani/atomic-natives-linux-arm64-musl",
-	"@bastani/atomic-natives-linux-x64-gnu",
-	"@bastani/atomic-natives-linux-x64-musl",
-	"@bastani/atomic-natives-win32-arm64-msvc",
-	"@bastani/atomic-natives-win32-x64-msvc",
+	"@orphus/natives-darwin-arm64",
+	"@orphus/natives-darwin-x64",
+	"@orphus/natives-linux-arm64-gnu",
+	"@orphus/natives-linux-arm64-musl",
+	"@orphus/natives-linux-x64-gnu",
+	"@orphus/natives-linux-x64-musl",
+	"@orphus/natives-win32-arm64-msvc",
+	"@orphus/natives-win32-x64-msvc",
 ];
 
 function assertDeterministicNativeEntries(shrinkwrap: Shrinkwrap, expectedVersion?: string) {
-	const atomicNatives = shrinkwrap.packages["node_modules/@bastani/atomic-natives"];
-	assert.ok(atomicNatives, "@bastani/atomic-natives entry should be present");
+	const atomicNatives = shrinkwrap.packages["node_modules/@orphus/natives"];
+	assert.ok(atomicNatives, "@orphus/natives entry should be present");
 	if (expectedVersion) {
 		assert.equal(atomicNatives.version, expectedVersion);
 	}
 	const resolved = atomicNatives.resolved;
-	assert.equal(typeof resolved, "string", "@bastani/atomic-natives resolved URL should be present");
-	assert.match(
-		resolved ?? "",
-		/^https:\/\/registry\.npmjs\.org\/@bastani\/atomic-natives\/-\/atomic-natives-[^/]+\.tgz$/,
-	);
+	assert.equal(typeof resolved, "string", "@orphus/natives resolved URL should be present");
+	assert.match(resolved ?? "", /^https:\/\/registry\.npmjs\.org\/@orphus\/natives\/-\/natives-[^/]+\.tgz$/);
 	assert.equal(atomicNatives.integrity, undefined, "internal native root entry should not require registry integrity");
 
 	const optionalDependencies = atomicNatives.optionalDependencies ?? {};
@@ -92,8 +89,8 @@ async function createStampedShrinkwrapFixture(version: string): Promise<string> 
 
 	const codingAgentPackage = await readPackageJson("packages/coding-agent/package.json");
 	codingAgentPackage.version = version;
-	if (codingAgentPackage.dependencies?.["@bastani/atomic-natives"]) {
-		codingAgentPackage.dependencies["@bastani/atomic-natives"] = version;
+	if (codingAgentPackage.dependencies?.["@orphus/natives"]) {
+		codingAgentPackage.dependencies["@orphus/natives"] = version;
 	}
 	await writePackageJson(join(fixtureRoot, "packages/coding-agent/package.json"), codingAgentPackage);
 

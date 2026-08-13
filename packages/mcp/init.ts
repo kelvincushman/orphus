@@ -1,4 +1,4 @@
-import type { ExtensionAPI, ExtensionContext } from "@bastani/atomic";
+import type { ExtensionAPI, ExtensionContext } from "@orphus/coding-agent";
 import type { McpExtensionState } from "./state.js";
 import type { ToolMetadata } from "./types.ts";
 import { existsSync } from "node:fs";

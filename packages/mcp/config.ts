@@ -2,7 +2,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { CONFIG_DIR_NAME, getProjectConfigPaths } from "@bastani/atomic";
+import { CONFIG_DIR_NAME, getProjectConfigPaths } from "@orphus/coding-agent";
 import { getAgentPath, getAgentPaths } from "./agent-dir.ts";
 import type { McpConfig, ServerEntry, McpSettings, ImportKind, ServerProvenance } from "./types.ts";
 import { buildConfigWritePreview, getServersObject, readRawConfigObject, setServersObject, writeRawConfigObject, type ConfigWritePreview } from "./config-write-utils.ts";

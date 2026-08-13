@@ -123,10 +123,10 @@ test("config parser supports local/trust/help and rejects extra arguments", () =
 test("self-update plans pin the selected package and version and retain notes", () => {
 	const plan = buildSelfUpdatePlan({
 		version: "99.1.2",
-		packageName: "@bastani/atomic-next",
+		packageName: "@orphus/coding-agent-next",
 		note: "**Migrate** first",
 	});
-	assert.equal(plan.installSpec, "@bastani/atomic-next@99.1.2");
+	assert.equal(plan.installSpec, "@orphus/coding-agent-next@99.1.2");
 	assert.equal(plan.version, "99.1.2");
 	assert.equal(plan.note, "**Migrate** first");
 	assert.equal(plan.shouldRun, true);

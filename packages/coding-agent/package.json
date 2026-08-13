@@ -1,9 +1,9 @@
 {
-  "name": "@bastani/atomic",
+  "name": "@orphus/coding-agent",
   "version": "0.0.0",
   "description": "Orphus coding agent CLI with read, bash, edit, write tools, session management, and roundtable multi-agent rooms",
   "type": "module",
-  "atomicConfig": {
+  "orphusConfig": {
     "name": "orphus",
     "configDir": ".orphus",
     "changelogUrl": "https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/CHANGELOG.md"
@@ -79,7 +79,7 @@
     "prepublishOnly": "bun run clean && bun run build && bun run shrinkwrap"
   },
   "dependencies": {
-    "@bastani/atomic-natives": "0.0.0",
+    "@orphus/natives": "0.0.0",
     "@dbos-inc/dbos-sdk": "4.24.16",
     "@earendil-works/pi-agent-core": "^0.83.0",
     "@earendil-works/pi-ai": "^0.83.0",

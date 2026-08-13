@@ -40,10 +40,10 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ExtensionAPI, ExtensionContext } from "@bastani/atomic";
-import { CONFIG_DIR_NAME, DynamicBorder, getAgentDir } from "@bastani/atomic";
 import type { Api, Model } from "@earendil-works/pi-ai/compat";
 import { Container, Key, type SelectItem, SelectList, Text } from "@earendil-works/pi-tui";
+import type { ExtensionAPI, ExtensionContext } from "@orphus/coding-agent";
+import { CONFIG_DIR_NAME, DynamicBorder, getAgentDir } from "@orphus/coding-agent";
 
 // Preset configuration
 interface Preset {

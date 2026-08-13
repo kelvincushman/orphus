@@ -5,7 +5,7 @@ import {
 	type PromptOptions,
 	type StructuredOutputCapture,
 	shouldApplyCodexFastModeForScope,
-} from "@bastani/atomic";
+} from "@orphus/coding-agent";
 import type {
 	StageContext,
 	StageExecutionMeta,

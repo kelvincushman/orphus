@@ -7,7 +7,7 @@ description: "Direct messaging between Orphus sessions on the same machine"
 
 # Intercom
 
-Orphus bundles `@bastani/intercom`, a first-party extension for direct 1:1 messaging between Orphus sessions on the same machine. Send context, findings, or requests from one session to another — whether you're driving the conversation or letting agents coordinate. Connections are lazy and tool-driven: the extension registers its commands and tools at startup, but a session does not connect until you or the model actually invoke Intercom. No separate install is needed.
+Orphus bundles `@orphus/intercom`, a first-party extension for direct 1:1 messaging between Orphus sessions on the same machine. Send context, findings, or requests from one session to another — whether you're driving the conversation or letting agents coordinate. Connections are lazy and tool-driven: the extension registers its commands and tools at startup, but a session does not connect until you or the model actually invoke Intercom. No separate install is needed.
 
 **Key capabilities:**
 - **Session messaging** - `send`, `ask` (blocking, 10-minute timeout), `reply`, `pending`, `list`, and `status` via the `intercom` tool

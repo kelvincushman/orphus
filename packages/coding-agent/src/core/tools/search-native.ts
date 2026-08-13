@@ -108,7 +108,7 @@ export function loadNativeSearchBinding(): NativeBinding | null {
 	if (cachedLoadResult !== null) return cachedLoadResult || null;
 	try {
 		const require = createModuleRequire(import.meta.url);
-		const binding = require("@bastani/atomic-natives") as Partial<NativeBinding>;
+		const binding = require("@orphus/natives") as Partial<NativeBinding>;
 		if (typeof binding.glob !== "function" || typeof binding.grep !== "function") {
 			cachedLoadResult = false;
 			return null;

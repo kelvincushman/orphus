@@ -1,5 +1,5 @@
-import type { AgentSession, AgentSessionEvent, ChatMessageEntry, ToolDefinition } from "@bastani/atomic";
 import { getKeybindings, setKeybindings } from "@earendil-works/pi-tui";
+import type { AgentSession, AgentSessionEvent, ChatMessageEntry, ToolDefinition } from "@orphus/coding-agent";
 import type { TSchema } from "typebox";
 import { afterEach, beforeEach, describe, test } from "vitest";
 import { KeybindingsManager } from "../../packages/coding-agent/src/core/keybindings.ts";

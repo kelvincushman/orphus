@@ -1,4 +1,4 @@
-import { createStructuredOutputCapture, runCallback } from "@bastani/atomic";
+import { createStructuredOutputCapture, runCallback } from "@orphus/coding-agent";
 import type { StageExecutionMeta } from "../../shared/types.js";
 import { StageSessionController } from "./stage-runner-controller.js";
 import { assistantMessage } from "./stage-runner-messages.js";

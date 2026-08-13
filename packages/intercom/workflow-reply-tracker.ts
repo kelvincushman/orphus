@@ -1,4 +1,4 @@
-import type { ExtensionContext } from "@bastani/atomic";
+import type { ExtensionContext } from "@orphus/coding-agent";
 import { ReplyTracker } from "./reply-tracker.js";
 
 const WORKFLOW_REPLY_TRACKER_STATE = "intercom.reply-tracker";

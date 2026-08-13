@@ -4,7 +4,7 @@
  * Override settings using SettingsManager.
  */
 
-import { createAgentSession, SessionManager, SettingsManager } from "@bastani/atomic";
+import { createAgentSession, SessionManager, SettingsManager } from "@orphus/coding-agent";
 
 const cwd = process.cwd();
 

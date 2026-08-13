@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { platform } from "node:os";

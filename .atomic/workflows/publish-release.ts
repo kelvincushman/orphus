@@ -1,6 +1,6 @@
 import { canonicalReleaseBaseRef } from "../../scripts/release-base.js";
-import { workflow } from "@bastani/workflows";
-import type { Static } from "@bastani/workflows";
+import { workflow } from "@orphus/workflows";
+import type { Static } from "@orphus/workflows";
 import { Type } from "typebox";
 import { validateReleaseRequest, type ValidatedRelease } from "./lib/publish-release.js";
 

@@ -14,19 +14,19 @@ Install Orphus globally with npm, pnpm, or Bun:
 With npm:
 
 ```bash
-npm install -g @bastani/atomic
+npm install -g @orphus/coding-agent
 ```
 
 With pnpm:
 
 ```bash
-pnpm add -g @bastani/atomic
+pnpm add -g @orphus/coding-agent
 ```
 
 With Bun:
 
 ```bash
-bun add -g @bastani/atomic
+bun add -g @orphus/coding-agent
 ```
 
 Orphus does not require package install scripts. If you want to disable dependency lifecycle scripts during the Orphus install, you can add `--ignore-scripts` to the install command.

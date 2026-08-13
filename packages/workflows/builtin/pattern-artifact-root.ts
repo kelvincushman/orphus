@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { WorkflowRunContext } from "../src/shared/types.js";
-import { CONFIG_DIR_NAME } from "@bastani/atomic";
+import { CONFIG_DIR_NAME } from "@orphus/coding-agent";
 
 /**
  * Durable per-run artifact root under `<cwd>/<config-dir>/workflows/runs` (`.orphus` by default).

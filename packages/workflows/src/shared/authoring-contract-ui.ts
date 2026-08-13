@@ -1,7 +1,7 @@
 /** Workflow authoring UI, builder, run, and result contract types. */
 
-import type { KeybindingsManager, Theme } from "@bastani/atomic";
 import type { Component, OverlayHandle, OverlayOptions, TUI } from "@earendil-works/pi-tui";
+import type { KeybindingsManager, Theme } from "@orphus/coding-agent";
 import type { TSchema } from "typebox";
 import type {
 	RunStatus,

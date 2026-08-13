@@ -14,7 +14,7 @@
  */
 
 import assert from "node:assert/strict";
-import { type AgentSessionEvent, initTheme } from "@bastani/atomic";
+import { type AgentSessionEvent, initTheme } from "@orphus/coding-agent";
 import { afterEach, beforeAll, test } from "vitest";
 import { workflow } from "../../packages/workflows/src/authoring/workflow.js";
 import { run } from "../../packages/workflows/src/runs/foreground/executor.js";

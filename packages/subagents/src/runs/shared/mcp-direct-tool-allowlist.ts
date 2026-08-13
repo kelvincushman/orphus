@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { getProjectConfigDirs } from "@bastani/atomic";
+import { getProjectConfigDirs } from "@orphus/coding-agent";
 import { getAgentDir } from "../../shared/utils.ts";
 
 const CACHE_VERSION = 1;

@@ -22,7 +22,7 @@
 import { cpSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { CONFIG_DIR_NAME } from "@bastani/atomic";
+import { CONFIG_DIR_NAME } from "@orphus/coding-agent";
 import { type LocalCommandResult, runLocalCommand } from "./local-command.js";
 
 export interface EmbeddedPostgresOwner {

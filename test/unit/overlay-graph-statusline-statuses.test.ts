@@ -11,7 +11,7 @@
  */
 
 import assert from "node:assert/strict";
-import type { ReadonlyFooterDataProvider } from "@bastani/atomic";
+import type { ReadonlyFooterDataProvider } from "@orphus/coding-agent";
 import { describe, test } from "vitest";
 import { GraphView } from "../../packages/workflows/src/tui/graph-view.js";
 import { defaultTheme, makeSnap, makeStage, makeStore, visibleText } from "./overlay-graph-helpers.js";

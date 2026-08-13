@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import { randomUUID } from "node:crypto";
 import { startCuratorServer, type CuratorServerHandle } from "./curator-server.js";
 import { search } from "./gemini-search.js";

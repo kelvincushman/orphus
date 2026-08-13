@@ -15,7 +15,7 @@
  * typescript code and cache the result for DBOS."
  */
 
-import { runCallback } from "@bastani/atomic";
+import { runCallback } from "@orphus/coding-agent";
 import { sleepOrAbort } from "../runs/shared/retry.js";
 import { flattenTruncatedString } from "../shared/flat-string.js";
 import type { ToolNodeSnapshot } from "../shared/store-types.js";

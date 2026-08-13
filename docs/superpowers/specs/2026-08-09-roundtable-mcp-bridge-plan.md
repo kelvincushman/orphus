@@ -4,7 +4,7 @@
 
 **Goal:** Let external MCP-capable agent CLIs (Claude Code, Codex, Gemini CLI, Cursor) join roundtable rooms as first-class peers, via a stdio MCP server with a pinned role.
 
-**Architecture:** A new `orphus-roundtable-mcp` bin on `@bastani/roundtable` wraps the *existing* `createRoundtableTool` — the entire action logic (all 8 actions, export path validation, digest budgeting, error texts) is reused, not reimplemented. The bridge supplies the tool's `deps` with a role pinned at startup, exposes each action as a separate MCP tool with a zod schema, and ensures the broker with the existing `ensureBrokerRunning()`.
+**Architecture:** A new `orphus-roundtable-mcp` bin on `@orphus/roundtable` wraps the *existing* `createRoundtableTool` — the entire action logic (all 8 actions, export path validation, digest budgeting, error texts) is reused, not reimplemented. The bridge supplies the tool's `deps` with a role pinned at startup, exposes each action as a separate MCP tool with a zod schema, and ensures the broker with the existing `ensureBrokerRunning()`.
 
 **Tech Stack:** `@modelcontextprotocol/server` 2.0.0 (2026-07-28 stateless spec, `serveStdio`), zod 4.4.3 (already installed), the existing `broker/client.ts` + `broker/spawn.ts`, vitest with `node:assert/strict`.
 
@@ -75,13 +75,13 @@ export function resolveMemoryConfig(env?: NodeJS.ProcessEnv): { cwd: string; wri
 
 **Interfaces:**
 - Consumes: npm workspaces, `scripts/generate-coding-agent-shrinkwrap.mjs`.
-- Produces: importable `@modelcontextprotocol/server` (runtime dep of `@bastani/roundtable`) and `@modelcontextprotocol/client` (root devDep, tests only). A note of the EXACT export names for Tasks 4–5.
+- Produces: importable `@modelcontextprotocol/server` (runtime dep of `@orphus/roundtable`) and `@modelcontextprotocol/client` (root devDep, tests only). A note of the EXACT export names for Tasks 4–5.
 
 - [ ] **Step 1: Install the server SDK into the roundtable workspace and the client SDK as a root devDependency**
 
 ```bash
 cd /Volumes/ExtHdd/Projects/dev/Orphus/orphus
-npm install @modelcontextprotocol/server --workspace=@bastani/roundtable
+npm install @modelcontextprotocol/server --workspace=@orphus/roundtable
 npm install --save-dev @modelcontextprotocol/client
 ```
 

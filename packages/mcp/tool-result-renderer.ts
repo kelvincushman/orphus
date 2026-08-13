@@ -1,4 +1,4 @@
-import { keyText, type AgentToolResult, type ToolRenderResultOptions } from "@bastani/atomic";
+import { keyText, type AgentToolResult, type ToolRenderResultOptions } from "@orphus/coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 
 export type McpToolResultDetails = Record<string, unknown> & { error?: unknown };

@@ -1,4 +1,4 @@
-import type { AgentToolResult, AgentToolUpdateCallback, ExtensionContext } from "@bastani/atomic";
+import type { AgentToolResult, AgentToolUpdateCallback, ExtensionContext } from "@orphus/coding-agent";
 import type { McpExtensionState } from "./state.js";
 import type { DirectToolSpec, McpContent } from "./types.ts";
 import { getFailureAgeSeconds, lazyConnect } from "./init.js";

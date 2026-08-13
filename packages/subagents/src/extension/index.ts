@@ -2,13 +2,6 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import {
-	APP_NAME,
-	type ExtensionAPI,
-	type ExtensionContext,
-	keyHintIfBound,
-	type ToolDefinition,
-} from "@bastani/atomic";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import {
 	Box,
@@ -20,6 +13,13 @@ import {
 	visibleWidth,
 	wrapTextWithAnsi,
 } from "@earendil-works/pi-tui";
+import {
+	APP_NAME,
+	type ExtensionAPI,
+	type ExtensionContext,
+	keyHintIfBound,
+	type ToolDefinition,
+} from "@orphus/coding-agent";
 import { discoverAgents } from "../agents/agents.ts";
 import { createAsyncJobTracker } from "../runs/background/async-job-tracker.ts";
 import registerSubagentNotify, { type SubagentNotifyDetails } from "../runs/background/notify.ts";

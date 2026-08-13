@@ -20,7 +20,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CONFIG_DIR_NAME } from "@bastani/atomic";
+import { CONFIG_DIR_NAME } from "@orphus/coding-agent";
 import { afterEach, beforeEach, describe, test } from "vitest";
 import { createStatusWriter } from "../../packages/workflows/src/extension/status-writer.js";
 import { createStore } from "../../packages/workflows/src/shared/store.js";

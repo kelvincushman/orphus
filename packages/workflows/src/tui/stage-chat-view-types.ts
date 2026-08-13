@@ -1,10 +1,10 @@
+import type { EditorComponent, EditorTheme, TUI } from "@earendil-works/pi-tui";
 import type {
 	ChatMessageEntry,
 	ChatMessageRenderOptions,
 	ChatSessionHost,
 	ReadonlyFooterDataProvider,
-} from "@bastani/atomic";
-import type { EditorComponent, EditorTheme, TUI } from "@earendil-works/pi-tui";
+} from "@orphus/coding-agent";
 import type { PostMortemUnavailableReason } from "../runs/foreground/postmortem-stage-chat.js";
 import type { StageControlHandle } from "../runs/foreground/stage-control-registry.js";
 import type { MountedStageCustomUi, StageUiBroker } from "../shared/stage-ui-broker.js";

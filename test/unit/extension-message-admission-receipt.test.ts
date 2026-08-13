@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import { test } from "vitest";
 import { createEventBus } from "../../packages/coding-agent/src/core/event-bus.js";
 import { loadExtensionFromFactory } from "../../packages/coding-agent/src/core/extensions/loader-core.js";

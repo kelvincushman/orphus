@@ -128,12 +128,12 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Build native bindings
-        run: npm run build --workspace=@bastani/atomic-natives
+        run: npm run build --workspace=@orphus/natives
 
       # test/unit/pi-0.82.1-artifacts.test.ts degrades to test.skip when
       # packages/coding-agent/dist is absent, so skipping this build would lose
       # coverage silently rather than fail.
-      - name: Build @bastani/atomic package
+      - name: Build @orphus/coding-agent package
         working-directory: packages/coding-agent
         run: npm run build
 

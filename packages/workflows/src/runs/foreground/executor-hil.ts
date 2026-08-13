@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { createAskUserQuestionToolDefinition } from "@bastani/atomic";
+import { createAskUserQuestionToolDefinition } from "@orphus/coding-agent";
 import { currentPromptCallerStack } from "../../shared/prompt-callsite-context.js";
 import { buildStagePromptAdapter } from "../../shared/stage-prompt.js";
 import { stageUiBroker } from "../../shared/stage-ui-broker.js";

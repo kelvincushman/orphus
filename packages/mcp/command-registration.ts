@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
 import type { McpExtensionState } from "./state.js";
 
 interface CommandStateLease {

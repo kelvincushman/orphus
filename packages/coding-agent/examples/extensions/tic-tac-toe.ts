@@ -17,8 +17,8 @@
  * separate variables. Only the agent cursor is ever exposed to the agent.
  */
 
-import { type ExtensionAPI, type ExtensionContext, StringEnum, type ToolExecutionMode } from "@bastani/atomic";
 import { Text } from "@earendil-works/pi-tui";
+import { type ExtensionAPI, type ExtensionContext, StringEnum, type ToolExecutionMode } from "@orphus/coding-agent";
 import { Type } from "typebox";
 import { buildTicTacToeInstructions } from "./tic-tac-toe-instructions.js";
 import { BannerMessageComponent, GameOverMessageComponent, TicTacToeComponent } from "./tic-tac-toe-rendering.js";

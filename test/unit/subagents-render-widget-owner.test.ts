@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { ExtensionContext } from "@bastani/atomic";
+import type { ExtensionContext } from "@orphus/coding-agent";
 import { afterEach, describe, test } from "vitest";
 import { type AsyncJobState, WIDGET_KEY } from "../../packages/subagents/src/shared/types.js";
 import { renderWidget, stopWidgetAnimation } from "../../packages/subagents/src/tui/render.js";

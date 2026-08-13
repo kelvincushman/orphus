@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import type net from "node:net";
-import type { CreateAgentSessionOptions } from "@bastani/atomic";
+import type { CreateAgentSessionOptions } from "@orphus/coding-agent";
 import { test } from "vitest";
 import { DeliveredMessageCache } from "../../packages/intercom/broker/delivered-message-cache.js";
 import { type BrokerConnectedSession, handleBrokerSend } from "../../packages/intercom/broker/send-handler.js";

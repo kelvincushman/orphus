@@ -279,8 +279,8 @@ export function registerDiscoveryModuleImportsSuite3(): void {
 			const workflowPath = await createProjectWorkflowFile(
 				"removed-run-workflow-later-declarator.cjs",
 				`
-  const { workflow } = require("@bastani/workflows");
-  const ignored = 1, workflows = require("@bastani/workflows");
+  const { workflow } = require("@orphus/workflows");
+  const ignored = 1, workflows = require("@orphus/workflows");
   workflows.runWorkflow();
   module.exports = workflow({
     name: "later-cjs-run-workflow",

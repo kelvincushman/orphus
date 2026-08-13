@@ -17,7 +17,7 @@
  *   - packages/coding-agent/src/core/agent-session-events.ts (`queue_update`)
  */
 
-import type { AgentSessionEvent } from "@bastani/atomic";
+import type { AgentSessionEvent } from "@orphus/coding-agent";
 
 /** Pending steering and follow-up text on one stage session. */
 export interface StageQueuedUserMessages {

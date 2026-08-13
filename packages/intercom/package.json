@@ -1,5 +1,5 @@
 {
-  "name": "@bastani/intercom",
+  "name": "@orphus/intercom",
   "version": "0.0.0",
   "private": true,
   "description": "Atomic extension providing a private coordination channel between parent and child agent sessions. Fork of: https://github.com/nicobailon/pi-intercom",
@@ -51,11 +51,11 @@
     ]
   },
   "peerDependencies": {
-    "@bastani/atomic": "*",
+    "@orphus/coding-agent": "*",
     "@earendil-works/pi-tui": "^0.83.0"
   },
   "peerDependenciesMeta": {
-    "@bastani/atomic": {
+    "@orphus/coding-agent": {
       "optional": true
     },
     "@earendil-works/pi-tui": {

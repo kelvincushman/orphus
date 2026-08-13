@@ -1,7 +1,7 @@
 import { compare, prerelease, valid } from "semver";
 import { ENV_OFFLINE, ENV_SKIP_VERSION_CHECK, getEnvValue, VERSION } from "../config.ts";
 
-// The fork is not published to npm: @bastani/atomic on the registry is the
+// The fork is not published to npm: @orphus/coding-agent on the registry is the
 // UPSTREAM package, whose version has nothing to do with Orphus releases. The
 // authority for "latest" is this repository's GitHub releases — the same
 // source install.sh resolves against. Two channels fall out of GitHub's own

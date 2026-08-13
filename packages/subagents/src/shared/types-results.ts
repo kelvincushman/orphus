@@ -2,9 +2,9 @@
  * Result, progress, and core subagent public types.
  */
 
-import type { SessionStats } from "@bastani/atomic";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import type { Message } from "@earendil-works/pi-ai/compat";
+import type { SessionStats } from "@orphus/coding-agent";
 import type { NestedRunAddress, NestedRunSummary, NestedStepSummary } from "./types-async.ts";
 
 export interface MaxOutputConfig {

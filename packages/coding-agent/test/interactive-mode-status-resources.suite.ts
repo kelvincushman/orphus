@@ -495,7 +495,7 @@ describe("InteractiveMode.showLoadedResources", () => {
 		};
 		const bundled = {
 			...createSourceInfo("/tmp/atomic-subagents/index.ts", {
-				source: "@bastani/subagents",
+				source: "@orphus/subagents",
 				scope: "temporary",
 				origin: "package",
 			}),

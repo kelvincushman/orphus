@@ -127,7 +127,7 @@ Ctrl+G in main chat, embedded chat, and extension editor dialogs uses one shared
 
 ### Telemetry and update checks
 
-`enableInstallTelemetry` only controls the anonymous install/update ping to `https://pi.dev/api/report-install`. Opting out of telemetry does not disable update checks; Orphus can still fetch the npm registry latest package metadata at `https://registry.npmjs.org/@bastani/atomic/latest` to look for the latest version.
+`enableInstallTelemetry` only controls the anonymous install/update ping to `https://pi.dev/api/report-install`. Opting out of telemetry does not disable update checks; Orphus can still fetch the npm registry latest package metadata at `https://registry.npmjs.org/@orphus/coding-agent/latest` to look for the latest version.
 
 Set `ORPHUS_SKIP_VERSION_CHECK=1` to disable the Orphus version update check. Use `--offline` or `ORPHUS_OFFLINE=1` to disable all startup network operations described here, including update checks, package update checks, and install/update telemetry. Legacy `PI_*` aliases are also supported for app-specific environment variables.
 

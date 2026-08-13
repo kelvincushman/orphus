@@ -5,9 +5,9 @@ description: "Run focused Orphus child agents"
 
 # Subagents
 
-Orphus bundles `@bastani/subagents`, an extension for bounded specialist delegation with separate context while the parent remains in control. Use a single agent, chain, or parallel fan-out when isolation or a specialist pass materially helps with locating code, analyzing behavior, researching references, reproducing actual failures, or simplifying code. Keep interactive, exploratory, conceptual, and conversation-led work inline when direct user steering is more useful.
+Orphus bundles `@orphus/subagents`, an extension for bounded specialist delegation with separate context while the parent remains in control. Use a single agent, chain, or parallel fan-out when isolation or a specialist pass materially helps with locating code, analyzing behavior, researching references, reproducing actual failures, or simplifying code. Keep interactive, exploratory, conceptual, and conversation-led work inline when direct user steering is more useful.
 
-You do not need to install anything separately when you use `@bastani/atomic`.
+You do not need to install anything separately when you use `@orphus/coding-agent`.
 
 ## Start with natural language
 
@@ -59,7 +59,7 @@ If you have older subagent calls, saved chains, or custom agents that used the r
 
 ## Bundled agents
 
-Orphus currently bundles these agents from `@bastani/subagents`:
+Orphus currently bundles these agents from `@orphus/subagents`:
 
 | Agent | Use it for | Edit files? |
 |---|---|---|

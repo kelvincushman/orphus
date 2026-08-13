@@ -1,4 +1,4 @@
-import type { ReadonlyFooterDataProvider } from "@bastani/atomic";
+import type { ReadonlyFooterDataProvider } from "@orphus/coding-agent";
 import {
 	type ExpandedWorkflowGraph,
 	type ExpandedWorkflowStage,

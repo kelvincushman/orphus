@@ -25,7 +25,7 @@
  *   - pi docs/sdk.md (AgentSession.prompt/steer/followUp/abort)
  */
 
-import type { AgentSession, AgentSessionEvent } from "@bastani/atomic";
+import type { AgentSession, AgentSessionEvent } from "@orphus/coding-agent";
 import type { StageDeliveryActivityEvent } from "./stage-delivery-activity.js";
 import type { StageQueuedUserMessages } from "./stage-queued-user-messages.js";
 import type { StageUserMessageDeliveryAction } from "./stage-runner-types.js";

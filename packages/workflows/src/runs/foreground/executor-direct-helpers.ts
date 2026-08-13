@@ -1,5 +1,5 @@
 import { isAbsolute, join, resolve } from "node:path";
-import { CONFIG_DIR_NAME, isCodexFastModeCandidateModelId } from "@bastani/atomic";
+import { CONFIG_DIR_NAME, isCodexFastModeCandidateModelId } from "@orphus/coding-agent";
 import type { WorkflowActor } from "../../shared/store-types.js";
 import type { StageOptions, WorkflowArtifact, WorkflowTaskOptions, WorkflowTaskStep } from "../../shared/types.js";
 import { workflowArtifactRunPath } from "../../shared/workflow-artifacts.js";

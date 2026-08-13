@@ -113,6 +113,6 @@ def agent_install_command(version_spec: str) -> str:
         "set -euo pipefail; "
         f"{node_setup}; "
         'export PATH="$HOME/.local/bin:$PATH"; '
-        f"npm install -g @bastani/atomic{version_spec} @playwright/cli; "
+        f"npm install -g @orphus/coding-agent{version_spec} @playwright/cli; "
         f"{browser_setup}"
     )

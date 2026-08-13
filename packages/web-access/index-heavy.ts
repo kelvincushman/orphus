@@ -1,5 +1,5 @@
-import type { ExtensionAPI } from "@bastani/atomic";
-import { CONFIG_DIR_NAME } from "@bastani/atomic";
+import type { ExtensionAPI } from "@orphus/coding-agent";
+import { CONFIG_DIR_NAME } from "@orphus/coding-agent";
 import { appendFileSync } from "node:fs";
 import { getActiveGoogleEmail, isGeminiWebAvailable } from "./gemini-web.js";
 import { isBrowserCookieAccessAllowed } from "./gemini-web-config.ts";

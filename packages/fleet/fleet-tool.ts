@@ -1,4 +1,4 @@
-import type { ExtensionAPI, ToolDefinition } from "@bastani/atomic";
+import type { ExtensionAPI, ToolDefinition } from "@orphus/coding-agent";
 import { type Static, Type } from "typebox";
 import { discoverFleets, fleetRoots, type FleetSource } from "./blueprint/discovery.ts";
 import { loadFleetBlueprint } from "./blueprint/manifest.ts";

@@ -1,5 +1,5 @@
 {
-	"//": "Issue #1208: emit the lean @bastani/workflows authoring type surface as .d.ts so the @bastani/atomic/workflows exports condition resolves to declarations (never raw .ts, which would leak the SDK's internal type errors into consumers). Declaration-only; no JS is emitted. This tsconfig lives in coding-agent on purpose — packages/workflows must NOT gain a build step.",
+	"//": "Issue #1208: emit the lean @orphus/workflows authoring type surface as .d.ts so the @orphus/coding-agent/workflows exports condition resolves to declarations (never raw .ts, which would leak the SDK's internal type errors into consumers). Declaration-only; no JS is emitted. This tsconfig lives in coding-agent on purpose — packages/workflows must NOT gain a build step.",
 	"extends": "../../tsconfig.base.json",
 	"compilerOptions": {
 		"noEmit": false,

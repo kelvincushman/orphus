@@ -2,13 +2,13 @@
  * Compatibility exports for the shared Atomic retry policy, plus the workflow's
  * abort-aware sleep.
  *
- * The decision/backoff policy is implemented in @bastani/atomic so main chat and
+ * The decision/backoff policy is implemented in @orphus/coding-agent so main chat and
  * workflow stages cannot drift into different budgets for the same
  * `settings.retry` values.
  */
 
-export type { RetryDecision, RetryPolicySettings } from "@bastani/atomic";
-export { nextRetryDecision } from "@bastani/atomic";
+export type { RetryDecision, RetryPolicySettings } from "@orphus/coding-agent";
+export { nextRetryDecision } from "@orphus/coding-agent";
 
 type WorkflowAbortReason = Error | DOMException | string;
 

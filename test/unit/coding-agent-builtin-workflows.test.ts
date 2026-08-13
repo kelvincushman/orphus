@@ -25,13 +25,13 @@ const expectedBuiltinPackages = [
 ];
 
 const builtinPackageFixtures = [
-	{ packageName: "@bastani/workflows", dirname: "workflows", requiredEntry: join("src", "extension", "index.ts") },
-	{ packageName: "@bastani/subagents", dirname: "subagents", requiredEntry: join("src", "extension", "index.ts") },
-	{ packageName: "@bastani/mcp", dirname: "mcp", requiredEntry: "index.ts" },
-	{ packageName: "@bastani/web-access", dirname: "web-access", requiredEntry: "index.ts" },
-	{ packageName: "@bastani/intercom", dirname: "intercom", requiredEntry: "index.ts" },
-	{ packageName: "@bastani/roundtable", dirname: "roundtable", requiredEntry: "index.ts" },
-	{ packageName: "@bastani/fleet", dirname: "fleet", requiredEntry: "index.ts" },
+	{ packageName: "@orphus/workflows", dirname: "workflows", requiredEntry: join("src", "extension", "index.ts") },
+	{ packageName: "@orphus/subagents", dirname: "subagents", requiredEntry: join("src", "extension", "index.ts") },
+	{ packageName: "@orphus/mcp", dirname: "mcp", requiredEntry: "index.ts" },
+	{ packageName: "@orphus/web-access", dirname: "web-access", requiredEntry: "index.ts" },
+	{ packageName: "@orphus/intercom", dirname: "intercom", requiredEntry: "index.ts" },
+	{ packageName: "@orphus/roundtable", dirname: "roundtable", requiredEntry: "index.ts" },
+	{ packageName: "@orphus/fleet", dirname: "fleet", requiredEntry: "index.ts" },
 ] as const;
 
 const fullBuiltinPackageLoadTimeoutMs = 60_000;
@@ -89,7 +89,7 @@ describe("coding-agent builtin resources", () => {
 		);
 		writeFileSync(
 			workflowPath,
-			"import { workflow } from '@bastani/workflows';\nimport { Type } from 'typebox';\nexport default workflow({ name: 'Custom', description: '', inputs: { prompt: Type.String({ default: 'validation smoke' }) }, outputs: {}, run: async (ctx) => { await ctx.task('validation-smoke', { prompt: ctx.inputs.prompt }); return {}; } });\n",
+			"import { workflow } from '@orphus/workflows';\nimport { Type } from 'typebox';\nexport default workflow({ name: 'Custom', description: '', inputs: { prompt: Type.String({ default: 'validation smoke' }) }, outputs: {}, run: async (ctx) => { await ctx.task('validation-smoke', { prompt: ctx.inputs.prompt }); return {}; } });\n",
 			"utf-8",
 		);
 		writeFileSync(
@@ -138,7 +138,7 @@ describe("coding-agent builtin resources", () => {
 			writeFileSync(
 				join(workflowsDir, "package-command.ts"),
 				[
-					`import { workflow } from "@bastani/workflows";`,
+					`import { workflow } from "@orphus/workflows";`,
 					``,
 					`export default workflow({`,
 					`  name: "package-command",`,
