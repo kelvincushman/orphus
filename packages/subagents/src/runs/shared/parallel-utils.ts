@@ -1,6 +1,6 @@
 import type { CodexFastModeResolvedSettings, CodexFastModeScope } from "@orphus/coding-agent";
 import { boundedRender } from "@orphus/roundtable/bounded-render.ts";
-import type { ModelAttempt } from "../../shared/types.ts";
+import type { ModelAttempt, SubagentAttemptStatus } from "../../shared/types.ts";
 
 export interface RunnerSubagentStep {
 	agent: string;
@@ -251,3 +251,54 @@ export function digestParallelOutputs(
 }
 
 export const MAX_PARALLEL_CONCURRENCY = 4;
+
+/**
+ * A task the interrupt message has to account for, in one column or the other.
+ *
+ * Deliberately the two fields the message reads rather than a whole
+ * `SingleResult`: the accounting is what needs testing, and a shape this small
+ * can be exercised without standing up a run.
+ */
+export interface InterruptedParallelTask {
+	agent: string;
+	status: SubagentAttemptStatus;
+}
+
+/**
+ * A task the orchestrator is no longer waiting on.
+ *
+ * `error` counts. It finished badly, but it finished — and the question this
+ * message answers is "what is still out there", not "what went well". Counting
+ * only `ok` undercounts the total and leaves failures in neither column, so a
+ * run with one failure and one straggler reads as though two are still running.
+ */
+function isFinished(status: SubagentAttemptStatus): boolean {
+	return status === "ok" || status === "error";
+}
+
+/**
+ * What a parallel run says when it was interrupted.
+ *
+ * A deadline and a person both arrive as an interrupt, but they mean different
+ * things to whoever reads this. A deadline needs the tasks that did not finish
+ * named, because those are the stragglers the orchestrator is deciding about;
+ * a manual interrupt is already an answer to a question someone asked.
+ */
+export function buildInterruptedParallelMessage(options: {
+	results: readonly InterruptedParallelTask[];
+	deadlineExpired: boolean;
+	interruptedAgent: string;
+}): string {
+	const { results, deadlineExpired, interruptedAgent } = options;
+	if (!deadlineExpired) {
+		return `Parallel run paused after interrupt (${interruptedAgent}). Waiting for explicit next action.`;
+	}
+	const finished = results.filter((result) => isFinished(result.status)).length;
+	const unfinished = results.filter((result) => !isFinished(result.status)).map((result) => result.agent);
+	return (
+		`Parallel run hit its deadline and was finalized with what completed. ` +
+		`${finished}/${results.length} finished` +
+		(unfinished.length > 0 ? `; still running when time ran out: ${unfinished.join(", ")}` : "") +
+		`. Synthesize from what landed, or re-run the missing work.`
+	);
+}

@@ -25,6 +25,7 @@ import { sharedAutoGroupForSet } from "../shared/intercom-group.ts";
 import { resolveModelCandidate } from "../shared/model-fallback.ts";
 import {
 	aggregateParallelOutputs,
+	buildInterruptedParallelMessage,
 	digestParallelOutputs,
 	shouldDigestParallelReturn,
 } from "../shared/parallel-utils.ts";
@@ -256,25 +257,11 @@ export async function runParallelPath(
 		});
 		rememberForegroundRun(deps.state, { runId, mode: "parallel", cwd: effectiveCwd, results: details.results });
 		if (interrupted) {
-			// A deadline and a person both arrive as an interrupt, but they mean
-			// different things to whoever reads this. A deadline needs the tasks
-			// that did not finish named, because those are the stragglers the
-			// orchestrator is deciding about; a manual interrupt is already an
-			// answer to a question someone asked.
-			const deadlineExpired = deps.state.foregroundControls.get(runId)?.deadlineExpired === true;
-			// A task that errored did finish — badly, but it finished, and it is not
-			// something the orchestrator is still waiting on. Counting only `ok`
-			// undercounts and puts failures in neither column.
-			const finished = results.filter((result) => result.status === "ok" || result.status === "error").length;
-			const unfinished = results
-				.filter((result) => result.status !== "ok" && result.status !== "error")
-				.map((result) => result.agent);
-			const text = deadlineExpired
-				? `Parallel run hit its deadline and was finalized with what completed. ` +
-					`${finished}/${results.length} finished` +
-					(unfinished.length > 0 ? `; still running when time ran out: ${unfinished.join(", ")}` : "") +
-					`. Synthesize from what landed, or re-run the missing work.`
-				: `Parallel run paused after interrupt (${interrupted.agent}). Waiting for explicit next action.`;
+			const text = buildInterruptedParallelMessage({
+				results,
+				deadlineExpired: deps.state.foregroundControls.get(runId)?.deadlineExpired === true,
+				interruptedAgent: interrupted.agent,
+			});
 			return { content: [{ type: "text", text }], details };
 		}
 		const detachedIndex = results.findIndex((result) => result.detached);
