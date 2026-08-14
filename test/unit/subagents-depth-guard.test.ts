@@ -63,9 +63,13 @@ describe("subagent workflow-stage depth guard", () => {
 		delete process.env[MAX_DEPTH_ENV];
 		delete process.env[WORKFLOW_STAGE_SUBAGENT_GUARD_ENV];
 
-		// The default and the ceiling are now different numbers, which is the point:
-		// the ceiling is what nobody may exceed, the default is where you start.
-		assert.notEqual(DEFAULT_SUBAGENT_MAX_DEPTH, MAX_SUBAGENT_NESTING_DEPTH);
+		// Pin the numbers themselves, not just their relationship. Every other
+		// assertion here compares a resolved depth against these constants, so if
+		// both the constant and the resolution moved together the suite would stay
+		// green while the contract silently changed. WP 1.1 *is* the claim that the
+		// default is 2 and the ceiling is 5.
+		assert.equal(DEFAULT_SUBAGENT_MAX_DEPTH, 2);
+		assert.equal(MAX_SUBAGENT_NESTING_DEPTH, 5);
 
 		const result = checkSubagentDepth();
 		assert.equal(result.blocked, false);
@@ -108,13 +112,14 @@ describe("subagent workflow-stage depth guard", () => {
 
 		// An agent's own maxSubagentDepth min-clamps against the budget its parent
 		// was granted, so it narrows its subtree and never widens it. Declaring 4
-		// under the default of 2 yields 2 — worth pinning, because it is the
-		// opposite of what "an override" suggests.
-		assert.equal(resolveChildMaxSubagentDepth(DEFAULT_SUBAGENT_MAX_DEPTH, 4), DEFAULT_SUBAGENT_MAX_DEPTH);
-		assert.equal(resolveChildMaxSubagentDepth(DEFAULT_SUBAGENT_MAX_DEPTH, 1), 1);
-		assert.equal(resolveChildMaxSubagentDepth(DEFAULT_SUBAGENT_MAX_DEPTH, undefined), DEFAULT_SUBAGENT_MAX_DEPTH);
+		// under a parent budget of 2 yields 2 — worth pinning, because it is the
+		// opposite of what "an override" suggests. Literal depths throughout, so
+		// these keep their meaning even if a constant moves.
+		assert.equal(resolveChildMaxSubagentDepth(2, 4), 2);
+		assert.equal(resolveChildMaxSubagentDepth(2, 1), 1);
+		assert.equal(resolveChildMaxSubagentDepth(2, undefined), 2);
 		// Given a wider parent budget, a narrower agent value still wins.
-		assert.equal(resolveChildMaxSubagentDepth(MAX_SUBAGENT_NESTING_DEPTH, 3), 3);
+		assert.equal(resolveChildMaxSubagentDepth(5, 3), 3);
 	});
 
 	test("workflow-stage child env marker produces nested workflow-stage rejection message", () => {
