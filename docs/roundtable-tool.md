@@ -235,9 +235,20 @@ by contract — one can be lost without the room noticing. Synthesizing on a pin
 reads a half-finished discussion as a decision. The rendered prompt says so
 explicitly, but it is prompt text, and prompt text is a request.
 
-Blocking is available per team (`blocking: true` in a blueprint) and restores
-the older behaviour where the orchestrator's turn stays open for the whole
-deliberation. It buys nothing except determinism in tests, and costs a turn.
+`blocking: true` on a team restores **synchronous completion**: the `subagent`
+call does not return until the deliberation is over, so the orchestrator's next
+statement runs with the result already in hand and no wake-up to coordinate.
+
+That is a compatibility guarantee, not a test convenience. A blueprint written
+against the previous flow may assume the step after a deliberation sees its
+outcome directly — an orchestrator prompt that reads the digest inline, or a
+pipeline whose next team depends on the decision having landed. Those keep
+working unchanged with `blocking: true`.
+
+The cost is a turn held open for the whole deliberation: minutes in which the
+orchestrator does nothing but wait, with its context occupied by a call that has
+not returned. That is why asynchronous is the default — not because blocking is
+wrong.
 
 ## Limits and defaults
 
