@@ -38,6 +38,7 @@ any of their context windows. Start with the first link; the rest are reference.
 | **[CONTRIBUTING.md](../CONTRIBUTING.md)** | Issue coordination and pull request guidance. |
 | **[DEV_SETUP.md](../DEV_SETUP.md)** | Local development, the toolchain split, and repository layout. |
 | **[CI](ci.md)** | The gate that runs, what it covers, and what it deliberately does not. |
+| **[Long-context baseline](../evals/longcontext/README.md)** | What an oversized tool result costs the parent's context window, and the committed scorecard CI diffs against. |
 | **[SECURITY.md](../SECURITY.md)** | Reporting a vulnerability, and what is in scope. |
 
 ## A note on the two halves

@@ -10,6 +10,7 @@ choices — the alternatives considered and rejected — see
 - [The wire](#the-wire)
 - [The extension](#the-extension)
 - [What the bound guarantees](#what-the-bound-guarantees)
+- [Boundaries and their bounds](#boundaries-and-their-bounds)
 - [Trust boundary](#trust-boundary)
 - [Failure modes worth knowing](#failure-modes-worth-knowing)
 - [Where Orphus ends and Atomic begins](#where-orphus-ends-and-atomic-begins)
