@@ -342,6 +342,24 @@ teams:
 		assert.ok(contradictory.warnings.some((warning) => warning.includes("deadlineMs")));
 	});
 
+	test("a deadline past the maximum timer delay is refused, not silently clamped", () => {
+		// setTimeout wraps above 2_147_483_647 ms and fires after 1ms, so an
+		// over-large deadline would interrupt the deliberation immediately — the
+		// exact opposite of asking to wait longer.
+		assert.throws(() =>
+			parseFleetBlueprint(
+				MINIMAL.replace("mode: dispatch", "mode: deliberate\n    deadlineMs: 2147483648"),
+				blueprintPath(),
+			),
+		);
+		// The boundary itself is allowed.
+		const atLimit = parseFleetBlueprint(
+			MINIMAL.replace("mode: dispatch", "mode: deliberate\n    deadlineMs: 2147483647"),
+			blueprintPath(),
+		);
+		assert.equal(atLimit.teams[0]?.deadlineMs, 2_147_483_647);
+	});
+
 	test("warns that blocking has no effect on a dispatch team", () => {
 		const blueprint = parseFleetBlueprint(
 			MINIMAL.replace("mode: dispatch", "mode: dispatch\n    blocking: true"),

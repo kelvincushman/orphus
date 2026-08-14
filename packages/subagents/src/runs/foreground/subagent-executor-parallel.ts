@@ -262,13 +262,16 @@ export async function runParallelPath(
 			// orchestrator is deciding about; a manual interrupt is already an
 			// answer to a question someone asked.
 			const deadlineExpired = deps.state.foregroundControls.get(runId)?.deadlineExpired === true;
-			const completed = results.filter((result) => result.status === "ok").length;
+			// A task that errored did finish — badly, but it finished, and it is not
+			// something the orchestrator is still waiting on. Counting only `ok`
+			// undercounts and puts failures in neither column.
+			const finished = results.filter((result) => result.status === "ok" || result.status === "error").length;
 			const unfinished = results
 				.filter((result) => result.status !== "ok" && result.status !== "error")
 				.map((result) => result.agent);
 			const text = deadlineExpired
 				? `Parallel run hit its deadline and was finalized with what completed. ` +
-					`${completed}/${results.length} finished` +
+					`${finished}/${results.length} finished` +
 					(unfinished.length > 0 ? `; still running when time ran out: ${unfinished.join(", ")}` : "") +
 					`. Synthesize from what landed, or re-run the missing work.`
 				: `Parallel run paused after interrupt (${interrupted.agent}). Waiting for explicit next action.`;

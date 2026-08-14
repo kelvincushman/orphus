@@ -5,6 +5,7 @@ import { collectKnownModelProviders, toModelInfo } from "../../shared/model-info
 import type { ChainStep } from "../../shared/settings.ts";
 import type { SingleResult, SubagentToolResult } from "../../shared/types.ts";
 import {
+	MAX_DEADLINE_MS,
 	resolveChildMaxSubagentDepth,
 	resolveSubagentDepthPolicy,
 	resolveTopLevelParallelMaxTasks,
@@ -71,12 +72,16 @@ function modeFor(data: ExecutionContextData): "single" | "parallel" | "chain" {
  */
 function armRunDeadline(deps: ResolvedExecutorDeps, runId: string, deadlineMs: number | undefined): () => void {
 	if (deadlineMs === undefined || !Number.isFinite(deadlineMs) || deadlineMs <= 0) return () => {};
+	// Clamp rather than trust the caller: a delay past MAX_DEADLINE_MS wraps in
+	// Node and fires after 1ms, turning "wait a month" into "interrupt now". The
+	// entry points validate too, but this is the line that actually arms it.
+	const delay = Math.min(deadlineMs, MAX_DEADLINE_MS);
 	const timer = setTimeout(() => {
 		const control = deps.state.foregroundControls.get(runId);
 		if (!control?.interrupt) return;
 		control.deadlineExpired = true;
 		control.interrupt();
-	}, deadlineMs);
+	}, delay);
 	// A pending deadline is not a reason to keep the process alive.
 	timer.unref?.();
 	return () => clearTimeout(timer);

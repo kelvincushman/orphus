@@ -24,6 +24,15 @@ import {
 const DEFAULT_CONCURRENCY = 4;
 const DEFAULT_DIGEST_BUDGET = 2000;
 const DEFAULT_PER_MESSAGE_CAP = 600;
+/**
+ * Largest delay a Node timer honours; past it `setTimeout` wraps and fires after
+ * 1ms. Mirrored from `MAX_DEADLINE_MS` in `@orphus/subagents` rather than
+ * imported, because a blueprint parser should not take a dependency on the
+ * executor to know a platform limit. The subagent schema enforces the same
+ * bound at the tool edge, and the timer clamps as a backstop.
+ */
+const MAX_DEADLINE_MS = 2_147_483_647;
+
 const DEFAULT_ROUNDS = 2;
 const MAX_ROUNDS = 10;
 /** Mirrors MAX_PARALLEL_TASKS in @orphus/subagents — the dispatch ceiling. */
@@ -218,6 +227,12 @@ function parseTeam(
 
   const deadlineMs =
     raw.deadlineMs === undefined ? undefined : parsePositiveInt(raw.deadlineMs, path, `${keyPath}.deadlineMs`, 0);
+  // Past this a Node timer wraps and fires after 1ms, so an over-large deadline
+  // would interrupt the deliberation instantly — the opposite of what it asks
+  // for. Refuse it here rather than let the runtime silently clamp.
+  if (deadlineMs !== undefined && deadlineMs > MAX_DEADLINE_MS) {
+    fail(path, `${keyPath}.deadlineMs`, `${deadlineMs} exceeds the maximum timer delay of ${MAX_DEADLINE_MS} ms`);
+  }
   if (deadlineMs !== undefined && blocking === true) {
     warnings.push(`${keyPath}.deadlineMs has no effect with blocking: true — a blocking call is bounded by the turn`);
   }

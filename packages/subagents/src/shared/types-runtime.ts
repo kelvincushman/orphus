@@ -87,6 +87,15 @@ export const SLASH_SUBAGENT_UPDATE_EVENT = "subagent:slash:update";
 export const SLASH_SUBAGENT_CANCEL_EVENT = "subagent:slash:cancel";
 export const POLL_INTERVAL_MS = 250;
 export const MAX_WIDGET_JOBS = 4;
+/**
+ * Largest delay a Node timer honours. Above this, `setTimeout` silently wraps
+ * and fires after 1ms — so an unbounded "deadline" of a month would interrupt a
+ * run immediately, which is the opposite of what the caller asked for. Every
+ * entry point that accepts a deadline enforces this, and the timer itself
+ * clamps as a backstop.
+ */
+export const MAX_DEADLINE_MS = 2_147_483_647;
+
 /** Hard ceiling. No configuration, env var, or agent definition may exceed it. */
 export const MAX_SUBAGENT_NESTING_DEPTH = 5;
 /**
