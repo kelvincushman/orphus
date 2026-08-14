@@ -30,7 +30,7 @@ import type {
 	VerbatimCompactionParameters,
 	VerbatimCompactionResult,
 } from "./compaction/index.ts";
-import type { ContextAccounting, ReadonlyContextAccounting } from "./context-accounting.ts";
+import type { ContextAccounting, ReadonlyContextAccounting } from "./context-accounting.js";
 import type {
 	ContextUsage,
 	ExtensionCommandContextActions,

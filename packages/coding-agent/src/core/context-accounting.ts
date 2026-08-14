@@ -129,6 +129,12 @@ export interface ContextAccountingSnapshot {
 /** Compact character counts: 812, 4.2k, 1.3M. */
 export function formatChars(chars: number): string {
 	if (chars < 1000) return String(chars);
-	if (chars < 1_000_000) return `${(chars / 1000).toFixed(1)}k`;
+	if (chars < 1_000_000) {
+		// Rounding to one decimal can carry past the unit: 999_950 would render as
+		// "1000.0k", which is longer than the number it abbreviates. Promote those
+		// to M rather than emit a four-digit k.
+		const thousands = chars / 1000;
+		if (thousands < 999.95) return `${thousands.toFixed(1)}k`;
+	}
 	return `${(chars / 1_000_000).toFixed(1)}M`;
 }

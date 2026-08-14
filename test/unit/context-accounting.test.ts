@@ -81,6 +81,14 @@ describe("context accounting", () => {
 		assert.equal(formatChars(50_000), "50.0k");
 		assert.equal(formatChars(1_000_000), "1.0M");
 	});
+
+	test("rounding never carries past the unit into a four-digit k", () => {
+		// 999_950 rounds up to 1000.0k, which is longer than the number it
+		// abbreviates. The boundary belongs to M.
+		assert.equal(formatChars(999_949), "999.9k");
+		assert.equal(formatChars(999_950), "1.0M");
+		assert.equal(formatChars(999_999), "1.0M");
+	});
 });
 
 describe("context accounting agrees with the spill it describes", () => {

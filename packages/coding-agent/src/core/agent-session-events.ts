@@ -19,7 +19,7 @@ import {
 } from "./agent-session-types.ts";
 import { disposeSessionAsyncJobManager } from "./async/session-manager.js";
 import { formatCodexProviderError } from "./codex-errors.ts";
-import { CONTEXT_ACCOUNTING_CUSTOM_TYPE } from "./context-accounting.ts";
+import { CONTEXT_ACCOUNTING_CUSTOM_TYPE } from "./context-accounting.js";
 import type {
 	MessageEndEvent,
 	MessageStartEvent,

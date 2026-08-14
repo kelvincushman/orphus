@@ -36,7 +36,7 @@ import type {
 import type { AsyncJobManager } from "./async/job-manager.js";
 import { createSessionAsyncJobManager } from "./async/session-manager.js";
 import type { VerbatimCompactionResult } from "./compaction/index.ts";
-import { ContextAccounting } from "./context-accounting.ts";
+import { ContextAccounting } from "./context-accounting.js";
 import type {
 	ExtensionCommandContextActions,
 	ExtensionErrorListener,
