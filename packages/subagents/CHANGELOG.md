@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Subagent nesting now defaults to two levels rather than five.** The hard ceiling is unchanged at five; what changed is where you start. One level of delegation measurably helps and a second starts to overthink, so the deeper levels — previously reachable without anyone choosing them — now require someone to choose them. Raise the budget with `ORPHUS_SUBAGENT_MAX_DEPTH` (still clamped to five) or a config depth. Note that an agent definition's `maxSubagentDepth` frontmatter cannot raise it: that value min-clamps against the budget its parent was granted, so it narrows a subtree and never widens one. A run that genuinely needs three or more levels is unaffected once the parent's budget is raised; one that was silently nesting five deep now stops at two with the existing "complete your current task directly" message.
+
 ## [0.1.0] - 2026-08-11
 
 The first stable Orphus release. Everything below shipped across the

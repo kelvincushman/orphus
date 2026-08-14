@@ -87,8 +87,23 @@ export const SLASH_SUBAGENT_UPDATE_EVENT = "subagent:slash:update";
 export const SLASH_SUBAGENT_CANCEL_EVENT = "subagent:slash:cancel";
 export const POLL_INTERVAL_MS = 250;
 export const MAX_WIDGET_JOBS = 4;
+/** Hard ceiling. No configuration, env var, or agent definition may exceed it. */
 export const MAX_SUBAGENT_NESTING_DEPTH = 5;
-export const DEFAULT_SUBAGENT_MAX_DEPTH = MAX_SUBAGENT_NESTING_DEPTH;
+/**
+ * How deep nesting goes when nobody says otherwise.
+ *
+ * Deliberately below the ceiling rather than equal to it. One level of
+ * delegation measurably helps; a second starts overthinking, and the depths
+ * beyond it were reachable by default without anyone choosing them. Raising it
+ * is a decision someone makes — through `ORPHUS_SUBAGENT_MAX_DEPTH` or config —
+ * rather than the state you land in by not thinking about it.
+ *
+ * Note this is the *parent's* budget. A child's `maxSubagentDepth` frontmatter
+ * min-clamps against it (`resolveChildMaxSubagentDepth`), so an agent definition
+ * can lower its own subtree's depth but never raise it above what the parent
+ * was granted.
+ */
+export const DEFAULT_SUBAGENT_MAX_DEPTH = 2;
 export const SUBAGENT_ACTIONS = [
 	"list",
 	"get",

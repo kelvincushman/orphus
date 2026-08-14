@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { afterEach, describe, test } from "vitest";
 import {
 	checkSubagentDepth,
+	DEFAULT_SUBAGENT_MAX_DEPTH,
 	getSubagentDepthEnv,
 	MAX_SUBAGENT_NESTING_DEPTH,
+	resolveChildMaxSubagentDepth,
 	resolveWorkflowStageMaxSubagentDepth,
 	subagentDepthBlockedMessage,
 	WORKFLOW_STAGE_SUBAGENT_GUARD_ENV,
@@ -48,21 +50,27 @@ describe("subagent workflow-stage depth guard", () => {
 			},
 		};
 
-		assert.equal(resolveWorkflowStageMaxSubagentDepth(workflowCtx, undefined), MAX_SUBAGENT_NESTING_DEPTH);
+		// A workflow constraint at the ceiling no longer wins: the default budget is
+		// what the stage inherits, and the constraint can only narrow it.
+		assert.equal(resolveWorkflowStageMaxSubagentDepth(workflowCtx, undefined), DEFAULT_SUBAGENT_MAX_DEPTH);
 		assert.equal(resolveWorkflowStageMaxSubagentDepth(stricterWorkflowCtx, undefined), 1);
 		assert.equal(resolveWorkflowStageMaxSubagentDepth(workflowCtx, 0), 0);
-		assert.equal(resolveWorkflowStageMaxSubagentDepth({}, undefined), MAX_SUBAGENT_NESTING_DEPTH);
+		assert.equal(resolveWorkflowStageMaxSubagentDepth({}, undefined), DEFAULT_SUBAGENT_MAX_DEPTH);
 	});
 
-	test("subagent nesting defaults to and is capped at five levels", () => {
+	test("subagent nesting defaults to two levels and is still capped at five", () => {
 		delete process.env[DEPTH_ENV];
 		delete process.env[MAX_DEPTH_ENV];
 		delete process.env[WORKFLOW_STAGE_SUBAGENT_GUARD_ENV];
 
+		// The default and the ceiling are now different numbers, which is the point:
+		// the ceiling is what nobody may exceed, the default is where you start.
+		assert.notEqual(DEFAULT_SUBAGENT_MAX_DEPTH, MAX_SUBAGENT_NESTING_DEPTH);
+
 		const result = checkSubagentDepth();
 		assert.equal(result.blocked, false);
 		assert.equal(result.depth, 0);
-		assert.equal(result.maxDepth, MAX_SUBAGENT_NESTING_DEPTH);
+		assert.equal(result.maxDepth, DEFAULT_SUBAGENT_MAX_DEPTH);
 
 		process.env[MAX_DEPTH_ENV] = String(MAX_SUBAGENT_NESTING_DEPTH + 10);
 		assert.equal(checkSubagentDepth().maxDepth, MAX_SUBAGENT_NESTING_DEPTH);
@@ -83,6 +91,30 @@ describe("subagent workflow-stage depth guard", () => {
 		const secondChildEnv = getSubagentDepthEnv(MAX_SUBAGENT_NESTING_DEPTH, { workflowStageSubagentGuard: true });
 		assert.equal(secondChildEnv[DEPTH_ENV], "2");
 		assert.equal(secondChildEnv[MAX_DEPTH_ENV], String(MAX_SUBAGENT_NESTING_DEPTH));
+	});
+
+	test("the env var raises the default; an agent definition can only lower it", () => {
+		delete process.env[DEPTH_ENV];
+		delete process.env[MAX_DEPTH_ENV];
+		delete process.env[WORKFLOW_STAGE_SUBAGENT_GUARD_ENV];
+
+		// Raising is a deliberate act, and the env var is where it happens.
+		process.env[MAX_DEPTH_ENV] = "4";
+		assert.equal(checkSubagentDepth().maxDepth, 4);
+		// Still clamped by the ceiling, however loudly you ask.
+		process.env[MAX_DEPTH_ENV] = "99";
+		assert.equal(checkSubagentDepth().maxDepth, MAX_SUBAGENT_NESTING_DEPTH);
+		delete process.env[MAX_DEPTH_ENV];
+
+		// An agent's own maxSubagentDepth min-clamps against the budget its parent
+		// was granted, so it narrows its subtree and never widens it. Declaring 4
+		// under the default of 2 yields 2 — worth pinning, because it is the
+		// opposite of what "an override" suggests.
+		assert.equal(resolveChildMaxSubagentDepth(DEFAULT_SUBAGENT_MAX_DEPTH, 4), DEFAULT_SUBAGENT_MAX_DEPTH);
+		assert.equal(resolveChildMaxSubagentDepth(DEFAULT_SUBAGENT_MAX_DEPTH, 1), 1);
+		assert.equal(resolveChildMaxSubagentDepth(DEFAULT_SUBAGENT_MAX_DEPTH, undefined), DEFAULT_SUBAGENT_MAX_DEPTH);
+		// Given a wider parent budget, a narrower agent value still wins.
+		assert.equal(resolveChildMaxSubagentDepth(MAX_SUBAGENT_NESTING_DEPTH, 3), 3);
 	});
 
 	test("workflow-stage child env marker produces nested workflow-stage rejection message", () => {

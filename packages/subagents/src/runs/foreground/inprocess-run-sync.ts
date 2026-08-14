@@ -13,6 +13,7 @@ import type {
 	SubagentToolResult,
 	Usage,
 } from "../../shared/types.ts";
+import { DEFAULT_SUBAGENT_MAX_DEPTH } from "../../shared/types.ts";
 import { getOrCreateSubagentControl } from "../inprocess/control-registry.ts";
 import type { AttemptOutcome, ChildSpec, ParentContext } from "../inprocess/runner.ts";
 import { filterSpawnableModelCandidates } from "../shared/model-candidate-filter.ts";
@@ -51,7 +52,7 @@ function workflowOrchestrationContext(options: RunSyncOptions): ParentContext["o
 		workflowStageName: workflow.stageName,
 		constraints: {
 			disableWorkflowTool: true,
-			maxSubagentDepth: options.maxSubagentDepth ?? 5,
+			maxSubagentDepth: options.maxSubagentDepth ?? DEFAULT_SUBAGENT_MAX_DEPTH,
 		},
 		...(options.intercomGroup ? { intercomGroup: options.intercomGroup } : {}),
 	};
