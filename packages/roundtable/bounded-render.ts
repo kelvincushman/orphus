@@ -4,8 +4,10 @@
  * Given a list of items and a character budget, spend the budget on the items
  * that matter most, degrade the rest to one-line headlines, and collapse
  * whatever is left into a single count. The output is at most `budget`
- * characters plus one marker line, no matter what the items contain — which is
- * the property that makes a boundary a bound rather than a hope.
+ * characters plus one marker line of at most {@link MAX_MARKER_CHARS} — no
+ * matter what the items contain, and no matter what the caller's formatters
+ * return. That total is the property which makes a boundary a bound rather
+ * than a hope, so the marker is normalized here instead of being trusted.
  *
  * This started as the room digest and is now shared, because the same guarantee
  * is wanted at more than one boundary: a room's messages reaching an agent, and
@@ -65,6 +67,26 @@ const MIN_BUDGET = 200;
 const MIN_PER_ITEM_CAP = 80;
 const MIN_HEADLINE_CAP = 40;
 
+/**
+ * Hard cap on the collapse marker, so "budget plus one marker line" is a fact
+ * rather than a description of well-behaved formatters.
+ */
+export const MAX_MARKER_CHARS = 200;
+
+/**
+ * Force the marker to one bounded line.
+ *
+ * The marker comes from a caller-supplied formatter, and the guarantee this
+ * module exists to provide cannot depend on every caller being careful: a
+ * formatter returning newlines would make "one marker line" false, and one
+ * returning megabytes would break the bound outright. Both are contained here
+ * rather than trusted.
+ */
+function normalizeMarker(marker: string): string {
+	const oneLine = marker.replace(/[\r\n]+/g, " ").trimEnd();
+	return oneLine.length <= MAX_MARKER_CHARS ? oneLine : `${oneLine.slice(0, MAX_MARKER_CHARS - 1)}…`;
+}
+
 export function capText(text: string, cap: number): { text: string; truncated: number } {
 	const oneLineSafe = text.trimEnd();
 	if (oneLineSafe.length <= cap) return { text: oneLineSafe, truncated: 0 };
@@ -120,7 +142,7 @@ export function boundedRender<T>(items: readonly T[], options: BoundedRenderOpti
 	}
 
 	const parts: string[] = [];
-	if (collapsed > 0) parts.push(format.collapsed(collapsed));
+	if (collapsed > 0) parts.push(normalizeMarker(format.collapsed(collapsed)));
 	if (options.preserveOrder) {
 		parts.push(...verbatimLines, ...headlineLines);
 	} else {
