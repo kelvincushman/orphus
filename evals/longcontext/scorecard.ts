@@ -3,12 +3,16 @@
  *
  * The scorecard is committed so a later phase can cite a number rather than a
  * vibe. Most fields are measured directly; two are derived and say so in their
- * names — `sourceTokensEstimated` (chars ÷ 4) and `ratio` (bounded ÷ unbounded).
- * Nothing else is computed, so a reader can treat every other field as an
- * observation rather than an inference.
+ * names — `sourceTokensEstimated` (⌈chars ÷ 4⌉, rounded up) and `ratio`
+ * (bounded ÷ unbounded, to six decimal places). Nothing else is computed, so a
+ * reader can treat every other field as an observation rather than an inference,
+ * and can reproduce the two derived ones exactly.
  */
 
-/** Chars-to-tokens uses the repo's own conservative heuristic — see `estimateTokens` in `compaction.ts`. */
+/**
+ * Chars-to-tokens uses the repo's own conservative heuristic — see `estimateTokens`
+ * in `compaction.ts`. Rounded up, so a partial token counts as a whole one.
+ */
 export const CHARS_PER_TOKEN = 4;
 
 export function estimatedTokens(chars: number): number {
@@ -91,6 +95,8 @@ export function isScorecard(value: unknown): value is Scorecard {
 	return (
 		candidate.schema === 1 &&
 		typeof candidate.referenceWindowTokens === "number" &&
+		typeof candidate.spillThresholdChars === "number" &&
+		candidate.modelBacked === "not-run-here" &&
 		Array.isArray(candidate.boundaries) &&
 		candidate.boundaries.length > 0 &&
 		candidate.boundaries.every(isBoundaryMeasurement)

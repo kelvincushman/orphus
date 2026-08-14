@@ -71,7 +71,7 @@ sessions exist to beat.
 
 `scorecard.json` is committed and is the artifact later phases diff against.
 Two of its fields are derived and named so you can tell — `sourceTokensEstimated`
-(characters ÷ 4) and `ratio` (bounded ÷ unbounded). Everything else is a direct
+(⌈characters ÷ 4⌉, rounded up) and `ratio` (bounded ÷ unbounded). Everything else is a direct
 measurement. `schema` is bumped if the method changes in a way that breaks
 comparison with earlier runs.
 
