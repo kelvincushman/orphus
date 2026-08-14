@@ -45,6 +45,24 @@ export interface TeamSpec {
   readonly group?: string | true;
   /** Per-team concurrency override for dispatch fan-out. */
   readonly concurrency?: number;
+  /**
+   * Hold the orchestrator's turn open until the deliberation completes.
+   *
+   * Defaults to false. A deliberation is minutes of members talking to each
+   * other in a room the orchestrator is not reading, so waiting inside the call
+   * costs a turn and buys nothing the completion notification does not.
+   *
+   * `true` restores **synchronous completion**, and that is a compatibility
+   * guarantee rather than a test convenience: a blueprint written against the
+   * previous flow may assume the step after a deliberation sees its outcome
+   * directly — an orchestrator prompt reading the digest inline, or a pipeline
+   * whose next team depends on the decision having landed. Those keep working
+   * unchanged. The cost is a held-open turn for the whole deliberation.
+   *
+   * Dispatch teams ignore this — they return their results, so there is nothing
+   * to wait on separately.
+   */
+  readonly blocking?: boolean;
   readonly members: readonly MemberSpec[];
 }
 

@@ -91,6 +91,66 @@ teams:
 		assert.match(prompt, /"skill": \[\s*"thinking",\s*"tdd"\s*\]/u);
 	});
 
+	test("deliberation is asynchronous by default: a run id, then the turn ends", () => {
+		const prompt = renderFleetRunPrompt(BLUEPRINT, "task");
+		// The call itself must carry async, or the orchestrator blocks regardless
+		// of what the surrounding prose tells it to do.
+		assert.match(prompt, /"async": true/u);
+		assert.match(prompt, /END YOUR TURN/u);
+		assert.match(prompt, /\(async\)/u);
+	});
+
+	test("a ping is not a completion signal, and the prompt says which is which", () => {
+		const prompt = renderFleetRunPrompt(BLUEPRINT, "task");
+		// Pings are best-effort by contract, so synthesizing on one would read a
+		// half-finished room as a decision. The completion notification is the
+		// only authoritative wake.
+		assert.match(prompt, /Do not synthesize on a ping/u);
+		assert.match(prompt, /completion notification/u);
+		assert.match(prompt, /authoritative/u);
+	});
+
+	test("blocking: true pins the previous behaviour, with no async in the call", () => {
+		const blocking = parseFleetBlueprint(
+			`
+name: coding-team
+description: d
+teams:
+  design:
+    mode: deliberate
+    blocking: true
+    members:
+      - agent: architect
+pipeline: [design]
+`,
+			"/tmp/blocking.fleet.yaml",
+		);
+		const prompt = renderFleetRunPrompt(blocking, "task");
+		assert.ok(!prompt.includes('"async": true'), "blocking teams must not emit an async call");
+		assert.ok(!prompt.includes("END YOUR TURN"), "blocking teams keep the turn open");
+		assert.match(prompt, /\(blocking\)/u);
+		// It still synthesizes from one digest — that part is unchanged.
+		assert.match(prompt, /roundtable.*digest/su);
+	});
+
+	test("dispatch teams are never made async — they return their own results", () => {
+		const dispatchOnly = parseFleetBlueprint(
+			`
+name: t
+description: d
+teams:
+  work:
+    mode: dispatch
+    members:
+      - agent: worker
+pipeline: [work]
+`,
+			"/tmp/dispatch.fleet.yaml",
+		);
+		const prompt = renderFleetRunPrompt(dispatchOnly, "task");
+		assert.ok(!prompt.includes('"async": true'));
+	});
+
 	test("repo agent config files are referenced, never inlined", () => {
 		const prompt = renderFleetRunPrompt(BLUEPRINT, "task", {
 			files: ["docs/agents/issue-tracker.md", "docs/agents/domain.md"],

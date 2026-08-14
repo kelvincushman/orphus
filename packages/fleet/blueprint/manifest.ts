@@ -152,7 +152,7 @@ function parseTeam(
   if (!isRecord(raw)) fail(path, keyPath, `expected a map of team settings, got ${describe(raw)}`);
   rejectUnknownKeys(
     raw,
-    ["mode", "room", "topic", "rounds", "skills", "group", "concurrency", "members"],
+    ["mode", "room", "topic", "rounds", "skills", "group", "concurrency", "blocking", "members"],
     path,
     keyPath,
   );
@@ -202,6 +202,20 @@ function parseTeam(
     }
   }
 
+  let blocking: boolean | undefined;
+  if (raw.blocking !== undefined) {
+    if (typeof raw.blocking !== "boolean") {
+      fail(path, `${keyPath}.blocking`, `expected true or false, got ${describe(raw.blocking)}`);
+    }
+    blocking = raw.blocking;
+    // Dispatch returns its results directly, so there is no separate wait to
+    // hold open or release. Saying otherwise in a blueprint is a misreading
+    // worth naming rather than silently ignoring.
+    if (mode === "dispatch") {
+      warnings.push(`${keyPath}.blocking has no effect: dispatch teams do not deliberate`);
+    }
+  }
+
   let group: string | true | undefined;
   if (raw.group === true) group = true;
   else if (raw.group !== undefined) group = requireString(raw.group, path, `${keyPath}.group`);
@@ -216,6 +230,7 @@ function parseTeam(
     ...(raw.topic !== undefined ? { topic: requireString(raw.topic, path, `${keyPath}.topic`) } : {}),
     ...(group !== undefined ? { group } : {}),
     ...(concurrency !== undefined ? { concurrency } : {}),
+    ...(blocking !== undefined ? { blocking } : {}),
   };
   return { team };
 }

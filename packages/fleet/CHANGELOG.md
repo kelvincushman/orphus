@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **A deliberation no longer blocks the orchestrator's turn.** The rendered `subagent` call now carries `async: true`: it returns a run id immediately, the orchestrator ends its turn, and members converse in the room while it is idle. It wakes on the subagent completion notification for that run id and pulls one digest to synthesize, exactly as before. The orchestrator's context during a deliberation is now a run id, a few coalesced activity pings, and one bounded digest — regardless of how long the members argue. The rendered prompt is explicit that an activity ping means work is happening and **not** that it finished: pings are best-effort by contract, and synthesizing on one would read a half-finished room as a decision. `blocking: true` on a team restores the previous behaviour for a blueprint that depends on it; it has no effect on dispatch teams, which return their own results, and saying so in a blueprint now produces a warning rather than being silently ignored.
+
 ## [0.1.0] - 2026-08-11
 
 The first stable Orphus release, and this package's first release of any

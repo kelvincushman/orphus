@@ -305,6 +305,37 @@ teams:
 		assert.ok(blueprint.warnings.some((warning) => warning.includes("rounds")));
 	});
 
+	test("blocking is parsed, optional, and rejected when it is not a boolean", () => {
+		const withBlocking = parseFleetBlueprint(
+			MINIMAL.replace("mode: dispatch", "mode: deliberate\n    blocking: true"),
+			blueprintPath(),
+		);
+		assert.equal(withBlocking.teams[0]?.blocking, true);
+
+		// Absent means asynchronous; the field stays undefined rather than being
+		// defaulted into every parsed team, so "not stated" reads as not stated.
+		const withoutBlocking = parseFleetBlueprint(
+			MINIMAL.replace("mode: dispatch", "mode: deliberate"),
+			blueprintPath(),
+		);
+		assert.equal(withoutBlocking.teams[0]?.blocking, undefined);
+
+		assert.throws(() =>
+			parseFleetBlueprint(
+				MINIMAL.replace("mode: dispatch", "mode: deliberate\n    blocking: yes-please"),
+				blueprintPath(),
+			),
+		);
+	});
+
+	test("warns that blocking has no effect on a dispatch team", () => {
+		const blueprint = parseFleetBlueprint(
+			MINIMAL.replace("mode: dispatch", "mode: dispatch\n    blocking: true"),
+			blueprintPath(),
+		);
+		assert.ok(blueprint.warnings.some((warning) => warning.includes("blocking")));
+	});
+
 	test("parses member tools as an explicit allowlist grant", () => {
 		const withTools = parseFleetBlueprint(
 			MINIMAL.replace("- agent: worker", "- agent: worker\n        tools: [read, roundtable]"),
