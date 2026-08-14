@@ -43,6 +43,7 @@
         "packages/roundtable/**/*",
         "test/**/*",
         "examples/**/*",
+        "evals/longcontext/**/*",
         ".atomic/workflows/**/*"
     ],
     "exclude": [
