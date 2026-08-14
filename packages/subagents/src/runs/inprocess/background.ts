@@ -40,7 +40,7 @@ export interface AsyncSingleParams {
 	sessionFile?: string;
 	skills?: string[];
 	output?: string | boolean;
-	outputMode?: "inline" | "file-only";
+	outputMode?: "inline" | "file-only" | "digest";
 	progress?: boolean;
 	modelOverride?: string;
 	availableModels?: ModelInfo[];

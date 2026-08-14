@@ -17,9 +17,9 @@ const OutputOverride = Type.Unsafe({
 });
 
 const OutputModeOverride = Type.String({
-	enum: ["inline", "file-only"],
+	enum: ["inline", "file-only", "digest"],
 	description:
-		"Return saved output inline (default) or only a concise file reference. file-only requires output to be a path.",
+		"How a run's output reaches you. 'digest' (default for parallel) returns a bounded rendering per task plus a pointer to the full output on disk — read the file when the digest is not enough. 'inline' returns every output in full, which is right for small expected outputs and wrong for large ones. 'file-only' returns a concise file reference alone and requires output to be a path.",
 });
 
 const ReadsOverride = Type.Unsafe({

@@ -37,10 +37,11 @@
     ]
   },
   "peerDependencies": {
-    "@orphus/coding-agent": "*",
     "@earendil-works/pi-agent-core": "^0.83.0",
     "@earendil-works/pi-ai": "^0.83.0",
-    "@earendil-works/pi-tui": "^0.83.0"
+    "@earendil-works/pi-tui": "^0.83.0",
+    "@orphus/coding-agent": "*",
+    "@orphus/roundtable": "*"
   },
   "peerDependenciesMeta": {
     "@orphus/coding-agent": {

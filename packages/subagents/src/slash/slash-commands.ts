@@ -21,7 +21,7 @@ import { applySlashUpdate, buildSlashInitialResult, failSlashResult, finalizeSla
 
 interface InlineConfig {
 	output?: string | false;
-	outputMode?: "inline" | "file-only";
+	outputMode?: "inline" | "file-only" | "digest";
 	reads?: string[] | false;
 	model?: string;
 	skill?: string[] | false;
