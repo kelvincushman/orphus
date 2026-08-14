@@ -320,11 +320,13 @@ teams:
 		);
 		assert.equal(withoutBlocking.teams[0]?.blocking, undefined);
 
-		assert.throws(() =>
-			parseFleetBlueprint(
-				MINIMAL.replace("mode: dispatch", "mode: deliberate\n    blocking: yes-please"),
-				blueprintPath(),
-			),
+		assert.throws(
+			() =>
+				parseFleetBlueprint(
+					MINIMAL.replace("mode: dispatch", "mode: deliberate\n    blocking: yes-please"),
+					blueprintPath(),
+				),
+			/blocking .*expected true or false/,
 		);
 	});
 
@@ -346,11 +348,15 @@ teams:
 		// setTimeout wraps above 2_147_483_647 ms and fires after 1ms, so an
 		// over-large deadline would interrupt the deliberation immediately — the
 		// exact opposite of asking to wait longer.
-		assert.throws(() =>
-			parseFleetBlueprint(
-				MINIMAL.replace("mode: dispatch", "mode: deliberate\n    deadlineMs: 2147483648"),
-				blueprintPath(),
-			),
+		assert.throws(
+			() =>
+				parseFleetBlueprint(
+					MINIMAL.replace("mode: dispatch", "mode: deliberate\n    deadlineMs: 2147483648"),
+					blueprintPath(),
+				),
+			// Matched on the message: a bare assert.throws would pass if the fixture
+			// failed to parse for some unrelated reason, proving nothing about the bound.
+			/deadlineMs .*exceeds the maximum timer delay/,
 		);
 		// The boundary itself is allowed.
 		const atLimit = parseFleetBlueprint(
