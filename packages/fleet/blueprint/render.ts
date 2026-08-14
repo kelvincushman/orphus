@@ -82,11 +82,17 @@ function recipeTasks(team: TeamSpec, taskFor: (member: MemberSpec, name: string)
   return tasks;
 }
 
-function renderRecipe(team: TeamSpec, blueprint: FleetBlueprint, tasks: RecipeTask[]): string {
+function renderRecipe(
+  team: TeamSpec,
+  blueprint: FleetBlueprint,
+  tasks: RecipeTask[],
+  options: { async?: boolean } = {},
+): string {
   const call = {
     tasks,
     concurrency: team.concurrency ?? blueprint.defaults.concurrency,
     ...(team.group !== undefined ? { group: team.group } : {}),
+    ...(options.async ? { async: true } : {}),
   };
   return `subagent(${JSON.stringify(call, null, 2)})`;
 }
@@ -121,11 +127,33 @@ function dispatchTaskTemplate(task: string) {
 
 function renderDeliberatePhase(team: TeamSpec, blueprint: FleetBlueprint, task: string): string {
   const { digest, perMessage } = blueprint.defaults.budgets;
+  const digestCall = `roundtable({ action: "digest", room: "${team.room}", budget: ${digest}, perMessage: ${perMessage} })`;
+  const recipe = renderRecipe(team, blueprint, recipeTasks(team, deliberateTaskTemplate(team, blueprint, task)), {
+    async: team.blocking !== true,
+  });
+
+  if (team.blocking === true) {
+    return [
+      `Deliberation — room #${team.room}, ${team.rounds} rounds per member (blocking):`,
+      recipe,
+      `Members converse in the room while the call runs. When it returns, pull ONE digest to synthesize:`,
+      digestCall,
+    ].join("\n");
+  }
+
+  // Asynchronous by default. The orchestrator holds a run id rather than a
+  // blocked turn: the deliberation is minutes of members talking to each other
+  // in a room it is not reading, so waiting inside the call buys nothing.
   return [
-    `Deliberation — room #${team.room}, ${team.rounds} rounds per member:`,
-    renderRecipe(team, blueprint, recipeTasks(team, deliberateTaskTemplate(team, blueprint, task))),
-    `Members converse in the room while the call runs. When it returns, pull ONE digest to synthesize:`,
-    `roundtable({ action: "digest", room: "${team.room}", budget: ${digest}, perMessage: ${perMessage} })`,
+    `Deliberation — room #${team.room}, ${team.rounds} rounds per member (async):`,
+    recipe,
+    `This returns a run id immediately, NOT the deliberation. Record the run id, then END YOUR TURN.`,
+    `Members converse in the room while you are idle. You will be woken twice over:`,
+    `  · roundtable activity pings — one line, coalesced, no bodies. These mean work is happening,`,
+    `    NOT that it finished. Do not synthesize on a ping; pings are best-effort and some are lost.`,
+    `  · the subagent completion notification for your run id. This is the authoritative signal.`,
+    `When the completion notification for that run id arrives, pull ONE digest and synthesize:`,
+    digestCall,
   ].join("\n");
 }
 

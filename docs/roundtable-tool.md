@@ -205,6 +205,40 @@ Properties worth relying on:
 A ping is a notification, not an interrupt: it lands in your transcript rather
 than forcing a turn. Deciding whether to act on it is yours.
 
+## How fleets consume rooms
+
+A `/fleet` deliberation is the largest consumer of this tool, and it uses the
+tiers in a specific order worth spelling out — including which parts the runtime
+guarantees and which are only instructions to a model.
+
+1. The orchestrator issues one `subagent` call with `async: true` and gets a
+   **run id back immediately**, not the deliberation. It then ends its turn.
+2. Members join the room and talk to each other. None of it touches the
+   orchestrator's context.
+3. The orchestrator is woken by **activity pings** — one coalesced line, no
+   bodies — and, when the run finishes, by a **subagent completion
+   notification** carrying the run id.
+4. On completion it pulls **one digest** and synthesizes.
+
+The orchestrator's context during a deliberation is therefore a run id, a few
+one-line pings, and one bounded digest — regardless of how long the members
+argue or how much they write.
+
+**Enforced by the runtime:** the digest bound, the absence of message bodies in
+pings, and the delivery of the completion notification. None of these depend on
+a model behaving.
+
+**Instructions, not guarantees:** the round counts, the `FINAL:` line
+convention, and *waiting for completion rather than synthesizing on a ping*. A
+ping means work is happening, never that it finished, and pings are best-effort
+by contract — one can be lost without the room noticing. Synthesizing on a ping
+reads a half-finished discussion as a decision. The rendered prompt says so
+explicitly, but it is prompt text, and prompt text is a request.
+
+Blocking is available per team (`blocking: true` in a blueprint) and restores
+the older behaviour where the orchestrator's turn stays open for the whole
+deliberation. It buys nothing except determinism in tests, and costs a turn.
+
 ## Limits and defaults
 
 | Thing | Value | Consequence |

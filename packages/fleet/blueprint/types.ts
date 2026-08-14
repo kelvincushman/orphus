@@ -45,6 +45,18 @@ export interface TeamSpec {
   readonly group?: string | true;
   /** Per-team concurrency override for dispatch fan-out. */
   readonly concurrency?: number;
+  /**
+   * Hold the orchestrator's turn open for the whole deliberation.
+   *
+   * Defaults to false, which is the point: a deliberation is minutes of members
+   * talking to each other in a room the orchestrator is not reading. Blocking on
+   * it buys nothing and costs a turn. Asynchronous is the default; `blocking:
+   * true` pins the previous behaviour for a blueprint that depends on it.
+   *
+   * Dispatch teams ignore this — they return their results, so there is nothing
+   * to wait on separately.
+   */
+  readonly blocking?: boolean;
   readonly members: readonly MemberSpec[];
 }
 
