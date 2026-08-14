@@ -93,6 +93,7 @@ function renderRecipe(
     concurrency: team.concurrency ?? blueprint.defaults.concurrency,
     ...(team.group !== undefined ? { group: team.group } : {}),
     ...(options.async ? { async: true } : {}),
+    ...(options.async && team.deadlineMs !== undefined ? { deadlineMs: team.deadlineMs } : {}),
   };
   return `subagent(${JSON.stringify(call, null, 2)})`;
 }

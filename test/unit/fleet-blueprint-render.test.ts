@@ -133,6 +133,44 @@ pipeline: [design]
 		assert.match(prompt, /roundtable.*digest/su);
 	});
 
+	test("a team deadline reaches the async call, and only the async one", () => {
+		const withDeadline = parseFleetBlueprint(
+			`
+name: t
+description: d
+teams:
+  design:
+    mode: deliberate
+    deadlineMs: 600000
+    members:
+      - agent: architect
+pipeline: [design]
+`,
+			"/tmp/deadline.fleet.yaml",
+		);
+		assert.match(renderFleetRunPrompt(withDeadline, "task"), /"deadlineMs": 600000/u);
+
+		// A blocking team is bounded by the turn, so emitting a deadline there
+		// would describe a ceiling nothing enforces.
+		const blockingWithDeadline = parseFleetBlueprint(
+			`
+name: t
+description: d
+teams:
+  design:
+    mode: deliberate
+    blocking: true
+    deadlineMs: 600000
+    members:
+      - agent: architect
+pipeline: [design]
+`,
+			"/tmp/deadline-blocking.fleet.yaml",
+		);
+		const prompt = renderFleetRunPrompt(blockingWithDeadline, "task");
+		assert.ok(!prompt.includes("deadlineMs"), "a blocking team must not emit a deadline");
+	});
+
 	test("dispatch teams are never made async — they return their own results", () => {
 		const dispatchOnly = parseFleetBlueprint(
 			`

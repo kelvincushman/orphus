@@ -256,15 +256,23 @@ export async function runParallelPath(
 		});
 		rememberForegroundRun(deps.state, { runId, mode: "parallel", cwd: effectiveCwd, results: details.results });
 		if (interrupted) {
-			return {
-				content: [
-					{
-						type: "text",
-						text: `Parallel run paused after interrupt (${interrupted.agent}). Waiting for explicit next action.`,
-					},
-				],
-				details,
-			};
+			// A deadline and a person both arrive as an interrupt, but they mean
+			// different things to whoever reads this. A deadline needs the tasks
+			// that did not finish named, because those are the stragglers the
+			// orchestrator is deciding about; a manual interrupt is already an
+			// answer to a question someone asked.
+			const deadlineExpired = deps.state.foregroundControls.get(runId)?.deadlineExpired === true;
+			const completed = results.filter((result) => result.status === "ok").length;
+			const unfinished = results
+				.filter((result) => result.status !== "ok" && result.status !== "error")
+				.map((result) => result.agent);
+			const text = deadlineExpired
+				? `Parallel run hit its deadline and was finalized with what completed. ` +
+					`${completed}/${results.length} finished` +
+					(unfinished.length > 0 ? `; still running when time ran out: ${unfinished.join(", ")}` : "") +
+					`. Synthesize from what landed, or re-run the missing work.`
+				: `Parallel run paused after interrupt (${interrupted.agent}). Waiting for explicit next action.`;
+			return { content: [{ type: "text", text }], details };
 		}
 		const detachedIndex = results.findIndex((result) => result.detached);
 		const detached = detachedIndex >= 0 ? results[detachedIndex] : undefined;

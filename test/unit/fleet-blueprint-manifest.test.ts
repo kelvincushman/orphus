@@ -328,6 +328,20 @@ teams:
 		);
 	});
 
+	test("deadlineMs parses, and warns when paired with blocking", () => {
+		const withDeadline = parseFleetBlueprint(
+			MINIMAL.replace("mode: dispatch", "mode: deliberate\n    deadlineMs: 900000"),
+			blueprintPath(),
+		);
+		assert.equal(withDeadline.teams[0]?.deadlineMs, 900000);
+
+		const contradictory = parseFleetBlueprint(
+			MINIMAL.replace("mode: dispatch", "mode: deliberate\n    blocking: true\n    deadlineMs: 900000"),
+			blueprintPath(),
+		);
+		assert.ok(contradictory.warnings.some((warning) => warning.includes("deadlineMs")));
+	});
+
 	test("warns that blocking has no effect on a dispatch team", () => {
 		const blueprint = parseFleetBlueprint(
 			MINIMAL.replace("mode: dispatch", "mode: dispatch\n    blocking: true"),

@@ -371,6 +371,13 @@ export const SubagentParams = Type.Object(
 			}),
 		),
 		async: Type.Optional(Type.Boolean({ description: "Run in background (default: false, or per config)" })),
+		deadlineMs: Type.Optional(
+			Type.Integer({
+				minimum: 1,
+				description:
+					"Wall-clock ceiling for an async run, in milliseconds. On expiry the run is interrupted and finalized with whatever its children produced, rather than waiting indefinitely for one that never converges. Async runs only; a blocking call is bounded by the turn itself.",
+			}),
+		),
 		agentScope: Type.Optional(
 			Type.String({
 				description:

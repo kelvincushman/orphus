@@ -152,7 +152,7 @@ function parseTeam(
   if (!isRecord(raw)) fail(path, keyPath, `expected a map of team settings, got ${describe(raw)}`);
   rejectUnknownKeys(
     raw,
-    ["mode", "room", "topic", "rounds", "skills", "group", "concurrency", "blocking", "members"],
+    ["mode", "room", "topic", "rounds", "skills", "group", "concurrency", "blocking", "deadlineMs", "members"],
     path,
     keyPath,
   );
@@ -216,6 +216,12 @@ function parseTeam(
     }
   }
 
+  const deadlineMs =
+    raw.deadlineMs === undefined ? undefined : parsePositiveInt(raw.deadlineMs, path, `${keyPath}.deadlineMs`, 0);
+  if (deadlineMs !== undefined && blocking === true) {
+    warnings.push(`${keyPath}.deadlineMs has no effect with blocking: true — a blocking call is bounded by the turn`);
+  }
+
   let group: string | true | undefined;
   if (raw.group === true) group = true;
   else if (raw.group !== undefined) group = requireString(raw.group, path, `${keyPath}.group`);
@@ -231,6 +237,7 @@ function parseTeam(
     ...(group !== undefined ? { group } : {}),
     ...(concurrency !== undefined ? { concurrency } : {}),
     ...(blocking !== undefined ? { blocking } : {}),
+    ...(deadlineMs !== undefined ? { deadlineMs } : {}),
   };
   return { team };
 }

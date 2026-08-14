@@ -63,6 +63,19 @@ export interface TeamSpec {
    * to wait on separately.
    */
   readonly blocking?: boolean;
+  /**
+   * Wall-clock ceiling for an asynchronous deliberation, in milliseconds.
+   *
+   * A deliberation with no deadline waits on a completion notification that a
+   * stalled member may never trigger — the observed failure being a panelist
+   * that never joins the room at all, leaving the orchestrator idle forever. On
+   * expiry the run is interrupted and finalized with whatever landed, and the
+   * result names the members still running so the absent ones are visible
+   * rather than merely missing.
+   *
+   * Ignored when `blocking` is true: a blocking call is bounded by the turn.
+   */
+  readonly deadlineMs?: number;
   readonly members: readonly MemberSpec[];
 }
 
