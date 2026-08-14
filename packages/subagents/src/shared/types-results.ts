@@ -12,7 +12,7 @@ export interface MaxOutputConfig {
 	lines?: number;
 }
 
-export type OutputMode = "inline" | "file-only";
+export type OutputMode = "inline" | "file-only" | "digest";
 
 export type JsonSchemaObject = Record<string, unknown>;
 

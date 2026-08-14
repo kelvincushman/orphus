@@ -32,7 +32,7 @@ export interface TaskParam {
 	cwd?: string;
 	count?: number;
 	output?: string | boolean;
-	outputMode?: "inline" | "file-only";
+	outputMode?: "inline" | "file-only" | "digest";
 	reads?: string[] | boolean;
 	progress?: boolean;
 	model?: string;
@@ -72,7 +72,7 @@ export interface SubagentParamsLike {
 	skill?: string | string[] | boolean;
 	group?: string | true;
 	output?: string | boolean;
-	outputMode?: "inline" | "file-only";
+	outputMode?: "inline" | "file-only" | "digest";
 	reads?: string[] | false;
 	progress?: boolean;
 	agentScope?: string;

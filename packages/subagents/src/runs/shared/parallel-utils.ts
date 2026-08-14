@@ -1,4 +1,5 @@
 import type { CodexFastModeResolvedSettings, CodexFastModeScope } from "@orphus/coding-agent";
+import { boundedRender } from "@orphus/roundtable/bounded-render.ts";
 import type { ModelAttempt } from "../../shared/types.ts";
 
 export interface RunnerSubagentStep {
@@ -27,7 +28,7 @@ export interface RunnerSubagentStep {
 	inheritSkills: boolean;
 	skills?: string[];
 	outputPath?: string;
-	outputMode?: "inline" | "file-only";
+	outputMode?: "inline" | "file-only" | "digest";
 	sessionFile?: string;
 	maxSubagentDepth?: number;
 	workflowStageSubagentGuard?: boolean;
@@ -115,6 +116,22 @@ export interface ParallelTaskResult {
 	attemptedModels?: string[];
 	outputTargetPath?: string;
 	outputTargetExists?: boolean;
+	/** Where this task's full output already lives on disk, for the digest's pointer. */
+	artifactOutputPath?: string;
+}
+
+/** The status label a reader needs before the body, or "" when the run was unremarkable. */
+function statusLabel(r: ParallelTaskResult): string {
+	const hasOutput = Boolean(r.output?.trim());
+	if (r.status === "skipped") return "SKIPPED";
+	if (r.status === "continued") return "CONTINUED";
+	if (r.status === "error") return `FAILED${r.error ? `: ${r.error}` : ""}`;
+	if (r.error) return `WARNING: ${r.error}`;
+	if (!hasOutput && r.outputTargetPath && r.outputTargetExists === false) {
+		return `EMPTY OUTPUT (expected output file missing: ${r.outputTargetPath})`;
+	}
+	if (!hasOutput && !r.outputTargetPath) return "EMPTY OUTPUT (no textual response returned)";
+	return "";
 }
 
 export function aggregateParallelOutputs(
@@ -124,25 +141,90 @@ export function aggregateParallelOutputs(
 	return results
 		.map((r, i) => {
 			const header = headerFormat(r.taskIndex ?? i, r.agent);
+			const status = statusLabel(r);
 			const hasOutput = Boolean(r.output?.trim());
-			const status =
-				r.status === "skipped"
-					? "SKIPPED"
-					: r.status === "continued"
-						? "CONTINUED"
-						: r.status === "error"
-							? `FAILED${r.error ? `: ${r.error}` : ""}`
-							: r.error
-								? `WARNING: ${r.error}`
-								: !hasOutput && r.outputTargetPath && r.outputTargetExists === false
-									? `EMPTY OUTPUT (expected output file missing: ${r.outputTargetPath})`
-									: !hasOutput && !r.outputTargetPath
-										? "EMPTY OUTPUT (no textual response returned)"
-										: "";
 			const body = status ? (hasOutput ? `${status}\n${r.output}` : status) : r.output;
 			return `${header}\n${body}`;
 		})
 		.join("\n\n");
+}
+
+/**
+ * Order tasks for a bounded digest: **failures first, then task order.**
+ *
+ * Budget is spent down this list, so whatever sorts first survives verbatim and
+ * whatever sorts last is what collapses. A silently collapsed error is the one
+ * outcome a parent cannot recover from — it would read a summary that looked
+ * fine — so failures are never the thing that gets dropped. Among equals, task
+ * order, because that is the order the caller wrote them in and the only other
+ * ranking that carries meaning here.
+ */
+export function orderForDigest(results: readonly ParallelTaskResult[]): ParallelTaskResult[] {
+	const rank = (r: ParallelTaskResult): number => {
+		if (r.status === "error") return 0;
+		if (r.error) return 1;
+		return 2;
+	};
+	return [...results].sort((a, b) => rank(a) - rank(b) || (a.taskIndex ?? 0) - (b.taskIndex ?? 0));
+}
+
+export interface ParallelDigestOptions {
+	/** Total character budget for the rendered body. Default 2000, matching the room digest. */
+	budget?: number;
+	/** Per-task cap for verbatim bodies. Default 600, matching the room digest. */
+	perTaskCap?: number;
+	/** Cap for headline fragments. Default 100. */
+	headlineCap?: number;
+}
+
+/**
+ * Render parallel task outputs within a character budget.
+ *
+ * The counterpart to {@link aggregateParallelOutputs}, which concatenates every
+ * child's output in full and is bounded only by a blunt 200 KB truncation far
+ * past the point where the parent's context is the scarce resource. This spends
+ * a budget instead, degrades what does not fit to one-line headlines, and
+ * collapses the rest to a count — the same three tiers a room digest uses,
+ * through the same `boundedRender` core, so the two boundaries cannot drift
+ * into disagreeing about what bounded means.
+ *
+ * Nothing is lost: each task's full output is already on disk as an artifact,
+ * and every rendered line carries the path to it. The collapse marker says so
+ * too, because a bound the reader cannot see past is a bound that hides things.
+ */
+export function digestParallelOutputs(
+	results: readonly ParallelTaskResult[],
+	options: ParallelDigestOptions = {},
+): string {
+	const header = (r: ParallelTaskResult): string => `=== Task ${(r.taskIndex ?? 0) + 1}: ${r.agent} ===`;
+	const pointer = (r: ParallelTaskResult): string =>
+		r.artifactOutputPath ? `\n→ full output: ${r.artifactOutputPath}` : "";
+
+	const rendered = boundedRender(orderForDigest(results), {
+		budget: options.budget,
+		perItemCap: options.perTaskCap,
+		headlineCap: options.headlineCap,
+		// Failures already sort first; printing in that same order puts them where
+		// a reader looks first rather than burying them under successes.
+		preserveOrder: true,
+		format: {
+			text: (r) => {
+				const status = statusLabel(r);
+				const hasOutput = Boolean(r.output?.trim());
+				return status ? (hasOutput ? `${status}\n${r.output}` : status) : r.output;
+			},
+			verbatim: (r, capped, truncated) => {
+				const marker = truncated > 0 ? ` …(+${truncated} chars)` : "";
+				return `${header(r)}\n${capped}${marker}${pointer(r)}`;
+			},
+			headline: (r, capped, hasMore) =>
+				`· Task ${(r.taskIndex ?? 0) + 1} (${r.agent}): ${capped}${hasMore ? " …" : ""}${pointer(r)}`,
+			collapsed: (count) =>
+				`(${count} more task output${count === 1 ? "" : "s"} collapsed — read the artifact files above, or re-run with outputMode: "inline")`,
+		},
+	});
+
+	return rendered.text;
 }
 
 export const MAX_PARALLEL_CONCURRENCY = 4;
