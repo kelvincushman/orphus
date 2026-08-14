@@ -30,6 +30,7 @@ import type {
 	VerbatimCompactionParameters,
 	VerbatimCompactionResult,
 } from "./compaction/index.ts";
+import type { ContextAccounting, ReadonlyContextAccounting } from "./context-accounting.js";
 import type {
 	ContextUsage,
 	ExtensionCommandContextActions,
@@ -110,6 +111,8 @@ export interface AgentSessionMethodSurface extends AgentSessionQueuePauseControl
 	readonly isStreaming: boolean;
 	readonly systemPrompt: string;
 	readonly retryAttempt: number;
+	/** What tool results have put into this session's context window. */
+	readonly contextAccounting: ReadonlyContextAccounting;
 	readonly isCompacting: boolean;
 	readonly compactionReason?: import("./agent-session-types.ts").CompactionReason;
 	readonly messages: AgentMessage[];
@@ -317,6 +320,7 @@ export interface AgentSessionPublicSurface
 		| "isStreaming"
 		| "systemPrompt"
 		| "retryAttempt"
+		| "contextAccounting"
 		| "isCompacting"
 		| "compactionReason"
 		| "messages"
@@ -416,6 +420,7 @@ export interface AgentSessionInternalSurface extends AgentSessionMethodSurface, 
 	_postToolCompactionPreflightError: string | undefined;
 	_pendingPostToolCompactionGuard: PendingPostToolCompactionGuard | undefined;
 	_terminatingToolCallIds: Set<string>;
+	_contextAccounting: ContextAccounting;
 	_pendingInterruptDeliveries: number;
 	_activeInterruptQueueHold: InterruptQueueHold | undefined;
 	_queuedMessagesPaused: boolean;

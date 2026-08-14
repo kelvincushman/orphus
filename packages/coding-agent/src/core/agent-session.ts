@@ -36,6 +36,7 @@ import type {
 import type { AsyncJobManager } from "./async/job-manager.js";
 import { createSessionAsyncJobManager } from "./async/session-manager.js";
 import type { VerbatimCompactionResult } from "./compaction/index.ts";
+import { ContextAccounting } from "./context-accounting.js";
 import type {
 	ExtensionCommandContextActions,
 	ExtensionErrorListener,
@@ -116,6 +117,7 @@ class AgentSessionBase {
 	protected _postToolCompactionPreflightError: string | undefined = undefined;
 	protected _pendingPostToolCompactionGuard: PendingPostToolCompactionGuard | undefined = undefined;
 	protected _terminatingToolCallIds = new Set<string>();
+	protected _contextAccounting = new ContextAccounting();
 	protected _branchSummaryAbortController: AbortController | undefined = undefined;
 	protected _retryAbortController: AbortController | undefined = undefined;
 	protected _retryAttempt = 0;

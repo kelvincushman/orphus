@@ -1,7 +1,7 @@
 import type { PrepareNextTurnContext } from "@earendil-works/pi-agent-core";
 import type { AgentSessionInternalSurface as AgentSession } from "./agent-session-methods.ts";
 import { assertToolPairingInvariant } from "./context-tool-pairing.js";
-import { redirectOversizedToolResult } from "./tools/oversized-tool-result.js";
+import { collectText, redirectOversizedToolResult } from "./tools/oversized-tool-result.js";
 
 export function _installAgentToolHooks(this: AgentSession): void {
 	this.agent.beforeToolCall = async ({ toolCall, args }) => {
@@ -65,6 +65,20 @@ export function _installAgentToolHooks(this: AgentSession): void {
 			sessionId: this.sessionManager.getSessionId(),
 			sessionDir: this.sessionManager.getSessionDir() || undefined,
 			maxResultSizeChars: this.getToolDefinition(toolCall.name)?.maxResultSizeChars,
+		});
+
+		// Context accounting. This hook is the single door every tool result passes
+		// through on its way into the model's context, and the only place that knows
+		// both what the result held and whether a spill reference replaced it.
+		// An extension replacement with undefined content leaves the original
+		// standing, which finalResult.content has already resolved — so the only
+		// substitution that changes what the model sees is the spill.
+		const originalChars = collectText(finalResult.content).length;
+		this._contextAccounting.record({
+			toolName: toolCall.name,
+			chars: collectText(redirectReplacement?.content ?? finalResult.content).length,
+			originalChars,
+			spilled: redirectReplacement !== undefined,
 		});
 
 		if (result.terminate === true) this._terminatingToolCallIds.add(toolCall.id);

@@ -12,6 +12,11 @@ export function installAgentSessionAccessors(prototype: AgentSession): void {
 				return this._modelRuntime;
 			},
 		},
+		contextAccounting: {
+			get() {
+				return this._contextAccounting;
+			},
+		},
 		state: {
 			get() {
 				return this.agent.state;
