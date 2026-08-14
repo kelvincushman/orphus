@@ -31,7 +31,8 @@
     "shrinkwrap:coding-agent": "node scripts/generate-coding-agent-shrinkwrap.mjs",
     "demo": "bun packages/roundtable/demo/run-demo.ts",
     "roles": "bun packages/roundtable/bin/orphus-roles.ts",
-    "demo:loop": "bun packages/roundtable/demo/run-loop-demo.ts"
+    "demo:loop": "bun packages/roundtable/demo/run-loop-demo.ts",
+    "evals:baseline": "bun evals/longcontext/run-baseline.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.6",

@@ -184,6 +184,10 @@ platform-sensitive change as unverified on Windows until someone runs it there.
 - `npm run check` — biome (`--error-on-warnings`), `tsc --noEmit`, and the published-shrinkwrap check. `npm run typecheck` is the typecheck alone
 - `npm run demo` — the scripted three-agent discussion over the real broker socket. No model. Asserts the late-joiner digest stays under 40% of the raw transcript, so it fails rather than merely reporting
 - `npm run demo:loop` — the same, extended through export → memory ingest → recall by a fresh session
+- `npm run evals:baseline` — the long-context baseline: what an oversized tool result costs the parent's
+  context window, measured through the real spill path. Fails on regression against the committed
+  `evals/longcontext/scorecard.json`. Deterministic and model-free; the model-backed task families are
+  deliberately kept out so CI can gate on this half. See `evals/longcontext/README.md`
 - `npm run roles` — turn `orphus.roles.yaml` into launch commands (`--format plan|json|sh|tmux|orca`)
 - `npx vitest --run --project unit test/unit/roundtable-` — the Orphus tests alone, in seconds
 - `npm run test:unit`, `npm run test:integration`, `npm run test:ci-contracts`, `npm run test:all`

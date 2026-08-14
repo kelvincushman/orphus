@@ -91,6 +91,13 @@ jobs:
       - name: Role manifest plans
         run: bun packages/roundtable/bin/orphus-roles.ts --format json
 
+      # Diffs the measured cost of an oversized tool result against the committed
+      # scorecard and exits non-zero if parent context got more expensive. Model-free
+      # and deterministic by construction, which is why it is allowed to gate a build;
+      # the model-backed task families are deliberately not part of this step.
+      - name: Long-context baseline — no regression in parent-context cost
+        run: npm run evals:baseline -- --check
+
   # The inherited suites, on a standard runner rather than the Blacksmith ones
   # the upstream workflow pins. Runs in parallel with `verify`.
   suites:

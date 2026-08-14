@@ -1,0 +1,35 @@
+{
+	"schema": 1,
+	"referenceWindowTokens": 200000,
+	"spillThresholdChars": 50000,
+	"boundaries": [
+		{
+			"label": "50k",
+			"sourceChars": 200000,
+			"sourceTokensEstimated": 50000,
+			"unboundedChars": 200000,
+			"boundedChars": 1972,
+			"ratio": 0.00986,
+			"unboundedFitsReferenceWindow": true
+		},
+		{
+			"label": "130k",
+			"sourceChars": 520000,
+			"sourceTokensEstimated": 130000,
+			"unboundedChars": 520000,
+			"boundedChars": 1973,
+			"ratio": 0.003794,
+			"unboundedFitsReferenceWindow": true
+		},
+		{
+			"label": "260k",
+			"sourceChars": 1040000,
+			"sourceTokensEstimated": 260000,
+			"unboundedChars": 1040000,
+			"boundedChars": 1974,
+			"ratio": 0.001898,
+			"unboundedFitsReferenceWindow": false
+		}
+	],
+	"modelBacked": "not-run-here"
+}
