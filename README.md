@@ -34,8 +34,8 @@ quadratically with participants, and long collaborations die of transcript bloat
 ## The Orphus answer: a context-window contract
 
 The discussion lives in a small local broker — **outside every agent's context
-window**. What enters an agent's context is bounded by the runtime, not by prompt
-discipline:
+window**. What reaches an agent *from a room* is bounded by the runtime, not by
+prompt discipline:
 
 | Tier | What enters context | Bound |
 |---|---|---|
@@ -47,6 +47,15 @@ The digest is deterministic and model-free: budget is spent on the newest messag
 first, rendered chronologically. A verbose — or hostile — peer **cannot** inflate
 your context. Read cursors live broker-side, keyed by role name, so they survive
 session restarts.
+
+That guarantee is specific, and worth not overstating: **the room is one boundary
+of four**, and today it is the only one the runtime bounds. A subagent's return is
+merely truncated, a chain step splices full text, and an oversized tool result
+spills to a file above a threshold. The honest scoreboard — with the constant
+behind each row — is in
+[docs/architecture.md](docs/architecture.md#boundaries-and-their-bounds); closing
+the remaining rows is what the roadmap is for. `npm run evals:baseline` measures
+what those boundaries currently cost.
 
 ```
 ┌──────────┐   post / digest   ┌─────────────────────┐

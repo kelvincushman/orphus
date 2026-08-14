@@ -31,6 +31,7 @@ ecosystem is what moves those pins).
 | `bun packages/roundtable/demo/run-demo.ts` | The late-joiner digest ratio, asserted against a 40% ceiling — the demo exits non-zero above it, and also if the digest kept nothing verbatim |
 | `bun packages/roundtable/demo/run-loop-demo.ts` | The whole loop end to end: export gated to the librarian, a collapsed message surviving export, and a fresh session recalling the decision from memory |
 | `bun packages/roundtable/bin/orphus-roles.ts --format json` | The example manifest stays parseable and planable |
+| `npm run evals:baseline -- --check` | The measured cost of an oversized tool result, diffed against the committed `evals/longcontext/scorecard.json`. Exits non-zero if parent context got more expensive, if the scorecard is incomplete, or if a corpus it should compare is missing. Model-free and deterministic, which is why it may gate a build; the model-backed task families are deliberately excluded |
 
 ### `suites` — the inherited tests
 
