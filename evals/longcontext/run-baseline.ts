@@ -26,6 +26,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ContextAccounting, formatChars } from "../../packages/coding-agent/src/core/context-accounting.js";
+import { PERSISTED_OUTPUT_TAG } from "../../packages/coding-agent/src/core/tools/tool-limits.js";
 import {
 	collectText,
 	getPersistenceThreshold,
@@ -97,7 +98,27 @@ async function measure(label: string, tokens: number): Promise<BoundaryMeasureme
 		sessionId: "evals-longcontext-baseline",
 	});
 
-	const boundedChars = collectText(replacement?.content ?? result.content).length;
+	const boundedText = collectText(replacement?.content ?? result.content);
+	const boundedChars = boundedText.length;
+
+	// A bound is only honoured if what replaces the payload still tells the model
+	// how to get the rest. Assert the substitution carries both halves of that
+	// contract — the marker and a real path — rather than inferring it from the
+	// length, which would also pass for a truncated stub.
+	if (replacement) {
+		if (!boundedText.includes(PERSISTED_OUTPUT_TAG)) {
+			console.error(`\nFAIL: the ${label} replacement is missing the ${PERSISTED_OUTPUT_TAG} marker.`);
+			process.exit(1);
+		}
+		const savedPath = /Full output saved to: (\S+)/.exec(boundedText)?.[1];
+		if (!savedPath || !existsSync(savedPath)) {
+			console.error(
+				`\nFAIL: the ${label} replacement points at ${savedPath ?? "no file"}, which does not exist. ` +
+					"The pointer is the only way back to the content it replaced.",
+			);
+			process.exit(1);
+		}
+	}
 
 	// Route both through the same accounting the runtime uses, so the eval and
 	// the footer can never disagree about what a result cost.
@@ -171,16 +192,6 @@ async function main(): Promise<void> {
 			);
 			process.exit(1);
 		}
-		// A bound met by returning nothing is not a bound. The replacement carries
-		// a preview and a path; if it stopped doing that the ratio would look
-		// spectacular and the feature would be broken.
-		if (b.boundedChars < 200) {
-			console.error(
-				`\nFAIL: the ${b.label} corpus returned only ${b.boundedChars} chars. ` +
-					"The bound was met by discarding the preview and pointer, which is not the contract.",
-			);
-			process.exit(1);
-		}
 	}
 
 	// The curve must be flat, not merely small: a bound that grows with input is
@@ -202,6 +213,17 @@ async function main(): Promise<void> {
 
 	const committed = readCommitted();
 	if (committed) {
+		// A committed scorecard missing a corpus would skip that comparison
+		// silently, so absence is a failure rather than a shrug. Adding a corpus
+		// is a deliberate act: run without --check to record it.
+		const missing = boundaries.filter((b) => !committed.boundaries.some((p) => p.label === b.label)).map((b) => b.label);
+		if (missing.length > 0) {
+			console.error(
+				`\nFAIL: the committed scorecard has no entry for ${missing.join(", ")}, so those corpora ` +
+					"would go uncompared. Re-run without --check to record them deliberately.",
+			);
+			process.exit(1);
+		}
 		for (const b of boundaries) {
 			const previous = committed.boundaries.find((p) => p.label === b.label);
 			if (!previous) continue;

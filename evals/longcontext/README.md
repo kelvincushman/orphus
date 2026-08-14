@@ -69,6 +69,13 @@ sessions exist to beat.
 
 ## The scorecard
 
-`scorecard.json` is committed and is the artifact later phases diff against. It
-carries no derived fields: everything in it was measured, and `schema` is bumped
-if the method changes in a way that breaks comparison with earlier runs.
+`scorecard.json` is committed and is the artifact later phases diff against.
+Two of its fields are derived and named so you can tell — `sourceTokensEstimated`
+(characters ÷ 4) and `ratio` (bounded ÷ unbounded). Everything else is a direct
+measurement. `schema` is bumped if the method changes in a way that breaks
+comparison with earlier runs.
+
+`--check` refuses a scorecard it cannot gate on: an empty `boundaries` array, an
+incomplete entry, or a missing corpus all fail rather than silently comparing
+nothing. Adding a corpus is therefore a deliberate act — run without `--check` to
+record it.
