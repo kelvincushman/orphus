@@ -34,14 +34,19 @@ quadratically with participants, and long collaborations die of transcript bloat
 ## The Orphus answer: a context-window contract
 
 The discussion lives in a small local broker — **outside every agent's context
-window**. What reaches an agent *from a room* is bounded by the runtime, not by
-prompt discipline:
+window**. A room reaches an agent through three tiers, and the two it arrives
+through *unasked* are bounded by the runtime rather than by prompt discipline:
 
 | Tier | What enters context | Bound |
 |---|---|---|
 | **Activity ping** (push) | `#design: 3 new (planner, critic)` | one line per quiet period, coalesced |
 | **Digest** (pull) | newest messages verbatim → older as one-line headlines → rest collapsed to a count | fixed character budget (default 2000) |
-| **Explicit fetch** | raw messages by sequence range | caller-chosen |
+| **Explicit fetch** (pull) | raw messages by sequence range | **none** — full bodies, `limit` is the only guard |
+
+`fetch` is deliberately not bounded: that tier exists for the caller who genuinely
+needs the text, and truncating it silently would be the wrong failure. It is a
+choice to spend context, which is different from context arriving whether you
+wanted it or not.
 
 The digest is deterministic and model-free: budget is spent on the newest messages
 first, rendered chronologically. A verbose — or hostile — peer **cannot** inflate
@@ -55,7 +60,9 @@ spills to a file above a threshold. The honest scoreboard — with the constant
 behind each row — is in
 [docs/architecture.md](docs/architecture.md#boundaries-and-their-bounds); closing
 the remaining rows is what the roadmap is for. `npm run evals:baseline` measures
-what those boundaries currently cost.
+one of them — what an oversized **tool result** costs before and after the
+runtime substitutes a file reference — and CI fails if that number regresses.
+The subagent and chain boundaries have no such measurement yet.
 
 ```
 ┌──────────┐   post / digest   ┌─────────────────────┐
@@ -328,15 +335,20 @@ git fetch upstream && git merge upstream/main
 
 ### CI
 
-`.github/workflows/ci.yml` is the Orphus pull-request gate. It has two jobs:
+`.github/workflows/ci.yml` is the Orphus pull-request gate. It has three jobs:
 
 - **`verify`** — biome, `tsc --noEmit`, the shrinkwrap check, a build of the coding-agent
   package (the root tsconfig excludes it, so nothing else typechecks the binary's own
-  source), the rooms and role-launcher tests, both demos, and the manifest plan. The demo
-  step *asserts* the late-joiner ratio against a 40% ceiling rather than merely printing
-  it, so a digest regression fails rather than reporting a worse number.
+  source), the rooms and role-launcher tests, both demos, the manifest plan, and the
+  long-context baseline. Two of those steps *assert* rather than print: the demo checks the
+  late-joiner ratio against a 40% ceiling, and `evals:baseline -- --check` diffs the measured
+  cost of an oversized tool result against the committed scorecard. Both fail the build
+  rather than reporting a worse number.
 - **`suites`** — native bindings, the package build, then the full inherited unit suite and
   the CI contract tests.
+- **`review-gate`** — fails a pull request whose automated review reported passing but was
+  actually skipped. Large diffs silently exceed CodeRabbit's file limit, so without this a
+  PR could show a green review that never happened.
 
 The inherited Atomic workflows (`test.yml`, `publish.yml`, `warm-toolchain-cache.yml`) are
 disabled at the repository level: they target Blacksmith runners registered to the upstream

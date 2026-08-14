@@ -16,7 +16,7 @@
 
 ## The Orphus gate (`ci.yml`)
 
-One workflow, two `ubuntu-latest` jobs, running on every pull request and every
+One workflow, three `ubuntu-latest` jobs, running on every pull request and every
 push to `main`. A `concurrency` group cancels a run superseded by a newer push,
 and every action is pinned by commit SHA (Dependabot's `github-actions`
 ecosystem is what moves those pins).
@@ -47,6 +47,21 @@ compares each released changelog section against the git tag that released it,
 and this fork has no tags of its own — so without that step the test cannot
 resolve a tag and fails on a repository with a perfectly good changelog. Fetching
 Atomic's tags lets it do real work rather than being excluded.
+
+### `review-gate` — a green review that never happened
+
+Fails a pull request whose automated review **reported passing but was skipped**.
+
+CodeRabbit stops reviewing above a file-count limit and reports that outcome as a
+pass. A large diff therefore arrives with a green review check and no review — the
+failure mode is silent and looks exactly like success, which is the kind this
+repository keeps finding. The gate distinguishes *reviewed and clean* from *not
+reviewed*.
+
+It is not hypothetical: the 494-file `@orphus/*` scope rename (#82) tripped
+precisely this, and merged before the gate existed to catch it. Keeping a PR under
+the limit is the practical answer; splitting a mechanical rename from the change
+that motivates it usually achieves that on its own.
 
 This job exists because the previous arrangement — "the inherited suites run
 locally via the prek hooks" — was honour-system. `scripts/install-hooks.mjs`

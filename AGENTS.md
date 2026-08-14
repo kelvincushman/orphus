@@ -152,9 +152,11 @@ everywhere. Where the split differs from pi, the reason is written down.
 | Registry publish | `npm publish --provenance` | npm's OIDC-signed provenance lives in the npm CLI, and npm trusted publishing requires a GitHub-hosted runner |
 
 **What actually gates a pull request here.** `.github/workflows/ci.yml` — and only that
-file. It runs two `ubuntu-latest` jobs: `verify` (biome, tsc, the shrinkwrap check, the
-coding-agent build, the roundtable tests, the demo's digest bound, the manifest plan) and
-`suites` (the inherited unit suite and the CI contract tests).
+file. It runs three `ubuntu-latest` jobs: `verify` (biome, tsc, the shrinkwrap check, the
+coding-agent build, the roundtable tests, the demo's digest bound, the manifest plan, and
+the long-context baseline check), `suites` (the inherited unit suite and the CI contract
+tests), and `review-gate` (fails a PR whose automated review reported passing but was
+actually skipped — see [CI Docs](docs/ci.md)).
 
 The inherited Atomic workflows — `test.yml`, `publish.yml`, `warm-toolchain-cache.yml` —
 describe a nine-context matrix with full Windows coverage on Blacksmith runners, and
