@@ -21,6 +21,14 @@ export interface ChainOutputMapEntry {
 	structured?: unknown;
 	agent: string;
 	stepIndex: number;
+	/**
+	 * Where this step's full output lives on disk, when artifacts are enabled.
+	 *
+	 * `{outputs.name}` splices a bounded rendering plus this path. Without it
+	 * there is nowhere for a reader to recover the rest, so the reference falls
+	 * back to full text rather than bounding away content it cannot point at.
+	 */
+	artifactOutputPath?: string;
 }
 
 export type ChainOutputMap = Record<string, ChainOutputMapEntry>;
