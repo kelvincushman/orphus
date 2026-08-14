@@ -129,9 +129,9 @@ the honest scoreboard of which are actually bounded by the runtime today:
 | Boundary | Bound today | Mechanism |
 | --- | --- | --- |
 | room → agent | **Runtime-enforced** | Digest tiering: at most `budget` chars plus one marker line ([`digest.ts`](../packages/roundtable/digest.ts), default budget 2000, per-message cap 600) |
-| subagent → parent (parallel) | **Runtime-enforced** | The same tiering as a room digest, through the same [`bounded-render.ts`](../packages/roundtable/bounded-render.ts) core: budget + one marker line, with each task's artifact path carried alongside. Failures are ordered first so a collapsed error is impossible. `inline` opts back into full output, per call |
+| subagent → parent (parallel) | **Runtime-enforced** *when artifact paths exist* | The same tiering as a room digest, through the same [`bounded-render.ts`](../packages/roundtable/bounded-render.ts) core: budget + one marker line, with each task's artifact path carried alongside. Failures are ordered first so a collapsed error is impossible. `inline` and `file-only` opt out per call, and if any task lacks an artifact path nothing is bounded — see below |
 | subagent → parent (single, chain) | Truncation only — 200 KB / 5000 lines | Still concatenated in full; the cap is `DEFAULT_MAX_OUTPUT` in [`types-runtime.ts`](../packages/subagents/src/shared/types-runtime.ts) |
-| chain step → next step | **Runtime-enforced** | `{outputs.name}` splices a bounded rendering (2000 chars) plus the path to the full output, through the same `boundedRender` core ([`chain-outputs.ts`](../packages/subagents/src/runs/shared/chain-outputs.ts)). `{outputs.name.full}` is the explicit opt-out for a step that genuinely needs everything |
+| chain step → next step | **Runtime-enforced** *when an artifact path exists* | `{outputs.name}` splices a bounded rendering (2000 chars) plus the path to the full output, through the same `boundedRender` core ([`chain-outputs.ts`](../packages/subagents/src/runs/shared/chain-outputs.ts)). `{outputs.name.full}` is the explicit opt-out. With artifacts disabled there is nowhere to point, so the splice falls back to full text rather than discarding what it cannot relocate |
 | tool result → context | Spill to file above 50 000 chars | `DEFAULT_MAX_RESULT_SIZE_CHARS` in [`tool-limits.ts`](../packages/coding-agent/src/core/tools/tool-limits.ts); the model receives a preview and a path |
 
 A parallel fan-out now bounds its return the way a room bounds a digest, and
@@ -146,6 +146,13 @@ put 100 KB straight into its successor's prompt, with nothing in between. It now
 carries 2000 characters plus the path to the rest, and `{outputs.name.full}` is
 there for the step that genuinely needs everything. That escape hatch matters:
 bounding without one would have broken chains built when the splice was total.
+
+**Both bounded subagent rows depend on an artifact path, and say so.** A bound
+relocates content; it does not delete it. Artifacts are where the full output
+goes, and they can be switched off — so when there is nowhere to point, neither
+the parallel return nor the chain splice bounds anything. That is a deliberate
+choice rather than an oversight: a bound that loses what it drops would be worse
+than the truncation it replaced, because it would look like a guarantee.
 
 The row still marked truncation-only is where the gap remains. Truncation is a
 backstop, not a bound: a 200 KB cap fires far past the point where the parent's
