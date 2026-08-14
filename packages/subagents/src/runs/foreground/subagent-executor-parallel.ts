@@ -23,7 +23,11 @@ import { compactForegroundDetails, getSingleResultOutput } from "../../shared/ut
 import { updateForegroundNestedProjection } from "../inprocess/runtime-support/nested-api.ts";
 import { sharedAutoGroupForSet } from "../shared/intercom-group.ts";
 import { resolveModelCandidate } from "../shared/model-fallback.ts";
-import { aggregateParallelOutputs, digestParallelOutputs } from "../shared/parallel-utils.ts";
+import {
+	aggregateParallelOutputs,
+	digestParallelOutputs,
+	shouldDigestParallelReturn,
+} from "../shared/parallel-utils.ts";
 import { recordRun } from "../shared/run-history.ts";
 import { resolveSingleOutputPath, validateFileOnlyOutputMode } from "../shared/single-output.ts";
 import { cleanupWorktrees, type WorktreeSetup } from "../shared/worktree.ts";
@@ -307,12 +311,17 @@ export async function runParallelPath(
 		}));
 		// Bounded by default. Inlining every child's output put the parent's
 		// context at the mercy of what the children happened to emit, guarded only
-		// by a 200 KB truncation that fires long after the damage. `inline` remains
-		// available per call for the small outputs where it is genuinely better.
-		const aggregatedOutput =
-			params.outputMode === "inline"
-				? aggregateParallelOutputs(rendered, (i, agent) => `=== Task ${i + 1}: ${agent} ===`)
-				: digestParallelOutputs(rendered);
+		// by a 200 KB truncation that fires long after the damage.
+		//
+		// Two cases deliberately keep the old path. `inline` and `file-only` are
+		// explicit contracts a caller asked for, and quietly rewriting either would
+		// be a worse surprise than a large result. And a digest is only honest when
+		// every task it may collapse has somewhere to be read from: with artifacts
+		// disabled there is no such path, so bounding would discard content instead
+		// of relocating it.
+		const aggregatedOutput = shouldDigestParallelReturn(params.outputMode, rendered)
+			? digestParallelOutputs(rendered)
+			: aggregateParallelOutputs(rendered, (i, agent) => `=== Task ${i + 1}: ${agent} ===`);
 
 		const summary = `${ok}/${results.length} succeeded`;
 		const fullContent = worktreeSuffix

@@ -168,6 +168,29 @@ export function orderForDigest(results: readonly ParallelTaskResult[]): Parallel
 	return [...results].sort((a, b) => rank(a) - rank(b) || (a.taskIndex ?? 0) - (b.taskIndex ?? 0));
 }
 
+/**
+ * Whether a parallel return should be bounded.
+ *
+ * Bounded is the default, but two cases keep the unbounded path deliberately.
+ *
+ * `inline` and `file-only` are contracts a caller explicitly asked for, and
+ * quietly rewriting either is a worse surprise than a large result — `file-only`
+ * in particular promises a concise reference rather than task output.
+ *
+ * The second is the more interesting one: a digest is only honest when every
+ * task it might collapse has somewhere to be read from. Artifacts supply that
+ * path, and they can be switched off. Bounding without them would not relocate
+ * content, it would discard it — so when any task lacks a path, nothing is
+ * bounded. A bound that loses what it drops is not a bound worth having.
+ */
+export function shouldDigestParallelReturn(
+	outputMode: string | undefined,
+	results: readonly ParallelTaskResult[],
+): boolean {
+	if (outputMode !== undefined && outputMode !== "digest") return false;
+	return results.every((task) => Boolean(task.artifactOutputPath));
+}
+
 export interface ParallelDigestOptions {
 	/** Total character budget for the rendered body. Default 2000, matching the room digest. */
 	budget?: number;

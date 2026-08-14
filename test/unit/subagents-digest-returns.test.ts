@@ -5,6 +5,7 @@ import {
 	digestParallelOutputs,
 	orderForDigest,
 	type ParallelTaskResult,
+	shouldDigestParallelReturn,
 } from "../../packages/subagents/src/runs/shared/parallel-utils.js";
 
 function task(overrides: Partial<ParallelTaskResult> & { agent: string }): ParallelTaskResult {
@@ -139,6 +140,34 @@ describe("digestParallelOutputs", () => {
 		assert.ok(inline.includes("FAILED: nope"));
 		// Untouched by the ordering rule: inline keeps the caller's sequence.
 		assert.ok(inline.indexOf("alpha") < inline.indexOf("bravo"));
+	});
+
+	test("a task with no recovery path is never bounded, because collapsing would lose it", () => {
+		// Artifacts can be switched off. Without a path, a collapsed task is gone
+		// rather than relocated — so nothing is bounded at all.
+		const withPaths = fourBigChildren();
+		const oneMissing = fourBigChildren().map((t, i) => (i === 2 ? { ...t, artifactOutputPath: undefined } : t));
+		const nonePersisted = fourBigChildren().map((t) => ({ ...t, artifactOutputPath: undefined }));
+
+		assert.equal(shouldDigestParallelReturn(undefined, withPaths), true);
+		assert.equal(
+			shouldDigestParallelReturn(undefined, oneMissing),
+			false,
+			"one unrecoverable task disables the bound",
+		);
+		assert.equal(shouldDigestParallelReturn(undefined, nonePersisted), false);
+	});
+
+	test("explicit output modes are honoured rather than quietly rewritten", () => {
+		const results = fourBigChildren();
+		// `digest` is the default and can also be asked for by name.
+		assert.equal(shouldDigestParallelReturn(undefined, results), true);
+		assert.equal(shouldDigestParallelReturn("digest", results), true);
+		// `inline` and `file-only` are contracts the caller chose. file-only in
+		// particular promises a concise reference, not task output — rendering a
+		// digest there would break what it means.
+		assert.equal(shouldDigestParallelReturn("inline", results), false);
+		assert.equal(shouldDigestParallelReturn("file-only", results), false);
 	});
 
 	test("small outputs survive whole, so the bound costs nothing when it is not needed", () => {
