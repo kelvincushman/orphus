@@ -23,15 +23,22 @@ const SAFE_OUTPUT_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const CHAIN_SPLICE_TEXT_CAP = 2000;
 
 /**
- * Budget must exceed the text cap, or the verbatim tier never fits.
+ * Exact room the pointer needs, measured rather than guessed.
  *
  * A verbatim line is the capped text *plus* the truncation marker and the path
- * to the full output. Budgeting exactly the cap makes that line one character
- * too long, silently demoting a 2000-character body to a ~100-character
- * headline — a much worse splice that still looks bounded. The headroom is what
- * keeps the useful tier reachable.
+ * to the full output. Budgeting exactly the text cap makes that line too long,
+ * and `boundedRender` then demotes a 2000-character body to a ~100-character
+ * headline — a much worse splice that still looks bounded.
+ *
+ * A fixed headroom would only move the cliff: artifact paths have no length
+ * limit, so a deeply nested directory or a long agent name would walk straight
+ * back off it. The overhead is therefore computed from the real path, with
+ * seven digits reserved for a truncation count that would need a ten-million
+ * character output to exceed.
  */
-const CHAIN_SPLICE_POINTER_HEADROOM = 400;
+function pointerOverhead(artifactOutputPath: string): number {
+	return `\n…(+0000000 chars) full output: ${artifactOutputPath}`.length;
+}
 
 export class ChainOutputValidationError extends Error {}
 
@@ -158,7 +165,7 @@ export function resolveOutputReferences(template: string, outputs: ChainOutputMa
 		if (parsed.full || !entry.artifactOutputPath) return entry.text;
 
 		const rendered = boundedRender([entry], {
-			budget: CHAIN_SPLICE_TEXT_CAP + CHAIN_SPLICE_POINTER_HEADROOM,
+			budget: CHAIN_SPLICE_TEXT_CAP + pointerOverhead(entry.artifactOutputPath),
 			perItemCap: CHAIN_SPLICE_TEXT_CAP,
 			preserveOrder: true,
 			format: {

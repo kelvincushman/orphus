@@ -78,6 +78,23 @@ describe("chain splice", () => {
 		}
 	});
 
+	test("a very long artifact path does not collapse the body to a headline", () => {
+		// Artifact paths have no length limit — deep directories and long agent
+		// names are ordinary. A fixed pointer allowance would put a cliff here:
+		// once path + marker exceeded it, boundedRender would demote the whole
+		// 2000-character body to a ~100-character headline while still looking
+		// bounded. The allowance is derived from the real path instead.
+		const longPath = `/artifacts/${"nested/".repeat(80)}researcher_output.md`;
+		assert.ok(longPath.length > 400, `path should exceed any fixed allowance, was ${longPath.length}`);
+
+		const spliced = resolveOutputReferences("Given: {outputs.notes}", outputs("q".repeat(100_000), longPath));
+
+		// The body tier survived: far more than a headline would carry.
+		assert.ok(spliced.length > 2_000, `expected the full body tier, got ${spliced.length} chars`);
+		assert.ok(spliced.includes(longPath));
+		assert.match(spliced, /\+\d+ chars/);
+	});
+
 	test("an unknown name still fails loudly rather than splicing nothing", () => {
 		assert.throws(
 			() => resolveOutputReferences("{outputs.missing}", outputs("body", "/artifacts/n.md")),
