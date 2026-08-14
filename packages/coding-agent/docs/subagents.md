@@ -180,7 +180,30 @@ Child-safety boundaries are enforced by typed admission policy and the bundled s
 - Child context is filtered to remove parent orchestration artifacts, old control/status messages, and prior parent `subagent` tool calls/results.
 - Non-fanout children are instructed that they are not the parent orchestrator and must not propose or run subagents.
 - Nested fanout is available only for explicitly authorized agents whose resolved tools include `subagent`. Authorized fanout children receive narrower instructions that limit delegation to the assigned fanout.
-- The recursion guard has a hard maximum of five delegated subagent levels. The admitted depth policy may choose a lower value from `0` to `5`; deeper admission is refused rather than inherited from process environment state.
+- The recursion guard has a hard maximum of five delegated subagent levels, and **defaults to two**. The admitted depth policy may choose a lower value from `0` to `5`; deeper admission is refused rather than inherited from process environment state.
+
+### Nesting depth: the default, the ceiling, and how to change either
+
+Two different numbers, often confused:
+
+| | Value | Meaning |
+| --- | --- | --- |
+| Default | **2** | What you get when nothing says otherwise |
+| Ceiling | **5** | What nothing may exceed, however configured |
+
+The default sits below the ceiling deliberately. One level of delegation
+measurably helps; a second starts to overthink, and the levels beyond that were
+previously reachable without anyone choosing them. Going deeper should be a
+decision, not the state you land in by not thinking about it.
+
+**To allow deeper nesting**, raise the budget the *parent* runs with — set
+`ORPHUS_SUBAGENT_MAX_DEPTH` (clamped to the ceiling), or supply a config depth.
+
+**An agent definition's `maxSubagentDepth` frontmatter cannot raise it.** That
+value min-clamps against the budget its parent was granted, so it narrows a
+subtree and never widens one: an agent declaring `maxSubagentDepth: 4` under the
+default of `2` still runs at `2`. Use it to make a particular agent *shallower*
+than its parent, which is what it is for.
 
 This keeps the parent session responsible for orchestration unless you deliberately choose a fanout-capable custom agent.
 
