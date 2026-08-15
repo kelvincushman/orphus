@@ -310,3 +310,29 @@ test("an expression's answer printed between the echoed lines survives", () => {
 		assert.equal(result.view.text.trim(), "7485000");
 	});
 });
+
+test("the doubled AND interleaved shape is stripped too", () => {
+	// Shape C, captured from a live kernel: the block echoes twice AND the answer
+	// lands inside the second copy. An all-or-nothing block match consumed nothing
+	// here and returned the source with the answer.
+	let session: KernelSession | undefined;
+	session = new KernelSession({
+		name: "shape-c",
+		language: "python",
+		process: {
+			write: (data: string) => {
+				const [code = "", printLine = ""] = data.split("\n");
+				queueMicrotask(() => {
+					session?.receive(
+						`${code}\r\n${printLine}\r\n>>> ${code}\r\n43\r\n>>> ${printLine}\r\n${evaluateSentinel(data)}\r\n>>> `,
+					);
+				});
+			},
+			kill: () => {},
+		},
+	});
+
+	return session.exec("print(value + 1)", { token: "c1", timeoutMs: 500 }).then((result) => {
+		assert.equal(result.view.text.trim(), "43");
+	});
+});

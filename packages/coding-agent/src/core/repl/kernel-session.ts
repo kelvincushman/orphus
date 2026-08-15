@@ -248,13 +248,21 @@ function stripEcho(text: string, script: string, sentinel: string): string {
 	// So: consume in order and tolerate output interleaved between echoed lines
 	// (never skipping forward over it), then consume any further whole copies of
 	// the block that follow immediately.
+	// Three shapes occur, all measured against a live python kernel, and a fix for
+	// any one alone breaks another:
+	//
+	//   A. FIRST exec, clean       code, print, >>> code, >>> print, sentinel
+	//   B. LATER exec, interleaved code, 43, >>> print, sentinel
+	//   C. FIRST exec, interleaved code, print, >>> code, 43, >>> print, sentinel
+	//
+	// An all-or-nothing block match handles A and consumes nothing in B or C,
+	// leaving the source in the answer. A single in-order pass handles B and
+	// leaves half of A. Repeating the in-order pass while it makes progress
+	// handles all three: it never skips forward over output, so an answer sitting
+	// between two echoed lines simply stops that pass.
 	let cursor = 0;
-	for (const line of echoed) {
-		while (cursor < lines.length && lines[cursor]?.trim() === "") cursor += 1;
-		if (cursor < lines.length && lines[cursor]?.trim() === line.trim()) cursor += 1;
-	}
 	for (;;) {
-		const next = consumeEchoedBlock(lines, echoed, cursor);
+		const next = consumeEchoedLines(lines, echoed, cursor);
 		if (next === cursor) break;
 		cursor = next;
 	}
@@ -276,17 +284,17 @@ function stripEcho(text: string, script: string, sentinel: string): string {
  * than as a transcript of the conversation that produced it.
  */
 /**
- * Match one full copy of the echoed script at `cursor`, returning the position
- * after it — or `cursor` unchanged when it does not match there.
+ * Consume echoed lines in order from `cursor`, stopping at the first mismatch.
  *
- * All-or-nothing on purpose: a partial match would consume real output that
- * happened to start with a line of the source.
+ * Deliberately never skips forward over a non-matching line: that line is the
+ * program's own output, and stepping past it to find a later echo would delete
+ * the answer.
  */
-function consumeEchoedBlock(lines: readonly string[], echoed: readonly string[], cursor: number): number {
+function consumeEchoedLines(lines: readonly string[], echoed: readonly string[], cursor: number): number {
 	let probe = cursor;
 	for (const line of echoed) {
 		while (probe < lines.length && lines[probe]?.trim() === "") probe += 1;
-		if (probe >= lines.length || lines[probe]?.trim() !== line.trim()) return cursor;
+		if (probe >= lines.length || lines[probe]?.trim() !== line.trim()) break;
 		probe += 1;
 	}
 	return probe;
