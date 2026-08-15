@@ -13,8 +13,11 @@
  *    transcript stays on disk exactly as the export design intends — reading it
  *    is the retrospective agent's choice, made against its own budget, not a
  *    cost the bundle imposes on whoever assembles it.
- * 2. **Nothing is silently absent.** Every source the bundle looked for appears
- *    in `present` or in `missing` with a stated reason. A retrospective that
+ * 2. **Nothing supplied is silently absent.** Every candidate appears in
+ *    `present` or in `missing` with a stated reason. The invariant is over
+ *    *candidates*, not over everything that happened: rooms and suite outputs
+ *    are enumerated by the caller, so a room nobody named is absent from the
+ *    manifest rather than reported missing. A retrospective that
  *    reasons from a partial record while believing it is complete is exactly
  *    the failure `docs/rlm-security-posture.md` is written against, and a
  *    bundle that quietly drops a source is indistinguishable from one where the
@@ -42,6 +45,16 @@ export interface EvidenceCandidate {
 	 * instead of leaving the collector to report a bare "not found".
 	 */
 	absenceHint?: string;
+	/**
+	 * A string the file must actually contain for this candidate to count.
+	 *
+	 * Some evidence lives *inside* a file rather than being one. The
+	 * `context_accounting` entry is appended to the session transcript on
+	 * dispose, so the transcript can exist for the whole run without it — and
+	 * inferring the entry from the file would report complete evidence when the
+	 * measurement is simply not there yet.
+	 */
+	requiresMarker?: string;
 }
 
 export interface EvidenceFound {
@@ -65,16 +78,37 @@ export interface EvidenceBundle {
 	missing: EvidenceAbsent[];
 }
 
-/** Probes a path. Returns undefined when there is nothing readable there. */
-export type EvidenceProbe = (filePath: string) => { bytes: number } | undefined;
+/** The answer to "is this candidate's evidence actually here", with a reason when it is not. */
+export type ProbeResult = { found: true; bytes: number } | { found: false; reason?: string };
 
-const defaultProbe: EvidenceProbe = (filePath) => {
+/** Probes a candidate. Takes the whole candidate, because presence is not always file existence. */
+export type EvidenceProbe = (candidate: EvidenceCandidate) => ProbeResult;
+
+const defaultProbe: EvidenceProbe = (candidate) => {
+	let stat: fs.Stats;
 	try {
-		const stat = fs.statSync(filePath);
-		return stat.isFile() ? { bytes: stat.size } : undefined;
+		stat = fs.statSync(candidate.path);
 	} catch {
-		return undefined;
+		return { found: false };
 	}
+	if (!stat.isFile()) return { found: false };
+	if (candidate.requiresMarker === undefined) return { found: true, bytes: stat.size };
+
+	// The file exists but the evidence may not be in it yet. Saying "present"
+	// here would report complete evidence for a measurement that was never
+	// written — the exact shape of nearly-true this bundle exists to refuse.
+	try {
+		const contents = fs.readFileSync(candidate.path, "utf8");
+		if (!contents.includes(candidate.requiresMarker)) {
+			return {
+				found: false,
+				reason: `${candidate.path} exists but contains no ${candidate.requiresMarker} entry yet`,
+			};
+		}
+	} catch {
+		return { found: false, reason: `${candidate.path} could not be read` };
+	}
+	return { found: true, bytes: stat.size };
 };
 
 /**
@@ -121,16 +155,17 @@ export function collectEvidenceBundle(options: {
 	const present: EvidenceFound[] = [];
 	const missing: EvidenceAbsent[] = [];
 	for (const candidate of candidates) {
-		const found = probe(candidate.path);
-		if (found) {
-			present.push({ kind: candidate.kind, label: candidate.label, path: candidate.path, bytes: found.bytes });
+		const result = probe(candidate);
+		if (result.found) {
+			present.push({ kind: candidate.kind, label: candidate.label, path: candidate.path, bytes: result.bytes });
 			continue;
 		}
 		missing.push({
 			kind: candidate.kind,
 			label: candidate.label,
 			path: candidate.path,
-			reason: candidate.absenceHint ?? "no readable file at this path",
+			// A probe that knows precisely why beats a caller's general hint.
+			reason: result.reason ?? candidate.absenceHint ?? "no readable file at this path",
 		});
 	}
 	return { runId, createdAt, present, missing };
@@ -193,6 +228,7 @@ export function evidenceCandidatesForRun(options: {
 		kind: "context-accounting",
 		label: "context accounting",
 		path: sessionFile,
+		requiresMarker: CONTEXT_ACCOUNTING_MARKER,
 		absenceHint:
 			"session file not found, so the context_accounting entry it carries is unreadable — the entry is appended on session dispose",
 	});
@@ -214,6 +250,15 @@ export function evidenceCandidatesForRun(options: {
 	}
 	return candidates;
 }
+
+/**
+ * The custom-entry type the coding agent appends on session dispose.
+ *
+ * Duplicated as a string rather than imported: `packages/subagents` does not
+ * depend on `packages/coding-agent`, and adding that edge to name one constant
+ * would be a worse trade than restating it here.
+ */
+export const CONTEXT_ACCOUNTING_MARKER = "context_accounting";
 
 export const EVIDENCE_MANIFEST_FILENAME = "manifest.json";
 

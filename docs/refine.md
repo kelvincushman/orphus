@@ -43,9 +43,12 @@ Two properties, both tested:
 
 - **Pointers, not content.** Paths and sizes only. Evidence costs the reader
   what they choose to open.
-- **Nothing is silently absent.** Every source appears in `present` or in
-  `missing` *with a reason*. `present.length + missing.length` always equals the
-  number of sources looked for.
+- **Nothing supplied is silently absent.** Every candidate appears in `present`
+  or in `missing` *with a reason*, and `present.length + missing.length` always
+  equals the number of candidates. The guarantee is over what the bundle was
+  *asked to look for*: rooms and suite outputs are enumerated by the caller, so a
+  room nobody named is absent from the manifest rather than reported missing.
+  `/refine` must enumerate the run's known rooms for their absence to be visible.
 
 The second matters more than it sounds. **A room nobody exported is reported
 unrecoverable, not empty.** The broker holds rooms in memory under a 500-message

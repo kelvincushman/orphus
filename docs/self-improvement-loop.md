@@ -32,10 +32,14 @@ Loop, expressed with the primitives this fork already has:
    transcript and the `context_accounting` entry it carries, exported room
    transcripts, and captured suite output. It records **paths and sizes, never
    content**, so evidence costs the reader only what they choose to open.
-   Every source appears in `present` or in `missing` **with a stated reason** —
-   the bundle never silently omits, because a retrospective reasoning from a
-   partial record it believes is complete is the failure mode
-   [the security posture](rlm-security-posture.md) exists to prevent.
+   Every candidate **supplied to the bundle** appears in `present` or in
+   `missing` **with a stated reason** — the bundle never silently omits, because a
+   retrospective reasoning from a partial record it believes is complete is the
+   failure mode [the security posture](rlm-security-posture.md) exists to prevent.
+   Note the limit of that guarantee: rooms and suite outputs are enumerated by the
+   **caller**, so a room nobody told the bundle about is absent from it entirely
+   rather than reported missing. The invariant is over candidates, not over
+   everything that happened.
    Note what this means for rooms: the broker holds them in memory with a
    500-message cap and persists nothing, so a room that was never exported by
    the writer role is reported *unrecoverable* rather than *empty*.
