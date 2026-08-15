@@ -6,8 +6,10 @@
 > is, honestly, bash with memory. Anything `bash` could do to your machine, a
 > kernel can do — read your files, reach the network, delete things.
 >
-> The optional jail (below) reduces exposure. It does **not** make untrusted
-> code safe to run, and nothing here should be read as saying it does.
+> A jail is planned — an opt-in `sandbox-exec` profile on macOS, a user-namespace
+> wrapper on Linux — and **is not built**. Even once it exists it would reduce
+> exposure without making untrusted code safe to run. There is no sandboxing
+> today, of any kind.
 >
 > This is the phase that runs model-written code with your permissions. Treat it
 > that way.
@@ -72,13 +74,20 @@ Kernels obey the discipline in Rule 4 of
 | Constraint | Value | Why |
 | --- | --- | --- |
 | Concurrent kernels | 4 | Matches `EXECUTION_CAPACITY` for subagent admission — the same scarce thing (processes this machine will run), not a second budget |
-| Refusal | typed | `capacityExhausted`, `nameInUse`, `invalidName` — a refusal that says which, and names what is already open |
-| Session end | all killed | The zero-orphan guarantee. Every kill is attempted even if one throws |
+| Refusal | typed | `capacityExhausted`, `nameInUse`, `invalidName`, `invalidOption` — a refusal that says which, and names what is already open |
+| Session end | all killed, best-effort | Every kill is attempted and the registry is emptied either way, so one failure cannot spare the rest and nothing is left tracked. This is **not** a guarantee that every process died: a `kill` that throws is a process this layer can no longer reach |
 | Idle | reaped after 30 min | And reaped *before* capacity is judged, so four kernels left idle overnight do not permanently block a fifth |
+
+**One execution at a time.** A second `exec` on a busy kernel is refused with
+`KernelBusy` rather than queued. Allowing two would let each reset the other's
+output buffer, so neither could tell which sentinel was its own.
 
 An `exec` that times out does **not** kill its kernel. The code may still be
 running, and destroying every value in a kernel because one call was slow is a
-worse outcome than a slow call. Closing it is the caller's decision.
+worse outcome than a slow call. Closing it is the caller's decision — and the
+kernel accepts work again afterwards, since a kernel bricked by one slow call
+would strand every value in it. That is precisely why each execution needs its
+own token: a stale sentinel from the timed-out call may still arrive.
 
 ## What is deliberately not here
 

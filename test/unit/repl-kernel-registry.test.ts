@@ -198,3 +198,54 @@ test("closing an unknown kernel reports false rather than throwing", () => {
 test("the default idle timeout is stated, not implied", () => {
 	assert.equal(DEFAULT_KERNEL_IDLE_MS, 30 * 60 * 1000);
 });
+
+test("a non-finite limit is refused, because it silently stops being a limit", () => {
+	// Review finding, confirmed. `size >= Infinity` is never true, so the cap
+	// stops existing; every comparison against NaN is false, so `lastUsedAt >
+	// cutoff` reaps live kernels. Both fail open rather than loudly.
+	for (const maxKernels of [Number.POSITIVE_INFINITY, Number.NaN, -1]) {
+		assert.throws(
+			() => new KernelRegistry({ maxKernels }),
+			(error: unknown) => error instanceof KernelRefused && error.kind === "invalidOption",
+			`maxKernels ${maxKernels} must be refused`,
+		);
+	}
+	for (const idleMs of [Number.POSITIVE_INFINITY, Number.NaN, -1]) {
+		assert.throws(
+			() => new KernelRegistry({ idleMs }),
+			(error: unknown) => error instanceof KernelRefused && error.kind === "invalidOption",
+			`idleMs ${idleMs} must be refused`,
+		);
+	}
+	// The ordinary construction still works.
+	assert.equal(new KernelRegistry({ maxKernels: 2, idleMs: 5 }).size, 0);
+});
+
+test("a throwing reap callback cannot leave later idle kernels running", () => {
+	// Review finding, confirmed: notifying inside the loop let one throwing
+	// callback abort the rest, so idle kernels stayed alive AND open() failed on
+	// capacity that should have been freed. A reporting failure must not become
+	// a resource leak.
+	let clock = 0;
+	const log: string[] = [];
+	const registry = new KernelRegistry({
+		maxKernels: 2,
+		idleMs: 1000,
+		now: () => clock,
+		onIdleReap: (name) => {
+			log.push(`notify:${name}`);
+			throw new Error(`callback failed for ${name}`);
+		},
+	});
+	registry.open("a", () => fakeProcess(log, "a"));
+	registry.open("b", () => fakeProcess(log, "b"));
+
+	clock += 1001;
+	const reaped = registry.reapIdle();
+
+	assert.deepEqual(reaped, ["a", "b"]);
+	assert.equal(registry.size, 0);
+	assert.deepEqual(log, ["a:kill", "b:kill", "notify:a", "notify:b"]);
+	// And capacity really was freed.
+	assert.equal(registry.open("c", () => fakeProcess(log, "c")).name, "c");
+});

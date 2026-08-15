@@ -12,9 +12,14 @@
  *
  * What this module *is* responsible for is the discipline Rule 4 requires:
  * kernels are admitted against a cap, refused with a typed reason rather than
- * silently, killed when the session ends, and reaped when idle. The zero-orphan
- * guarantee is the point — a PTY that outlives its session is a process nobody
- * owns.
+ * silently, killed when the session ends, and reaped when idle.
+ *
+ * On termination, be precise about what is promised. `killAll` attempts every
+ * kill and drops every kernel from the registry, so nothing is left *tracked*
+ * and one failure cannot spare the rest. It cannot promise every process died:
+ * a `kill` that throws is a process this layer no longer has a handle for. That
+ * is best-effort termination, and the docs say so rather than claiming a
+ * zero-orphan guarantee the code does not deliver.
  *
  * @see ../../../../../docs/rlm-security-posture.md
  */
@@ -36,7 +41,7 @@ export const DEFAULT_KERNEL_IDLE_MS = 30 * 60 * 1000;
  * Why an open was refused. Typed rather than a bare boolean so the caller can
  * say something useful — Rule 4 asks that refusal be typed, not silent.
  */
-export type KernelRefusalKind = "capacityExhausted" | "nameInUse" | "invalidName";
+export type KernelRefusalKind = "capacityExhausted" | "nameInUse" | "invalidName" | "invalidOption";
 
 export class KernelRefused extends Error {
 	readonly kind: KernelRefusalKind;
@@ -85,8 +90,12 @@ export class KernelRegistry {
 	private readonly onIdleReap: ((name: string) => void) | undefined;
 
 	constructor(options: KernelRegistryOptions = {}) {
-		this.maxKernels = options.maxKernels ?? MAX_CONCURRENT_KERNELS;
-		this.idleMs = options.idleMs ?? DEFAULT_KERNEL_IDLE_MS;
+		// Infinity and NaN both defeat the checks below rather than loosening
+		// them: `size >= Infinity` is never true, so the cap stops existing, and
+		// every comparison against NaN is false, so `lastUsedAt > cutoff` reaps
+		// live kernels. A cap that silently stops being a cap is worse than no cap.
+		this.maxKernels = requireFinite(options.maxKernels, MAX_CONCURRENT_KERNELS, "maxKernels");
+		this.idleMs = requireFinite(options.idleMs, DEFAULT_KERNEL_IDLE_MS, "idleMs");
 		this.now = options.now ?? Date.now;
 		this.onIdleReap = options.onIdleReap;
 	}
@@ -165,7 +174,18 @@ export class KernelRegistry {
 			this.kernels.delete(name);
 			safeKill(kernel);
 			reaped.push(name);
-			this.onIdleReap?.(name);
+		}
+		// Notify only after every kernel is reaped. Notifying inside the loop let
+		// one throwing callback abort the rest, leaving later idle kernels running
+		// and `open()` failing on a capacity that should have been freed. A caller's
+		// reporting failure must not become a resource leak.
+		for (const name of reaped) {
+			try {
+				this.onIdleReap?.(name);
+			} catch {
+				// Reaping already happened; the callback is how the caller finds out,
+				// not part of the operation.
+			}
 		}
 		return reaped;
 	}
@@ -173,9 +193,10 @@ export class KernelRegistry {
 	/**
 	 * Kill every kernel. Called on agent-session end.
 	 *
-	 * Every kill is attempted even if one throws: the zero-orphan guarantee is
-	 * about *all* of them, and abandoning the loop on the first failure would
-	 * leave the rest running.
+	 * Every kill is attempted even if one throws, and the registry is emptied
+	 * either way — abandoning the loop on the first failure would leave the rest
+	 * running. Returns the names it attempted, which is not the same as the names
+	 * that died: a throwing kill is a process this layer can no longer reach.
 	 */
 	killAll(): string[] {
 		const killed = [...this.kernels.keys()];
@@ -183,6 +204,15 @@ export class KernelRegistry {
 		this.kernels.clear();
 		return killed;
 	}
+}
+
+/** A limit that is not a finite number is not a limit. */
+function requireFinite(value: number | undefined, fallback: number, field: string): number {
+	if (value === undefined) return fallback;
+	if (!Number.isFinite(value) || value < 0) {
+		throw new KernelRefused("invalidOption", `${field} must be a finite, non-negative number (received ${value})`);
+	}
+	return value;
 }
 
 function safeKill(kernel: Kernel): void {

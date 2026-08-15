@@ -17,7 +17,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { APPLY_MANIFEST_FILENAME, applyGatedProposals, rollbackApply, summarizeApply } from "./applier.ts";
-import { assertSafeRunId } from "./evidence-bundle.ts";
+import { assertSafeRunId, EVIDENCE_MANIFEST_FILENAME } from "./evidence-bundle.ts";
 import { approvalPrompt, readGateResults, refinePaths, runGateStage } from "./flow.ts";
 import type { Proposal } from "./proposal.ts";
 
@@ -80,9 +80,18 @@ export function handleRefineCommand(args: string, deps: RefineCommandDeps): stri
 
 	switch (subcommand) {
 		case "gate": {
+			// An unknown run is an ordinary question with an ordinary answer, not an
+			// ENOENT to put in front of whoever typed the command. `rollback` already
+			// answered it this way; these two leaked the raw error.
+			if (!fs.existsSync(path.join(paths.evidenceDir, EVIDENCE_MANIFEST_FILENAME))) {
+				return `No evidence collected for ${runId} yet. Run \`/refine ${runId}\` first.`;
+			}
 			return runGateStage({ runId, sessionFile: deps.sessionFile }).summary;
 		}
 		case "apply": {
+			if (!fs.existsSync(paths.gateResultsPath)) {
+				return `No gate results for ${runId}. Run \`/refine gate ${runId}\` first.`;
+			}
 			const gated = readGateResults(deps.sessionFile, runId);
 			const manifest = applyGatedProposals({
 				runId,

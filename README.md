@@ -48,30 +48,33 @@ needs the text, and truncating it silently would be the wrong failure. It is a
 choice to spend context, which is different from context arriving whether you
 wanted it or not.
 
-**The contract now extends past rooms.** The same tiering core bounds subagent
-parallel returns and chain-step splices, and execution kernels bound what they
-print. Which boundaries are runtime-enforced today — and which are still
-truncation or nothing, with the qualifiers that matter — is tracked in the
-[boundaries scoreboard](docs/architecture.md#boundaries-and-their-bounds). Two loops built on top
-of it have their own pages: [`docs/refine.md`](docs/refine.md) for gated,
-reversible self-modification, and [`docs/repl.md`](docs/repl.md) for kernels —
-which are **not a security sandbox**, and say so at the top.
-
 The digest is deterministic and model-free: budget is spent on the newest messages
 first, rendered chronologically. A verbose — or hostile — peer **cannot** inflate
 your context. Read cursors live broker-side, keyed by role name, so they survive
 session restarts.
 
-That guarantee is specific, and worth not overstating: **the room is one boundary
-of four**, and today it is the only one the runtime bounds. A subagent's return is
-merely truncated, a chain step splices full text, and an oversized tool result
-spills to a file above a threshold. The honest scoreboard — with the constant
-behind each row — is in
-[docs/architecture.md](docs/architecture.md#boundaries-and-their-bounds); closing
-the remaining rows is what the roadmap is for. `npm run evals:baseline` measures
-one of them — what an oversized **tool result** costs before and after the
-runtime substitutes a file reference — and CI fails if that number regresses.
-The subagent and chain boundaries have no such measurement yet.
+That guarantee is specific, and worth not overstating. The room was the first
+boundary bounded this way; **three now are**, through the same tiering core:
+the room digest, a parallel subagent's return, and a chain step's `{outputs.name}`
+splice. The two subagent rows carry a real qualifier — they bound by pointing at
+an artifact file, so with artifacts disabled there is nowhere to point and
+nothing is bounded rather than content being dropped. What is still *not*
+bounded: a **single or chain subagent return** is truncated at 200 KB / 5000
+lines and nothing more. An oversized **tool result** spills to a file above a
+threshold, and an execution **kernel** bounds its buffer in memory while relying
+on that same spill for context.
+
+The honest scoreboard — with the constant behind each row and every qualifier
+spelled out — is in
+[docs/architecture.md](docs/architecture.md#boundaries-and-their-bounds).
+`npm run evals:baseline` measures the tool-result row — what an oversized result
+costs before and after the runtime substitutes a file reference — and CI fails if
+that number regresses. The other rows have no such measurement yet.
+
+Two loops built on this contract have their own pages:
+[`docs/refine.md`](docs/refine.md) for gated, reversible self-modification, and
+[`docs/repl.md`](docs/repl.md) for kernels — which are **not a security
+sandbox**, and say so at the top.
 
 ```
 ┌──────────┐   post / digest   ┌─────────────────────┐

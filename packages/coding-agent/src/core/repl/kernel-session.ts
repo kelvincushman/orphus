@@ -47,6 +47,13 @@ export class KernelExecTimeout extends Error {
 	}
 }
 
+export class KernelBusy extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "KernelBusy";
+	}
+}
+
 export interface KernelProcessLike {
 	write(data: string): void;
 	kill(): void;
@@ -74,6 +81,7 @@ export class KernelSession {
 	private readonly buffer = new KernelBuffer();
 	private pending = "";
 	private waiter: ((chunk: string) => void) | undefined;
+	private running: string | undefined;
 
 	constructor(options: { name: string; language: KernelLanguage; process: KernelProcessLike }) {
 		this.name = options.name;
@@ -107,16 +115,21 @@ export class KernelSession {
 	 */
 	async exec(
 		code: string,
-		options: { token: string; timeoutMs?: number; now?: () => number; setTimer?: typeof setTimeout } = {
-			token: "0",
-		},
+		options: { token: string; timeoutMs?: number; now?: () => number; setTimer?: typeof setTimeout },
 	): Promise<ExecResult> {
+		// One execution at a time. A second exec would reset `pending` and replace
+		// `waiter`, so the first promise could never settle and output from both
+		// would interleave into whichever sentinel arrived first.
+		if (this.running !== undefined) {
+			throw new KernelBusy(`kernel '${this.name}' is already running an execution; wait for it or close the kernel`);
+		}
 		const timeoutMs = options.timeoutMs ?? DEFAULT_EXEC_TIMEOUT_MS;
 		const now = options.now ?? Date.now;
 		const setTimer = options.setTimer ?? setTimeout;
 		const sentinel = sentinelFor(options.token);
 		const startedAt = now();
 
+		this.running = options.token;
 		this.pending = "";
 		this.process.write(execScript(this.language, code, options.token));
 
@@ -132,6 +145,10 @@ export class KernelSession {
 				if (settled) return;
 				settled = true;
 				this.waiter = undefined;
+				// Released even though the code may still be running: the alternative
+				// is a kernel that can never be used again after one slow call. The
+				// stale sentinel is why tokens must be unique per execution.
+				this.running = undefined;
 				reject(new KernelExecTimeout(timeoutMs, stripSentinel(this.pending, sentinel)));
 			}, timeoutMs);
 			(timer as { unref?: () => void }).unref?.();
@@ -147,6 +164,7 @@ export class KernelSession {
 
 		const viewBuffer = new KernelBuffer();
 		viewBuffer.append(raw);
+		this.running = undefined;
 		return { view: viewBuffer.view(), raw, elapsedMs: now() - startedAt, timedOut: false };
 	}
 }

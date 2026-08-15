@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import {
 	execScript,
+	KernelBusy,
 	KernelExecTimeout,
 	KernelSession,
 	sentinelFor,
@@ -142,4 +143,44 @@ test("killing the kernel reaches the process", () => {
 	const { session, wasKilled } = fakeKernel();
 	session.kill();
 	assert.equal(wasKilled(), true);
+});
+
+test("a second execution is refused while one is still running", () => {
+	// Review finding, confirmed: a second exec reset `pending` and replaced
+	// `waiter`, so the first promise could never settle and the two outputs
+	// interleaved into whichever sentinel arrived first.
+	const { session } = fakeKernel();
+
+	const first = session.exec("slow()", { token: "t1", timeoutMs: 50 });
+	// exec is async, so the guard rejects rather than throwing synchronously —
+	// which is the right contract for an async API, and what a caller awaits.
+	const second = assert.rejects(
+		() => session.exec("second()", { token: "t2", timeoutMs: 50 }),
+		(error: unknown) => error instanceof KernelBusy,
+	);
+
+	return Promise.all([
+		second,
+		first.then(
+			() => assert.fail("expected the first exec to time out"),
+			(error: unknown) => assert.ok(error instanceof KernelExecTimeout),
+		),
+	]);
+});
+
+test("a timed-out kernel accepts work again rather than being bricked", () => {
+	// The other side of the same guard: if `running` were never released on
+	// timeout, one slow call would make the kernel permanently unusable and every
+	// value in it unreachable.
+	const { session } = fakeKernel();
+
+	return session.exec("hang()", { token: "t1", timeoutMs: 5 }).then(
+		() => assert.fail("expected a timeout"),
+		() => {
+			// A fresh token, and the kernel is willing.
+			const again = session.exec("x", { token: "t2", timeoutMs: 5 });
+			assert.ok(again instanceof Promise);
+			return again.catch(() => undefined);
+		},
+	);
 });

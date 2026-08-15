@@ -102,6 +102,18 @@ export function applyGatedProposals(options: {
 	assertSafeRunId(runId);
 
 	const eligible = gated.filter((entry) => entry.verdict.passed).map((entry) => entry.proposal);
+
+	// A second apply would re-read the already-applied file as `current`,
+	// overwrite the original snapshot with it, and replace the manifest.
+	// `rollbackApply` would then write the applied content back and report
+	// success — the byte-identical restore silently becomes a restore to the
+	// wrong bytes, and the original is unrecoverable. Refuse instead: rolling
+	// back first is always available and always correct.
+	if (fs.existsSync(path.join(snapshotsDir, APPLY_MANIFEST_FILENAME))) {
+		throw new ApplyRefused(
+			`an apply is already recorded for ${runId}; roll it back before applying again (/refine rollback ${runId})`,
+		);
+	}
 	fs.mkdirSync(snapshotsDir, { recursive: true });
 
 	const entries: SnapshotEntry[] = [];
@@ -187,6 +199,11 @@ export function rollbackApply(options: { repoRoot: string; snapshotsDir: string 
 		fs.writeFileSync(absolute, snapshot, "utf8");
 		restored.push(relative);
 	}
+
+	// The manifest is what makes a second apply refuse. Once the tree is
+	// restored there is nothing left to roll back, so leaving it would lock the
+	// run out of ever applying again.
+	fs.rmSync(path.join(snapshotsDir, APPLY_MANIFEST_FILENAME), { force: true });
 	return restored;
 }
 

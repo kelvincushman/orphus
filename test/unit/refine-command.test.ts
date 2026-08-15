@@ -126,3 +126,13 @@ test("the retrospective brief hands over a path, not a transcript", () => {
 	assert.match(brief, /Returning zero proposals is a valid outcome/);
 	assert.ok(brief.length < 1000, "the brief must stay small — it is a pointer, not a payload");
 });
+
+test("gate and apply answer for an unknown run instead of leaking ENOENT", () => {
+	// Review finding, confirmed: rollback and the default branch degraded to a
+	// sentence, these two threw the raw filesystem error at whoever typed it.
+	for (const command of ["gate never-refined", "apply never-refined"]) {
+		const answer = handleRefineCommand(command, deps);
+		assert.doesNotMatch(answer, /ENOENT/, `${command} leaked a raw error`);
+		assert.match(answer, /No (evidence collected|gate results)/);
+	}
+});

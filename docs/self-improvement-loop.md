@@ -22,8 +22,15 @@ never by self-report.
 
 After a workflow run completes, a `retrospective` stage reviews the run's
 evidence (tool calls, verifier reports, repair counts) and proposes edits to
-skills, prompt snippets, and workflow definitions. Proposals are ordinary file
+skills, agent definitions, and prompt snippets. Proposals are ordinary file
 diffs, reviewed like any other change.
+
+**Workflow definitions are deliberately outside that surface.** The intent above
+once included them; the implemented gate does not, because a workflow definition
+is executable orchestration rather than instruction text, and widening the
+allowlist to reach it would put the loop a diff away from changing what runs.
+Adding it needs a threat-model update here first, not just a new pattern in
+`gate.ts`.
 
 Loop, expressed with the primitives this fork already has:
 
@@ -52,13 +59,14 @@ Loop, expressed with the primitives this fork already has:
    is read-only by allowlist (`read, search, find, ls`) and so cannot write to
    the tree at all. This is deliberate: a proposer holding `write` could apply
    its own proposal, stepping around the gate rather than defeating it.
-4. **Verify** — an adversarial-verification workflow (already builtin:
-   `builtin/adversarial-verification.ts`) checks the proposal against a rubric:
-   does the changed skill still pass its evals? (`skill-creator` evals apply.)
-   It runs *after* the deterministic gate and can only reject further.
-5. **Gate** — *(built, WP 3.3/3.4)* deterministic code, never a model, decides
+4. **Gate** — *(built, WP 3.3/3.4)* deterministic code, never a model, decides
    eligibility: allowed surface, no capability widening, and citations that
-   resolve to evidence the bundle actually found. Applying is then a separate
+   resolve to evidence the bundle actually found. **This runs first**, so a
+   proposal outside the allowed surface never reaches a reviewer at all.
+5. **Verify** — an adversarial-verification workflow (already builtin:
+   `builtin/adversarial-verification.ts`) attacks what survived the gate: does
+   the changed skill still pass its evals? (`skill-creator` evals apply.) It can
+   only reject further, never overturn a refusal. Applying is then a separate
    command a human types — there is no auto-apply setting to leave off.
 
 ## Axis 2: harness code (high risk, gated)

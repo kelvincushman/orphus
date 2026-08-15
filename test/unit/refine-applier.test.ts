@@ -200,3 +200,38 @@ test("the manifest round-trips and names the rollback command", () => {
 	assert.match(summary, /modified skills\/a\.md/);
 	assert.match(summary, /\/refine rollback run1/);
 });
+
+test("a second apply is refused, because it would destroy the original snapshot", () => {
+	// Review finding, confirmed and serious. Applying twice re-read the ALREADY
+	// APPLIED file as `current`, overwrote 000.snapshot with it, and replaced the
+	// manifest. Rollback then wrote the applied content back and reported success:
+	// the byte-identical restore silently became a restore to the wrong bytes, and
+	// the original was unrecoverable.
+	const target = path.join(repoRoot, "skills", "a.md");
+	fs.writeFileSync(target, "the true original\n");
+
+	apply([gated(proposal())]);
+	assert.throws(() => apply([gated(proposal())]), ApplyRefused);
+	assert.throws(() => apply([gated(proposal())]), /roll it back before applying again/);
+
+	// The snapshot still holds the true original, not the applied content.
+	rollbackApply({ repoRoot, snapshotsDir });
+	assert.equal(fs.readFileSync(target, "utf8"), "the true original\n");
+});
+
+test("rolling back clears the manifest, so the run can be applied again", () => {
+	// The other half: if the manifest survived a rollback, the refusal above would
+	// lock the run out of ever applying.
+	const target = path.join(repoRoot, "skills", "a.md");
+	fs.writeFileSync(target, "original\n");
+
+	apply([gated(proposal())]);
+	rollbackApply({ repoRoot, snapshotsDir });
+
+	const again = apply([gated(proposal())]);
+	assert.equal(again.entries.length, 1);
+	assert.equal(fs.readFileSync(target, "utf8"), "NEW CONTENT\n");
+	// And that apply is still reversible to the same original.
+	rollbackApply({ repoRoot, snapshotsDir });
+	assert.equal(fs.readFileSync(target, "utf8"), "original\n");
+});

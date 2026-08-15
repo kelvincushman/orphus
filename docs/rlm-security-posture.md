@@ -50,8 +50,10 @@ Both checks this rule asked for are built and tested:
    the gate. Sharing the constant would make two checks into one check
    referenced twice, and a single edit would still open both doors.
 
-Two independent checks, because one of them is a model's judgement and the other
-is not.
+Two independent checks. **Both are deterministic** — neither is a model's
+judgement — and that is the point: the value is in their *independence*, not in
+their differing in kind. Either one alone is a single edit away from not being a
+check.
 
 What this does **not** cover: nothing stops a file write to the base prompt from
 outside the refine loop — an ordinary `write` tool call, a `bash` heredoc, a
@@ -128,9 +130,10 @@ rename moved npm workspace package names only, not crate names.
 ## Rule 5 — say plainly what is not protected
 
 A kernel runs code with the user's permissions, exactly like the `bash` tool. It
-is **not a security sandbox**, the optional jail flag reduces exposure without
-making untrusted code safe, and [`docs/repl.md`](./repl.md) says so in a warning
-box at the top rather than in a footnote.
+is **not a security sandbox**, and [`docs/repl.md`](./repl.md) says so in a
+warning box at the top rather than in a footnote. The jail contemplated in the
+plan is **not built**; when it exists it will reduce exposure without making
+untrusted code safe, and until then there is no sandboxing of any kind.
 
 **Status: the warning is written; the jail is not built.** `docs/repl.md` also
 states plainly which pieces of Phase 4 exist — the registry, the output bounds,
