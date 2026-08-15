@@ -19,8 +19,23 @@
 import { KernelBuffer, type KernelView } from "./kernel-output.js";
 
 /** Emitted after each exec so completion is detectable rather than guessed. */
+/**
+ * The literal that identifies anything sentinel-related, in either form.
+ *
+ * The sentinel is emitted as two concatenated halves so that echoing the print
+ * statement cannot satisfy the completion check. That means the echoed line
+ * does **not** contain the joined sentinel — so filtering on the joined form
+ * leaves `print("__ORPHUS_KERNEL_" + "DONE_x__")` in every result, and any test
+ * asserting `doesNotMatch(/ORPHUS_KERNEL_DONE/)` passes while the echo leaks.
+ *
+ * The split is therefore pinned to exactly this prefix rather than the
+ * midpoint, so this literal survives intact in both forms and one check catches
+ * both.
+ */
+export const SENTINEL_MARKER = "__ORPHUS_KERNEL_";
+
 export function sentinelFor(token: string): string {
-	return `__ORPHUS_KERNEL_DONE_${token}__`;
+	return `${SENTINEL_MARKER}DONE_${token}__`;
 }
 
 export type KernelLanguage = "python" | "node";
@@ -39,8 +54,9 @@ export type KernelLanguage = "python" | "node";
  */
 export function execScript(language: KernelLanguage, code: string, token: string): string {
 	const sentinel = sentinelFor(token);
-	const split = Math.floor(sentinel.length / 2);
-	const halves = `${JSON.stringify(sentinel.slice(0, split))} + ${JSON.stringify(sentinel.slice(split))}`;
+	// Split exactly after the marker, not at the midpoint: a midpoint moves with
+	// the token length, so nothing stable is left for the echo filter to match.
+	const halves = `${JSON.stringify(SENTINEL_MARKER)} + ${JSON.stringify(sentinel.slice(SENTINEL_MARKER.length))}`;
 	switch (language) {
 		case "python":
 			return `${code}\nprint(${halves})\n`;
@@ -235,5 +251,5 @@ function stripPrompt(line: string): string {
  * assembled sentinel to match against.
  */
 function isSentinelEcho(line: string): boolean {
-	return /__ORPHUS_KER["' +]*NEL_DONE_/.test(line);
+	return line.includes(SENTINEL_MARKER);
 }
