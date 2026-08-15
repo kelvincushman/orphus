@@ -20,6 +20,8 @@ any of their context windows. Start with the first link; the rest are reference.
 | **[Fleets](../packages/coding-agent/docs/fleet.md)** | Blueprint-driven orchestration: teams with pre-assigned skills, run by `/fleet`, authored by `/fleetsetup`. |
 | **[Orca integration](orca-integration.md)** | Running a fleet across parallel git worktrees. |
 | **[Workflow playbook](workflow-playbook.md)** | Multi-stage workflow execution, inherited from Atomic. |
+| **[The refine loop](refine.md)** | `/refine` — gated, reversible self-modification: what the gate refuses, and what it does not claim. |
+| **[Execution kernels](repl.md)** | `repl` — values that outlive a tool call. **Not a security sandbox**, and honest about which pieces are wired. |
 
 ## Understanding it
 
@@ -27,7 +29,7 @@ any of their context windows. Start with the first link; the rest are reference.
 | --- | --- |
 | **[Architecture](architecture.md)** | What runs where, what the bound actually guarantees, and where the trust boundary sits. |
 | **[Design decisions](../packages/roundtable/DESIGN.md)** | Why each choice went the way it did, including the alternatives rejected. |
-| **[The self-improvement loop](self-improvement-loop.md)** | *Design document, not yet built.* The roadmap: a harness that proposes its own improvements, gated by evidence. |
+| **[The self-improvement loop](self-improvement-loop.md)** | The design behind [refine](refine.md). Collect, propose, gate and apply are built; the *deliberate* stage and Dossier ingest are still intent. |
 | **[RLM security posture](rlm-security-posture.md)** | The rules self-modification and persistent execution sessions must obey, and which of them the runtime actually enforces. |
 
 ## Working on it
