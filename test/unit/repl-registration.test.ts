@@ -14,6 +14,16 @@ import {
 	replJailRequested,
 } from "../../packages/coding-agent/src/core/repl/repl-tool-definition.js";
 
+/**
+ * What a real interpreter does with the emitted script: echo the input, then
+ * print the *evaluated* concatenation. Extracting the sentinel with a regex over
+ * the raw script would be the unrealistic shortcut that hid the echo bug.
+ */
+function evaluateSentinel(written: string): string {
+	const halves = /"([^"]*)" \+ "([^"]*)"/.exec(written);
+	return halves ? `${halves[1]}${halves[2]}` : "";
+}
+
 function fakePtySession() {
 	let onData: ((error: Error | null, chunk: string) => void) | undefined;
 	return {
@@ -23,8 +33,7 @@ function fakePtySession() {
 				return new Promise<void>(() => {});
 			},
 			write: (data: string) => {
-				const sentinel = /__ORPHUS_KERNEL_DONE_\w+__/.exec(data)?.[0] ?? "";
-				queueMicrotask(() => onData?.(null, `${data}${sentinel}\n`));
+				queueMicrotask(() => onData?.(null, `${data}${evaluateSentinel(data)}\n`));
 			},
 			kill: () => {},
 		},

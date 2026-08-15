@@ -25,14 +25,27 @@ export function sentinelFor(token: string): string {
 
 export type KernelLanguage = "python" | "node";
 
-/** How to make a language print the sentinel, given the code to run first. */
+/**
+ * How to make a language print the sentinel, given the code to run first.
+ *
+ * The sentinel is emitted as **two concatenated halves**, so the literal string
+ * never appears in the source that is written to the terminal. This is not
+ * decoration: a PTY echoes its input, so a script containing the whole sentinel
+ * satisfies the completion check the instant it is echoed — before the code has
+ * run at all. Every `exec` then returns immediately with nothing.
+ *
+ * A fake process cannot catch this, because a fake that echoes and then answers
+ * passes for the wrong reason. The real-PTY integration test is what found it.
+ */
 export function execScript(language: KernelLanguage, code: string, token: string): string {
 	const sentinel = sentinelFor(token);
+	const split = Math.floor(sentinel.length / 2);
+	const halves = `${JSON.stringify(sentinel.slice(0, split))} + ${JSON.stringify(sentinel.slice(split))}`;
 	switch (language) {
 		case "python":
-			return `${code}\nprint(${JSON.stringify(sentinel)})\n`;
+			return `${code}\nprint(${halves})\n`;
 		case "node":
-			return `${code}\nconsole.log(${JSON.stringify(sentinel)})\n`;
+			return `${code}\nconsole.log(${halves})\n`;
 	}
 }
 

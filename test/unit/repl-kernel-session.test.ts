@@ -9,6 +9,16 @@ import {
 } from "../../packages/coding-agent/src/core/repl/kernel-session.js";
 
 /**
+ * What a real interpreter does with the emitted script: echo the input, then
+ * print the *evaluated* concatenation. Extracting the sentinel with a regex over
+ * the raw script would be the unrealistic shortcut that hid the echo bug.
+ */
+function evaluateSentinel(written: string): string {
+	const halves = /"([^"]*)" \+ "([^"]*)"/.exec(written);
+	return halves ? `${halves[1]}${halves[2]}` : "";
+}
+
+/**
  * A fake REPL: echoes what is written (as a PTY does), then prints whatever the
  * script told it to. Nothing is spawned.
  */
@@ -35,8 +45,7 @@ function fakeKernel(options: { language?: "python" | "node"; respond?: (written:
 /** What a real python REPL would emit: the echoed input, the output, the sentinel. */
 function pythonLike(output: string) {
 	return (written: string): string => {
-		const sentinel = /__ORPHUS_KERNEL_DONE_\w+__/.exec(written)?.[0] ?? "";
-		return `${written}${output}${sentinel}\n`;
+		return `${written}${output}${evaluateSentinel(written)}\n`;
 	};
 }
 
@@ -93,9 +102,8 @@ test("output arriving before the listener attaches is not missed", () => {
 		process: {
 			write: (data) => {
 				writes.push(data);
-				const sentinel = /__ORPHUS_KERNEL_DONE_\w+__/.exec(data)?.[0] ?? "";
 				// Synchronously, before exec has installed its waiter.
-				session?.receive(`early\n${sentinel}\n`);
+				session?.receive(`early\n${evaluateSentinel(data)}\n`);
 			},
 			kill: () => {},
 		},
@@ -106,9 +114,27 @@ test("output arriving before the listener attaches is not missed", () => {
 	});
 });
 
-test("each language is told how to print the sentinel in its own syntax", () => {
-	assert.match(execScript("python", "1+1", "t"), /^1\+1\nprint\("__ORPHUS_KERNEL_DONE_t__"\)\n$/);
-	assert.match(execScript("node", "1+1", "t"), /^1\+1\nconsole\.log\("__ORPHUS_KERNEL_DONE_t__"\)\n$/);
+test("the written script never contains the whole sentinel", () => {
+	// The bug the real-PTY test found: a terminal echoes its input, so a script
+	// carrying the literal sentinel satisfies the completion check the moment it
+	// is echoed — before the code has run. Emitting it in halves means only real
+	// OUTPUT can match.
+	for (const language of ["python", "node"] as const) {
+		const script = execScript(language, "1+1", "t");
+		assert.ok(!script.includes(sentinelFor("t")), `${language} script leaked the whole sentinel`);
+		assert.match(script, /^1\+1\n/);
+		assert.match(script, /"__ORPHUS_KER" \+ "NEL_DONE_t__"/);
+	}
+	assert.match(execScript("python", "1+1", "t"), /print\(/);
+	assert.match(execScript("node", "1+1", "t"), /console\.log\(/);
+});
+
+test("the halves still concatenate to exactly the sentinel", () => {
+	// If they did not, exec would wait forever for a string nothing prints.
+	const script = execScript("python", "x", "tok");
+	const halves = /"([^"]*)" \+ "([^"]*)"/.exec(script);
+	assert.ok(halves, "expected two quoted halves");
+	assert.equal(`${halves[1]}${halves[2]}`, sentinelFor("tok"));
 });
 
 test("distinct tokens produce distinct sentinels", () => {
