@@ -20,7 +20,10 @@ function harness(options: { output?: string; spillPath?: string } = {}) {
 
 	const deps: ReplDeps = {
 		registry,
-		nextToken: () => `t${(token += 1)}`,
+		nextToken: () => {
+			token += 1;
+			return `t${token}`;
+		},
 		spill: (name, text) => {
 			spilled.push({ name, chars: text.length });
 			return options.spillPath ?? "/tmp/spill.txt";
