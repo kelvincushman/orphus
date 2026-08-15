@@ -1,15 +1,16 @@
 # The self-improvement loop
 
-> **Status: design document, one leg now built.** The adversarial-verification
+> **Status: the loop is built; the deliberate stage is not.** The adversarial-verification
 > workflow described below is implemented — see
 > [`packages/workflows/builtin/adversarial-verification.ts`](../packages/workflows/builtin/adversarial-verification.ts).
-> **Step 1, Collect, is implemented** as of WP 3.1 — see
-> [`packages/subagents/src/refine/evidence-bundle.ts`](../packages/subagents/src/refine/evidence-bundle.ts).
-> It has no runtime caller yet: the bundle is assembled on demand, and the
-> caller arrives with `/refine` in WP 3.4.
-> **Steps 2–5 — deliberate, propose, verify-a-proposal, gate — are not built.**
-> There is no `retrospective` agent definition, no proposal writer, and no
-> applier. They are scheduled as WP 3.2–3.4 of the RLM adoption plan.
+> **Collect, propose, gate, and apply are implemented** as WP 3.1–3.4, in
+> [`packages/subagents/src/refine/`](../packages/subagents/src/refine/), with the
+> `retrospective` agent definition at
+> [`packages/subagents/agents/retrospective.md`](../packages/subagents/agents/retrospective.md).
+> **Step 2, Deliberate, is not built** — retrospective agents do not yet join a
+> `#retro-<runId>` room to argue before proposing; a single agent proposes from
+> the evidence bundle. **The Dossier ingest in "Where the learning goes" is also
+> not wired.** Both remain intent.
 >
 > Nothing in this document describes current behaviour unless it links to
 > source. Read the rest as intent, not as a description of what runs today.
@@ -38,15 +39,23 @@ Loop, expressed with the primitives this fork already has:
    Note what this means for rooms: the broker holds them in memory with a
    500-message cap and persists nothing, so a room that was never exported by
    the writer role is reported *unrecoverable* rather than *empty*.
-2. **Deliberate** — retrospective agents join `#retro-<runId>` via roundtable
-   and argue about what caused repairs; the room keeps deliberation out of
-   the proposal context.
-3. **Propose** — one agent writes diffs to `skills/` or workflow prompt files.
+2. **Deliberate** — *(not built)* retrospective agents join `#retro-<runId>` via
+   roundtable and argue about what caused repairs; the room keeps deliberation
+   out of the proposal context. Today a single agent proposes directly from the
+   bundle.
+3. **Propose** — *(built, WP 3.2)* the `retrospective` agent returns proposals as
+   **structured output**; deterministic code validates and writes them. The agent
+   is read-only by allowlist (`read, search, find, ls`) and so cannot write to
+   the tree at all. This is deliberate: a proposer holding `write` could apply
+   its own proposal, stepping around the gate rather than defeating it.
 4. **Verify** — an adversarial-verification workflow (already builtin:
    `builtin/adversarial-verification.ts`) checks the proposal against a rubric:
    does the changed skill still pass its evals? (`skill-creator` evals apply.)
-5. **Gate** — human approval merges. Deterministic code, not the model,
-   decides whether the gate is reached.
+   It runs *after* the deterministic gate and can only reject further.
+5. **Gate** — *(built, WP 3.3/3.4)* deterministic code, never a model, decides
+   eligibility: allowed surface, no capability widening, and citations that
+   resolve to evidence the bundle actually found. Applying is then a separate
+   command a human types — there is no auto-apply setting to leave off.
 
 ## Axis 2: harness code (high risk, gated)
 
