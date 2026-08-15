@@ -48,6 +48,15 @@ needs the text, and truncating it silently would be the wrong failure. It is a
 choice to spend context, which is different from context arriving whether you
 wanted it or not.
 
+**The contract now extends past rooms.** The same tiering core bounds subagent
+parallel returns and chain-step splices, and execution kernels bound what they
+print. Which boundaries are runtime-enforced today — and which are still
+truncation or nothing, with the qualifiers that matter — is tracked in the
+[boundaries scoreboard](docs/architecture.md#boundaries-and-their-bounds). Two loops built on top
+of it have their own pages: [`docs/refine.md`](docs/refine.md) for gated,
+reversible self-modification, and [`docs/repl.md`](docs/repl.md) for kernels —
+which are **not a security sandbox**, and say so at the top.
+
 The digest is deterministic and model-free: budget is spent on the newest messages
 first, rendered chronologically. A verbose — or hostile — peer **cannot** inflate
 your context. Read cursors live broker-side, keyed by role name, so they survive
