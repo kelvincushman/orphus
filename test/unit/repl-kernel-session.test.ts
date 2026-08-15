@@ -177,10 +177,14 @@ test("a timed-out kernel accepts work again rather than being bricked", () => {
 	return session.exec("hang()", { token: "t1", timeoutMs: 5 }).then(
 		() => assert.fail("expected a timeout"),
 		() => {
-			// A fresh token, and the kernel is willing.
-			const again = session.exec("x", { token: "t2", timeoutMs: 5 });
-			assert.ok(again instanceof Promise);
-			return again.catch(() => undefined);
+			// The second call must fail its OWN way — reaching its timeout — not be
+			// turned away as busy. exec is async, so it returns a Promise either way;
+			// only the rejection type distinguishes "accepted and timed out" from
+			// "refused because `running` was never released".
+			return assert.rejects(
+				() => session.exec("x", { token: "t2", timeoutMs: 5 }),
+				(error: unknown) => error instanceof KernelExecTimeout && !(error instanceof KernelBusy),
+			);
 		},
 	);
 });
