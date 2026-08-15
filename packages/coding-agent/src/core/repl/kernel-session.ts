@@ -131,7 +131,8 @@ export class KernelSession {
 
 		this.running = options.token;
 		this.pending = "";
-		this.process.write(execScript(this.language, code, options.token));
+		const script = execScript(this.language, code, options.token);
+		this.process.write(script);
 
 		const raw = await new Promise<string>((resolve, reject) => {
 			let settled = false;
@@ -149,14 +150,14 @@ export class KernelSession {
 				// is a kernel that can never be used again after one slow call. The
 				// stale sentinel is why tokens must be unique per execution.
 				this.running = undefined;
-				reject(new KernelExecTimeout(timeoutMs, stripSentinel(this.pending, sentinel)));
+				reject(new KernelExecTimeout(timeoutMs, stripEcho(this.pending, script, sentinel)));
 			}, timeoutMs);
 			(timer as { unref?: () => void }).unref?.();
 
 			this.waiter = (accumulated) => {
 				if (!accumulated.includes(sentinel)) return;
 				clearTimeout(timer as Parameters<typeof clearTimeout>[0]);
-				finish(stripSentinel(accumulated, sentinel));
+				finish(stripEcho(accumulated, script, sentinel));
 			};
 			// Output may already have arrived between write and this listener.
 			this.waiter(this.pending);
@@ -170,15 +171,29 @@ export class KernelSession {
 }
 
 /**
- * Remove the sentinel and the echo of the line that printed it.
+ * Remove the sentinel and the echo of everything that was written.
  *
- * A PTY echoes what is written to it, so the code that emits the sentinel
- * appears in the output as well as the sentinel itself. Leaving either in would
- * put an implementation detail in front of the model on every single call.
+ * A PTY echoes its input, so without this every `exec` hands back the code the
+ * agent just sent — which is pure waste, and worse, it means an expression that
+ * printed nothing looks like it printed something. That would defeat the one
+ * line a kernel exists to produce: `ok (work, 84ms, no output)` for
+ * `docs = open('big.json').read()`.
+ *
+ * Echoed lines are consumed **in order from the start** rather than filtered
+ * globally, so a program that legitimately prints a line identical to its own
+ * source still has that output returned.
  */
-function stripSentinel(text: string, sentinel: string): string {
-	return text
-		.split(/\r?\n/)
+function stripEcho(text: string, script: string, sentinel: string): string {
+	const echoed = script.split(/\r?\n/).filter((line) => line.length > 0);
+	const lines = text.split(/\r?\n/);
+
+	let cursor = 0;
+	for (const line of echoed) {
+		if (cursor < lines.length && lines[cursor]?.trim() === line.trim()) cursor += 1;
+	}
+
+	return lines
+		.slice(cursor)
 		.filter((line) => !line.includes(sentinel))
 		.join("\n")
 		.replace(/\n+$/, "\n");

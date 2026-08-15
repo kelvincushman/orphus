@@ -40,21 +40,37 @@ the whole idea: **context as a variable**.
 | --- | --- |
 | Kernel registry — cap, typed refusals, kill-on-session-end, idle reaping | built, tested |
 | Output bounding — rolling buffer, capped views, counted elisions | built, tested |
-| Session layer — sentinel-based completion, timeout keeping partial output | built, tested |
-| **`repl` tool registration and PTY wiring** | **not built** |
+| Session layer — sentinel completion, echo stripping, one-exec-at-a-time | built, tested |
+| `repl` tool handler — open / exec / peek / close / list | built, tested |
+| PTY adapter over the native `PtySession` | built, tested against an injected session |
+| Opt-in jail — macOS `sandbox-exec`, Linux `bwrap` | built, tested |
+| **Registration into the live agent's tool list** | **not wired — deliberate, see below** |
 | Cross-agent inherit (`repl: "inherit"`) | not built |
-| Opt-in jail | not built |
 
-The examples above show the intended tool surface. **They do not run today** —
-the logic beneath them is built and tested against an injected process, and the
-step that remains is wiring it to the native `PtySession` and registering the
-tool. Read the table, not the examples, for what exists.
+**The tool is not registered, and that is a decision rather than an omission.**
+Everything above is built and unit-tested, but no agent can call `repl` today.
+Switching on a tool that executes model-written code with the user's permissions
+is not something to do on a user's behalf — the plan itself names the kernel flag
+as one of three release kill switches. Registration should land as an explicit
+opt-in, with someone choosing it.
+
+**Also not verified end-to-end:** every test here drives an *injected* session,
+never the real native binding. The adapter's contract with `PtySession` — that
+`closeStdinAfterCommand: false` keeps a REPL alive and `write()` feeds it — is
+read from `pty.rs` and `bash-pty-native.ts`, not yet observed against a live
+process. That is the first thing to check when registration happens.
 
 ## The bounds, and which one protects what
 
 Two separate bounds apply to a kernel's output, and they are not the same one
 twice:
 
+0. **Echo stripping.** A PTY echoes its input, so without removing it every
+   `exec` would hand back the code just sent — and an expression that printed
+   nothing would look like it printed something, defeating the one line a kernel
+   exists to produce. Echoed lines are consumed in order from the start, so a
+   program that legitimately prints a line identical to its own source still has
+   that output returned.
 1. **The kernel buffer** retains the last 200,000 characters and returns at most
    4,000 in a view. This stops a process that prints forever from exhausting
    memory, and gives `peek` something to show. What it drops, it counts — an
