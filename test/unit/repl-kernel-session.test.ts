@@ -259,3 +259,54 @@ test("the echoed sentinel print is stripped, whatever the token length", () => {
 		assert.ok(!echoedPrint.includes(sentinelFor(token)), `token ${token}: echo would complete the exec early`);
 	}
 });
+
+test("the doubled echo a real kernel produces on its first exec is stripped", () => {
+	// Not invented: this is the exact stream captured from a live python kernel.
+	// The PTY line discipline echoes the whole script, THEN the interpreter echoes
+	// it again with prompts. Matching the block once left the second copy of the
+	// code in the answer — which is what shipped until a real kernel showed it.
+	let session: KernelSession | undefined;
+	session = new KernelSession({
+		name: "doubled",
+		language: "python",
+		process: {
+			write: (data: string) => {
+				const [code = "", printLine = ""] = data.split("\n");
+				queueMicrotask(() => {
+					session?.receive(
+						`${code}\r\n${printLine}\r\n>>> ${code}\r\n>>> ${printLine}\r\n${evaluateSentinel(data)}\r\n>>> `,
+					);
+				});
+			},
+			kill: () => {},
+		},
+	});
+
+	return session.exec("import json", { token: "aa1", timeoutMs: 500 }).then((result) => {
+		assert.equal(result.raw.trim(), "");
+		assert.equal(result.view.text.trim(), "");
+	});
+});
+
+test("an expression's answer printed between the echoed lines survives", () => {
+	// The other real shape, and the one a block-only fix destroys: python prints
+	// the expression result after reading line 1, BEFORE echoing line 2.
+	let session: KernelSession | undefined;
+	session = new KernelSession({
+		name: "interleaved",
+		language: "python",
+		process: {
+			write: (data: string) => {
+				const [code = "", printLine = ""] = data.split("\n");
+				queueMicrotask(() => {
+					session?.receive(`${code}\r\n7485000\r\n>>> ${printLine}\r\n${evaluateSentinel(data)}\r\n>>> `);
+				});
+			},
+			kill: () => {},
+		},
+	});
+
+	return session.exec("sum(x for x in rows)", { token: "int1", timeoutMs: 500 }).then((result) => {
+		assert.equal(result.view.text.trim(), "7485000");
+	});
+});

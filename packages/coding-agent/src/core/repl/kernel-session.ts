@@ -220,10 +220,43 @@ function stripEcho(text: string, script: string, sentinel: string): string {
 	// trailing prompt arrives as its own fragment often enough that requiring the
 	// echo at position zero worked standalone and failed under load — a timing
 	// dependency, which is the worst kind of correctness.
+	// Consume the echoed block as many times as it appears. On a kernel's first
+	// exec the write lands before the interpreter is reading, so the PTY line
+	// discipline echoes the whole script AND the interpreter echoes it again with
+	// prompts. Measured against a real python kernel:
+	//
+	//   import json                                  <- PTY echo, line 1
+	//   print("__ORPHUS_KERNEL_" + "DONE_x__")       <- PTY echo, line 2
+	//   >>> import json                              <- interpreter echo, line 1
+	//   >>> print("__ORPHUS_KERNEL_" + "DONE_x__")   <- interpreter echo, line 2
+	//   __ORPHUS_KERNEL_DONE_x__                     <- the sentinel
+	//
+	// Matching the block once left the second copy of the code in the answer.
+	// Two shapes occur, both measured against a real python kernel, and a fix for
+	// either alone breaks the other.
+	//
+	// FIRST exec — the write lands before the interpreter is reading, so the PTY
+	// line discipline echoes the whole script and the interpreter echoes it again
+	// with prompts. The block appears TWICE, back to back.
+	//
+	// LATER execs — one echo, but an expression's result is printed BETWEEN the
+	// two echoed lines:
+	//   sum(...)            <- echo, line 1
+	//   7485000             <- the answer
+	//   >>> print(...)      <- echo, line 2
+	//
+	// So: consume in order and tolerate output interleaved between echoed lines
+	// (never skipping forward over it), then consume any further whole copies of
+	// the block that follow immediately.
 	let cursor = 0;
 	for (const line of echoed) {
 		while (cursor < lines.length && lines[cursor]?.trim() === "") cursor += 1;
 		if (cursor < lines.length && lines[cursor]?.trim() === line.trim()) cursor += 1;
+	}
+	for (;;) {
+		const next = consumeEchoedBlock(lines, echoed, cursor);
+		if (next === cursor) break;
+		cursor = next;
 	}
 
 	return lines
@@ -242,6 +275,23 @@ function stripEcho(text: string, script: string, sentinel: string): string {
  * terminal furniture. Stripping it is what makes an answer read as `42` rather
  * than as a transcript of the conversation that produced it.
  */
+/**
+ * Match one full copy of the echoed script at `cursor`, returning the position
+ * after it — or `cursor` unchanged when it does not match there.
+ *
+ * All-or-nothing on purpose: a partial match would consume real output that
+ * happened to start with a line of the source.
+ */
+function consumeEchoedBlock(lines: readonly string[], echoed: readonly string[], cursor: number): number {
+	let probe = cursor;
+	for (const line of echoed) {
+		while (probe < lines.length && lines[probe]?.trim() === "") probe += 1;
+		if (probe >= lines.length || lines[probe]?.trim() !== line.trim()) return cursor;
+		probe += 1;
+	}
+	return probe;
+}
+
 function stripPrompt(line: string): string {
 	return line.replace(/^(?:>>>|\.\.\.|>) ?/, "");
 }
