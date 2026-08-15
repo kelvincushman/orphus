@@ -40,25 +40,39 @@ the whole idea: **context as a variable**.
 | --- | --- |
 | Kernel registry — cap, typed refusals, kill-on-session-end, idle reaping | built, tested |
 | Output bounding — rolling buffer, capped views, counted elisions | built, tested |
-| Session layer — sentinel completion, echo stripping, one-exec-at-a-time | built, tested |
-| `repl` tool handler — open / exec / peek / close / list | built, tested |
-| PTY adapter over the native `PtySession` | built, tested against an injected session |
+| Session layer — sentinel completion, echo and prompt stripping, one exec at a time | built, tested |
+| `repl` tool — open / exec / peek / close / list | built, tested |
+| PTY adapter over the native `PtySession` | built, **verified against the real binding** |
 | Opt-in jail — macOS `sandbox-exec`, Linux `bwrap` | built, tested |
-| **Registration into the live agent's tool list** | **not wired — deliberate, see below** |
-| Cross-agent inherit (`repl: "inherit"`) | not built |
+| Registration, behind `ORPHUS_ENABLE_REPL` | built, **default off** |
+| Parent-kernel inherit (`repl: "inherit"`, read-only by default) | built, tested |
+| Cross-agent kernel sharing | **deliberately not built** — see below |
 
-**The tool is not registered, and that is a decision rather than an omission.**
-Everything above is built and unit-tested, but no agent can call `repl` today.
-Switching on a tool that executes model-written code with the user's permissions
-is not something to do on a user's behalf — the plan itself names the kernel flag
-as one of three release kill switches. Registration should land as an explicit
-opt-in, with someone choosing it.
+## Switching it on
 
-**Also not verified end-to-end:** every test here drives an *injected* session,
-never the real native binding. The adapter's contract with `PtySession` — that
-`closeStdinAfterCommand: false` keeps a REPL alive and `write()` feeds it — is
-read from `pty.rs` and `bash-pty-native.ts`, not yet observed against a live
-process. That is the first thing to check when registration happens.
+```sh
+ORPHUS_ENABLE_REPL=1     # the tool appears; without this no agent can call it
+ORPHUS_REPL_JAIL=1       # optional, separate: run kernels through the jail
+```
+
+Two switches rather than one, because enabling kernels and jailing them are
+different decisions and folding them together would make the jail impossible to
+adopt incrementally. Both default off.
+
+**What "verified against the real binding" means.** `test/integration/repl-real-pty.test.ts`
+spawns an actual `python3` through the native PTY and asserts that a value set by
+one `exec` is still there for the next, and that 200 KB of real output is still
+bounded. It found two bugs no fake could:
+
+- A terminal **echoes its input**, so a script containing the literal sentinel
+  satisfied the completion check the instant it was echoed — every `exec`
+  returned immediately with nothing. The sentinel is now emitted as two
+  concatenated halves, so only real output can match it.
+- A REPL prefixes its echo with a **prompt** (`>>> `), so echo matching failed
+  and every answer came back as a transcript rather than an answer.
+
+That test skips loudly when the binding or `python3` is unavailable, so an
+all-skipped run cannot be mistaken for a pass.
 
 ## The bounds, and which one protects what
 
@@ -110,10 +124,17 @@ own token: a stale sentinel from the timed-out call may still arrive.
 **Cross-agent kernel sharing.** A value in agent A's kernel is not addressable
 by agent B. Sharing state across trust boundaries multiplies the security
 surface for marginal benefit; composition across agents stays files, digests,
-and the room. The one planned crossing is an explicit, read-only-by-default
-inherit of a *parent's* kernel — enough for "spawn three reviewers over one
-loaded dataset" without open sharing. Widening this needs a concrete use case
-and an update to the posture document first.
+and the room.
+
+The one crossing that **is** built is downward: a child may inherit its
+*parent's* kernel, because that is a boundary the parent already controls — it
+chose to spawn the child and chose what to grant. `repl: "inherit"` means
+**read-only**, the safe reading of an ambiguous word; `{inherit: "<kernel>",
+mode: "read-write"}` must be asked for by name. Read-only is a *syntactic*
+guardrail that catches assignment and the obvious mutations, and its own refusal
+message says so — Python has a dozen ways to mutate state it cannot see. Widening
+this to peers needs a concrete use case and an update to the posture document
+first.
 
 **Granting `repl` to the refine loop.** The Phase 3 gate refuses any proposal
 that grants `repl`, and the phases were sequenced apart for this reason: a loop

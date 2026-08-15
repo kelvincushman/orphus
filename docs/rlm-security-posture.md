@@ -135,11 +135,16 @@ warning box at the top rather than in a footnote. The jail contemplated in the
 plan is **not built**; when it exists it will reduce exposure without making
 untrusted code safe, and until then there is no sandboxing of any kind.
 
-**Status: the warning is written; the jail is not built.** `docs/repl.md` also
-states plainly which pieces of Phase 4 exist — the registry, the output bounds,
-and the session layer — and which do not: the `repl` tool registration and PTY
-wiring, the cross-agent inherit path, and the opt-in jail. The examples in that
-document describe an intended surface and are labelled as not running today.
+**Status: the warning is written and the jail is built, opt-in and off.**
+`docs/repl.md` carries the status of every piece. The tool is registered behind
+`ORPHUS_ENABLE_REPL` (default off) and the jail behind `ORPHUS_REPL_JAIL`
+(separate, also off), and the PTY path is verified against the real native
+binding rather than only against a fake.
+
+What remains unbuilt and is labelled as such: **cross-agent** kernel sharing.
+The downward crossing — a child inheriting its parent's kernel, read-only unless
+`read-write` is named — is built, and its read-only check is a syntactic
+guardrail that says so in its own refusal rather than implying containment.
 
 The same honesty applies to the loop: a gated, reversible refine cycle *reduces*
 the risk of an agent optimising around intent. It does not eliminate it. Anyone
