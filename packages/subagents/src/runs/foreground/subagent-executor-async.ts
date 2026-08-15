@@ -5,6 +5,7 @@ import { collectKnownModelProviders, toModelInfo } from "../../shared/model-info
 import type { ChainStep } from "../../shared/settings.ts";
 import type { SingleResult, SubagentToolResult } from "../../shared/types.ts";
 import {
+	MAX_DEADLINE_MS,
 	resolveChildMaxSubagentDepth,
 	resolveSubagentDepthPolicy,
 	resolveTopLevelParallelMaxTasks,
@@ -55,17 +56,51 @@ function modeFor(data: ExecutionContextData): "single" | "parallel" | "chain" {
 	return "single";
 }
 
+/**
+ * Stop an async run that has outrun its deadline.
+ *
+ * Deliberately the *existing* interrupt rather than a second way to stop a run.
+ * A deliberation that never converges is the observed failure — a member that
+ * joins and then talks forever, or one that never joins at all — and both leave
+ * the orchestrator waiting on a notification that is not coming. Interrupting
+ * finalizes with whatever the members did produce, which is the point: a partial
+ * decision of record beats an indefinite wait, and the run's own result names
+ * every task so the absent ones are visible rather than merely missing.
+ *
+ * Returns a disposer, because a run that finishes on time must not be
+ * interrupted minutes later by a timer nobody cleared.
+ */
+function armRunDeadline(deps: ResolvedExecutorDeps, runId: string, deadlineMs: number | undefined): () => void {
+	if (deadlineMs === undefined || !Number.isFinite(deadlineMs) || deadlineMs <= 0) return () => {};
+	// Clamp rather than trust the caller: a delay past MAX_DEADLINE_MS wraps in
+	// Node and fires after 1ms, turning "wait a month" into "interrupt now". The
+	// entry points validate too, but this is the line that actually arms it.
+	const delay = Math.min(deadlineMs, MAX_DEADLINE_MS);
+	const timer = setTimeout(() => {
+		const control = deps.state.foregroundControls.get(runId);
+		if (!control?.interrupt) return;
+		control.deadlineExpired = true;
+		control.interrupt();
+	}, delay);
+	// A pending deadline is not a reason to keep the process alive.
+	timer.unref?.();
+	return () => clearTimeout(timer);
+}
+
 function runForegroundInBackground(
 	data: ExecutionContextData,
 	deps: ResolvedExecutorDeps,
 	mode: "parallel" | "chain",
 ): void {
 	const backgroundData: ExecutionContextData = { ...data, effectiveAsync: false };
+	const disarm = armRunDeadline(deps, data.runId, data.params.deadlineMs);
 	const work = mode === "chain" ? runChainPath(backgroundData, deps) : runParallelPath(backgroundData, deps);
-	void work.catch((error) => {
-		const message = error instanceof Error ? error.message : String(error);
-		console.error(`[${APP_NAME}-subagents] in-process async ${mode} failed: ${message}`);
-	});
+	void work
+		.catch((error) => {
+			const message = error instanceof Error ? error.message : String(error);
+			console.error(`[${APP_NAME}-subagents] in-process async ${mode} failed: ${message}`);
+		})
+		.finally(disarm);
 }
 
 /**

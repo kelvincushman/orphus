@@ -61,6 +61,8 @@ export interface SubagentParamsLike {
 	worktree?: boolean;
 	context?: "fresh" | "fork";
 	async?: boolean;
+	/** Wall-clock ceiling for an async run, in ms. Interrupts and finalizes on expiry. */
+	deadlineMs?: number;
 	share?: boolean;
 	control?: ControlConfig;
 	sessionDir?: string;

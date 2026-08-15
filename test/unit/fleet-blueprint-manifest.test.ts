@@ -320,12 +320,50 @@ teams:
 		);
 		assert.equal(withoutBlocking.teams[0]?.blocking, undefined);
 
-		assert.throws(() =>
-			parseFleetBlueprint(
-				MINIMAL.replace("mode: dispatch", "mode: deliberate\n    blocking: yes-please"),
-				blueprintPath(),
-			),
+		assert.throws(
+			() =>
+				parseFleetBlueprint(
+					MINIMAL.replace("mode: dispatch", "mode: deliberate\n    blocking: yes-please"),
+					blueprintPath(),
+				),
+			/blocking .*expected true or false/,
 		);
+	});
+
+	test("deadlineMs parses, and warns when paired with blocking", () => {
+		const withDeadline = parseFleetBlueprint(
+			MINIMAL.replace("mode: dispatch", "mode: deliberate\n    deadlineMs: 900000"),
+			blueprintPath(),
+		);
+		assert.equal(withDeadline.teams[0]?.deadlineMs, 900000);
+
+		const contradictory = parseFleetBlueprint(
+			MINIMAL.replace("mode: dispatch", "mode: deliberate\n    blocking: true\n    deadlineMs: 900000"),
+			blueprintPath(),
+		);
+		assert.ok(contradictory.warnings.some((warning) => warning.includes("deadlineMs")));
+	});
+
+	test("a deadline past the maximum timer delay is refused, not silently clamped", () => {
+		// setTimeout wraps above 2_147_483_647 ms and fires after 1ms, so an
+		// over-large deadline would interrupt the deliberation immediately — the
+		// exact opposite of asking to wait longer.
+		assert.throws(
+			() =>
+				parseFleetBlueprint(
+					MINIMAL.replace("mode: dispatch", "mode: deliberate\n    deadlineMs: 2147483648"),
+					blueprintPath(),
+				),
+			// Matched on the message: a bare assert.throws would pass if the fixture
+			// failed to parse for some unrelated reason, proving nothing about the bound.
+			/deadlineMs .*exceeds the maximum timer delay/,
+		);
+		// The boundary itself is allowed.
+		const atLimit = parseFleetBlueprint(
+			MINIMAL.replace("mode: dispatch", "mode: deliberate\n    deadlineMs: 2147483647"),
+			blueprintPath(),
+		);
+		assert.equal(atLimit.teams[0]?.deadlineMs, 2_147_483_647);
 	});
 
 	test("warns that blocking has no effect on a dispatch team", () => {

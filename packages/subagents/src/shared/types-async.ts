@@ -253,6 +253,8 @@ export interface SubagentState {
 			nestedRoute?: NestedRouteInfo;
 			nestedChildren?: NestedRunSummary[];
 			interrupt?: () => boolean;
+			/** Set when the interrupt came from a deadline rather than a person. */
+			deadlineExpired?: boolean;
 		}
 	>;
 	lastForegroundControlId: string | null;

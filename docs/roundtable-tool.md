@@ -250,6 +250,19 @@ orchestrator does nothing but wait, with its context occupied by a call that has
 not returned. That is why asynchronous is the default — not because blocking is
 wrong.
 
+### When a member never arrives
+
+An asynchronous deliberation waits for a completion notification, and a member
+that stalls — or never joins the room at all, which live runs have produced —
+means that notification never comes. `deadlineMs` on a team is the ceiling: on
+expiry the run is interrupted and finalized with whatever landed, and the result
+names the members still running when time ran out.
+
+That is a deliberate trade. A partial decision of record, with the absentees
+named, is worth more than an orchestrator idle forever waiting on a panelist
+that is not going to speak. It also makes the failure *visible*: previously a
+never-joined member was invisible to the panel it was seated on.
+
 ## Limits and defaults
 
 | Thing | Value | Consequence |

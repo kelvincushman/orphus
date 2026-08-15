@@ -25,6 +25,7 @@ import { sharedAutoGroupForSet } from "../shared/intercom-group.ts";
 import { resolveModelCandidate } from "../shared/model-fallback.ts";
 import {
 	aggregateParallelOutputs,
+	buildInterruptedParallelMessage,
 	digestParallelOutputs,
 	shouldDigestParallelReturn,
 } from "../shared/parallel-utils.ts";
@@ -256,15 +257,12 @@ export async function runParallelPath(
 		});
 		rememberForegroundRun(deps.state, { runId, mode: "parallel", cwd: effectiveCwd, results: details.results });
 		if (interrupted) {
-			return {
-				content: [
-					{
-						type: "text",
-						text: `Parallel run paused after interrupt (${interrupted.agent}). Waiting for explicit next action.`,
-					},
-				],
-				details,
-			};
+			const text = buildInterruptedParallelMessage({
+				results,
+				deadlineExpired: deps.state.foregroundControls.get(runId)?.deadlineExpired === true,
+				interruptedAgent: interrupted.agent,
+			});
+			return { content: [{ type: "text", text }], details };
 		}
 		const detachedIndex = results.findIndex((result) => result.detached);
 		const detached = detachedIndex >= 0 ? results[detachedIndex] : undefined;
