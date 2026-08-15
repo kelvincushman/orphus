@@ -1,11 +1,15 @@
 # The self-improvement loop
 
-> **Status: design document.** The adversarial-verification workflow described
-> below is implemented — see
+> **Status: design document, one leg now built.** The adversarial-verification
+> workflow described below is implemented — see
 > [`packages/workflows/builtin/adversarial-verification.ts`](../packages/workflows/builtin/adversarial-verification.ts).
-> **The retrospective and proposal stages are not built.** Searching this tree
-> for `retrospective` finds prose in this file, `README.md`, and `PLAN.md`, and
-> no implementing source. It is scheduled as Phase 3 of the RLM adoption plan.
+> **Step 1, Collect, is implemented** as of WP 3.1 — see
+> [`packages/subagents/src/refine/evidence-bundle.ts`](../packages/subagents/src/refine/evidence-bundle.ts).
+> It has no runtime caller yet: the bundle is assembled on demand, and the
+> caller arrives with `/refine` in WP 3.4.
+> **Steps 2–5 — deliberate, propose, verify-a-proposal, gate — are not built.**
+> There is no `retrospective` agent definition, no proposal writer, and no
+> applier. They are scheduled as WP 3.2–3.4 of the RLM adoption plan.
 >
 > Nothing in this document describes current behaviour unless it links to
 > source. Read the rest as intent, not as a description of what runs today.
@@ -22,8 +26,18 @@ diffs, reviewed like any other change.
 
 Loop, expressed with the primitives this fork already has:
 
-1. **Collect** — the workflow checkpoint already records stages, verifier
-   verdicts, and repair cycles.
+1. **Collect** — *(built, WP 3.1)* the evidence bundle names every source a
+   retrospective may reason from: subagent output artifacts, the session
+   transcript and the `context_accounting` entry it carries, exported room
+   transcripts, and captured suite output. It records **paths and sizes, never
+   content**, so evidence costs the reader only what they choose to open.
+   Every source appears in `present` or in `missing` **with a stated reason** —
+   the bundle never silently omits, because a retrospective reasoning from a
+   partial record it believes is complete is the failure mode
+   [the security posture](rlm-security-posture.md) exists to prevent.
+   Note what this means for rooms: the broker holds them in memory with a
+   500-message cap and persists nothing, so a room that was never exported by
+   the writer role is reported *unrecoverable* rather than *empty*.
 2. **Deliberate** — retrospective agents join `#retro-<runId>` via roundtable
    and argue about what caused repairs; the room keeps deliberation out of
    the proposal context.
