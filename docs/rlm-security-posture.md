@@ -129,8 +129,14 @@ rename moved npm workspace package names only, not crate names.
 
 A kernel runs code with the user's permissions, exactly like the `bash` tool. It
 is **not a security sandbox**, the optional jail flag reduces exposure without
-making untrusted code safe, and `docs/repl.md` must say so in a warning box near
-the top rather than in a footnote.
+making untrusted code safe, and [`docs/repl.md`](./repl.md) says so in a warning
+box at the top rather than in a footnote.
+
+**Status: the warning is written; the jail is not built.** `docs/repl.md` also
+states plainly which pieces of Phase 4 exist — the registry, the output bounds,
+and the session layer — and which do not: the `repl` tool registration and PTY
+wiring, the cross-agent inherit path, and the opt-in jail. The examples in that
+document describe an intended surface and are labelled as not running today.
 
 The same honesty applies to the loop: a gated, reversible refine cycle *reduces*
 the risk of an agent optimising around intent. It does not eliminate it. Anyone
