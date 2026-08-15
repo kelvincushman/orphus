@@ -200,8 +200,13 @@ function stripEcho(text: string, script: string, sentinel: string): string {
 	const echoed = script.split(/\r?\n/).filter((line) => line.length > 0);
 	const lines = text.split(/\r?\n/).map(stripPrompt);
 
+	// Skip whatever is left over before the echo begins. The previous exec's
+	// trailing prompt arrives as its own fragment often enough that requiring the
+	// echo at position zero worked standalone and failed under load — a timing
+	// dependency, which is the worst kind of correctness.
 	let cursor = 0;
 	for (const line of echoed) {
+		while (cursor < lines.length && lines[cursor]?.trim() === "") cursor += 1;
 		if (cursor < lines.length && lines[cursor]?.trim() === line.trim()) cursor += 1;
 	}
 

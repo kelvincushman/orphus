@@ -214,3 +214,27 @@ test("a timed-out kernel accepts work again rather than being bricked", () => {
 		},
 	);
 });
+
+test("a leftover prompt fragment before the echo does not defeat stripping", () => {
+	// Found by running the integration suite under load rather than standalone:
+	// the previous exec's trailing prompt arrives as its own fragment, and
+	// requiring the echo at position zero left the echoed source in the answer.
+	let session: KernelSession | undefined;
+	session = new KernelSession({
+		name: "fragmented",
+		language: "python",
+		process: {
+			write: (data: string) => {
+				queueMicrotask(() => {
+					// A bare prompt remnant, THEN the echo, then the answer.
+					session?.receive(`\n${data}43\n${evaluateSentinel(data)}\n`);
+				});
+			},
+			kill: () => {},
+		},
+	});
+
+	return session.exec("print(value + 1)", { token: "f1", timeoutMs: 500 }).then((result) => {
+		assert.equal(result.view.text.trim(), "43");
+	});
+});
