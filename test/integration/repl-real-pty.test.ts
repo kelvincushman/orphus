@@ -76,6 +76,11 @@ test(
 			// one-shot that happened to answer twice.
 			const third = await session.exec("print(value + 1)", { token: "r3", timeoutMs: 20_000 });
 			assert.match(third.view.text, /43/);
+
+			// And the answer is the ANSWER, not a transcript of the conversation
+			// that produced it: no prompts, no echoed source, no sentinel debris.
+			// This is what makes a kernel cheaper than pasting the file in.
+			assert.equal(third.view.text.trim(), "43");
 		} finally {
 			kernel.process.kill();
 		}

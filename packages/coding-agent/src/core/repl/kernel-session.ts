@@ -198,7 +198,7 @@ export class KernelSession {
  */
 function stripEcho(text: string, script: string, sentinel: string): string {
 	const echoed = script.split(/\r?\n/).filter((line) => line.length > 0);
-	const lines = text.split(/\r?\n/);
+	const lines = text.split(/\r?\n/).map(stripPrompt);
 
 	let cursor = 0;
 	for (const line of echoed) {
@@ -207,7 +207,28 @@ function stripEcho(text: string, script: string, sentinel: string): string {
 
 	return lines
 		.slice(cursor)
-		.filter((line) => !line.includes(sentinel))
+		.filter((line) => !line.includes(sentinel) && !isSentinelEcho(line))
 		.join("\n")
-		.replace(/\n+$/, "\n");
+		.replace(/\n+$/, "\n")
+		.replace(/^\n+/, "");
+}
+
+/**
+ * Remove a REPL's prompt from the front of a line.
+ *
+ * A real terminal returns `>>> print(value)`, not `print(value)`, so echo
+ * matching fails on the prompt alone and every result comes back wrapped in
+ * terminal furniture. Stripping it is what makes an answer read as `42` rather
+ * than as a transcript of the conversation that produced it.
+ */
+function stripPrompt(line: string): string {
+	return line.replace(/^(?:>>>|\.\.\.|>) ?/, "");
+}
+
+/**
+ * The echoed sentinel line, which arrives in halves and so does not contain the
+ * assembled sentinel to match against.
+ */
+function isSentinelEcho(line: string): boolean {
+	return /__ORPHUS_KER["' +]*NEL_DONE_/.test(line);
 }
