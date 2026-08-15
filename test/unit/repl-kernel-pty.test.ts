@@ -12,12 +12,12 @@ type StartOptions = Parameters<PtySessionLike["start"]>[0];
 function fakePty() {
 	const calls: { start?: StartOptions; writes: string[]; killed: boolean } = { writes: [], killed: false };
 	let resolveExit: (() => void) | undefined;
-	let emit: ((chunk: Uint8Array) => void) | undefined;
+	let emit: ((chunk: string) => void) | undefined;
 
 	const session: PtySessionLike = {
-		start: (options, onData) => {
+		start: (options, onChunk) => {
 			calls.start = options;
-			emit = (chunk) => onData(undefined, chunk);
+			emit = (chunk) => onChunk?.(null, chunk);
 			return new Promise<void>((resolve) => {
 				resolveExit = resolve;
 			});
@@ -27,7 +27,7 @@ function fakePty() {
 			calls.killed = true;
 		},
 	};
-	return { session, calls, exit: () => resolveExit?.(), emit: (text: string) => emit?.(Buffer.from(text, "utf8")) };
+	return { session, calls, exit: () => resolveExit?.(), emit: (text: string) => emit?.(text) };
 }
 
 test("stdin stays open, or the kernel is a one-shot", () => {

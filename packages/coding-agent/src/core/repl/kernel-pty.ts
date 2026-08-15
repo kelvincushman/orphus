@@ -36,21 +36,38 @@ export function launchCommandFor(language: KernelLanguage): { command: string; a
 	}
 }
 
-/** Minimal surface of the native binding this module needs. Injectable for tests. */
+/**
+ * Minimal surface of the native binding this module needs, matching
+ * `packages/natives/native/index.d.ts` exactly.
+ *
+ * Written from that declaration rather than from the shape `bash-pty-native.ts`
+ * happens to pass. Two details differ from the obvious guess and both matter:
+ * the data callback receives a **string**, not a `Uint8Array`, and `env` admits
+ * no `undefined` values.
+ */
 export interface PtySessionLike {
 	start(
 		options: {
 			command: string;
-			cwd: string;
-			env: Record<string, string | undefined>;
-			cols: number;
-			rows: number;
-			closeStdinAfterCommand: boolean;
+			cwd?: string;
+			env?: Record<string, string>;
+			cols?: number;
+			rows?: number;
+			closeStdinAfterCommand?: boolean;
 		},
-		onData: (error: unknown, chunk: Uint8Array | undefined) => void,
+		onChunk?: ((error: Error | null, chunk: string) => void) | undefined | null,
 	): Promise<unknown>;
 	write(data: string): void;
 	kill(): void;
+}
+
+/** `env` is `Record<string, string>` in the binding, so undefined values must go. */
+function definedEnv(env: Record<string, string | undefined> | undefined): Record<string, string> {
+	const result: Record<string, string> = {};
+	for (const [key, value] of Object.entries(env ?? {})) {
+		if (value !== undefined) result[key] = value;
+	}
+	return result;
 }
 
 export interface PtyKernelOptions {
@@ -111,7 +128,7 @@ export function createPtyKernel(options: PtyKernelOptions): PtyKernel {
 		{
 			command: shellJoin(jail.command, jail.args),
 			cwd: options.cwd,
-			env: { ...options.env, TERM: "dumb" },
+			env: { ...definedEnv(options.env), TERM: "dumb" },
 			cols: 120,
 			rows: 40,
 			// A REPL reads until stdin closes. Closing it after the launch command
@@ -120,7 +137,8 @@ export function createPtyKernel(options: PtyKernelOptions): PtyKernel {
 		},
 		(error, chunk) => {
 			if (error) return;
-			if (chunk) options.onData(Buffer.from(chunk).toString("utf8"));
+			// The binding hands back a decoded string; there is nothing to decode.
+			if (chunk) options.onData(chunk);
 		},
 	);
 	// start() resolves when the process EXITS, so this is held rather than
