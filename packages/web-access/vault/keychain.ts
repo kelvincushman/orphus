@@ -1,4 +1,4 @@
-import { runBunSubprocess } from "../subprocess.js";
+import { runBunSubprocess } from "../subprocess.ts";
 
 export interface SecretBackend {
 	store(id: string, secret: string): Promise<void>;

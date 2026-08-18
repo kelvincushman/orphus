@@ -55,3 +55,29 @@ test("usernameFor returns null for an unknown credential", () => {
 	const v = new CredentialVault(memBackend(), { allowlist: ["example.com"] });
 	assert.equal(v.usernameFor("example.com", "unknown"), null);
 });
+
+test("hydrate seeds the in-memory index without touching the backend or writing audit", async () => {
+	const lines: string[] = [];
+	const backend = memBackend();
+	let storeCalls = 0;
+	const countingBackend: SecretBackend = {
+		store: async (id, s) => {
+			storeCalls += 1;
+			await backend.store(id, s);
+		},
+		lookup: backend.lookup,
+		remove: backend.remove,
+	};
+	const v = new CredentialVault(countingBackend, { allowlist: ["example.com"], audit: (l) => lines.push(l) });
+	v.hydrate([{ domain: "example.com", label: "main", username: "me@example.com" }]);
+	assert.equal(v.usernameFor("example.com", "main"), "me@example.com");
+	assert.deepEqual(await v.list(), [{ domain: "example.com", label: "main", username: "me@example.com" }]);
+	assert.equal(storeCalls, 0, "hydrate must not call the secret backend");
+	assert.deepEqual(lines, [], "hydrate must not write an audit line");
+	// the secret backend has no entry, so a hydrated credential's secret is
+	// still a genuine keychain miss until something actually calls set()
+	await assert.rejects(
+		v.injectInto("example.com", "main", async () => {}),
+		(error: Error) => error.name === "CredentialMiss",
+	);
+});

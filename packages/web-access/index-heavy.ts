@@ -16,12 +16,34 @@ if (process.env.ORPHUS_TEST_LAZY_IMPORT_SENTINEL === "1") {
 import { registerWebSearchFeatures } from "./web-search-features.js";
 import { BrowserManager } from "./browser-manager.js";
 import { registerBrowserTool } from "./browser-tool.js";
+import { registerCredentialCommand } from "./credential-command.js";
+import type { CredentialVault } from "./credential-vault.js";
+import { createVault } from "./vault/vault-store.js";
+
+/**
+ * The one shared credential vault for this process, constructed the first time
+ * this module's default export runs (which happens before any command or tool
+ * it registers can be invoked). Task 9's `login` browser action reads this same
+ * module-level binding so it looks up credentials through the identical vault
+ * instance `/credential` writes to, rather than a second one with a stale index.
+ * Left undefined only if vault construction fails (e.g. an unsupported
+ * platform) — see the try/catch below.
+ */
+export let browserVault: CredentialVault | undefined;
 
 export default function (pi: ExtensionAPI) {
 	const initConfig = loadConfigForExtensionInit();
 	registerWebSearchFeatures(pi, initConfig);
 	const browserManager = new BrowserManager();
 	registerBrowserTool(pi, browserManager);
+
+	try {
+		browserVault = createVault();
+		registerCredentialCommand(pi, browserVault);
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		console.error(`[pi-web-access] Credential vault unavailable: ${message}`);
+	}
 	pi.registerCommand("curator", {
 		description: "Toggle or configure the search curator workflow",
 		handler: async (args, ctx) => {

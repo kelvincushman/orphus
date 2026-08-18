@@ -52,6 +52,17 @@ export class CredentialVault {
 	}
 
 	/**
+	 * Seeds the in-memory index from persisted NON-secret records (domain, label,
+	 * username) without touching the secret backend and without writing an audit
+	 * line. This is how the index is rebuilt across sessions: the keychain holds
+	 * the secret, a JSON file on disk holds this non-secret index, and the wiring
+	 * that constructs the vault calls this once at startup to repopulate it.
+	 */
+	hydrate(creds: Credential[]): void {
+		for (const cred of creds) this.index.set(idOf(cred.domain, cred.label), cred);
+	}
+
+	/**
 	 * Returns the stored (non-secret) username for a credential, or null if none is
 	 * stored. Pure and synchronous: it reads only the in-memory index and never
 	 * touches the secret backend. Lets a caller (e.g. login flow) type the username
