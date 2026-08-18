@@ -1,56 +1,47 @@
 /**
- * TUI session selector for --resume flag
+ * Session selector for `--resume`.
+ *
+ * The renderer is chosen at call time — `ORPHUS_TUI_BACKEND`, then the
+ * `tui.backend` setting, then the release default (`pi`). Whichever runs, its
+ * host is disposed and that disposal awaited before this function returns, so
+ * the terminal is fully handed back before the chat UI attaches.
  */
 
-import { ProcessTerminal, setKeybindings, TUI } from "@earendil-works/pi-tui";
-import { getAgentDir } from "../config.ts";
-import { KeybindingsManager } from "../core/keybindings.ts";
 import type { SessionInfo, SessionListProgress } from "../core/session-manager.ts";
-import { SessionSelectorComponent } from "../modes/interactive/components/session-selector.ts";
+import type { SettingsManager } from "../core/settings-manager.ts";
+import { createSelectorHost } from "../core/terminal/index.ts";
+import { SessionSelectorModel } from "../core/terminal/session-selector-model.ts";
 
 type SessionsLoader = (onProgress?: SessionListProgress) => Promise<SessionInfo[]>;
 
-/** Show TUI session selector and return selected session path or null if cancelled */
+/** Show the session selector and return the selected session path, or null if cancelled. */
 export async function selectSession(
 	currentSessionsLoader: SessionsLoader,
 	allSessionsLoader: SessionsLoader,
+	options?: { settingsManager?: SettingsManager; currentSessionPath?: string },
 ): Promise<string | null> {
-	return new Promise((resolve) => {
-		const ui = new TUI(new ProcessTerminal(), undefined, getAgentDir());
-		const keybindings = KeybindingsManager.create();
-		setKeybindings(keybindings);
-		let resolved = false;
-
-		const selector = new SessionSelectorComponent(
-			currentSessionsLoader,
-			allSessionsLoader,
-			(path: string) => {
-				if (!resolved) {
-					resolved = true;
-					selector.dispose();
-					ui.stop();
-					resolve(path);
-				}
-			},
-			() => {
-				if (!resolved) {
-					resolved = true;
-					selector.dispose();
-					ui.stop();
-					resolve(null);
-				}
-			},
-			() => {
-				selector.dispose();
-				ui.stop();
-				process.exit(0);
-			},
-			() => ui.requestRender(),
-			{ showRenameHint: false, keybindings },
-		);
-
-		ui.addChild(selector);
-		ui.setFocus(selector.getSessionList());
-		ui.start();
+	const { host, warning } = await createSelectorHost({
+		setting: options?.settingsManager?.getTuiBackend(),
 	});
+	if (warning) console.error(warning);
+
+	const model = new SessionSelectorModel({ currentSessionPath: options?.currentSessionPath });
+	try {
+		const result = await host.selectSession({
+			model,
+			loadCurrentSessions: currentSessionsLoader,
+			loadAllSessions: allSessionsLoader,
+		});
+		if (result.outcome === "selected") return result.sessionPath;
+		if (result.outcome === "exit") {
+			// The pi selector's third callback is a hard quit, not a cancel.
+			await host.dispose();
+			process.exit(0);
+		}
+		return null;
+	} finally {
+		// Awaited: raw mode, cursor, mouse reporting, and bracketed paste are
+		// restored before anything else touches the terminal.
+		await host.dispose();
+	}
 }

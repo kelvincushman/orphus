@@ -33,6 +33,15 @@ export interface TerminalSettings {
 	showTerminalProgress?: boolean; // default: false (OSC 9;4 terminal progress indicators)
 }
 
+/** Which terminal renderer drives the migrated startup and session-picker surfaces. */
+export interface TuiSettings {
+	/**
+	 * `"pi"` (the default) or `"termdom"`. `ORPHUS_TUI_BACKEND` overrides this.
+	 * The main chat shell is always pi and is not affected by this setting.
+	 */
+	backend?: "pi" | "termdom";
+}
+
 export interface ImageSettings {
 	autoResize?: boolean; // default: true (resize images to 2000x2000 max for better model compatibility)
 	blockImages?: boolean; // default: false - when true, prevents all images from being sent to LLM providers
@@ -125,6 +134,7 @@ export interface Settings {
 	workflows?: string[]; // Array of local workflow file paths or directories
 	enableSkillCommands?: boolean; // default: true - register skills as /skill:name commands
 	terminal?: TerminalSettings;
+	tui?: TuiSettings;
 	images?: ImageSettings;
 	enabledModels?: string[]; // Model patterns for cycling (same format as --models CLI flag)
 	doubleEscapeAction?: "fork" | "tree" | "none"; // Action for double-escape with empty editor (default: "tree")

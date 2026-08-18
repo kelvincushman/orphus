@@ -12,6 +12,8 @@ interface SettingsManagerUiAccessors {
 	setClearOnShrink(enabled: boolean): void;
 	getShowTerminalProgress(): boolean;
 	setShowTerminalProgress(enabled: boolean): void;
+	/** `tui.backend`, unvalidated: the resolver reports and ignores an unknown value. */
+	getTuiBackend(): unknown;
 	getImageAutoResize(): boolean;
 	setImageAutoResize(enabled: boolean): void;
 	getBlockImages(): boolean;
@@ -95,6 +97,10 @@ const uiAccessors: SettingsManagerUiAccessors = {
 
 	getShowTerminalProgress() {
 		return settingsInternals(this).settings.terminal?.showTerminalProgress ?? false;
+	},
+
+	getTuiBackend() {
+		return settingsInternals(this).settings.tui?.backend;
 	},
 
 	setShowTerminalProgress(enabled) {

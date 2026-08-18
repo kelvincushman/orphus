@@ -58,6 +58,7 @@
           "tools",
           "browser",
           "harness",
+          "tui-backend",
           "session-format"
         ]
       },

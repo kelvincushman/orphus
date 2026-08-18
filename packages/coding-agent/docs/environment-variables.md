@@ -30,6 +30,12 @@ Off by default. Nothing is registered without `ORPHUS_ENABLE_BROWSER`; see [Brow
 | `ORPHUS_BROWSER_HEADLESS` | `0` runs Chrome with a visible window |
 | `ORPHUS_BROWSER_NO_SANDBOX` | Pass `--no-sandbox`. Disables Chrome's sandbox — only for a container running as root |
 
+### Terminal renderer
+
+| Variable | Purpose |
+|---|---|
+| `ORPHUS_TUI_BACKEND` | `pi` (default) or `termdom` for the startup selection and session picker. Overrides the `tui.backend` setting; see [Terminal backend](/tui-backend) |
+
 ### Roundtable memory
 
 The bundled Roundtable extension shares one Dossier project across sessions and
