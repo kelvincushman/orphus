@@ -6,10 +6,11 @@ export type ParsedCredentialCommand =
 	| { op: "add"; domain: string; label: string; username: string }
 	| { op: "list" }
 	| { op: "remove"; domain: string; label: string }
+	| { op: "confirm"; domain: string }
 	| { error: string };
 
 const USAGE =
-	"Usage: /credential add <domain> <label> <username> | /credential list | /credential remove <domain> <label>";
+	"Usage: /credential add <domain> <label> <username> | /credential list | /credential remove <domain> <label> | /credential confirm <domain>";
 
 /**
  * Pure parser for the `/credential` command. Never touches the vault or the
@@ -48,6 +49,14 @@ export function parseCredentialCommand(args: string): ParsedCredentialCommand {
 		return { op: "remove", domain, label };
 	}
 
+	if (sub === "confirm") {
+		if (rest.length !== 1) {
+			return { error: `/credential confirm requires <domain>. ${USAGE}` };
+		}
+		const [domain] = rest as [string];
+		return { op: "confirm", domain };
+	}
+
 	return { error: `Unknown /credential subcommand "${sub}". ${USAGE}` };
 }
 
@@ -63,14 +72,20 @@ export function parseCredentialCommand(args: string): ParsedCredentialCommand {
  * `process.env.ORPHUS_VAULT_SECRET`, which the human exports in their shell
  * just before running `/credential add` and unsets immediately after.
  */
-export function registerCredentialCommand(pi: ExtensionAPI, vault: CredentialVault): void {
+export function registerCredentialCommand(pi: ExtensionAPI, vault: CredentialVault, confirmedDomains: Set<string>): void {
 	pi.registerCommand("credential", {
-		description: "Manage stored web login credentials (add/list/remove)",
+		description: "Manage stored web login credentials (add/list/remove/confirm)",
 		handler: async (args, ctx) => {
 			const parsed = parseCredentialCommand(args);
 
 			if ("error" in parsed) {
 				ctx.ui.notify(parsed.error, "error");
+				return;
+			}
+
+			if (parsed.op === "confirm") {
+				confirmedDomains.add(parsed.domain);
+				ctx.ui.notify(`Confirmed ${parsed.domain} for browser login. The login action may now use a vault credential on this domain.`, "info");
 				return;
 			}
 

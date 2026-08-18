@@ -21,6 +21,16 @@ test("parses remove with domain and label", () => {
 	assert.deepEqual(parsed, { op: "remove", domain: "example.com", label: "main" });
 });
 
+test("parses confirm with a domain", () => {
+	const parsed = parseCredentialCommand("confirm example.com");
+	assert.deepEqual(parsed, { op: "confirm", domain: "example.com" });
+});
+
+test("rejects confirm with too few or too many arguments", () => {
+	assert.ok("error" in parseCredentialCommand("confirm"));
+	assert.ok("error" in parseCredentialCommand("confirm example.com extra"));
+});
+
 test("parses bare list", () => {
 	assert.deepEqual(parseCredentialCommand(""), { op: "list" });
 	assert.deepEqual(parseCredentialCommand("list"), { op: "list" });

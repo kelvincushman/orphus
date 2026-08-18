@@ -356,16 +356,20 @@ export default function webAccess(pi: ExtensionAPI) {
 		name: "browser",
 		label: "Browser",
 		description:
-			"Drive a live Chrome to see and operate a real web page: open a URL, read the page (text/dom/accessibility/screenshot), click, type, and close. Sense → act → verify: after acting, read again to confirm. Requires ORPHUS_ENABLE_BROWSER=1.",
+			"Drive a live Chrome to see and operate a real web page: open a URL, read the page (text/dom/accessibility/screenshot), click, type, close, and (behind ORPHUS_ENABLE_BROWSER_LOGIN=1) log into an allowlisted, human-confirmed site using a vault credential without the password ever reaching the model. Sense → act → verify: after acting, read again to confirm. Requires ORPHUS_ENABLE_BROWSER=1.",
 		promptSnippet:
 			"Use to interact with a live page (click/type/navigate) when fetch_content is not enough. Read after every act to verify.",
 		parameters: Type.Object({
-			action: Type.String({ enum: ["open", "read", "click", "type", "wait_for", "close"], description: "What to do" }),
+			action: Type.String({ enum: ["open", "read", "click", "type", "wait_for", "close", "login"], description: "What to do" }),
 			handle: Type.Optional(Type.String({ description: 'Browser instance name (default: "default")' })),
 			url: Type.Optional(Type.String({ description: "URL for open" })),
 			selector: Type.Optional(Type.String({ description: "CSS selector for click" })),
 			text: Type.Optional(Type.String({ description: "Text for type" })),
 			as: Type.Optional(Type.String({ enum: ["text", "dom", "accessibility", "screenshot"], description: "Read channel (default: text)" })),
+			domain: Type.Optional(Type.String({ description: "Domain for login (must be vault-allowlisted and human-confirmed)" })),
+			label: Type.Optional(Type.String({ description: "Vault credential label for login" })),
+			usernameSelector: Type.Optional(Type.String({ description: "CSS selector for the username field (login)" })),
+			passwordSelector: Type.Optional(Type.String({ description: "CSS selector for the password field (login)" })),
 		}),
 		execute: (...args) => executeHeavyTool(loadHeavy, "browser", args),
 		renderResult: (...args) => renderHeavyToolResult(loadedHeavy?.heavy ?? null, "browser", args),

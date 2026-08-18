@@ -1,7 +1,9 @@
 import type { ExtensionAPI } from "@orphus/coding-agent";
 import { Type } from "typebox";
 import { clickWithEscalation, readPage, typeText } from "./browser-actions.js";
+import { performLogin } from "./browser-login.js";
 import type { BrowserManager } from "./browser-manager.js";
+import type { CredentialVault } from "./credential-vault.js";
 
 interface ToolResult {
 	content: { type: "text"; text: string }[];
@@ -28,6 +30,10 @@ interface BrowserArgs {
 	selector?: string;
 	text?: string;
 	as?: "text" | "dom" | "accessibility" | "screenshot";
+	domain?: string;
+	label?: string;
+	usernameSelector?: string;
+	passwordSelector?: string;
 }
 
 /** Cap on model-visible read output; readPage's own callers rely on this to keep large DOM/AX dumps out of context. */
@@ -37,7 +43,12 @@ const READ_TEXT_CHAR_CAP = 20_000;
 const WAIT_FOR_TIMEOUT_MS = 10_000;
 const WAIT_FOR_INTERVAL_MS = 200;
 
-export function buildBrowserExecute(manager: BrowserManager, env: NodeJS.ProcessEnv = process.env) {
+export function buildBrowserExecute(
+	manager: BrowserManager,
+	env: NodeJS.ProcessEnv = process.env,
+	vault?: CredentialVault,
+	confirmedDomains: Set<string> = new Set(),
+) {
 	return async (args: BrowserArgs): Promise<ToolResult> => {
 		if (env.ORPHUS_ENABLE_BROWSER !== "1") {
 			return err("Browser tool disabled. Set ORPHUS_ENABLE_BROWSER=1 to enable.");
@@ -100,6 +111,18 @@ export function buildBrowserExecute(manager: BrowserManager, env: NodeJS.Process
 					await manager.get(name)?.stop();
 					return ok(`closed ${name}`);
 				}
+				case "login": {
+					const h = manager.get(name);
+					if (!h) return err(`no open browser named ${name}`);
+					if (!vault) return err("Credential vault unavailable.");
+					if (!args.domain || !args.label || !args.usernameSelector || !args.passwordSelector) {
+						return err("login requires domain, label, usernameSelector, and passwordSelector");
+					}
+					return performLogin(
+						{ vault, cdp: h.cdp, env, confirmedDomains },
+						{ domain: args.domain, label: args.label, usernameSelector: args.usernameSelector, passwordSelector: args.passwordSelector },
+					);
+				}
 				default:
 					return err(`unknown action: ${args.action}`);
 			}
@@ -109,22 +132,31 @@ export function buildBrowserExecute(manager: BrowserManager, env: NodeJS.Process
 	};
 }
 
-export function registerBrowserTool(pi: ExtensionAPI, manager: BrowserManager): void {
-	const execute = buildBrowserExecute(manager);
+export function registerBrowserTool(
+	pi: ExtensionAPI,
+	manager: BrowserManager,
+	vault?: CredentialVault,
+	confirmedDomains: Set<string> = new Set(),
+): void {
+	const execute = buildBrowserExecute(manager, process.env, vault, confirmedDomains);
 	pi.registerTool({
 		name: "browser",
 		label: "Browser",
 		description:
-			"Drive a live Chrome to see and operate a real web page: open a URL, read the page (text/dom/accessibility/screenshot), click, type, and close. Sense → act → verify: after acting, read again to confirm. Requires ORPHUS_ENABLE_BROWSER=1.",
+			"Drive a live Chrome to see and operate a real web page: open a URL, read the page (text/dom/accessibility/screenshot), click, type, close, and (behind ORPHUS_ENABLE_BROWSER_LOGIN=1) log into an allowlisted, human-confirmed site using a vault credential without the password ever reaching the model. Sense → act → verify: after acting, read again to confirm. Requires ORPHUS_ENABLE_BROWSER=1.",
 		promptSnippet:
 			"Use to interact with a live page (click/type/navigate) when fetch_content is not enough. Read after every act to verify.",
 		parameters: Type.Object({
-			action: Type.String({ enum: ["open", "read", "click", "type", "wait_for", "close"], description: "What to do" }),
+			action: Type.String({ enum: ["open", "read", "click", "type", "wait_for", "close", "login"], description: "What to do" }),
 			handle: Type.Optional(Type.String({ description: 'Browser instance name (default: "default")' })),
 			url: Type.Optional(Type.String({ description: "URL for open" })),
 			selector: Type.Optional(Type.String({ description: "CSS selector for click" })),
 			text: Type.Optional(Type.String({ description: "Text for type" })),
 			as: Type.Optional(Type.String({ enum: ["text", "dom", "accessibility", "screenshot"], description: "Read channel (default: text)" })),
+			domain: Type.Optional(Type.String({ description: "Domain for login (must be vault-allowlisted and human-confirmed)" })),
+			label: Type.Optional(Type.String({ description: "Vault credential label for login" })),
+			usernameSelector: Type.Optional(Type.String({ description: "CSS selector for the username field (login)" })),
+			passwordSelector: Type.Optional(Type.String({ description: "CSS selector for the password field (login)" })),
 		}),
 		execute: async (_toolCallId, params) => execute(params as BrowserArgs),
 	});

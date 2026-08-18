@@ -31,19 +31,33 @@ import { createVault } from "./vault/vault-store.js";
  */
 export let browserVault: CredentialVault | undefined;
 
+/**
+ * Domains a human has confirmed (via `/credential confirm <domain>`) as safe
+ * for the `login` browser action to use a vault credential on. Shared between
+ * `/credential` (which populates it) and the `browser` tool's `login` action
+ * (which gates on it) so a first use of any domain always requires an explicit
+ * human confirmation in the same session.
+ */
+const confirmedDomains = new Set<string>();
+
 export default function (pi: ExtensionAPI) {
 	const initConfig = loadConfigForExtensionInit();
 	registerWebSearchFeatures(pi, initConfig);
-	const browserManager = new BrowserManager();
-	registerBrowserTool(pi, browserManager);
 
 	try {
 		browserVault = createVault();
-		registerCredentialCommand(pi, browserVault);
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		console.error(`[pi-web-access] Credential vault unavailable: ${message}`);
 	}
+
+	const browserManager = new BrowserManager();
+	registerBrowserTool(pi, browserManager, browserVault, confirmedDomains);
+
+	if (browserVault) {
+		registerCredentialCommand(pi, browserVault, confirmedDomains);
+	}
+
 	pi.registerCommand("curator", {
 		description: "Toggle or configure the search curator workflow",
 		handler: async (args, ctx) => {
