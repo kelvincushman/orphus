@@ -25,12 +25,19 @@ function fakeRun() {
 	return { run, store, calls };
 }
 
-test("store then lookup round-trips; the secret is passed via stdin not argv", async () => {
+test("store then lookup round-trips with correct secret transmission", async () => {
 	const f = fakeRun();
 	const kc = macosKeychain(f.run);
 	await kc.store("example.com", "hunter2");
 	assert.equal(await kc.lookup("example.com"), "hunter2");
-	assert.ok(!f.calls.some((c) => c.includes("hunter2")), "secret must not appear in argv");
+	assert.ok(
+		f.calls.some((c) => c.includes("add-generic-password") && c.includes("hunter2")),
+		"macOS store must transmit the secret via -w",
+	);
+	assert.ok(
+		!f.calls.some((c) => c.includes("find-generic-password") && c.includes("hunter2")),
+		"secret must not appear in lookup argv",
+	);
 });
 
 test("lookup returns null when absent", async () => {

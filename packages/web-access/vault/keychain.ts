@@ -9,7 +9,6 @@ export type RunFn = (cmd: string, args: string[], stdin?: string) => Promise<{ s
 export const SERVICE = "orphus-web-vault";
 
 const defaultRun: RunFn = async (cmd, args, stdin) => {
-	// runBunSubprocess has no stdin channel; keychain writes below avoid stdin by using -w with a temp read.
 	const r = await runBunSubprocess(cmd, args, { timeoutMs: 5000, maxStdoutBytes: 64 * 1024 }).catch((e: unknown) => {
 		const code = Number((e as { code?: string }).code);
 		return { exitCode: Number.isFinite(code) ? code : 1, stdout: Buffer.from(""), stderr: "" };
@@ -21,7 +20,7 @@ const defaultRun: RunFn = async (cmd, args, stdin) => {
 export function macosKeychain(run: RunFn = defaultRun): SecretBackend {
 	return {
 		async store(id, secret) {
-			await run("security", ["add-generic-password", "-U", "-s", SERVICE, "-a", id], secret);
+			await run("security", ["add-generic-password", "-U", "-s", SERVICE, "-a", id, "-w", secret]);
 		},
 		async lookup(id) {
 			const r = await run("security", ["find-generic-password", "-s", SERVICE, "-a", id, "-w"]);
