@@ -3,10 +3,10 @@ import type { CredentialVault } from "./credential-vault.js";
 import { addToAllowlist, persistIndex } from "./vault/vault-store.js";
 
 export type ParsedCredentialCommand =
-	| { kind: "add"; domain: string; label: string; username: string }
-	| { kind: "list" }
-	| { kind: "remove"; domain: string; label: string }
-	| { kind: "error"; message: string };
+	| { op: "add"; domain: string; label: string; username: string }
+	| { op: "list" }
+	| { op: "remove"; domain: string; label: string }
+	| { error: string };
 
 const USAGE =
 	"Usage: /credential add <domain> <label> <username> | /credential list | /credential remove <domain> <label>";
@@ -23,33 +23,32 @@ export function parseCredentialCommand(args: string): ParsedCredentialCommand {
 	const [sub, ...rest] = tokens;
 
 	if (sub === undefined || sub === "list") {
-		if (rest.length > 0) return { kind: "error", message: `/credential list takes no arguments. ${USAGE}` };
-		return { kind: "list" };
+		if (rest.length > 0) return { error: `/credential list takes no arguments. ${USAGE}` };
+		return { op: "list" };
 	}
 
 	if (sub === "add") {
 		if (rest.length !== 3) {
 			return {
-				kind: "error",
-				message:
+				error:
 					rest.length > 3
 						? `/credential add takes exactly 3 arguments — the secret is never a command argument; enter it via the prompt or ORPHUS_VAULT_SECRET instead. ${USAGE}`
 						: `/credential add requires <domain> <label> <username>. ${USAGE}`,
 			};
 		}
 		const [domain, label, username] = rest as [string, string, string];
-		return { kind: "add", domain, label, username };
+		return { op: "add", domain, label, username };
 	}
 
 	if (sub === "remove") {
 		if (rest.length !== 2) {
-			return { kind: "error", message: `/credential remove requires <domain> <label>. ${USAGE}` };
+			return { error: `/credential remove requires <domain> <label>. ${USAGE}` };
 		}
 		const [domain, label] = rest as [string, string];
-		return { kind: "remove", domain, label };
+		return { op: "remove", domain, label };
 	}
 
-	return { kind: "error", message: `Unknown /credential subcommand "${sub}". ${USAGE}` };
+	return { error: `Unknown /credential subcommand "${sub}". ${USAGE}` };
 }
 
 /**
@@ -70,12 +69,12 @@ export function registerCredentialCommand(pi: ExtensionAPI, vault: CredentialVau
 		handler: async (args, ctx) => {
 			const parsed = parseCredentialCommand(args);
 
-			if (parsed.kind === "error") {
-				ctx.ui.notify(parsed.message, "error");
+			if ("error" in parsed) {
+				ctx.ui.notify(parsed.error, "error");
 				return;
 			}
 
-			if (parsed.kind === "list") {
+			if (parsed.op === "list") {
 				const creds = await vault.list();
 				if (creds.length === 0) {
 					ctx.ui.notify("No stored credentials.", "info");
@@ -86,14 +85,14 @@ export function registerCredentialCommand(pi: ExtensionAPI, vault: CredentialVau
 				return;
 			}
 
-			if (parsed.kind === "remove") {
+			if (parsed.op === "remove") {
 				await vault.remove(parsed.domain, parsed.label);
 				persistIndex(await vault.list());
 				ctx.ui.notify(`Removed credential ${parsed.domain} / ${parsed.label}.`, "info");
 				return;
 			}
 
-			// parsed.kind === "add"
+			// parsed.op === "add"
 			const secret = process.env.ORPHUS_VAULT_SECRET;
 			if (!secret) {
 				ctx.ui.notify(
