@@ -14,10 +14,14 @@ if (process.env.ORPHUS_TEST_LAZY_IMPORT_SENTINEL === "1") {
 	process.env.ORPHUS_WEB_ACCESS_HEAVY_IMPORTED = "1";
 }
 import { registerWebSearchFeatures } from "./web-search-features.js";
+import { BrowserManager } from "./browser-manager.js";
+import { registerBrowserTool } from "./browser-tool.js";
 
 export default function (pi: ExtensionAPI) {
 	const initConfig = loadConfigForExtensionInit();
 	registerWebSearchFeatures(pi, initConfig);
+	const browserManager = new BrowserManager();
+	registerBrowserTool(pi, browserManager);
 	pi.registerCommand("curator", {
 		description: "Toggle or configure the search curator workflow",
 		handler: async (args, ctx) => {

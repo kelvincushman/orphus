@@ -342,6 +342,25 @@ export default function webAccess(pi: ExtensionAPI) {
 	});
 
 	pi.registerTool({
+		name: "browser",
+		label: "Browser",
+		description:
+			"Drive a live Chrome to see and operate a real web page: open a URL, read the page (text/dom/accessibility/screenshot), click, type, and close. Sense → act → verify: after acting, read again to confirm. Requires ORPHUS_ENABLE_BROWSER=1.",
+		promptSnippet:
+			"Use to interact with a live page (click/type/navigate) when fetch_content is not enough. Read after every act to verify.",
+		parameters: Type.Object({
+			action: Type.String({ enum: ["open", "read", "click", "type", "wait_for", "close"], description: "What to do" }),
+			handle: Type.Optional(Type.String({ description: 'Browser instance name (default: "default")' })),
+			url: Type.Optional(Type.String({ description: "URL for open" })),
+			selector: Type.Optional(Type.String({ description: "CSS selector for click" })),
+			text: Type.Optional(Type.String({ description: "Text for type" })),
+			as: Type.Optional(Type.String({ enum: ["text", "dom", "accessibility", "screenshot"], description: "Read channel (default: text)" })),
+		}),
+		execute: (...args) => executeHeavyTool(loadHeavy, "browser", args),
+		renderResult: (...args) => renderHeavyToolResult(loadedHeavy?.heavy ?? null, "browser", args),
+	});
+
+	pi.registerTool({
 		name: "code_search",
 		label: "Code Search",
 		description: "Search for code examples, documentation, and API references. Returns relevant code snippets and docs from GitHub, Stack Overflow, and official documentation. Use for any programming question — API usage, library examples, debugging help.",
