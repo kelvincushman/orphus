@@ -54,6 +54,9 @@ export interface TranscriptionBackend {
 	onLevel(listener: (level: number) => void): () => void;
 }
 
+/** How long `dispose` waits for the backend's acknowledgement before moving on. */
+export const DISPOSE_ACK_TIMEOUT_MS = 2_000;
+
 export class TranscribeBackendError extends Error {
 	readonly code: string;
 	constructor(code: string, message: string) {
@@ -149,8 +152,16 @@ export class ProtocolBackend implements TranscriptionBackend {
 
 	async dispose(): Promise<void> {
 		if (!this.closedReason) {
-			// Best effort: a backend that has already died owes us nothing.
-			await this.request({ kind: "dispose", id: this.newId() }).catch(() => undefined);
+			// Best effort, and bounded: a backend that has already died owes us
+			// nothing, and one that answers `ready` but ignores `dispose` must not
+			// hang teardown — the fallback ladder is waiting behind this await.
+			const acknowledged = this.request({ kind: "dispose", id: this.newId() }).catch(() => undefined);
+			await Promise.race([
+				acknowledged,
+				new Promise<void>((resolve) => {
+					setTimeout(resolve, DISPOSE_ACK_TIMEOUT_MS).unref?.();
+				}),
+			]);
 		}
 		this.handleClose("disposed");
 		await this.channel.close();
@@ -184,10 +195,16 @@ export class ProtocolBackend implements TranscriptionBackend {
 
 	private handleLine(line: string): void {
 		const { messages, errors } = this.decoder.push(line);
-		for (const raw of errors) this.failAll(new TranscribeBackendError("protocol_error", `Unparsable line: ${raw}`));
+		// A line that is not a protocol message is a backend to stop trusting,
+		// not one to keep reading past: close it, which rejects everything
+		// in flight and lets the fallback ladder try the next channel.
+		for (const raw of errors) this.protocolViolation(`unparsable line: ${raw}`);
 		for (const message of messages) {
 			const response = parseResponse(message);
-			if (!response) continue;
+			if (!response) {
+				this.protocolViolation(`invalid message: ${JSON.stringify(message)?.slice(0, 200)}`);
+				continue;
+			}
 			if (response.kind === "level") {
 				for (const listener of [...this.levelListeners]) listener(response.level);
 				continue;
@@ -210,6 +227,13 @@ export class ProtocolBackend implements TranscriptionBackend {
 		this.closedReason = reason;
 		this.failAll(new TranscribeBackendError("internal", `Backend stopped: ${reason}`));
 		this.levelListeners.clear();
+	}
+
+	/** A malformed message is terminal: mark the backend closed and drop the channel. */
+	private protocolViolation(detail: string): void {
+		if (this.closedReason) return;
+		this.handleClose(`protocol violation: ${detail}`);
+		void Promise.resolve(this.channel.close()).catch(() => undefined);
 	}
 
 	private failAll(error: Error): void {

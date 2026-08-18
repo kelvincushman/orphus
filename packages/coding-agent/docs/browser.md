@@ -119,7 +119,10 @@ the approval prompt. A refusal names the label and the reason and nothing else.
 
 On `close`, on cancellation, and on session shutdown, every registered resource
 — the Chrome process, the DevTools connection, the throwaway profile directory —
-has its teardown attempted and awaited, and the registry is emptied.
+has its teardown attempted and awaited, and the registry is emptied. Killing
+Chrome is bounded: SIGTERM gets a grace period, then SIGKILL gets one more, and
+a process that survives both is reported as a failure rather than awaited
+forever — a wedged browser cannot hang session shutdown.
 
 Orphus reports what that pass did rather than promising a result it cannot
 guarantee:

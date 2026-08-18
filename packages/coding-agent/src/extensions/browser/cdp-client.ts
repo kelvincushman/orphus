@@ -59,6 +59,7 @@ export class CdpClient {
 	private readonly setTimer: NonNullable<CdpClientOptions["setTimer"]>;
 	private readonly pending = new Map<number, PendingCall>();
 	private readonly listeners = new Map<string, Set<(params: Record<string, unknown>) => void>>();
+	private readonly onceWaiters = new Set<(error: Error) => void>();
 	private nextId = 1;
 	private closedReason: string | undefined;
 
@@ -79,21 +80,27 @@ export class CdpClient {
 		if (this.closedReason) return Promise.reject(new Error(`Browser connection closed: ${this.closedReason}`));
 		const id = this.nextId++;
 		return new Promise<Record<string, unknown>>((resolve, reject) => {
-			const timer = this.setTimer(() => {
-				if (!this.pending.delete(id)) return;
-				reject(new Error(`${method} timed out after ${this.timeoutMs}ms`));
-			}, this.timeoutMs);
+			// Register before arming: `setTimer` is injectable, and a timer that
+			// fires synchronously must find the pending call, not race its creation.
+			let timer: { cancel(): void } | undefined;
 			this.pending.set(id, {
 				method,
 				resolve: (result) => {
-					timer.cancel();
+					timer?.cancel();
 					resolve(result);
 				},
 				reject: (error) => {
-					timer.cancel();
+					timer?.cancel();
 					reject(error);
 				},
 			});
+			timer = this.setTimer(() => {
+				if (!this.pending.delete(id)) return;
+				reject(new Error(`${method} timed out after ${this.timeoutMs}ms`));
+			}, this.timeoutMs);
+			// A synchronous settle (a fake transport, a sync timer) ran before the
+			// timer handle existed; don't leave its timer armed.
+			if (!this.pending.has(id)) timer.cancel();
 			this.transport.send(
 				JSON.stringify({ id, method, ...(params ? { params } : {}), ...(sessionId ? { sessionId } : {}) }),
 			);
@@ -110,18 +117,25 @@ export class CdpClient {
 		};
 	}
 
-	/** Resolve when `method` fires, or reject on timeout. */
+	/** Resolve when `method` fires; reject on timeout or when the connection closes. */
 	once(method: string, timeoutMs = this.timeoutMs): Promise<Record<string, unknown>> {
+		if (this.closedReason) return Promise.reject(new Error(`Browser connection closed: ${this.closedReason}`));
 		return new Promise((resolve, reject) => {
-			const timer = this.setTimer(() => {
+			// Listener first, timer second: a synchronously-firing injected timer
+			// must find `unsubscribe` initialized, not a temporal dead zone.
+			let timer: { cancel(): void } | undefined;
+			const settle = (outcome: () => void) => {
+				timer?.cancel();
 				unsubscribe();
-				reject(new Error(`Timed out waiting for ${method}`));
-			}, timeoutMs);
-			const unsubscribe = this.on(method, (params) => {
-				timer.cancel();
-				unsubscribe();
-				resolve(params);
-			});
+				this.onceWaiters.delete(fail);
+				outcome();
+			};
+			const fail = (error: Error) => settle(() => reject(error));
+			const unsubscribe = this.on(method, (params) => settle(() => resolve(params)));
+			// Waiters are settled by `handleClose` too: an event that can no longer
+			// arrive should reject with the close reason now, not a timeout later.
+			this.onceWaiters.add(fail);
+			timer = this.setTimer(() => fail(new Error(`Timed out waiting for ${method}`)), timeoutMs);
 		});
 	}
 
@@ -164,6 +178,7 @@ export class CdpClient {
 		const failure = new Error(`Browser connection closed: ${this.closedReason}`);
 		for (const call of this.pending.values()) call.reject(failure);
 		this.pending.clear();
+		for (const fail of [...this.onceWaiters]) fail(failure);
 		this.listeners.clear();
 	}
 }

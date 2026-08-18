@@ -149,12 +149,16 @@ export class TermDomSelectorHost implements SelectorHost {
 		});
 	}
 
-	/** Hand the terminal back. Idempotent, and awaited by every caller. */
+	/** Hand the terminal back. Idempotent per attachment, and awaited by every caller. */
 	dispose(): Promise<void> {
 		const dom = this.dom;
-		if (!dom) return Promise.resolve();
+		if (!dom) return this.disposing ?? Promise.resolve();
+		// The latch clears once teardown completes, so a host that runs a second
+		// selection can release that attachment too instead of returning the
+		// first teardown's settled promise forever.
 		this.disposing ??= dom.dispose().finally(() => {
 			this.dom = undefined;
+			this.disposing = undefined;
 		});
 		return this.disposing;
 	}

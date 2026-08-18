@@ -23,6 +23,8 @@ export interface BrowserSessionOptions {
 	connect?: (url: string) => Promise<CdpTransport>;
 	/** Injected for tests. Defaults to removing the throwaway profile directory. */
 	removeProfileDir?: (path: string) => Promise<void>;
+	/** How long to wait after each kill signal before escalating or reporting. */
+	killGraceMs?: number;
 }
 
 /**
@@ -89,8 +91,16 @@ export class BrowserSession {
 		// releases newest-first.
 		this.registry.register("chrome profile directory", () => removeProfileDir(launched.userDataDir));
 		this.registry.register("chrome process", async () => {
+			// Bounded, twice: cleanup is documented to *report* a kill that did not
+			// take, and an unbounded await can never report. SIGTERM gets a grace
+			// period, SIGKILL gets one more, and a process still alive after both
+			// is a failure the registry records rather than a shutdown that hangs.
+			const grace = this.options.killGraceMs ?? 5_000;
 			launched.handle.kill("SIGTERM");
-			await launched.handle.exited;
+			if (await exitedWithin(launched.handle, grace)) return;
+			launched.handle.kill("SIGKILL");
+			if (await exitedWithin(launched.handle, grace)) return;
+			throw new Error(`Chrome (pid ${launched.handle.pid ?? "unknown"}) did not exit after SIGKILL`);
 		});
 
 		try {
@@ -109,6 +119,7 @@ export class BrowserSession {
 			// `open` spawns another one beside it.
 			await this.registry.release();
 			this.client = undefined;
+			this.launched = undefined;
 			throw error;
 		}
 	}
@@ -139,4 +150,14 @@ export class BrowserSession {
 		this.launched = undefined;
 		return report;
 	}
+}
+
+/** True when the process exits inside the window; false says "still running". */
+function exitedWithin(handle: LaunchedChrome["handle"], ms: number): Promise<boolean> {
+	return Promise.race([
+		handle.exited.then(() => true),
+		new Promise<boolean>((resolve) => {
+			setTimeout(() => resolve(false), ms).unref?.();
+		}),
+	]);
 }

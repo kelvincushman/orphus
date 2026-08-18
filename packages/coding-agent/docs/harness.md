@@ -76,10 +76,14 @@ follows an errored or abandoned one is the next attempt of the same turn.
 
 ### `orphus.tool.audit.v1`
 
-One per tool call, recording the arguments the tool *actually ran with* — that
-is, after mutable `tool_call` hooks. Also records `mutatedPaths` (what a hook
-changed), the outcome (`executed`, `blocked`, `invalid_arguments`), and the
-reason a call was stopped. Credential-shaped argument values are redacted.
+Written when a tool call has something to say beyond the call itself: a hook
+mutated the arguments, or the call was stopped (`blocked`,
+`invalid_arguments`). A successful call whose arguments no hook touched writes
+no record — the tool call in the transcript already *is* that record, and
+duplicating it per call would bury the signal. When written, it records the
+arguments the tool *actually ran with* — after mutable `tool_call` hooks —
+plus `mutatedPaths` (what a hook changed), the outcome, and the reason a call
+was stopped. Credential-shaped argument values are redacted.
 
 Unlike the provider request record, a failed audit write does not fail the tool:
 observation must not take down the operation it observes.

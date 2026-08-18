@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { join } from "node:path";
+import type { Usage } from "@earendil-works/pi-ai";
 import type { ClockCapability, FileSystemCapability } from "./capabilities/index.ts";
 
 /** Custom session entry type for the exact request delivered to a provider. */
@@ -62,7 +63,7 @@ export interface ProviderResponseRecord {
 	status?: number;
 	/** Provider stop reason, e.g. `stop`, `toolUse`, `length`, `error`, `aborted`. */
 	finishReason?: string;
-	usage?: unknown;
+	usage?: Usage;
 	/** Milliseconds from dispatch to settlement, on the monotonic clock. */
 	durationMs: number;
 	error?: NormalizedProviderError;
@@ -119,7 +120,15 @@ export function redactCredentialFields(value: unknown): { value: unknown; redact
 		const result: Record<string, unknown> = {};
 		for (const [key, item] of Object.entries(node as Record<string, unknown>)) {
 			const childPath = path ? `${path}.${key}` : key;
-			if (CREDENTIAL_KEY_PATTERN.test(key) && typeof item !== "object") {
+			// Strings and containers under a credential-shaped key go, wholesale:
+			// `authorization: { value: "…" }` is still a credential, and
+			// over-redacting a container is safe where recursing past it is not.
+			// Numbers and booleans stay — a secret is never a number, and
+			// `max_tokens` matches the key pattern in nearly every real payload.
+			const credentialShaped =
+				CREDENTIAL_KEY_PATTERN.test(key) &&
+				(typeof item === "string" || (typeof item === "object" && item !== null));
+			if (credentialShaped) {
 				redactedPaths.push(childPath);
 				result[key] = REDACTED;
 				continue;
@@ -220,7 +229,7 @@ export class ProviderAuditRecorder {
 	 * `aborted` completes the turn; anything else leaves it open so the next
 	 * request records as the following attempt.
 	 */
-	recordResponse(input: { finishReason?: string; usage?: unknown; error?: unknown }): void {
+	recordResponse(input: { finishReason?: string; usage?: Usage; error?: unknown }): void {
 		const pending = this.pending;
 		this.pending = undefined;
 		const failed = input.error !== undefined || input.finishReason === "error" || input.finishReason === "aborted";

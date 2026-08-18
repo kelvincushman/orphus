@@ -176,12 +176,11 @@ export function createExtensionRuntime(): ExtensionRuntime {
 				return false;
 			}
 			recordMapUndo(pendingTools, registrationKey(extension, name));
-			if (inTransaction()) {
-				const previousActive = pendingActiveToolNames ? [...pendingActiveToolNames] : undefined;
-				recordUndo(() => {
-					pendingActiveToolNames = previousActive;
-				});
-			}
+			// `shouldStage` above implies an open transaction.
+			const previousActive = pendingActiveToolNames ? [...pendingActiveToolNames] : undefined;
+			recordUndo(() => {
+				pendingActiveToolNames = previousActive;
+			});
 			pendingTools.set(registrationKey(extension, name), { extension, name, registration });
 			if (pendingActiveToolNames && !pendingActiveToolNames.includes(name)) pendingActiveToolNames.push(name);
 			return true;

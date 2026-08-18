@@ -12,8 +12,8 @@ interface SettingsManagerUiAccessors {
 	setClearOnShrink(enabled: boolean): void;
 	getShowTerminalProgress(): boolean;
 	setShowTerminalProgress(enabled: boolean): void;
-	/** `tui.backend`, unvalidated: the resolver reports and ignores an unknown value. */
-	getTuiBackend(): unknown;
+	/** `tui.backend` as written, unvalidated: the resolver reports and ignores an unknown value. */
+	getTuiBackend(): string | undefined;
 	getImageAutoResize(): boolean;
 	setImageAutoResize(enabled: boolean): void;
 	getBlockImages(): boolean;
@@ -100,7 +100,10 @@ const uiAccessors: SettingsManagerUiAccessors = {
 	},
 
 	getTuiBackend() {
-		return settingsInternals(this).settings.tui?.backend;
+		// User-authored JSON: the declared union is aspirational, so anything
+		// that is not a string is treated as unset rather than trusted.
+		const backend: unknown = settingsInternals(this).settings.tui?.backend;
+		return typeof backend === "string" ? backend : undefined;
 	},
 
 	setShowTerminalProgress(enabled) {

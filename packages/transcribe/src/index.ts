@@ -52,7 +52,14 @@ export default function transcribeExtension(pi: ExtensionAPI): void {
 	const paths = transcribePaths();
 
 	const resolveBackend = async (ctx: ExtensionContext): Promise<TranscriptionBackend | undefined> => {
-		settings ??= (await readSettings(paths.settingsPath)).settings;
+		if (!settings) {
+			const stored = await readSettings(paths.settingsPath);
+			// A rejected existing file — corrupt, or a future version — must be
+			// said out loud before setup runs again, or the user watches their
+			// configuration silently vanish.
+			if (stored.warning) ctx.ui.notify(stored.warning, "warning");
+			settings = stored.settings;
+		}
 		if (!settings) {
 			settings = await runFirstRunSetup(ctx, paths);
 			if (!settings) return undefined;
@@ -107,6 +114,8 @@ export default function transcribeExtension(pi: ExtensionAPI): void {
 		},
 	});
 
+	// The cast is load-bearing: pi-tui's `KeyId` union does not name ctrl+alt
+	// chords, but the runtime keybinding parser accepts them.
 	pi.registerShortcut(DEFAULT_SHORTCUT as never, {
 		description: "Start or stop dictation",
 		handler: async (ctx) => {

@@ -22,19 +22,15 @@ export interface FakeCdpTransport extends CdpTransport {
 	readonly closed: boolean;
 }
 
-/**
- * A CDP transport that answers from the test rather than from Chrome. Every
- * browser test that is not a real-Chrome smoke test runs on this.
- */
-/**
- * Target attach, which every session performs before it can touch a page.
- * Answered by default so a test only scripts the commands it cares about.
- */
 export type FakeCdpHandler = (
 	params: Record<string, unknown>,
 	emit: (method: string, eventParams?: Record<string, unknown>) => void,
 ) => Record<string, unknown>;
 
+/**
+ * Target attach, which every session performs before it can touch a page.
+ * Answered by default so a test only scripts the commands it cares about.
+ */
 export const DEFAULT_TARGET_HANDLERS: Record<string, FakeCdpHandler> = {
 	"Target.createTarget": () => ({ targetId: "target-1" }),
 	"Target.attachToTarget": () => ({ sessionId: "session-1" }),
@@ -47,6 +43,10 @@ export const DEFAULT_TARGET_HANDLERS: Record<string, FakeCdpHandler> = {
 	},
 };
 
+/**
+ * A CDP transport that answers from the test rather than from Chrome. Every
+ * browser test that is not a real-Chrome smoke test runs on this.
+ */
 export function createFakeCdpTransport(options?: {
 	/** Auto-answer commands by method. Anything unhandled waits for an explicit reply. */
 	handlers?: Record<string, FakeCdpHandler>;

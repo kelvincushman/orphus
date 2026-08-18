@@ -65,11 +65,22 @@ function parseRegistry(raw: string): RegistryEntry[] {
 		return [];
 	}
 	if (!Array.isArray(parsed)) return [];
-	return parsed.filter((entry): entry is RegistryEntry => {
+	const valid = parsed.filter((entry): entry is RegistryEntry => {
 		if (typeof entry !== "object" || entry === null) return false;
 		const candidate = entry as Partial<RegistryEntry>;
-		return typeof candidate.label === "string" && typeof candidate.origin === "string";
+		if (typeof candidate.label !== "string" || typeof candidate.origin !== "string") return false;
+		// The username is typed into a page verbatim; a non-string would land as
+		// "[object Object]" in a login form.
+		return candidate.username === undefined || typeof candidate.username === "string";
 	});
+	// The label is the key — it is what `reveal` hands to the keychain, which
+	// holds one secret per label. A duplicate row cannot name a second secret,
+	// so the first occurrence wins and later ones are dropped.
+	const byLabel = new Map<string, RegistryEntry>();
+	for (const entry of valid) {
+		if (!byLabel.has(entry.label)) byLabel.set(entry.label, entry);
+	}
+	return [...byLabel.values()];
 }
 
 /**

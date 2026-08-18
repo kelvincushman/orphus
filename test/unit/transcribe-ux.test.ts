@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, statSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, test } from "vitest";
@@ -122,6 +122,38 @@ test("a cancel during transcription discards the transcript that arrives afterwa
 	assert.deepEqual(ui.inserted, []);
 });
 
+test("a second toggle during a slow backend resolve does not start recording twice", async () => {
+	// `resolveBackend` can be first-run setup and a model download; the state is
+	// still "idle" for all of it, and the shortcut can be pressed again.
+	const channel = createFakeChannel();
+	const backend = new ProtocolBackend(channel);
+	await backend.initialize({ modelPath: "/models/m.gguf", language: "en", sampleRate: 16_000 });
+	let release: (() => void) | undefined;
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const ui = recordingUi();
+	const subject = new TranscribeController({
+		ui,
+		resolveBackend: async () => {
+			await gate;
+			return backend;
+		},
+	});
+
+	const first = subject.toggle();
+	const second = subject.toggle();
+	release?.();
+	await Promise.all([first, second]);
+
+	assert.equal(subject.state, "recording");
+	assert.equal(
+		channel.requests.filter((request) => request.kind === "startRecording").length,
+		1,
+		"one keypress race must not become two recordings",
+	);
+});
+
 test("declining first-run setup starts nothing", async () => {
 	const { subject, ui } = await controller({ resolveBackend: async () => undefined });
 	await subject.toggle();
@@ -163,8 +195,34 @@ test("settings are written atomically and owner-only", async () => {
 
 	assert.equal(statSync(path).mode & 0o777, 0o600);
 	assert.deepEqual((await readSettings(path)).settings, settings);
+	assert.equal((await readFile(path, "utf8")).endsWith("\n"), true);
 	// No temporary file is left behind next to it.
-	assert.deepEqual((await readFile(path, "utf8")).endsWith("\n"), true);
+	assert.deepEqual(await readdir(join(dir, "nested")), ["transcribe.json"]);
+});
+
+test("a planted file at the old predictable temp path is never written through", async () => {
+	// The temp name was once `<path>.<pid>.tmp` — predictable enough to
+	// pre-create as a symlink and have the settings written through it. The
+	// name is random now and created with `wx`; the planted link must survive
+	// untouched, and its target must stay empty.
+	const dir = scratch();
+	const path = join(dir, "transcribe.json");
+	const victim = join(dir, "victim.txt");
+	await writeFile(victim, "", "utf8");
+	const planted = `${path}.${process.pid}.tmp`;
+	await symlink(victim, planted);
+
+	await writeSettings(path, {
+		version: 1,
+		preferredLanguages: [],
+		transcriptionLanguage: "auto",
+		microphone: { type: "system-default" },
+		model: { source: "catalog", id: "m", path: "/m.gguf" },
+	});
+
+	assert.equal(await readFile(victim, "utf8"), "", "the symlink target must not receive the settings");
+	assert.ok((await lstat(planted)).isSymbolicLink(), "the planted link is not consumed or replaced");
+	assert.ok((await readSettings(path)).settings, "the real settings landed beside it");
 });
 
 test("a malformed or future settings file is reported rather than silently discarded", async () => {
@@ -185,6 +243,46 @@ test("a malformed or future settings file is reported rather than silently disca
 	await writeFile(path, "{ not json", "utf8");
 	assert.ok((await readSettings(path)).warning);
 	assert.equal((await readSettings(join(dir, "absent.json"))).warning, undefined, "no file is not an error");
+});
+
+test("a rejected settings file is reported before setup runs again, not silently discarded", async () => {
+	const dir = scratch();
+	await writeFile(join(dir, "transcribe.json"), "{ not json", "utf8");
+
+	const previous = process.env.ORPHUS_CODING_AGENT_DIR;
+	process.env.ORPHUS_CODING_AGENT_DIR = dir;
+	try {
+		const { default: transcribeExtension } = await import("../../packages/transcribe/src/index.js");
+		const commands = new Map<string, { handler: (args: string, ctx: unknown) => Promise<void> }>();
+		transcribeExtension({
+			registerCommand: (name: string, options: { handler: never }) => commands.set(name, options),
+			registerShortcut: () => {},
+			on: () => {},
+		} as never);
+
+		const notices: string[] = [];
+		const ctx = {
+			hasUI: false,
+			ui: {
+				notify: (message: string) => notices.push(message),
+				// Declining the first question ends setup without a backend.
+				input: async () => undefined,
+				select: async () => undefined,
+				confirm: async () => false,
+				pasteToEditor: () => {},
+				setStatus: () => {},
+			},
+		};
+		await commands.get("transcribe")?.handler("", ctx);
+
+		assert.ok(
+			notices.some((notice) => /could not be parsed/.test(notice)),
+			`the corrupt settings file must be reported; saw: ${JSON.stringify(notices)}`,
+		);
+	} finally {
+		if (previous === undefined) delete process.env.ORPHUS_CODING_AGENT_DIR;
+		else process.env.ORPHUS_CODING_AGENT_DIR = previous;
+	}
 });
 
 test("every catalog entry is pinned to a revision, a size, a checksum, and a licence link", () => {
@@ -295,6 +393,22 @@ test("a verified download lands, and a second call reuses it without asking agai
 	assert.equal(requests, 1);
 	assert.equal(prompts, 1, "an already-verified model is not re-requested");
 	assert.equal(await hashFile(modelPath(dir, pinned)), digest);
+});
+
+test("a sink that cannot be written fails the download instead of crashing or hanging", async () => {
+	const dir = scratch();
+	const model = { ...CATALOG_MODELS[0], size: 3, sha256: "0".repeat(64) };
+	// Occupy the partial path with a directory: the write stream cannot open it,
+	// and that error must come back as `failed`, not as an unhandled "error".
+	await mkdir(`${modelPath(dir, model)}.partial`, { recursive: true });
+
+	const result = await ensureModelDownloaded({
+		model,
+		modelsDir: dir,
+		consent: async () => true,
+		fetchImpl: async () => new Response(new Uint8Array([1, 2, 3])),
+	});
+	assert.equal(result.outcome, "failed");
 });
 
 test("progress is reported against the pinned size", async () => {

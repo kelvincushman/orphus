@@ -63,14 +63,17 @@ export class PiSelectorHost implements SelectorHost {
 		});
 	}
 
-	/** Stop the TUI and release the terminal. Idempotent. */
+	/** Stop the TUI and release the terminal. Idempotent per attachment. */
 	dispose(): Promise<void> {
 		this.disposing ??= (async () => {
 			this.selector?.dispose();
 			this.ui?.stop();
 			this.selector = undefined;
 			this.ui = undefined;
-		})();
+		})().finally(() => {
+			// Cleared so a later selection's TUI is stopped rather than skipped.
+			this.disposing = undefined;
+		});
 		return this.disposing;
 	}
 }

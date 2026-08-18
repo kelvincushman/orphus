@@ -62,7 +62,7 @@ right names is not necessarily the right library.
 
 ## Models
 
-None ship inside Orphus. the package's `src/catalog.ts` carries four curated entries, each
+None ship inside Orphus. The package's `src/catalog.ts` carries four curated entries, each
 pinned to a commit with an exact size, SHA-256, and licence link. A download
 asks first, is verified on size then hash, and a file failing either is deleted
 rather than left where something might load it.

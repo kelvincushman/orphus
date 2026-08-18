@@ -56,7 +56,11 @@ export function describeDenial(denial: CredentialDenial, label: string): string 
 /** Normalize a URL to a comparable `scheme://host[:port]` origin, or undefined. */
 export function originOf(url: string): string | undefined {
 	try {
-		return new URL(url).origin;
+		const origin = new URL(url).origin;
+		// Opaque origins — file:, data:, custom schemes — all serialize to the
+		// string "null". Treating that as an origin would make one allowlist
+		// entry match every such page, so it is no origin at all here.
+		return origin === "null" ? undefined : origin;
 	} catch {
 		return undefined;
 	}

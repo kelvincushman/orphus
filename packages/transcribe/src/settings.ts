@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { chmod, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
@@ -106,9 +107,16 @@ export async function readSettings(path: string): Promise<SettingsReadResult> {
  */
 export async function writeSettings(path: string, settings: TranscribeSettings): Promise<void> {
 	await mkdir(dirname(path), { recursive: true, mode: 0o700 });
-	const temporary = `${path}.${process.pid}.tmp`;
+	// An unpredictable name created exclusively: `wx` refuses to open a path
+	// that already exists, so a pre-planted file or symlink at the temporary
+	// path is an error rather than a write through it.
+	const temporary = `${path}.${randomUUID()}.tmp`;
 	try {
-		await writeFile(temporary, `${JSON.stringify(settings, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
+		await writeFile(temporary, `${JSON.stringify(settings, null, 2)}\n`, {
+			encoding: "utf8",
+			mode: 0o600,
+			flag: "wx",
+		});
 		await chmod(temporary, 0o600);
 		await rename(temporary, path);
 	} catch (error) {

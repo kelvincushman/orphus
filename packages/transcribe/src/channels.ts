@@ -136,6 +136,10 @@ export async function openHelperChannel(paths: ChannelPaths): Promise<BackendCha
 		notifyClose(signal ? `helper killed by ${signal}${detail}` : `helper exited with code ${code}${detail}`);
 	});
 	child.once("error", (error) => notifyClose(`helper failed to start: ${error.message}`));
+	// A write can race the helper's exit and land on a closed pipe. Without a
+	// listener that EPIPE is an uncaught exception in the host; with one it is
+	// just another way the channel closed.
+	child.stdin.on("error", (error) => notifyClose(`helper stdin failed: ${error.message}`));
 
 	return {
 		kind: "helper",

@@ -21,6 +21,18 @@ interface Appended {
 	data: unknown;
 }
 
+/** A complete pi-ai `Usage`, since the record type carries the real thing. */
+function usage(tokens: { input: number; output?: number }) {
+	return {
+		input: tokens.input,
+		output: tokens.output ?? 0,
+		cacheRead: 0,
+		cacheWrite: 0,
+		totalTokens: tokens.input + (tokens.output ?? 0),
+		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+	};
+}
+
 function createSink(options?: { sessionDir?: string | null; leafId?: string | null }) {
 	const appended: Appended[] = [];
 	return {
@@ -135,7 +147,7 @@ test("correlates retries within a turn and opens a new turn after a completed re
 	await dispatch();
 	recorder.recordResponse({ finishReason: "error", error: new Error("overloaded") });
 	await dispatch();
-	recorder.recordResponse({ finishReason: "stop", usage: { input: 1 } });
+	recorder.recordResponse({ finishReason: "stop", usage: usage({ input: 1 }) });
 	await dispatch();
 	recorder.recordResponse({ finishReason: "stop" });
 
@@ -165,13 +177,13 @@ test("response records carry status, finish reason, usage, and duration", async 
 	await recorder.recordRequest({ payload: {}, provider: "p", model: "m", api: "a" });
 	recorder.noteResponseStatus(200);
 	await clock.advance(1234);
-	recorder.recordResponse({ finishReason: "toolUse", usage: { input: 7, output: 9 } });
+	recorder.recordResponse({ finishReason: "toolUse", usage: usage({ input: 7, output: 9 }) });
 
 	const response = appended.at(-1)?.data as Record<string, unknown>;
 	assert.equal(appended.at(-1)?.customType, PROVIDER_RESPONSE_ENTRY);
 	assert.equal(response.status, 200);
 	assert.equal(response.finishReason, "toolUse");
-	assert.deepEqual(response.usage, { input: 7, output: 9 });
+	assert.deepEqual(response.usage, usage({ input: 7, output: 9 }));
 	assert.equal(response.durationMs, 1234);
 });
 
@@ -190,10 +202,26 @@ test("redacts credential-shaped payload fields while hashing the exact body", as
 	assert.equal(record.sha256, createHash("sha256").update(serializeProviderBody(payload), "utf8").digest("hex"));
 });
 
-test("redactCredentialFields leaves ordinary values untouched", () => {
+test("redactCredentialFields redacts strings and containers, and leaves the rest", () => {
 	const { value, redactedPaths } = redactCredentialFields({ token: "t", tokens: ["a"], tokenizer: "keep", n: 1 });
-	assert.deepEqual(value, { token: REDACTED, tokens: ["a"], tokenizer: "keep", n: 1 });
-	assert.deepEqual(redactedPaths, ["token"]);
+	// An array under a credential-shaped key is a list of credentials.
+	assert.deepEqual(value, { token: REDACTED, tokens: REDACTED, tokenizer: "keep", n: 1 });
+	assert.deepEqual(redactedPaths, ["token", "tokens"]);
+});
+
+test("a credential inside an object under a credential-shaped key is not missed", () => {
+	const { value, redactedPaths } = redactCredentialFields({ authorization: { value: "Bearer secret" } });
+	assert.deepEqual(value, { authorization: REDACTED });
+	assert.deepEqual(redactedPaths, ["authorization"]);
+	assert.ok(!JSON.stringify(value).includes("Bearer secret"));
+});
+
+test("numeric fields whose names merely resemble credentials are kept", () => {
+	// `max_tokens` matches the key pattern and appears in nearly every payload;
+	// redacting it would degrade every stored body for no secret protected.
+	const { value, redactedPaths } = redactCredentialFields({ max_tokens: 4096, stream: true, token: null });
+	assert.deepEqual(value, { max_tokens: 4096, stream: true, token: null });
+	assert.deepEqual(redactedPaths, []);
 });
 
 test("records nothing when recording is disabled, but still returns a request id", async () => {

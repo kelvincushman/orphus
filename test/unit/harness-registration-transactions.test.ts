@@ -188,3 +188,29 @@ test("a rollback does not fire the batch's own tool refresh", async () => {
 	// Staged registrations never reached the live registry, so nothing needs resyncing.
 	assert.equal(readers.refreshes, 0);
 });
+
+test("a rollback of direct-written registrations resyncs the live tool registry", async () => {
+	// The counterpart of the staged case above: a bundled extension writes
+	// straight through to the live maps, so undoing it must be followed by a
+	// refresh — a regression in `touchedLiveTools` leaves stale live state.
+	const runtime = createExtensionRuntime();
+	const candidate = extension("bundled", "bundled");
+	const readers = stubRuntimeReaders(runtime, [candidate]);
+	const pi = createExtensionAPI(candidate, runtime, "/tmp", createEventBus());
+
+	await assert.rejects(
+		() =>
+			runResourceRegistrationBatch(runtime, async () => {
+				pi.registerTool(noopTool("live-written"));
+				throw new Error("no");
+			}),
+		/no/,
+	);
+
+	assert.equal(candidate.tools.has("live-written"), false);
+	// Two refreshes: the live registration's own, then the rollback's resync.
+	// The resync is the one under test — without it the count stays at 1 and
+	// the active list still names the undone tool.
+	assert.equal(readers.refreshes, 2);
+	assert.deepEqual(readers.activeTools, [], "the resync ran after the undo, so nothing stays active");
+});

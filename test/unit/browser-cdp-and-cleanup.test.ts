@@ -316,10 +316,69 @@ test("a launch that fails after Chrome spawned kills it instead of stacking brow
 	assert.equal(processes.alive, 0, "the Chrome from the failed attempt must not stay running");
 	assert.equal(session.openResourceCount, 0);
 	assert.deepEqual(removed, ["/tmp/profile-retry-0"]);
+	assert.equal(session.debuggerUrl, undefined, "a dead launch must not report a live-looking endpoint");
 
 	// A retry starts fresh rather than stacking a second browser on a dead first.
 	await session.start();
 	assert.equal(processes.alive, 1);
 	await session.close();
 	assert.equal(processes.alive, 0);
+});
+
+test("a synchronously-firing injected timer cannot hang `send` or break `once`", async () => {
+	// The pathological clock: the timeout callback runs during setTimer itself.
+	const synchronousTimer = (callback: () => void) => {
+		callback();
+		return { cancel: () => {} };
+	};
+	const transport = createFakeCdpTransport();
+	const client = new CdpClient({ transport, timeoutMs: 5, setTimer: synchronousTimer });
+
+	// Without register-before-arm, the timer misses the pending entry and the
+	// command hangs forever instead of rejecting.
+	await assert.rejects(client.send("Debugger.enable"), /Debugger\.enable timed out after 5ms/);
+	// Without listener-before-timer, this is a ReferenceError from the temporal
+	// dead zone rather than the documented timeout.
+	await assert.rejects(client.once("Page.loadEventFired"), /Timed out waiting for Page\.loadEventFired/);
+});
+
+test("close settles `once` waiters with the close reason instead of a late timeout", async () => {
+	const transport = createFakeCdpTransport();
+	// A generous timeout: if close does not settle the waiter, this test hangs
+	// on it rather than passing by accident.
+	const client = new CdpClient({ transport, timeoutMs: 60_000 });
+	const waiting = client.once("Page.loadEventFired");
+	transport.drop("browser exited");
+	await assert.rejects(waiting, /Browser connection closed: browser exited/);
+	await assert.rejects(client.once("Page.loadEventFired"), /Browser connection closed/);
+});
+
+test("close resolves and reports the failure when Chrome ignores every kill signal", async () => {
+	const processes = createFakeProcesses();
+	// A wedged Chrome: kill signals land, the process never exits.
+	const wedged = { pid: 4242, exited: new Promise<never>(() => {}), kill: () => {} };
+	const session = new BrowserSession({
+		processes,
+		executablePath: "/usr/bin/chromium",
+		killGraceMs: 20,
+		launch: async () => ({
+			handle: wedged,
+			webSocketDebuggerUrl: "ws://127.0.0.1:1/devtools",
+			userDataDir: "/tmp/profile-wedged",
+			port: 1,
+		}),
+		connect: async () => createFakeCdpTransport(),
+		removeProfileDir: async () => {},
+	});
+	await session.start();
+
+	const report = await session.close();
+
+	assert.equal(report.attempted, 3, "an unkillable process must not stall the rest of the teardown");
+	assert.deepEqual(
+		report.failures.map((failure) => failure.label),
+		["chrome process"],
+	);
+	assert.match(formatCleanupReport(report) ?? "", /did not exit after SIGKILL/);
+	assert.equal(session.openResourceCount, 0);
 });

@@ -1,10 +1,17 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { readdirSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { Type } from "typebox";
 import { afterEach, test } from "vitest";
+import type { ExtensionAPI } from "../../packages/coding-agent/src/core/extensions/api-types.js";
 import type { ToolDefinition } from "../../packages/coding-agent/src/core/extensions/types.js";
 import { serializeProviderBody } from "../../packages/coding-agent/src/core/provider-audit.js";
-import { createReplayRuntime, type ReplayRuntime } from "../../packages/coding-agent/src/core/replay/index.js";
+import {
+	createReplayRuntime,
+	createScriptedProvider,
+	type ReplayRuntime,
+} from "../../packages/coding-agent/src/core/replay/index.js";
 
 const running: ReplayRuntime[] = [];
 
@@ -118,18 +125,17 @@ test("a hook that rewrites arguments into an invalid shape blocks execution and 
 		extensionFactories: [
 			{
 				name: "argument-corrupter",
-				factory: (pi: {
-					on: (event: string, handler: (event: { input: Record<string, unknown> }) => void) => void;
-				}) => {
+				factory: (pi: ExtensionAPI) => {
 					pi.on("tool_call", (event) => {
-						// The mutable hook contract: mutate `input` in place.
-						event.input.message = { not: "a string" };
+						// The mutable hook contract: mutate `input` in place. The cast is
+						// the point of the test — a hook can write any shape it likes.
+						(event.input as Record<string, unknown>).message = { not: "a string" };
 					});
 				},
 			},
 		],
 		script: [{ toolCalls: [{ id: "call-1", name: "echo", arguments: { message: "valid" } }] }, { text: "done" }],
-	} as never);
+	});
 
 	await runtime.session.prompt("use the tool");
 
@@ -149,17 +155,15 @@ test("a hook that rewrites arguments to a still-valid shape runs, and the audit 
 		extensionFactories: [
 			{
 				name: "argument-rewriter",
-				factory: (pi: {
-					on: (event: string, handler: (event: { input: Record<string, unknown> }) => void) => void;
-				}) => {
+				factory: (pi: ExtensionAPI) => {
 					pi.on("tool_call", (event) => {
-						event.input.message = "rewritten";
+						(event.input as Record<string, unknown>).message = "rewritten";
 					});
 				},
 			},
 		],
 		script: [{ toolCalls: [{ id: "call-1", name: "echo", arguments: { message: "original" } }] }, { text: "done" }],
-	} as never);
+	});
 
 	await runtime.session.prompt("use the tool");
 
@@ -203,16 +207,32 @@ test("a recorded body re-hashes to the hash in its own record", async () => {
 
 	// Replay equivalence: the artifact is self-verifying, so a body read back
 	// from a transcript can be proven to be the one that was sent.
-	for (const record of runtime.providerRequests()) {
+	for (const [index, record] of runtime.providerRequests().entries()) {
 		assert.ok(record.body !== undefined, "small bodies stay inline");
 		assert.equal(createHash("sha256").update(record.body, "utf8").digest("hex"), record.sha256);
 		assert.equal(Buffer.byteLength(record.body, "utf8"), record.byteLength);
-		assert.deepEqual(JSON.parse(record.body), runtime.provider.payloads[0]);
+		assert.deepEqual(JSON.parse(record.body), runtime.provider.payloads[index]);
 	}
 });
 
+test("a boot that fails removes its temporary directory instead of leaking one per failure", async () => {
+	// Only this file creates orphus-replay-* directories, and tests within a
+	// file run sequentially, so a before/after diff of the temp root is exact.
+	const before = new Set(readdirSync(tmpdir()).filter((name) => name.startsWith("orphus-replay-")));
+	const poisoned = new Proxy(
+		{},
+		{
+			ownKeys() {
+				throw new Error("capabilities exploded during boot");
+			},
+		},
+	);
+	await assert.rejects(createReplayRuntime({ capabilities: poisoned as never }), /capabilities exploded during boot/);
+	const leaked = readdirSync(tmpdir()).filter((name) => name.startsWith("orphus-replay-") && !before.has(name));
+	assert.deepEqual(leaked, [], "a failed initialization has no dispose(), so the boot itself must clean up");
+});
+
 test("a failing onPayload ends the scripted turn as an error, not an unhandled rejection", async () => {
-	const { createScriptedProvider } = await import("../../packages/coding-agent/src/core/replay/index.js");
 	const provider = createScriptedProvider([{ text: "never reached" }], { now: () => 0 });
 	const stream = provider.streamSimple(
 		{ provider: "orphus-replay", id: "replay-model", api: "anthropic-messages" } as never,

@@ -69,6 +69,17 @@ function customEntries<T>(entries: SessionEntry[], customType: string): T[] {
  */
 export async function createReplayRuntime(options: ReplayRuntimeOptions = {}): Promise<ReplayRuntime> {
 	const cwd = mkdtempSync(join(tmpdir(), "orphus-replay-"));
+	try {
+		return await assembleReplayRuntime(cwd, options);
+	} catch (error) {
+		// Initialization failed before a runtime — and its `dispose()` — existed,
+		// so the temporary directory is this catch's to remove.
+		rmSync(cwd, { recursive: true, force: true });
+		throw error;
+	}
+}
+
+async function assembleReplayRuntime(cwd: string, options: ReplayRuntimeOptions): Promise<ReplayRuntime> {
 	const agentDir = join(cwd, "agent");
 	mkdirSync(agentDir, { recursive: true });
 

@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "vitest";
-import { handleInspectCommand } from "../../packages/coding-agent/src/cli/inspect-runtime.js";
+import { handleInspectCommand, inspectRuntime } from "../../packages/coding-agent/src/cli/inspect-runtime.js";
 import { createFakeCapabilities } from "../../packages/coding-agent/src/core/capabilities/index.js";
 import {
 	buildRuntimeInspection,
@@ -10,6 +13,7 @@ import {
 	type RuntimeInspectionInput,
 	splitPromptSections,
 } from "../../packages/coding-agent/src/core/runtime-inspection.js";
+import { ProjectTrustStore } from "../../packages/coding-agent/src/core/trust-manager.js";
 
 const SYSTEM_PROMPT = ["You are Orphus.", "", "# Project Context", "project rules", "", "# Skills", "skill list"].join(
 	"\n",
@@ -226,3 +230,48 @@ test("`inspect` declines argv it does not own", async () => {
 	assert.equal(await handleInspectCommand(["--help"]), false);
 	assert.equal(await handleInspectCommand([]), false);
 });
+
+/** Structural: two full resource-loader + session boots, not a slow assertion. */
+const INSPECT_TRUST_BOOT_TIMEOUT_MS = 120_000;
+
+test(
+	"inspection honours project trust: an untrusted project's extension never executes",
+	async () => {
+		// A project whose extension announces itself by side effect the moment it
+		// is loaded — loading it IS executing it, which is what trust gates.
+		const root = mkdtempSync(join(tmpdir(), "orphus-inspect-trust-"));
+		try {
+			const cwd = join(root, "project");
+			const agentDir = join(root, "agent");
+			const sentinel = join(root, "extension-ran");
+			mkdirSync(join(cwd, ".orphus", "extensions"), { recursive: true });
+			mkdirSync(agentDir, { recursive: true });
+			writeFileSync(join(cwd, "AGENTS.md"), "# rules\n");
+			writeFileSync(
+				join(cwd, ".orphus", "extensions", "marker.ts"),
+				[
+					`import { writeFileSync } from "node:fs";`,
+					`writeFileSync(${JSON.stringify(sentinel)}, "loaded");`,
+					`export default function markerExtension() {}`,
+				].join("\n"),
+			);
+
+			// No remembered decision, and inspection has no UI to ask: untrusted.
+			await inspectRuntime({ cwd, agentDir });
+			assert.equal(existsSync(sentinel), false, "an undecided project must not execute its extensions");
+
+			// The same project with a remembered "trusted" decision loads it — which
+			// is also what proves the untrusted half above was not vacuous.
+			new ProjectTrustStore(agentDir).set(cwd, true);
+			const trusted = await inspectRuntime({ cwd, agentDir });
+			assert.equal(existsSync(sentinel), true, "a remembered trust decision is honoured");
+			assert.ok(
+				trusted.extensions.some((extension) => extension.path.includes("marker")),
+				"the trusted run reports the project extension it loaded",
+			);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	},
+	INSPECT_TRUST_BOOT_TIMEOUT_MS,
+);

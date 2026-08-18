@@ -21,6 +21,14 @@ export function isTuiBackendName(value: unknown): value is TuiBackendName {
 export type SessionsLoader = (onProgress?: SessionListProgress) => Promise<SessionInfo[]>;
 
 export interface SessionSelectorRunOptions {
+	/**
+	 * Drives the termDOM host's whole picker. The pi host is the pre-pilot
+	 * `SessionSelectorComponent` unchanged, which keeps its own internal state:
+	 * it reads only the loaders and the rename/delete callbacks, so initial
+	 * state configured on the model shapes termDOM only. That divergence is the
+	 * pilot's deliberate fidelity trade — pi's behaviour must not move while
+	 * termDOM is built beside it.
+	 */
 	model: SessionSelectorModel;
 	/** Sessions rooted at the current working directory. */
 	loadCurrentSessions: SessionsLoader;
@@ -71,7 +79,7 @@ export interface TerminalUiBackend {
 export interface ResolveTuiBackendInput {
 	env?: Record<string, string | undefined>;
 	/** The `tui.backend` setting, if configured. */
-	setting?: unknown;
+	setting?: string;
 }
 
 export interface ResolvedTuiBackend {
@@ -90,22 +98,21 @@ export interface ResolvedTuiBackend {
  * session picker.
  */
 export function resolveTuiBackend(input: ResolveTuiBackendInput = {}): ResolvedTuiBackend {
+	const warnings: string[] = [];
 	const envValue = (input.env ?? process.env)[ENV_TUI_BACKEND]?.trim();
 	if (envValue) {
 		if (isTuiBackendName(envValue)) return { backend: envValue, source: "env" };
-		return {
-			backend: DEFAULT_TUI_BACKEND,
-			source: "default",
-			warning: `Ignoring ${ENV_TUI_BACKEND}="${envValue}": expected "pi" or "termdom".`,
-		};
+		warnings.push(`Ignoring ${ENV_TUI_BACKEND}="${envValue}": expected "pi" or "termdom".`);
 	}
 	if (input.setting !== undefined) {
-		if (isTuiBackendName(input.setting)) return { backend: input.setting, source: "setting" };
-		return {
-			backend: DEFAULT_TUI_BACKEND,
-			source: "default",
-			warning: `Ignoring tui.backend="${String(input.setting)}": expected "pi" or "termdom".`,
-		};
+		if (isTuiBackendName(input.setting)) {
+			return { backend: input.setting, source: "setting", ...withWarning(warnings) };
+		}
+		warnings.push(`Ignoring tui.backend="${input.setting}": expected "pi" or "termdom".`);
 	}
-	return { backend: DEFAULT_TUI_BACKEND, source: "default" };
+	return { backend: DEFAULT_TUI_BACKEND, source: "default", ...withWarning(warnings) };
+}
+
+function withWarning(warnings: string[]): { warning?: string } {
+	return warnings.length > 0 ? { warning: warnings.join(" ") } : {};
 }

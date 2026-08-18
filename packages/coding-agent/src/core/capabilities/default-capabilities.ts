@@ -97,7 +97,10 @@ export const nodeProcesses: ProcessCapability = {
 			child.stderr?.on("data", (chunk: Buffer) => {
 				stderr += chunk.toString();
 			});
-			child.once("exit", (code) => resolve({ code, stdout, stderr }));
+			// "close", not "exit": exit can fire while stdio is still draining (a
+			// grandchild can hold the pipes open), and resolving there loses
+			// trailing output. "close" waits for both streams to end.
+			child.once("close", (code) => resolve({ code, stdout, stderr }));
 			child.once("error", (error) => resolve({ code: null, stdout, stderr: stderr || error.message }));
 		});
 	},

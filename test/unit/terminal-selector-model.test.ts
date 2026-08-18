@@ -223,9 +223,16 @@ test("an unrecognized backend falls back with a warning rather than failing star
 	assert.equal(fromEnv.backend, "pi");
 	assert.match(fromEnv.warning ?? "", /expected "pi" or "termdom"/);
 
-	const fromSetting = resolveTuiBackend({ env: {}, setting: 42 });
+	const fromSetting = resolveTuiBackend({ env: {}, setting: "ncurses" });
 	assert.equal(fromSetting.backend, "pi");
-	assert.match(fromSetting.warning ?? "", /tui\.backend="42"/);
+	assert.match(fromSetting.warning ?? "", /tui\.backend="ncurses"/);
+});
+
+test("a bad env value falls through to a valid setting instead of eclipsing it", () => {
+	const resolved = resolveTuiBackend({ env: { [ENV_TUI_BACKEND]: "ncurses" }, setting: "termdom" });
+	assert.equal(resolved.backend, "termdom");
+	assert.equal(resolved.source, "setting");
+	assert.match(resolved.warning ?? "", /Ignoring ORPHUS_TUI_BACKEND="ncurses"/);
 });
 
 test("keyboard events re-encode to the bytes the keybinding layer matches", () => {
@@ -241,6 +248,8 @@ test("keyboard events re-encode to the bytes the keybinding layer matches", () =
 	assert.equal(keyboardEventToData({ key: "a" }), "a");
 	assert.equal(keyboardEventToData({ key: "a", altKey: true }), "\x1ba");
 	assert.equal(keyboardEventToData({ key: "é" }), "é");
+	// A single astral code point is one keystroke even though `key.length` is 2.
+	assert.equal(keyboardEventToData({ key: "🚀" }), "🚀");
 	assert.equal(keyboardEventToData({ key: "Shift" }), undefined, "a bare modifier is not a keystroke");
 	assert.equal(keyboardEventToData({ key: "F13" }), undefined);
 });

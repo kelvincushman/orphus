@@ -43,6 +43,12 @@ export class TranscribeController {
 	private unsubscribeLevel: (() => void) | undefined;
 	/** Set when a cancel arrives; checked before a transcript is inserted. */
 	private cancelled = false;
+	/**
+	 * Set while `start` is awaiting the backend. The state is still `idle` for
+	 * the whole of `resolveBackend` — which can be first-run setup and a model
+	 * download — and a second toggle in that window must not start again.
+	 */
+	private starting = false;
 
 	constructor(options: TranscribeControllerOptions) {
 		this.options = options;
@@ -54,6 +60,7 @@ export class TranscribeController {
 
 	/** Start recording when idle; stop and transcribe when recording. */
 	async toggle(): Promise<void> {
+		if (this.starting) return;
 		if (this.current === "transcribing") {
 			this.options.ui.notify("Still transcribing the previous recording.", "info");
 			return;
@@ -63,20 +70,25 @@ export class TranscribeController {
 	}
 
 	private async start(): Promise<void> {
-		const backend = this.backend ?? (await this.options.resolveBackend());
-		if (!backend) return;
-		this.backend = backend;
-		this.cancelled = false;
+		this.starting = true;
 		try {
-			await backend.startRecording(this.options.device?.());
-		} catch (error) {
-			this.options.ui.setStatus(undefined);
-			this.options.ui.notify(`Could not start recording: ${describe(error)}`, "error");
-			return;
+			const backend = this.backend ?? (await this.options.resolveBackend());
+			if (!backend) return;
+			this.backend = backend;
+			this.cancelled = false;
+			try {
+				await backend.startRecording(this.options.device?.());
+			} catch (error) {
+				this.options.ui.setStatus(undefined);
+				this.options.ui.notify(`Could not start recording: ${describe(error)}`, "error");
+				return;
+			}
+			this.current = "recording";
+			this.options.ui.setStatus("Recording… press the shortcut again to transcribe, Esc to cancel");
+			this.unsubscribeLevel = backend.onLevel((level) => this.options.ui.setLevel?.(level));
+		} finally {
+			this.starting = false;
 		}
-		this.current = "recording";
-		this.options.ui.setStatus("Recording… press the shortcut again to transcribe, Esc to cancel");
-		this.unsubscribeLevel = backend.onLevel((level) => this.options.ui.setLevel?.(level));
 	}
 
 	private async stopAndInsert(): Promise<void> {

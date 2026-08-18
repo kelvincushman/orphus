@@ -1,6 +1,7 @@
 import type { BackendChannel } from "./backend.ts";
 import {
 	type CaptureDevice,
+	type ErrorCode,
 	EXPECTED_NATIVE_ABI_VERSION,
 	encodeMessage,
 	isRequestKind,
@@ -25,7 +26,7 @@ export interface FakeChannelOptions {
 	devices?: CaptureDevice[];
 	transcript?: { text: string; language?: string; durationMs?: number };
 	/** Fail a given request kind with this error instead of answering it. */
-	failures?: Partial<Record<TranscribeRequest["kind"], { code: string; message: string }>>;
+	failures?: Partial<Record<TranscribeRequest["kind"], { code: ErrorCode; message: string }>>;
 	/** Do not answer these request kinds at all, to test a hung backend. */
 	silentFor?: TranscribeRequest["kind"][];
 }
@@ -62,7 +63,7 @@ export function createFakeChannel(options: FakeChannelOptions = {}): FakeChannel
 		if (options.silentFor?.includes(request.kind)) return;
 		const failure = options.failures?.[request.kind];
 		if (failure) {
-			emit(encodeMessage({ kind: "error", id: request.id, code: failure.code as never, message: failure.message }));
+			emit(encodeMessage({ kind: "error", id: request.id, code: failure.code, message: failure.message }));
 			return;
 		}
 		switch (request.kind) {

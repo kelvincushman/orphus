@@ -48,7 +48,7 @@ export async function loadTerminalUiBackend(kind: TuiBackendName): Promise<Termi
  */
 export async function createSelectorHost(input?: {
 	env?: Record<string, string | undefined>;
-	setting?: unknown;
+	setting?: string;
 }): Promise<{ host: SelectorHost; backend: TuiBackendName; source: string; warning?: string }> {
 	const resolved = resolveTuiBackend(input);
 	const backend = await loadTerminalUiBackend(resolved.backend);

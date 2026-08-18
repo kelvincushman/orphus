@@ -2,6 +2,9 @@ import { createHash } from "node:crypto";
 import { createWriteStream } from "node:fs";
 import { mkdir, rename, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import type { ReadableStream as NodeWebReadableStream } from "node:stream/web";
 import { type CatalogModel, formatSize, modelDownloadUrl } from "./catalog.ts";
 
 /**
@@ -108,20 +111,23 @@ export async function ensureModelDownloaded(options: DownloadModelOptions): Prom
 		if (!response.ok || !response.body) {
 			return { outcome: "failed", reason: `download failed with HTTP ${response.status}` };
 		}
+		// `pipeline` rather than a hand-rolled read/write loop: it owns error
+		// propagation on both ends, so a sink that fails (disk full, permissions)
+		// rejects the download instead of emitting an unhandled "error" and
+		// leaving a drain wait that never settles.
 		let received = 0;
-		const sink = createWriteStream(partial);
-		const reader = response.body.getReader();
-		try {
-			for (;;) {
-				const { done, value } = await reader.read();
-				if (done) break;
-				received += value.byteLength;
-				options.onProgress?.({ receivedBytes: received, totalBytes: model.size });
-				if (!sink.write(value)) await new Promise<void>((resolve) => sink.once("drain", () => resolve()));
-			}
-		} finally {
-			await new Promise<void>((resolve) => sink.end(() => resolve()));
-		}
+		await pipeline(
+			Readable.fromWeb(response.body as unknown as NodeWebReadableStream<Uint8Array>),
+			async function* (source: AsyncIterable<Uint8Array>) {
+				for await (const value of source) {
+					received += value.byteLength;
+					options.onProgress?.({ receivedBytes: received, totalBytes: model.size });
+					yield value;
+				}
+			},
+			createWriteStream(partial),
+			{ signal: options.signal },
+		);
 
 		if (received !== model.size) {
 			await rm(partial, { force: true });

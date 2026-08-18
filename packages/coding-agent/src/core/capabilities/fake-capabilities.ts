@@ -150,8 +150,13 @@ export function createFakeProcesses(): FakeProcesses {
 			spawned.push({ command, args: [...args], cwd: options?.cwd });
 			alive += 1;
 			let settle: (exit: ProcessExit) => void = () => {};
+			// Settlement is idempotent: a `kill()` after a scripted exit (or a
+			// second `kill()`) must not drive `alive` below zero.
+			let settled = false;
 			const exited = new Promise<ProcessExit>((resolve) => {
 				settle = (exit) => {
+					if (settled) return;
+					settled = true;
 					alive -= 1;
 					resolve(exit);
 				};

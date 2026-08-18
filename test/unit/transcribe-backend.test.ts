@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
-import { test } from "vitest";
+import { chmod, mkdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { test, vi } from "vitest";
 import {
 	type BackendChannel,
 	createTranscriptionBackend,
+	DISPOSE_ACK_TIMEOUT_MS,
 	ProtocolBackend,
 	TranscribeBackendError,
 } from "../../packages/transcribe/src/backend.js";
-import { nativeTriple } from "../../packages/transcribe/src/channels.js";
+import { nativeTriple, openHelperChannel } from "../../packages/transcribe/src/channels.js";
 import { createFakeChannel } from "../../packages/transcribe/src/fake-channel.js";
 import {
 	EXPECTED_NATIVE_ABI_VERSION,
@@ -98,7 +102,7 @@ test("a crashed backend fails everything in flight instead of hanging", async ()
 	await assert.rejects(backend.listDevices(), /Backend unavailable: worker exited/);
 });
 
-test("an unparsable line fails in flight requests rather than being read past", async () => {
+test("an unparsable line is terminal: in-flight requests fail and the backend closes", async () => {
 	const channel = createFakeChannel({ silentFor: ["listDevices"] });
 	const backend = new ProtocolBackend(channel);
 	await backend.initialize(INIT);
@@ -106,7 +110,44 @@ test("an unparsable line fails in flight requests rather than being read past", 
 	const pending = backend.listDevices();
 	channel.emitRaw("{ this is not json\n");
 
-	await assert.rejects(pending, /Unparsable line/);
+	await assert.rejects(pending, /protocol violation: unparsable line/);
+	// A backend talking gibberish is one to stop trusting, not to keep using.
+	await assert.rejects(backend.listDevices(), /Backend unavailable/);
+	assert.equal(channel.closed, true);
+});
+
+test("a known response kind with malformed fields is a protocol violation, not data", async () => {
+	const channel = createFakeChannel({ silentFor: ["stopAndTranscribe"] });
+	const backend = new ProtocolBackend(channel);
+	await backend.initialize(INIT);
+	await backend.startRecording();
+
+	const pending = backend.stopAndTranscribe();
+	channel.emitRaw(`${JSON.stringify({ kind: "transcript", id: "3", text: 42 })}\n`);
+
+	await assert.rejects(pending, /protocol violation: invalid message/);
+	assert.equal(channel.closed, true);
+});
+
+test("a backend that ignores `dispose` cannot stall the fallback ladder", async () => {
+	// The worker answers `ready` with the wrong ABI and then never answers the
+	// cleanup `dispose`; the bounded acknowledgement wait is what lets the
+	// helper attempt start at all.
+	vi.useFakeTimers();
+	try {
+		const pending = createTranscriptionBackend({
+			initialize: INIT,
+			openWorker: async () =>
+				createFakeChannel({ kind: "worker", native: { abiVersion: 9 }, silentFor: ["dispose"] }),
+			openHelper: async () => createFakeChannel({ kind: "helper" }),
+		});
+		await vi.advanceTimersByTimeAsync(DISPOSE_ACK_TIMEOUT_MS);
+		const selection = await pending;
+		assert.equal(selection.backend.kind, "helper");
+		assert.match(selection.attempts[0].reason ?? "", /native ABI 9/);
+	} finally {
+		vi.useRealTimers();
+	}
 });
 
 test("no capture device surfaces as its own error rather than a generic failure", async () => {
@@ -232,6 +273,33 @@ test("native artifacts are addressed per platform, with glibc and musl kept apar
 	assert.match(nativeTriple("linux", "x64"), /^linux-x64-(gnu|musl)$/);
 	assert.match(nativeTriple("linux", "arm64"), /^linux-arm64-(gnu|musl)$/);
 });
+
+test.runIf(process.platform !== "win32")(
+	"a write racing the helper's exit closes the channel instead of crashing the host",
+	async () => {
+		// A real helper that exits immediately, so its stdin pipe is dead by the
+		// time the write lands. Without an "error" listener on stdin, that EPIPE
+		// is an uncaught exception — this test failing the process is exactly the
+		// regression it exists to catch.
+		const nativeDir = join(tmpdir(), `orphus-transcribe-epipe-${process.pid}-${Date.now()}`);
+		const tripleDir = join(nativeDir, nativeTriple());
+		await mkdir(tripleDir, { recursive: true });
+		const helperPath = join(tripleDir, "orphus-transcribe-helper");
+		await writeFile(helperPath, "#!/bin/sh\nexit 0\n");
+		await chmod(helperPath, 0o755);
+
+		const channel = await openHelperChannel({ nativeDir });
+		const closeReasons: string[] = [];
+		channel.onClose((reason) => closeReasons.push(reason));
+		// Wait for the helper to be gone, then write into the dead pipe.
+		await new Promise((resolve) => setTimeout(resolve, 200));
+		channel.send('{"kind":"listDevices","id":"1"}\n');
+		await new Promise((resolve) => setTimeout(resolve, 100));
+
+		assert.ok(closeReasons.length > 0, "the exit or the failed write must close the channel");
+		await channel.close();
+	},
+);
 
 test("a channel that never answers leaves the request pending until the channel dies", async () => {
 	const listeners: ((reason: string) => void)[] = [];

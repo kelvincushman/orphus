@@ -211,6 +211,57 @@ test("an unreadable credential is indistinguishable from an absent one", async (
 	assert.deepEqual(await credentials.list(), [], "no registry means no credentials, not a crash");
 });
 
+test("a registry entry with a non-string username is dropped at the parse boundary", async () => {
+	// The registry is user-edited JSON; a wrong type here would otherwise be
+	// typed into a login form as "[object Object]".
+	const fs = createFakeFileSystem({
+		[`/agent/${CREDENTIAL_REGISTRY_FILE}`]: JSON.stringify([
+			{ label: "bad-username", origin: "https://app.test", username: {} },
+			{ label: "fine", origin: "https://app.test", username: "ada" },
+		]),
+	});
+	const credentials = createKeychainCredentials({
+		processes: createFakeProcesses(),
+		fs,
+		registryPath: `/agent/${CREDENTIAL_REGISTRY_FILE}`,
+		platform: "darwin",
+	});
+	assert.deepEqual(await credentials.list(), [{ label: "fine", origin: "https://app.test", username: "ada" }]);
+});
+
+test("duplicate labels collapse to the first entry, because the keychain holds one secret per label", async () => {
+	const fs = createFakeFileSystem({
+		[`/agent/${CREDENTIAL_REGISTRY_FILE}`]: JSON.stringify([
+			{ label: "app-login", origin: "https://app.test" },
+			{ label: "app-login", origin: "https://elsewhere.test" },
+		]),
+	});
+	const credentials = createKeychainCredentials({
+		processes: createFakeProcesses(),
+		fs,
+		registryPath: `/agent/${CREDENTIAL_REGISTRY_FILE}`,
+		platform: "darwin",
+	});
+	assert.deepEqual(await credentials.list(), [{ label: "app-login", origin: "https://app.test" }]);
+});
+
+test("opaque origins are no origin at all, on the allowlist and on the page alike", async () => {
+	// `file:`, `data:`, and custom schemes all serialize their origin to the
+	// string "null"; one such allowlist entry would otherwise match every one
+	// of those pages, and any credential scoped the same way.
+	assert.deepEqual([...parseOriginAllowlist("file:///")], []);
+	assert.deepEqual([...parseOriginAllowlist("data:text/html,x")], []);
+
+	const { gate: subject, store } = gate({
+		allowlist: new Set(["null"]),
+		approve: async () => true,
+		entries: [{ label: "app-login", origin: "null", secret: SECRET }],
+	});
+	const decision = await subject.resolve("app-login", "file:///tmp/login.html");
+	assert.equal(decision.ok === false && decision.denial.reason, "origin_not_allowlisted");
+	assert.deepEqual(store.reveals, []);
+});
+
 test("a platform with no keychain CLI reports itself unavailable and reveals nothing", async () => {
 	const credentials = createKeychainCredentials({
 		processes: createFakeProcesses(),

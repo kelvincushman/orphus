@@ -1,9 +1,12 @@
 import { getAgentDir, VERSION } from "../config.ts";
 import type { InlineExtension } from "../core/extensions/index.ts";
+import { resolveProjectTrusted } from "../core/project-trust.ts";
 import { DefaultResourceLoader } from "../core/resource-loader.ts";
 import { buildRuntimeInspection, formatRuntimeInspection, type RuntimeInspection } from "../core/runtime-inspection.ts";
 import { createAgentSession } from "../core/sdk.ts";
 import { SettingsManager } from "../core/settings-manager.ts";
+import { ProjectTrustStore } from "../core/trust-manager.ts";
+import { createProjectTrustContext } from "./project-trust.ts";
 
 const USAGE = `Usage: orphus inspect runtime [--json] [--include-content]
 
@@ -19,6 +22,7 @@ Secrets are redacted in both modes.`;
 export interface InspectRuntimeOptions {
 	extensionFactories?: InlineExtension[];
 	cwd?: string;
+	agentDir?: string;
 }
 
 /** Assemble the real runtime and report it. Read-only: nothing is dispatched. */
@@ -26,8 +30,19 @@ export async function inspectRuntime(
 	options: InspectRuntimeOptions & { includeContent?: boolean },
 ): Promise<RuntimeInspection> {
 	const cwd = options.cwd ?? process.cwd();
-	const agentDir = getAgentDir();
-	const settingsManager = SettingsManager.create(cwd, agentDir, { projectTrusted: true });
+	const agentDir = options.agentDir ?? getAgentDir();
+	// Project trust gates whether project-local extensions and workflows load —
+	// loading them *executes* them. Inspection honours the same remembered
+	// decisions as a real session, and with no UI to ask, an undecided project
+	// resolves untrusted rather than being trusted because a report wanted it.
+	const settingsManager = SettingsManager.create(cwd, agentDir, { projectTrusted: false });
+	const projectTrusted = await resolveProjectTrusted({
+		cwd,
+		trustStore: new ProjectTrustStore(agentDir),
+		defaultProjectTrust: settingsManager.getDefaultProjectTrust(),
+		projectTrustContext: createProjectTrustContext({ cwd, mode: "print", settingsManager, hasUI: false }),
+	});
+	settingsManager.setProjectTrusted(projectTrusted);
 	const resourceLoader = new DefaultResourceLoader({
 		cwd,
 		agentDir,
@@ -64,16 +79,13 @@ export async function inspectRuntime(
 				source: extension.sourceInfo.source,
 				handlers: extension.handlers,
 			})),
-			flags: [...runtime.flagValues.keys()]
-				.concat([...(runtime.flagOwners?.keys() ?? [])])
-				.filter((name, index, all) => all.indexOf(name) === index)
-				.map((name) => ({
-					name,
-					owner: runtime.flagOwners?.get(name),
-					origin: runtime.flagOwnerOrigins?.get(name),
-					value: runtime.flagValues.get(name),
-					explicit: runtime.explicitFlagNames?.has(name) === true,
-				})),
+			flags: [...new Set([...runtime.flagValues.keys(), ...(runtime.flagOwners?.keys() ?? [])])].map((name) => ({
+				name,
+				owner: runtime.flagOwners?.get(name),
+				origin: runtime.flagOwnerOrigins?.get(name),
+				value: runtime.flagValues.get(name),
+				explicit: runtime.explicitFlagNames?.has(name) === true,
+			})),
 			globalSettings: settingsManager.getGlobalSettings() as unknown as Record<string, unknown>,
 			projectSettings: settingsManager.getProjectSettings() as unknown as Record<string, unknown>,
 			systemPrompt: session.systemPrompt,

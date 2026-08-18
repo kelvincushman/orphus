@@ -46,13 +46,15 @@ const NAMED_KEYS: Record<string, string> = {
 export function keyboardEventToData(event: KeyboardEventLike): string | undefined {
 	const named = NAMED_KEYS[event.key];
 	if (named !== undefined) {
-		// Ctrl+Backspace and Ctrl+Enter have their own encodings; everything else
-		// named ignores Ctrl, matching what terminals actually send.
+		// Ctrl+Backspace has its own encoding; everything else named ignores
+		// Ctrl, matching what terminals actually send.
 		if (event.ctrlKey && event.key === "Backspace") return "\x08";
 		if (event.altKey && named.length === 1) return `\x1b${named}`;
 		return named;
 	}
-	if (event.key.length !== 1) return undefined;
+	// One code point, not one UTF-16 unit: an emoji is a single keystroke whose
+	// `key` has length 2, and dropping it would make astral characters untypable.
+	if ([...event.key].length !== 1) return undefined;
 
 	if (event.ctrlKey) {
 		const upper = event.key.toUpperCase();

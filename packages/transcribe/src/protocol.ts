@@ -242,20 +242,54 @@ export function verifyNativeIdentity(
 	return { ok: true };
 }
 
-/** Validate an inbound response enough to dispatch on it. */
+/**
+ * Validate an inbound response: the kind, and every field this client reads.
+ * A known kind with malformed fields is as much a protocol violation as an
+ * unknown one — `undefined` here is the caller's cue to stop trusting the
+ * backend, not to guess at what it meant.
+ */
 export function parseResponse(value: unknown): TranscribeResponse | undefined {
 	if (typeof value !== "object" || value === null) return undefined;
-	const candidate = value as { kind?: unknown };
+	const candidate = value as Record<string, unknown>;
+	const id = typeof candidate.id === "string";
 	switch (candidate.kind) {
-		case "ready":
+		case "ready": {
+			const native = candidate.native as Partial<NativeIdentity> | undefined;
+			return id &&
+				typeof candidate.protocolVersion === "number" &&
+				typeof native === "object" &&
+				native !== null &&
+				typeof native.abiVersion === "number" &&
+				typeof native.buildHash === "string"
+				? (value as ReadyResponse)
+				: undefined;
+		}
 		case "devices":
+			return id &&
+				Array.isArray(candidate.devices) &&
+				candidate.devices.every(
+					(device: unknown) =>
+						typeof device === "object" &&
+						device !== null &&
+						typeof (device as CaptureDevice).name === "string" &&
+						typeof (device as CaptureDevice).occurrence === "number" &&
+						typeof (device as CaptureDevice).isDefault === "boolean",
+				)
+				? (value as DevicesResponse)
+				: undefined;
 		case "recording":
+			return id && typeof candidate.device === "string" ? (value as RecordingResponse) : undefined;
 		case "level":
+			return typeof candidate.level === "number" ? (value as LevelEvent) : undefined;
 		case "transcript":
+			return id && typeof candidate.text === "string" ? (value as TranscriptResponse) : undefined;
 		case "cancelled":
 		case "disposed":
+			return id ? (value as TranscribeResponse) : undefined;
 		case "error":
-			return value as TranscribeResponse;
+			return typeof candidate.code === "string" && typeof candidate.message === "string"
+				? (value as ErrorResponse)
+				: undefined;
 		default:
 			return undefined;
 	}
