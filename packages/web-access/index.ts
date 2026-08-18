@@ -151,6 +151,15 @@ function isAllFailedWebResult(toolName: string, details: unknown): boolean {
 	return Reflect.get(details, "outcome") === "all_failed";
 }
 
+// browser-tool.ts's execute() can't set isError directly (pi's agent loop hardcodes isError:false
+// for any resolved execute() result), so its err() marks details.error instead; surface it here,
+// the same way isAllFailedWebResult surfaces web_search/fetch_content failures.
+function isBrowserErrorResult(toolName: string, details: unknown): boolean {
+	if (toolName !== "browser") return false;
+	if (!details || typeof details !== "object") return false;
+	return Reflect.get(details, "error") === true;
+}
+
 export default function webAccess(pi: ExtensionAPI) {
 	let heavyAttempt: HeavyAttempt | null = null;
 	let loadedHeavy: HeavyHandle | null = null;
@@ -299,7 +308,9 @@ export default function webAccess(pi: ExtensionAPI) {
 	});
 
 	pi.on("tool_result", (event) => {
-		if (isAllFailedWebResult(event.toolName, event.details)) return { isError: true };
+		if (isAllFailedWebResult(event.toolName, event.details) || isBrowserErrorResult(event.toolName, event.details)) {
+			return { isError: true };
+		}
 	});
 
 	const shortcuts = getInitialShortcutConfig();

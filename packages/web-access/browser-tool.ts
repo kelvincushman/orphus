@@ -10,7 +10,16 @@ interface ToolResult {
 }
 
 const ok = (text: string, details: Record<string, unknown> = {}): ToolResult => ({ content: [{ type: "text", text }], details });
-const err = (text: string, details: Record<string, unknown> = {}): ToolResult => ({ content: [{ type: "text", text }], details, isError: true });
+// pi's agent loop hardcodes isError:false for any resolved execute() result, so isError here is
+// not what surfaces the failure to the model — `details.error` is. index.ts's "tool_result" hook
+// reads it (mirroring isAllFailedWebResult) to flag the result as an error after the fact. Both
+// are set: `isError` for direct callers of buildBrowserExecute (see the unit test), `details.error`
+// for the pi runtime.
+const err = (text: string, details: Record<string, unknown> = {}): ToolResult => ({
+	content: [{ type: "text", text }],
+	details: { ...details, error: true },
+	isError: true,
+});
 
 interface BrowserArgs {
 	action: string;
@@ -23,6 +32,10 @@ interface BrowserArgs {
 
 /** Cap on model-visible read output; readPage's own callers rely on this to keep large DOM/AX dumps out of context. */
 const READ_TEXT_CHAR_CAP = 20_000;
+
+/** Bounded poll for wait_for: give a page a fair chance to settle without hanging the tool call forever. */
+const WAIT_FOR_TIMEOUT_MS = 10_000;
+const WAIT_FOR_INTERVAL_MS = 200;
 
 export function buildBrowserExecute(manager: BrowserManager, env: NodeJS.ProcessEnv = process.env) {
 	return async (args: BrowserArgs): Promise<ToolResult> => {
@@ -62,6 +75,26 @@ export function buildBrowserExecute(manager: BrowserManager, env: NodeJS.Process
 					if (!h) return err(`no open browser named ${name}`);
 					await typeText(h.cdp, args.text ?? "");
 					return ok(`typed ${args.text?.length ?? 0} chars`, { handle: name });
+				}
+				case "wait_for": {
+					const h = manager.get(name);
+					if (!h) return err(`no open browser named ${name}`);
+					const expr = args.selector
+						? `!!document.querySelector(${JSON.stringify(args.selector)})`
+						: `document.readyState === "complete"`;
+					const deadline = Date.now() + WAIT_FOR_TIMEOUT_MS;
+					for (;;) {
+						const res = (await h.cdp.send("Runtime.evaluate", { expression: expr, returnByValue: true })) as {
+							result?: { value?: boolean };
+						};
+						if (res.result?.value) {
+							return ok(args.selector ? `${args.selector} appeared` : "page ready", { handle: name });
+						}
+						if (Date.now() >= deadline) {
+							return err(`wait_for timed out after ${WAIT_FOR_TIMEOUT_MS}ms`);
+						}
+						await Bun.sleep(WAIT_FOR_INTERVAL_MS);
+					}
 				}
 				case "close": {
 					await manager.get(name)?.stop();

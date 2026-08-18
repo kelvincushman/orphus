@@ -348,6 +348,12 @@ export const renderGetSearchContentResult: ToolResultRenderer = (result, { expan
 	return new Text(statusLine + "\n" + theme.fg("dim", preview), 0, 0);
 };
 
+export const renderBrowserResult: ToolResultRenderer = (result, _options, theme) => {
+	const details = result.details as { error?: boolean } | undefined;
+	const text = firstTextContent(result);
+	return new Text(theme.fg(details?.error ? "error" : "success", text), 0, 0);
+};
+
 export function renderWebAccessToolResult(name: string, args: ToolRenderResultArgs): ToolRenderResult {
 	switch (name) {
 		case "web_search":
@@ -358,6 +364,8 @@ export function renderWebAccessToolResult(name: string, args: ToolRenderResultAr
 			return renderFetchContentResult(...args);
 		case "get_search_content":
 			return renderGetSearchContentResult(...args);
+		case "browser":
+			return renderBrowserResult(...args);
 		default: {
 			const theme = args[2];
 			return new Text(theme.fg("error", `Result renderer not found: ${name}`), 0, 0);
