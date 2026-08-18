@@ -427,7 +427,7 @@ export default function webAccess(pi: ExtensionAPI) {
 		["curator", "Configure web search curator"],
 		["google-account", "Show the active Google account for Gemini Web"],
 		["search", "Browse stored web search results"],
-		["credential", "Manage stored web login credentials (add/list/remove)"],
+		["credential", "Manage stored web login credentials (add/list/remove/confirm)"],
 	] as const) {
 		pi.registerCommand(name, {
 			description,

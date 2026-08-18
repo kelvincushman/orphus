@@ -60,7 +60,11 @@ test("login dispatches to performLogin using the open handle's cdp, and the secr
 	const calls: { method: string; params: Record<string, unknown> }[] = [];
 	const send = async (method: string, params: Record<string, unknown> = {}) => {
 		calls.push({ method, params });
-		return method === "Runtime.evaluate" ? { result: { value: { x: 1, y: 1 } } } : {};
+		if (method !== "Runtime.evaluate") return {};
+		const expression = String(params.expression ?? "");
+		if (expression === "location.hostname") return { result: { value: "example.com" } }; // matches req.domain, so the origin-binding gate passes
+		if (expression.includes("tagName")) return { result: { value: true } }; // passwordSelector resolves to a real password input
+		return { result: { value: { x: 1, y: 1 } } }; // locateCenter's element-position probe
 	};
 	const fakeManager = { get: () => ({ cdp: { send } }) } as unknown as BrowserManager;
 	const vault = new CredentialVault(memBackend(), { allowlist: ["example.com"] });
