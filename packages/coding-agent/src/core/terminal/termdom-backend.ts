@@ -82,13 +82,24 @@ export class TermDomSelectorHost implements SelectorHost {
 				if (Number.isInteger(index)) model.select(index);
 			};
 
-			const unsubscribe = model.subscribe(render);
+			// The current scope loads at open; the cross-project scope is a full
+			// session scan and loads on the first switch to it, as the interface
+			// documents and the pi picker behaves.
+			let allRequested = false;
+			const onChange = () => {
+				if (!allRequested && model.getState().scope === "all") {
+					allRequested = true;
+					void loadScope(run, "all", run.loadAllSessions);
+				}
+				render();
+			};
+			const unsubscribe = model.subscribe(onChange);
 			document.addEventListener("keydown", onKeyDown);
 			document.addEventListener("click", onClick);
 			window.addEventListener("resize", render);
 			render();
 
-			void loadScopes(run);
+			void loadScope(run, "current", run.loadCurrentSessions);
 		});
 	}
 
@@ -149,18 +160,17 @@ export class TermDomSelectorHost implements SelectorHost {
 	}
 }
 
-/** Load both scopes into the model. Failures surface as an error banner, not a crash. */
-async function loadScopes(run: SessionSelectorRunOptions): Promise<void> {
-	const load = async (scope: "current" | "all", loader: SessionSelectorRunOptions["loadCurrentSessions"]) => {
-		try {
-			run.model.setSessions(scope, await loader());
-		} catch (error) {
-			run.model.setError(
-				`Could not load ${scope} sessions: ${error instanceof Error ? error.message : String(error)}`,
-			);
-		}
-	};
-	await Promise.all([load("current", run.loadCurrentSessions), load("all", run.loadAllSessions)]);
+/** Load one scope into the model. A failure surfaces as an error banner, not a crash. */
+async function loadScope(
+	run: SessionSelectorRunOptions,
+	scope: "current" | "all",
+	loader: SessionSelectorRunOptions["loadCurrentSessions"],
+): Promise<void> {
+	try {
+		run.model.setSessions(scope, await loader());
+	} catch (error) {
+		run.model.setError(`Could not load ${scope} sessions: ${error instanceof Error ? error.message : String(error)}`);
+	}
 }
 
 /**
@@ -237,12 +247,14 @@ export function applyKey(
 		model.togglePath();
 		return undefined;
 	}
+	// Offered only when the run can actually perform them: a confirmation that
+	// deletes nothing, or a rename nothing persists, is a lying UI.
 	if (keybindings.matches(data, "app.session.delete")) {
-		model.requestDelete();
+		if (run.deleteSession) model.requestDelete();
 		return undefined;
 	}
 	if (keybindings.matches(data, "app.session.rename")) {
-		model.startRename();
+		if (run.renameSession) model.startRename();
 		return undefined;
 	}
 	if (data === "\x7f") {

@@ -210,3 +210,22 @@ test("a recorded body re-hashes to the hash in its own record", async () => {
 		assert.deepEqual(JSON.parse(record.body), runtime.provider.payloads[0]);
 	}
 });
+
+test("a failing onPayload ends the scripted turn as an error, not an unhandled rejection", async () => {
+	const { createScriptedProvider } = await import("../../packages/coding-agent/src/core/replay/index.js");
+	const provider = createScriptedProvider([{ text: "never reached" }], { now: () => 0 });
+	const stream = provider.streamSimple(
+		{ provider: "orphus-replay", id: "replay-model", api: "anthropic-messages" } as never,
+		{ messages: [] } as never,
+		{
+			onPayload: async () => {
+				// The recorder's fail-closed path: a request record that cannot be
+				// written fails the attempt before dispatch.
+				throw new Error("EACCES: request record could not be written");
+			},
+		} as never,
+	);
+	const message = await stream.result();
+	assert.equal(message.stopReason, "error");
+	assert.match(message.errorMessage ?? "", /request record could not be written/);
+});

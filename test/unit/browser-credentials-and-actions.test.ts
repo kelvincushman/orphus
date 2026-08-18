@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { createFakeFileSystem, createFakeProcesses } from "../../packages/coding-agent/src/core/capabilities/index.js";
 import {
+	navigate,
 	retryObservation,
 	runMutating,
 	snapshot,
@@ -322,4 +323,33 @@ test("a snapshot is capped and says when it was cut", async () => {
 	const whole = await snapshot(client, { maxChars: 1000 });
 	assert.equal(whole.truncated, false);
 	assert.equal(whole.text.length, 500);
+});
+
+test("a failed navigation leaves no dangling load-event wait to reject later", async () => {
+	const transport = createFakeCdpTransport({
+		handlers: { "Page.navigate": () => ({ errorText: "net::ERR_NAME_NOT_RESOLVED" }) },
+	});
+	// Immediate timers so the load-event timeout fires within this test instead
+	// of 30 seconds after it — which is exactly when the old code turned it into
+	// an unhandled rejection.
+	const client = new CdpClient({
+		transport,
+		setTimer: (callback, _ms) => {
+			const handle = setTimeout(callback, 0);
+			return { cancel: () => clearTimeout(handle) };
+		},
+	});
+	const rejections: unknown[] = [];
+	const spy = (reason: unknown) => rejections.push(reason);
+	process.prependListener("unhandledRejection", spy);
+	try {
+		await assert.rejects(
+			navigate(client, "https://nope.invalid/"),
+			/Navigation .* failed: net::ERR_NAME_NOT_RESOLVED/,
+		);
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		assert.deepEqual(rejections, [], "the load-event wait must be settled or swallowed, never orphaned");
+	} finally {
+		process.removeListener("unhandledRejection", spy);
+	}
 });

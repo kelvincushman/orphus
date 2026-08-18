@@ -64,6 +64,18 @@ function text(content: string): AgentToolResult<unknown> {
  */
 export function createBrowserTool(options: BrowserToolOptions): ToolDefinition {
 	const allowlist = parseOriginAllowlist(options.flags.loginOrigins);
+	// One gate for the tool's whole life: its approved set is what makes
+	// "asked once per session per credential-and-origin pair" true. The approver
+	// is per-call (it needs the call's ctx), so the gate reads it through a ref.
+	const approverRef: {
+		current?: (request: { label: string; origin: string; username?: string }) => Promise<boolean>;
+	} = {};
+	const gate = new CredentialGate({
+		credentials: options.credentials,
+		loginEnabled: options.flags.loginEnabled,
+		allowlist,
+		approve: (request) => approverRef.current?.(request) ?? Promise.resolve(false),
+	});
 
 	return defineTool({
 		name: BROWSER_TOOL_NAME,
@@ -150,12 +162,7 @@ export function createBrowserTool(options: BrowserToolOptions): ToolDefinition {
 			// login
 			if (!params.credentialLabel) return text("`login` needs a `credentialLabel`.");
 			if (!params.selector) return text("`login` needs a `selector` for the password field.");
-			const gate = new CredentialGate({
-				credentials: options.credentials,
-				loginEnabled: options.flags.loginEnabled,
-				allowlist,
-				approve: createApprover(ctx),
-			});
+			approverRef.current = createApprover(ctx);
 			const status = await readStatus(client);
 			const decision = await gate.resolve(params.credentialLabel, status.url);
 			// A denial is a tool error, not a result the model can mistake for success.

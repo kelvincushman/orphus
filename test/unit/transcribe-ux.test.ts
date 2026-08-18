@@ -153,7 +153,6 @@ test("settings are written atomically and owner-only", async () => {
 	const path = join(dir, "nested", "transcribe.json");
 	const settings = {
 		version: 1 as const,
-		shortcut: "ctrl+alt+z",
 		preferredLanguages: ["en"],
 		transcriptionLanguage: "en",
 		microphone: { type: "system-default" as const },
@@ -172,6 +171,14 @@ test("a malformed or future settings file is reported rather than silently disca
 	assert.match(parseSettings("{ not json").warning ?? "", /could not be parsed/);
 	assert.match(parseSettings(JSON.stringify({ version: 99 })).warning ?? "", /version 99/);
 	assert.match(parseSettings(JSON.stringify({ version: 1 })).warning ?? "", /name no model/);
+
+	// A file written before the configurable-shortcut field was dropped still
+	// parses; the unused key is simply ignored.
+	const legacy = parseSettings(
+		JSON.stringify({ version: 1, shortcut: "ctrl+x", model: { id: "m", path: "/m.gguf" } }),
+	);
+	assert.equal(legacy.warning, undefined);
+	assert.ok(legacy.settings && !("shortcut" in legacy.settings));
 
 	const dir = scratch();
 	const path = join(dir, "transcribe.json");

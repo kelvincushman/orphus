@@ -16,12 +16,11 @@ export type MicrophoneSetting = { type: "system-default" } | { type: "device"; n
 
 export const DEFAULT_MICROPHONE: MicrophoneSetting = { type: "system-default" };
 
-/** Ctrl+Alt+Z by default, matching the surface this package inherited. */
+/** The dictation shortcut. Fixed, not configurable — a stored knob nothing reads would lie. */
 export const DEFAULT_SHORTCUT = "ctrl+alt+z";
 
 export interface TranscribeSettings {
 	version: typeof SETTINGS_VERSION;
-	shortcut: string;
 	/** Languages the user expects to speak, used to narrow the model picker. */
 	preferredLanguages: string[];
 	/** A language code, or "auto" to let a capable model detect it. */
@@ -79,7 +78,6 @@ export function parseSettings(raw: string): SettingsReadResult {
 	return {
 		settings: {
 			version: SETTINGS_VERSION,
-			shortcut: typeof value.shortcut === "string" ? value.shortcut : DEFAULT_SHORTCUT,
 			preferredLanguages: Array.isArray(value.preferredLanguages)
 				? value.preferredLanguages.filter((entry): entry is string => typeof entry === "string")
 				: [],

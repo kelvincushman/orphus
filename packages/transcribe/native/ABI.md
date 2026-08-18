@@ -93,6 +93,14 @@ the artifact is missing and dictation is unavailable. That is a deliberate
 fail-closed: an absent native library must look like an absent feature, not like
 a crash.
 
+Two pieces of glue ship in the same change as the artifacts, because they can
+only be verified against them: `src/worker-entry.ts` (the Bun-FFI shim that
+dlopens the library inside the Worker and speaks the protocol over
+`postMessage`) and the helper executable's `main` (the same protocol over
+stdio). Writing either now would be unverifiable pointer-level code against a
+library that does not exist; the channels fail closed with that exact reason
+instead.
+
 Before dictation is enabled in a release, every one of the eight archives must
 pass native startup, recording-device enumeration, cancellation, and
 helper-fallback smoke tests. Metal on macOS and Vulkan on supported glibc builds

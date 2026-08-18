@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { getAgentDir } from "../../config.ts";
-import { createDefaultCapabilities, type HarnessCapabilities } from "../../core/capabilities/index.ts";
+import { createDefaultCapabilities } from "../../core/capabilities/index.ts";
 import type { ExtensionAPI } from "../../core/extensions/types.ts";
 import { readBrowserFlags } from "./env.ts";
 import { CREDENTIAL_REGISTRY_FILE, createKeychainCredentials } from "./keychain-credentials.ts";
@@ -17,11 +17,11 @@ export { BROWSER_TOOL_NAME } from "./tool.ts";
  * is never registered, so a session that did not opt in does not carry the tool
  * in its prompt, its schema list, or its context window.
  */
-export default function browserExtension(pi: ExtensionAPI, capabilities?: HarnessCapabilities): void {
+export default function browserExtension(pi: ExtensionAPI): void {
 	const flags = readBrowserFlags();
 	if (!flags.enabled) return;
 
-	const resolved = capabilities ?? createDefaultCapabilities();
+	const resolved = createDefaultCapabilities();
 	const session = new BrowserSession({
 		processes: resolved.process,
 		executablePath: flags.executablePath,

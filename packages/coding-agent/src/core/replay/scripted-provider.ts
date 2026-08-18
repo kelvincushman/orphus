@@ -53,7 +53,10 @@ export function createScriptedProvider(script: ScriptedTurn[], clock: { now(): n
 		streamSimple(model, context, options) {
 			const stream = createAssistantMessageEventStream();
 			const turn = queue.shift() ?? { text: "" };
-			void (async () => {
+			// A throw from onPayload — the recorder's fail-closed path — must end
+			// the stream as an errored turn, exactly as a real provider surfaces a
+			// pre-dispatch failure, not escape as an unhandled rejection.
+			const run = async () => {
 				const basePayload = { model: model.id, messages: context.messages };
 				const finalPayload = (await options?.onPayload?.(basePayload, model)) ?? basePayload;
 				payloads.push(finalPayload);
@@ -91,7 +94,20 @@ export function createScriptedProvider(script: ScriptedTurn[], clock: { now(): n
 					stopReason: turn.stopReason ?? (turn.toolCalls?.length ? "toolUse" : "stop"),
 					timestamp: clock.now(),
 				});
-			})();
+			};
+			void run().catch((error) => {
+				stream.end({
+					role: "assistant",
+					content: [],
+					api: model.api,
+					provider: model.provider,
+					model: model.id,
+					usage: ZERO_USAGE,
+					stopReason: "error",
+					errorMessage: error instanceof Error ? error.message : String(error),
+					timestamp: clock.now(),
+				});
+			});
 			return stream;
 		},
 	};

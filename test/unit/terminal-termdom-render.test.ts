@@ -225,14 +225,24 @@ test(
 		hosts.push(host);
 		const subject = model();
 
+		let allLoads = 0;
 		const selection = host.selectSession({
 			model: subject,
 			loadCurrentSessions: async () => SESSIONS,
-			loadAllSessions: async () => SESSIONS,
+			loadAllSessions: async () => {
+				allLoads += 1;
+				return SESSIONS;
+			},
 		});
 		// Let attach and the first render settle, then choose the top row.
 		await new Promise((resolve) => setTimeout(resolve, 50));
 		assert.ok(transport.frames.length > 0, "the picker painted something");
+		assert.equal(allLoads, 0, "the cross-project scan waits for the first scope switch");
+		transport.type("\t");
+		await new Promise((resolve) => setTimeout(resolve, 30));
+		assert.equal(allLoads, 1, "switching scope triggers exactly one load");
+		transport.type("\t");
+		await new Promise((resolve) => setTimeout(resolve, 30));
 		transport.type("\r");
 
 		assert.deepEqual(await selection, { outcome: "selected", sessionPath: "/s/one.jsonl" });

@@ -31,7 +31,8 @@ typo in a setting should not stop you opening a session picker.
 Two surfaces:
 
 - **Startup selection** — the labelled list shown before a session begins
-  (`showStartupSelector`), driven by `ListSelectorModel`.
+  (`showStartupSelector`). On termDOM it is driven by `ListSelectorModel`; the
+  default `pi` path is the pre-pilot implementation, unchanged byte for byte.
 - **The session picker** — `--resume`, driven by `SessionSelectorModel`.
 
 **The main chat shell is always pi**, and every public `Component`, custom

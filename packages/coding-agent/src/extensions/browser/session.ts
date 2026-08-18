@@ -93,15 +93,24 @@ export class BrowserSession {
 			await launched.handle.exited;
 		});
 
-		const transport = await connect(launched.webSocketDebuggerUrl);
-		const client = new CdpClient({ transport });
-		this.registry.register("devtools connection", () => client.close("session shutdown"));
-		this.client = client;
-		// The default connection addresses the browser, where Page.* and Runtime.*
-		// do not exist. Open one page and attach to it; everything else runs there.
-		const page = await attachNewPage(client);
-		this.page = page;
-		return page;
+		try {
+			const transport = await connect(launched.webSocketDebuggerUrl);
+			const client = new CdpClient({ transport });
+			this.registry.register("devtools connection", () => client.close("session shutdown"));
+			this.client = client;
+			// The default connection addresses the browser, where Page.* and Runtime.*
+			// do not exist. Open one page and attach to it; everything else runs there.
+			const page = await attachNewPage(client);
+			this.page = page;
+			return page;
+		} catch (error) {
+			// Chrome is already running; a failure past this point must not leave it
+			// (and its profile) alive for the rest of the session while the next
+			// `open` spawns another one beside it.
+			await this.registry.release();
+			this.client = undefined;
+			throw error;
+		}
 	}
 
 	/** The attached page, or a clear error rather than a silent auto-start. */

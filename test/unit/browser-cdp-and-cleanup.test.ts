@@ -288,3 +288,38 @@ test("concurrent starts share one browser", async () => {
 	assert.equal(a, b);
 	await session.close();
 });
+
+test("a launch that fails after Chrome spawned kills it instead of stacking browsers", async () => {
+	const processes = createFakeProcesses();
+	const removed: string[] = [];
+	let attempts = 0;
+	const session = new BrowserSession({
+		processes,
+		executablePath: "/usr/bin/chromium",
+		launch: async () => ({
+			handle: processes.spawn("/usr/bin/chromium", []),
+			webSocketDebuggerUrl: "ws://127.0.0.1:1/devtools",
+			userDataDir: `/tmp/profile-retry-${attempts}`,
+			port: 1,
+		}),
+		connect: async () => {
+			attempts += 1;
+			if (attempts === 1) throw new Error("socket refused");
+			return createFakeCdpTransport();
+		},
+		removeProfileDir: async (path) => {
+			removed.push(path);
+		},
+	});
+
+	await assert.rejects(session.start(), /socket refused/);
+	assert.equal(processes.alive, 0, "the Chrome from the failed attempt must not stay running");
+	assert.equal(session.openResourceCount, 0);
+	assert.deepEqual(removed, ["/tmp/profile-retry-0"]);
+
+	// A retry starts fresh rather than stacking a second browser on a dead first.
+	await session.start();
+	assert.equal(processes.alive, 1);
+	await session.close();
+	assert.equal(processes.alive, 0);
+});

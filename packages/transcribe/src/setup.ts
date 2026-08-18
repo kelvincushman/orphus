@@ -1,13 +1,7 @@
 import type { ExtensionContext } from "@orphus/coding-agent";
 import { type CatalogModel, formatSize, modelsForLanguages } from "./catalog.ts";
 import { ensureModelDownloaded, modelPath } from "./download.ts";
-import {
-	DEFAULT_MICROPHONE,
-	DEFAULT_SHORTCUT,
-	SETTINGS_VERSION,
-	type TranscribeSettings,
-	writeSettings,
-} from "./settings.ts";
+import { DEFAULT_MICROPHONE, SETTINGS_VERSION, type TranscribeSettings, writeSettings } from "./settings.ts";
 
 export interface SetupPaths {
 	settingsPath: string;
@@ -88,7 +82,6 @@ export async function runFirstRunSetup(
 
 	const settings: TranscribeSettings = {
 		version: SETTINGS_VERSION,
-		shortcut: DEFAULT_SHORTCUT,
 		preferredLanguages: normalized === "auto" ? [] : [normalized],
 		transcriptionLanguage: normalized,
 		microphone: DEFAULT_MICROPHONE,

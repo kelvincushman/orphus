@@ -32,6 +32,12 @@ export interface SessionSelectorRunOptions {
 	deleteSession?: (sessionPath: string) => Promise<void>;
 }
 
+/**
+ * Startup selection (the pilot's second surface) is not on {@link SelectorHost}:
+ * the default path is the pre-pilot pi implementation unchanged, and only the
+ * termDOM host implements `selectFromList` — see `startup-ui.ts`, which branches
+ * on {@link resolveTuiBackend} and lazy-imports the termDOM host when chosen.
+ */
 export interface ListSelectionRunOptions {
 	model: import("./list-selector-model.ts").ListSelectorModel;
 }
@@ -54,8 +60,6 @@ export type SessionSelectionResult =
 export interface SelectorHost {
 	readonly kind: TuiBackendName;
 	selectSession(options: SessionSelectorRunOptions): Promise<SessionSelectionResult>;
-	/** Startup selection: choose one labelled item from a short list. */
-	selectFromList(options: ListSelectionRunOptions): Promise<ListSelectionResult>;
 	dispose(): Promise<void>;
 }
 

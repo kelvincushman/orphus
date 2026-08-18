@@ -136,6 +136,11 @@ test("login asks for approval, and reports only the label", async () => {
 	assert.equal(confirmations.length, 1);
 	assert.ok(!confirmations[0].includes(SECRET), "the approval prompt names the credential, not the secret");
 	assert.match(confirmations[0], /app\.test/);
+
+	// The whole point of once-per-session approval: a second login with the same
+	// credential on the same origin does not ask again.
+	await run({ action: "login", credentialLabel: "app-login", selector: "#pass" });
+	assert.equal(confirmations.length, 1, "approval is remembered for the tool's lifetime, not per call");
 	await session.close();
 });
 

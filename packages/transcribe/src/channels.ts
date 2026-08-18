@@ -66,9 +66,16 @@ export async function openWorkerChannel(paths: ChannelPaths): Promise<BackendCha
 	if (!exists(libraryPath)) {
 		throw new TranscribeBackendError("internal", `no native transcription library at ${libraryPath}`);
 	}
+	// worker-entry.ts is the Bun-FFI shim over the native library and ships in
+	// the same change as the native artifacts (see native/ABI.md — Status). Until
+	// then this check fails the worker attempt with a reason the fallback ladder
+	// records, rather than pretending a runtime exists.
 	const workerEntry = paths.workerEntry ?? new URL("./worker-entry.ts", import.meta.url).pathname;
 	if (!exists(workerEntry)) {
-		throw new TranscribeBackendError("internal", `no worker entry at ${workerEntry}`);
+		throw new TranscribeBackendError(
+			"internal",
+			`the worker runtime ships with the native artifacts and is not present at ${workerEntry}`,
+		);
 	}
 
 	const worker = new Worker(workerEntry, { type: "module" });

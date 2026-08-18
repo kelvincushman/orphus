@@ -146,13 +146,15 @@ export async function snapshot(client: CdpSession, options?: SnapshotOptions): P
 
 export async function navigate(client: CdpSession, url: string): Promise<PageStatus> {
 	await client.send("Page.enable");
-	const loaded = client.once("Page.loadEventFired", 30_000);
+	// The swallow handler is attached at creation, not at the later await: if
+	// Page.navigate throws first, an unhandled once-timeout 30s later would
+	// otherwise take the whole process down. A page that never fires `load` (a
+	// long poll, a stream) is still navigated; the status read below reports
+	// where we actually ended up.
+	const loaded = client.once("Page.loadEventFired", 30_000).catch(() => undefined);
 	const result = (await client.send("Page.navigate", { url })) as { errorText?: string };
 	if (result.errorText) throw new Error(`Navigation to ${url} failed: ${result.errorText}`);
-	await loaded.catch(() => {
-		// A page that never fires `load` (a long poll, a stream) is still navigated;
-		// the status read below reports where we actually ended up.
-	});
+	await loaded;
 	return readStatus(client);
 }
 

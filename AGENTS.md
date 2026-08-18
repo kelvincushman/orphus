@@ -22,6 +22,14 @@ Companion packages under `packages/*` ship as **raw TypeScript** (no compile ste
 
 ## Minimal-change principle (KISS) — read this first
 
+**Default discipline: [ponytail](packages/subagents/skills/ponytail/SKILL.md)** — the
+bundled skill that enforces everything in this section as a ladder (YAGNI → reuse →
+stdlib → native platform → installed dependency → one line → minimum code). It ships
+with every Orphus session via `@orphus/subagents`; agents working on this repository
+load it at `full` intensity for any coding task, and `/ponytail lite|full|ultra`
+switches level. Vendored from
+[dietrichgebert/ponytail](https://github.com/dietrichgebert/ponytail) (MIT).
+
 Fix the actual problem with the **smallest correct change**. Do not rewrite files, and do not add speculative hardening for issues that cannot occur in this codebase. Don't reinvent the wheel or burn tokens rewriting file after file when the fix is usually a few lines.
 
 - **Verify before fixing.** Reproduce a reported issue, or trace that an existing guard already prevents it — the manifest `NAME_PATTERN` validation, the librarian writer convention (a coordination check against accidental concurrent writes, *not* a security boundary — see `docs/memory.md`), the local same-machine socket trust boundary. Refute non-issues instead of patching them. A review tool flagging something is a hypothesis, not a fact.

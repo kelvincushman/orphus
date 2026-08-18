@@ -11,6 +11,7 @@ import type { SessionInfo, SessionListProgress } from "../core/session-manager.t
 import type { SettingsManager } from "../core/settings-manager.ts";
 import { createSelectorHost } from "../core/terminal/index.ts";
 import { SessionSelectorModel } from "../core/terminal/session-selector-model.ts";
+import { deleteSessionFile } from "../modes/interactive/components/session-selector-delete.ts";
 
 type SessionsLoader = (onProgress?: SessionListProgress) => Promise<SessionInfo[]>;
 
@@ -31,6 +32,12 @@ export async function selectSession(
 			model,
 			loadCurrentSessions: currentSessionsLoader,
 			loadAllSessions: allSessionsLoader,
+			// Same deletion path the pi component uses internally; rename stays
+			// disabled here, matching the pre-pilot --resume picker.
+			deleteSession: async (sessionPath) => {
+				const deleted = await deleteSessionFile(sessionPath);
+				if (!deleted.ok) throw new Error(deleted.error ?? "Failed to delete session");
+			},
 		});
 		if (result.outcome === "selected") return result.sessionPath;
 		if (result.outcome === "exit") {
