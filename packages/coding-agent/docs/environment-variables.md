@@ -28,7 +28,7 @@ Off by default. Nothing is registered without `ORPHUS_ENABLE_BROWSER`; see [Brow
 | `ORPHUS_BROWSER_LOGIN_ORIGINS` | Space- or comma-separated origins credentials may be used on, e.g. `https://app.example.com` |
 | `ORPHUS_BROWSER_EXECUTABLE` | Explicit Chrome/Chromium path |
 | `ORPHUS_BROWSER_HEADLESS` | `0` runs Chrome with a visible window |
-| `ORPHUS_BROWSER_NO_SANDBOX` | Pass `--no-sandbox`. Disables Chrome's sandbox — only for a container running as root |
+| `ORPHUS_BROWSER_NO_SANDBOX` | Pass `--no-sandbox`. Disables Chrome's sandbox — only for a container running as root. Takes an explicit `1`/`true`/`on`/`yes`; anything else, including `no`, leaves the sandbox on |
 
 ### Terminal renderer
 

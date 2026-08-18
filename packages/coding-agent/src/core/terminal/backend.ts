@@ -104,11 +104,14 @@ export function resolveTuiBackend(input: ResolveTuiBackendInput = {}): ResolvedT
 		if (isTuiBackendName(envValue)) return { backend: envValue, source: "env" };
 		warnings.push(`Ignoring ${ENV_TUI_BACKEND}="${envValue}": expected "pi" or "termdom".`);
 	}
-	if (input.setting !== undefined) {
-		if (isTuiBackendName(input.setting)) {
-			return { backend: input.setting, source: "setting", ...withWarning(warnings) };
+	// Trimmed like the env value, and an empty setting reads as unset — an
+	// empty string in settings JSON is not a typo worth warning about.
+	const settingValue = input.setting?.trim();
+	if (settingValue) {
+		if (isTuiBackendName(settingValue)) {
+			return { backend: settingValue, source: "setting", ...withWarning(warnings) };
 		}
-		warnings.push(`Ignoring tui.backend="${input.setting}": expected "pi" or "termdom".`);
+		warnings.push(`Ignoring tui.backend="${settingValue}": expected "pi" or "termdom".`);
 	}
 	return { backend: DEFAULT_TUI_BACKEND, source: "default", ...withWarning(warnings) };
 }

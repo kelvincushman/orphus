@@ -228,6 +228,16 @@ test("an unrecognized backend falls back with a warning rather than failing star
 	assert.match(fromSetting.warning ?? "", /tui\.backend="ncurses"/);
 });
 
+test("the setting is trimmed like the env value, and an empty setting reads as unset", () => {
+	assert.deepEqual(resolveTuiBackend({ env: {}, setting: "  termdom  " }), {
+		backend: "termdom",
+		source: "setting",
+	});
+	// An empty string in settings JSON is not a typo worth warning about.
+	assert.deepEqual(resolveTuiBackend({ env: {}, setting: "" }), { backend: "pi", source: "default" });
+	assert.deepEqual(resolveTuiBackend({ env: {}, setting: "   " }), { backend: "pi", source: "default" });
+});
+
 test("a bad env value falls through to a valid setting instead of eclipsing it", () => {
 	const resolved = resolveTuiBackend({ env: { [ENV_TUI_BACKEND]: "ncurses" }, setting: "termdom" });
 	assert.equal(resolved.backend, "termdom");
@@ -250,6 +260,9 @@ test("keyboard events re-encode to the bytes the keybinding layer matches", () =
 	assert.equal(keyboardEventToData({ key: "é" }), "é");
 	// A single astral code point is one keystroke even though `key.length` is 2.
 	assert.equal(keyboardEventToData({ key: "🚀" }), "🚀");
+	// Backtab is its own sequence — pi's matcher reads \x1b[Z as "shift+tab" —
+	// so Shift+Tab must not fire Tab's binding.
+	assert.equal(keyboardEventToData({ key: "Tab", shiftKey: true }), "\x1b[Z");
 	assert.equal(keyboardEventToData({ key: "Shift" }), undefined, "a bare modifier is not a keystroke");
 	assert.equal(keyboardEventToData({ key: "F13" }), undefined);
 });

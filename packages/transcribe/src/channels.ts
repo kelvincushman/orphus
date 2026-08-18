@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { BackendChannel } from "./backend.ts";
 import { TranscribeBackendError } from "./backend.ts";
 
@@ -70,7 +71,9 @@ export async function openWorkerChannel(paths: ChannelPaths): Promise<BackendCha
 	// the same change as the native artifacts (see native/ABI.md — Status). Until
 	// then this check fails the worker attempt with a reason the fallback ladder
 	// records, rather than pretending a runtime exists.
-	const workerEntry = paths.workerEntry ?? new URL("./worker-entry.ts", import.meta.url).pathname;
+	// fileURLToPath, not `.pathname`: the latter yields `/C:/...` on Windows and
+	// keeps percent-encoding, so present artifacts would be reported missing.
+	const workerEntry = paths.workerEntry ?? fileURLToPath(new URL("./worker-entry.ts", import.meta.url));
 	if (!exists(workerEntry)) {
 		throw new TranscribeBackendError(
 			"internal",

@@ -205,7 +205,15 @@ export async function submitLogin(client: CdpSession, grant: CredentialGrant, fi
 	if (grant.username && fields.usernameSelector) {
 		await typeInto(client, fields.usernameSelector, grant.username);
 	}
-	await typeInto(client, fields.passwordSelector, grant.secret);
+	try {
+		await typeInto(client, fields.passwordSelector, grant.secret);
+	} catch (error) {
+		// The page controls the exception text — a hostile `input` handler can
+		// throw the field's value. Never let the secret ride an error message
+		// out of this function and into model-visible content.
+		const detail = error instanceof Error ? error.message : String(error);
+		throw new Error(detail.split(grant.secret).join("[redacted]"));
+	}
 	if (fields.submitSelector) await click(client, fields.submitSelector);
 	return grant.label;
 }

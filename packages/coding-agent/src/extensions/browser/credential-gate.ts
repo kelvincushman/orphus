@@ -109,7 +109,9 @@ export class CredentialGate {
 		if (!this.options.loginEnabled) return { ok: false, denial: { reason: "login_disabled" } };
 		const origin = originOf(url);
 		if (!origin || !this.options.allowlist.has(origin)) {
-			return { ok: false, denial: { reason: "origin_not_allowlisted", origin: origin ?? url } };
+			// When there is no origin to name, do not name the URL instead: a raw
+			// URL can carry a token in its query, and a data: URL carries content.
+			return { ok: false, denial: { reason: "origin_not_allowlisted", origin: origin ?? "(no origin)" } };
 		}
 		const record = (await this.options.credentials.list()).find((entry) => entry.label === label);
 		if (!record) return { ok: false, denial: { reason: "unknown_label" } };

@@ -154,6 +154,41 @@ test("a second toggle during a slow backend resolve does not start recording twi
 	);
 });
 
+test("escape during a slow backend resolve cancels the pending start", async () => {
+	// The state is still "idle" while `resolveBackend` runs — which can be
+	// first-run setup and a model download — so Escape must claim the pending
+	// start rather than being ignored and watching recording begin anyway.
+	const channel = createFakeChannel();
+	const backend = new ProtocolBackend(channel);
+	await backend.initialize({ modelPath: "/models/m.gguf", language: "en", sampleRate: 16_000 });
+	let release: (() => void) | undefined;
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const ui = recordingUi();
+	const subject = new TranscribeController({
+		ui,
+		resolveBackend: async () => {
+			await gate;
+			return backend;
+		},
+	});
+
+	const starting = subject.toggle();
+	assert.equal(subject.cancellable, true, "a start in flight is something Escape can cancel");
+	assert.equal(await subject.cancel(), true);
+	release?.();
+	await starting;
+
+	assert.equal(subject.state, "idle");
+	assert.deepEqual(
+		channel.requests.filter((request) => request.kind === "startRecording"),
+		[],
+		"a keystroke that asked to stop must not start recording",
+	);
+	assert.ok(ui.notices.some((notice) => notice.message === "Dictation cancelled."));
+});
+
 test("declining first-run setup starts nothing", async () => {
 	const { subject, ui } = await controller({ resolveBackend: async () => undefined });
 	await subject.toggle();
@@ -200,30 +235,34 @@ test("settings are written atomically and owner-only", async () => {
 	assert.deepEqual(await readdir(join(dir, "nested")), ["transcribe.json"]);
 });
 
-test("a planted file at the old predictable temp path is never written through", async () => {
-	// The temp name was once `<path>.<pid>.tmp` — predictable enough to
-	// pre-create as a symlink and have the settings written through it. The
-	// name is random now and created with `wx`; the planted link must survive
-	// untouched, and its target must stay empty.
-	const dir = scratch();
-	const path = join(dir, "transcribe.json");
-	const victim = join(dir, "victim.txt");
-	await writeFile(victim, "", "utf8");
-	const planted = `${path}.${process.pid}.tmp`;
-	await symlink(victim, planted);
+test.runIf(process.platform !== "win32")(
+	"a planted file at the old predictable temp path is never written through",
+	async () => {
+		// The temp name was once `<path>.<pid>.tmp` — predictable enough to
+		// pre-create as a symlink and have the settings written through it. The
+		// name is random now and created with `wx`; the planted link must survive
+		// untouched, and its target must stay empty. (Gated: symlinks need
+		// elevated rights on Windows, and the write path is platform-neutral.)
+		const dir = scratch();
+		const path = join(dir, "transcribe.json");
+		const victim = join(dir, "victim.txt");
+		await writeFile(victim, "", "utf8");
+		const planted = `${path}.${process.pid}.tmp`;
+		await symlink(victim, planted);
 
-	await writeSettings(path, {
-		version: 1,
-		preferredLanguages: [],
-		transcriptionLanguage: "auto",
-		microphone: { type: "system-default" },
-		model: { source: "catalog", id: "m", path: "/m.gguf" },
-	});
+		await writeSettings(path, {
+			version: 1,
+			preferredLanguages: [],
+			transcriptionLanguage: "auto",
+			microphone: { type: "system-default" },
+			model: { source: "catalog", id: "m", path: "/m.gguf" },
+		});
 
-	assert.equal(await readFile(victim, "utf8"), "", "the symlink target must not receive the settings");
-	assert.ok((await lstat(planted)).isSymbolicLink(), "the planted link is not consumed or replaced");
-	assert.ok((await readSettings(path)).settings, "the real settings landed beside it");
-});
+		assert.equal(await readFile(victim, "utf8"), "", "the symlink target must not receive the settings");
+		assert.ok((await lstat(planted)).isSymbolicLink(), "the planted link is not consumed or replaced");
+		assert.ok((await readSettings(path)).settings, "the real settings landed beside it");
+	},
+);
 
 test("a malformed or future settings file is reported rather than silently discarded", async () => {
 	assert.match(parseSettings("{ not json").warning ?? "", /could not be parsed/);

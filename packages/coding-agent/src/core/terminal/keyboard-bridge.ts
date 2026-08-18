@@ -44,6 +44,9 @@ const NAMED_KEYS: Record<string, string> = {
  * rather than as an empty keystroke.
  */
 export function keyboardEventToData(event: KeyboardEventLike): string | undefined {
+	// Backtab has its own sequence — pi's key matcher reads \x1b[Z as
+	// "shift+tab" — so encoding it as plain Tab would fire Tab's binding.
+	if (event.key === "Tab" && event.shiftKey) return "\x1b[Z";
 	const named = NAMED_KEYS[event.key];
 	if (named !== undefined) {
 		// Ctrl+Backspace has its own encoding; everything else named ignores

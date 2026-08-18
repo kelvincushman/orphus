@@ -1,5 +1,6 @@
 import { spawn as nodeSpawn } from "node:child_process";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { StringDecoder } from "node:string_decoder";
 import { setTimeout as delay } from "node:timers/promises";
 import type {
 	BrowserCapability,
@@ -91,11 +92,15 @@ export const nodeProcesses: ProcessCapability = {
 			});
 			let stdout = "";
 			let stderr = "";
-			child.stdout?.on("data", (chunk: Buffer) => {
-				stdout += chunk.toString();
+			// setEncoding decodes statefully, so a multi-byte character split
+			// across two chunks arrives whole instead of as replacement characters.
+			child.stdout?.setEncoding("utf8");
+			child.stderr?.setEncoding("utf8");
+			child.stdout?.on("data", (chunk: string) => {
+				stdout += chunk;
 			});
-			child.stderr?.on("data", (chunk: Buffer) => {
-				stderr += chunk.toString();
+			child.stderr?.on("data", (chunk: string) => {
+				stderr += chunk;
 			});
 			// "close", not "exit": exit can fire while stdio is still draining (a
 			// grandchild can hold the pipes open), and resolving there loses
@@ -143,7 +148,12 @@ export function createStdioTerminalTransport(): TerminalTransportCapability {
 			if (process.stdin.isTTY) process.stdin.setRawMode(enabled);
 		},
 		onData: (listener) => {
-			const handler = (chunk: Buffer | string) => listener(chunk.toString());
+			// Stateful decoding without touching process-global stdin encoding:
+			// a paste can split a multi-byte character across reads.
+			const decoder = new StringDecoder("utf8");
+			const handler = (chunk: Buffer | string) => {
+				listener(typeof chunk === "string" ? chunk : decoder.write(chunk));
+			};
 			process.stdin.on("data", handler);
 			return () => {
 				process.stdin.off("data", handler);

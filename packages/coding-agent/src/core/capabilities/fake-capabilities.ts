@@ -91,7 +91,13 @@ export function createFakeFileSystem(seed?: Record<string, string>): FakeFileSys
 		},
 		async writeFile(path, data, options?: WriteFileOptions) {
 			const absolute = resolvePath(path);
-			if (writeFailure?.matcher(absolute)) throw writeFailure.error;
+			if (writeFailure?.matcher(absolute)) {
+				// One-shot, as documented: the *next* matching write fails, and a
+				// retry afterwards behaves normally.
+				const { error } = writeFailure;
+				writeFailure = undefined;
+				throw error;
+			}
 			if (options?.flag === "wx" && files.has(absolute)) {
 				throw Object.assign(new Error(`EEXIST: file already exists, open '${path}'`), { code: "EEXIST" });
 			}

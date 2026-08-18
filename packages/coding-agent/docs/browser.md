@@ -77,6 +77,12 @@ Four conditions, all required, before a secret reaches a page:
    session per credential-and-origin pair. **A session with no one to ask —
    print mode, a subagent, a scheduled run — is denied.**
 
+The origin is checked again immediately before the form is filled: the
+approval prompt is human-scale time, and a page that navigates away while it
+is open receives nothing. A page-thrown error on the password field comes back
+with the secret redacted — the page controls its exception text, and that text
+reaches the model.
+
 ### Where credentials live
 
 The secret lives in your OS keychain and is read only at the moment it is handed

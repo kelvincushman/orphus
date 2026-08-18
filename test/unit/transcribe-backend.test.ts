@@ -7,6 +7,7 @@ import {
 	type BackendChannel,
 	createTranscriptionBackend,
 	DISPOSE_ACK_TIMEOUT_MS,
+	INITIALIZE_TIMEOUT_MS,
 	ProtocolBackend,
 	TranscribeBackendError,
 } from "../../packages/transcribe/src/backend.js";
@@ -127,6 +128,26 @@ test("a known response kind with malformed fields is a protocol violation, not d
 
 	await assert.rejects(pending, /protocol violation: invalid message/);
 	assert.equal(channel.closed, true);
+});
+
+test("a backend that opens but never answers `initialize` cannot stall the fallback ladder", async () => {
+	// A wedged native library gets exactly this far: the channel opens, then
+	// nothing is ever written and nothing closes. The bounded handshake is what
+	// lets the helper attempt start.
+	vi.useFakeTimers();
+	try {
+		const pending = createTranscriptionBackend({
+			initialize: INIT,
+			openWorker: async () => createFakeChannel({ kind: "worker", silentFor: ["initialize", "dispose"] }),
+			openHelper: async () => createFakeChannel({ kind: "helper" }),
+		});
+		await vi.advanceTimersByTimeAsync(INITIALIZE_TIMEOUT_MS + DISPOSE_ACK_TIMEOUT_MS);
+		const selection = await pending;
+		assert.equal(selection.backend.kind, "helper");
+		assert.match(selection.attempts[0].reason ?? "", /initialize timed out/);
+	} finally {
+		vi.useRealTimers();
+	}
 });
 
 test("a backend that ignores `dispose` cannot stall the fallback ladder", async () => {

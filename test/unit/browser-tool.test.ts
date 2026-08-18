@@ -144,6 +144,33 @@ test("login asks for approval, and reports only the label", async () => {
 	await session.close();
 });
 
+test("a page that navigates away while approval is pending never receives the secret", async () => {
+	// The origin check and the fill are separated by the approval prompt —
+	// human-scale time. A redirect in that window must abort the login.
+	let statusReads = 0;
+	const { run, session, transport } = harness({
+		evaluate: (expression) => {
+			if (!expression.includes("location.href")) return true;
+			statusReads += 1;
+			return statusReads === 1
+				? { url: "https://app.test/signin", title: "Sign in", text: "body" }
+				: { url: "https://evil.test/phish", title: "Totally the same site", text: "body" };
+		},
+	});
+	await run({ action: "open" });
+
+	await assert.rejects(
+		run({ action: "login", credentialLabel: "app-login", selector: "#pass" }),
+		/left https:\/\/app\.test before the login was submitted/,
+	);
+	const evaluated = transport.sent.filter((command) => command.method === "Runtime.evaluate");
+	assert.ok(
+		evaluated.every((command) => !JSON.stringify(command.params ?? {}).includes(SECRET)),
+		"no fill expression carrying the secret may be dispatched after the move",
+	);
+	await session.close();
+});
+
 test("login on an origin outside the allowlist is a tool error naming no secret", async () => {
 	const { run, session } = harness({ loginOrigins: "https://elsewhere.test" });
 	await run({ action: "open" });
@@ -184,21 +211,45 @@ test("close reports its cleanup and empties the registry", async () => {
 	assert.equal(session.openResourceCount, 0);
 });
 
+/**
+ * The extension reads the whole `ORPHUS_*BROWSER*` family, so these two tests
+ * must not inherit whatever the developer's or CI's ambient environment says —
+ * a stray `ORPHUS_ENABLE_BROWSER_LOGIN=1` would route them into the keychain
+ * wiring they do not mean to exercise.
+ */
+const BROWSER_ENV_KEYS = [
+	"ORPHUS_ENABLE_BROWSER",
+	"ORPHUS_ENABLE_BROWSER_LOGIN",
+	"ORPHUS_BROWSER_LOGIN_ORIGINS",
+	"ORPHUS_BROWSER_EXECUTABLE",
+	"ORPHUS_BROWSER_HEADLESS",
+	"ORPHUS_BROWSER_NO_SANDBOX",
+] as const;
+
+function withBrowserEnv<T>(overrides: Record<string, string>, body: () => T): T {
+	const previous = new Map(BROWSER_ENV_KEYS.map((key) => [key, process.env[key]] as const));
+	for (const key of BROWSER_ENV_KEYS) delete process.env[key];
+	for (const [key, value] of Object.entries(overrides)) process.env[key] = value;
+	try {
+		return body();
+	} finally {
+		for (const [key, value] of previous) {
+			if (value === undefined) delete process.env[key];
+			else process.env[key] = value;
+		}
+	}
+}
+
 test("the extension registers nothing when the browser switch is off", () => {
 	const registered: string[] = [];
 	const pi = {
 		registerTool: (tool: { name: string }) => registered.push(tool.name),
 		on: () => {},
 	} as never;
-	const previous = process.env.ORPHUS_ENABLE_BROWSER;
-	delete process.env.ORPHUS_ENABLE_BROWSER;
-	try {
+	withBrowserEnv({}, () => {
 		browserExtension(pi);
-		assert.deepEqual(registered, [], "a session that did not opt in must not carry the tool");
-	} finally {
-		if (previous === undefined) delete process.env.ORPHUS_ENABLE_BROWSER;
-		else process.env.ORPHUS_ENABLE_BROWSER = previous;
-	}
+	});
+	assert.deepEqual(registered, [], "a session that did not opt in must not carry the tool");
 });
 
 test("the extension registers the browser tool when the switch is on", () => {
@@ -207,16 +258,11 @@ test("the extension registers the browser tool when the switch is on", () => {
 		registerTool: (tool: { name: string }) => registered.push(tool.name),
 		on: () => {},
 	} as never;
-	const previous = process.env.ORPHUS_ENABLE_BROWSER;
-	process.env.ORPHUS_ENABLE_BROWSER = "1";
-	try {
+	withBrowserEnv({ ORPHUS_ENABLE_BROWSER: "1" }, () => {
 		assert.equal(readBrowserFlags().enabled, true);
 		browserExtension(pi);
-		assert.deepEqual(registered, [BROWSER_TOOL_NAME]);
-	} finally {
-		if (previous === undefined) delete process.env.ORPHUS_ENABLE_BROWSER;
-		else process.env.ORPHUS_ENABLE_BROWSER = previous;
-	}
+	});
+	assert.deepEqual(registered, [BROWSER_TOOL_NAME]);
 });
 
 /**

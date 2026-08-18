@@ -73,6 +73,17 @@ test("both switches are off unless set, and login cannot be enabled on its own",
 	assert.equal(readBrowserFlags({ ORPHUS_ENABLE_BROWSER: "1", ORPHUS_BROWSER_HEADLESS: "0" }).headless, false);
 });
 
+test("disabling Chrome's sandbox takes an explicit affirmative, not any non-empty value", () => {
+	// `--no-sandbox` removes a security boundary; "no" and "disabled" must not
+	// count as yes the way the loose parser used elsewhere would read them.
+	for (const value of ["1", "true", "on", "yes", " TRUE "]) {
+		assert.equal(readBrowserFlags({ ORPHUS_BROWSER_NO_SANDBOX: value }).noSandbox, true, value);
+	}
+	for (const value of ["no", "disabled", "enable", "sandbox", "0", "false", "off", ""]) {
+		assert.equal(readBrowserFlags({ ORPHUS_BROWSER_NO_SANDBOX: value }).noSandbox, false, value);
+	}
+});
+
 test("the allowlist takes origins, not bare hosts", () => {
 	const parsed = parseOriginAllowlist("https://app.test, http://localhost:3000 app.test");
 	assert.deepEqual([...parsed].sort(), ["http://localhost:3000", "https://app.test"]);
@@ -262,6 +273,32 @@ test("opaque origins are no origin at all, on the allowlist and on the page alik
 	assert.deepEqual(store.reveals, []);
 });
 
+test("a keychain lookup that blocks on an unlock prompt is bounded, not awaited forever", async () => {
+	// `security` and `secret-tool` wait for a human when the keychain is
+	// locked. The capability contract folds an aborted spawn into a non-zero
+	// exit, and the timeout makes that happen without anyone at the keyboard.
+	const hangingProcesses = {
+		kind: "hanging",
+		spawn: () => {
+			throw new Error("not used");
+		},
+		exec: (_command: string, _args: readonly string[], options?: { signal?: AbortSignal }) =>
+			new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve) => {
+				options?.signal?.addEventListener("abort", () => resolve({ code: null, stdout: "", stderr: "aborted" }), {
+					once: true,
+				});
+			}),
+	};
+	const credentials = createKeychainCredentials({
+		processes: hangingProcesses as never,
+		fs: createFakeFileSystem(),
+		registryPath: "/agent/registry.json",
+		platform: "darwin",
+		lookupTimeoutMs: 25,
+	});
+	assert.equal(await credentials.reveal("app-login"), undefined, "an unanswerable lookup reads as absent");
+});
+
 test("a platform with no keychain CLI reports itself unavailable and reveals nothing", async () => {
 	const credentials = createKeychainCredentials({
 		processes: createFakeProcesses(),
@@ -347,6 +384,35 @@ test("a login writes the secret into the page and returns only the label", async
 		transport.sent.filter((command) => JSON.stringify(command.params ?? {}).includes("#go")).length,
 		1,
 		"the submit button is clicked once",
+	);
+});
+
+test("a page that throws the secret back cannot put it into the error message", async () => {
+	// The page controls its exception text: an `input` handler can read the
+	// field and throw its value. The error the caller sees — and would render
+	// into a model-visible tool result — must not carry the secret.
+	const transport = createFakeCdpTransport({
+		handlers: {
+			"Runtime.evaluate": evaluateHandler((expression) => {
+				if (expression.includes(SECRET)) throw new Error(`input rejected: ${SECRET} is too weak`);
+				return true;
+			}),
+		},
+	});
+	const client = new CdpClient({ transport });
+
+	await assert.rejects(
+		submitLogin(
+			client,
+			{ label: "app-login", origin: "https://app.test", secret: SECRET },
+			{ passwordSelector: "#pass" },
+		),
+		(error: unknown) => {
+			const message = error instanceof Error ? error.message : String(error);
+			assert.ok(!message.includes(SECRET), "the page-authored exception must come back redacted");
+			assert.match(message, /\[redacted\]/);
+			return true;
+		},
 	);
 });
 

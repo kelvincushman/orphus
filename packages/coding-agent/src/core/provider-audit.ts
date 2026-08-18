@@ -232,13 +232,17 @@ export class ProviderAuditRecorder {
 	recordResponse(input: { finishReason?: string; usage?: Usage; error?: unknown }): void {
 		const pending = this.pending;
 		this.pending = undefined;
+		// Only a correlated response advances the turn/attempt identity: a
+		// response with no recorded request (recording disabled, or a dispatch
+		// path that bypasses `recordRequest`) must not shift every later record.
+		if (!pending) return;
 		const failed = input.error !== undefined || input.finishReason === "error" || input.finishReason === "aborted";
 		if (failed) this.attempt += 1;
 		else {
 			this.turn += 1;
 			this.attempt = 0;
 		}
-		if (!this.enabled || !pending) return;
+		if (!this.enabled) return;
 		const record: ProviderResponseRecord = {
 			requestId: pending.requestId,
 			attempt: pending.attempt,
@@ -258,6 +262,11 @@ export class ProviderAuditRecorder {
 	 * relative to the session directory, which is what the record carries.
 	 */
 	private async spillBody(requestId: string, body: string): Promise<string> {
+		// The id becomes a path component and `newRequestId` is injectable; an id
+		// carrying a separator or traversal must not choose where the body lands.
+		if (!/^[A-Za-z0-9._-]+$/.test(requestId) || requestId.includes("..")) {
+			throw new Error(`Cannot spill provider request body: "${requestId}" is not a safe path component.`);
+		}
 		const sessionDir = this.session.getSessionDir();
 		if (!sessionDir) {
 			throw new Error(

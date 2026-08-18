@@ -217,6 +217,38 @@ test("a paste burst lands in the query rather than being read as commands", () =
 	assert.equal(subject.getState().query, "release prep");
 });
 
+test("an astral keystroke reaches the query, and backspace removes it whole", () => {
+	// The keyboard bridge deliberately passes an emoji as one keystroke; a
+	// UTF-16 length check downstream would throw it away again.
+	const keybindings = KeybindingsManager.create();
+	const subject = model();
+	const run = { model: subject, loadCurrentSessions: async () => [], loadAllSessions: async () => [] };
+	applyKey("🚀", keybindings, run);
+	assert.equal(subject.getState().query, "🚀");
+	applyKey("\x7f", keybindings, run);
+	assert.equal(subject.getState().query, "", "backspace removes the code point, not one surrogate half");
+});
+
+test("a failed delete reloads the scope so the list matches the filesystem again", async () => {
+	const keybindings = KeybindingsManager.create();
+	const subject = model(SESSIONS, "/s/one.jsonl");
+	const run = {
+		model: subject,
+		loadCurrentSessions: async () => SESSIONS,
+		loadAllSessions: async () => SESSIONS,
+		deleteSession: async () => {
+			throw new Error("EACCES: permission denied");
+		},
+	};
+	subject.select(1);
+	subject.requestDelete();
+	applyKey("\r", keybindings, run);
+	// The row disappears optimistically; the failed persist must bring it back.
+	await new Promise((resolve) => setTimeout(resolve, 10));
+	assert.equal(subject.getState().rows.length, SESSIONS.length, "the file is still on disk, so the row returns");
+	assert.match(subject.getState().error ?? "", /Could not delete the session: EACCES/);
+});
+
 test(
 	"the host attaches to an injected transport, renders, and hands the terminal back",
 	async () => {

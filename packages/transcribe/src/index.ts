@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { ExtensionAPI, ExtensionContext } from "@orphus/coding-agent";
 import { getAgentDir } from "@orphus/coding-agent";
 import { createTranscriptionBackend, type TranscriptionBackend } from "./backend.ts";
@@ -24,7 +25,8 @@ export function transcribePaths(agentDir: string = getAgentDir()): {
 	return {
 		settingsPath: join(agentDir, "transcribe.json"),
 		modelsDir: join(agentDir, "transcribe-models"),
-		nativeDir: new URL("../native", import.meta.url).pathname,
+		// fileURLToPath, not `.pathname`, which breaks on Windows drive letters.
+		nativeDir: fileURLToPath(new URL("../native", import.meta.url)),
 	};
 }
 
@@ -90,9 +92,12 @@ export default function transcribeExtension(pi: ExtensionAPI): void {
 		if (stopListening || !ctx.hasUI) return;
 		stopListening = ctx.ui.onTerminalInput((data) => {
 			if (data !== "\x1b") return undefined;
-			const active = controller?.state !== "idle";
-			if (!active) return undefined;
-			void controller?.cancel();
+			// No controller, or nothing to cancel — Escape passes through. The
+			// guard is local rather than an ordering invariant with controllerFor.
+			// `cancellable` covers the start-still-resolving window too, where the
+			// state is still "idle" but a keypress asked dictation to stop.
+			if (controller === undefined || !controller.cancellable) return undefined;
+			void controller.cancel();
 			return { consume: true };
 		});
 	}

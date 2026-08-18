@@ -353,6 +353,91 @@ test("close settles `once` waiters with the close reason instead of a late timeo
 	await assert.rejects(client.once("Page.loadEventFired"), /Browser connection closed/);
 });
 
+test("`once` scoped to a session ignores another target's events", async () => {
+	// With flatten: true every attached target's events share one connection; a
+	// page waiting on its own load event must not resolve on a sibling's.
+	const transport = createFakeCdpTransport();
+	const client = new CdpClient({ transport, timeoutMs: 5, setTimer: immediateTimer });
+	const waiting = client.once("Page.loadEventFired", 5, "session-A");
+	transport.emit("Page.loadEventFired", { timestamp: 1 }, "session-B");
+	await assert.rejects(waiting, /Timed out waiting for Page\.loadEventFired/);
+
+	const matched = client.once("Page.loadEventFired", 5, "session-A");
+	transport.emit("Page.loadEventFired", { timestamp: 2 }, "session-A");
+	assert.deepEqual(await matched, { timestamp: 2 });
+});
+
+test("a failed attach closes the target it created instead of leaving a page open", async () => {
+	const transport = createFakeCdpTransport({
+		handlers: {
+			"Target.attachToTarget": () => {
+				throw new Error("attach refused");
+			},
+		},
+	});
+	const client = new CdpClient({ transport });
+	const { attachNewPage } = await import("../../packages/coding-agent/src/extensions/browser/page-session.js");
+
+	await assert.rejects(attachNewPage(client), /attach refused/);
+	const closed = transport.sent.find((command) => command.method === "Target.closeTarget");
+	assert.deepEqual(closed?.params, { targetId: "target-1" }, "the created target must not outlive the failure");
+});
+
+test("close during an in-flight start still tears down the Chrome that launch registers", async () => {
+	const processes = createFakeProcesses();
+	let releaseLaunch: (() => void) | undefined;
+	const launchGate = new Promise<void>((resolve) => {
+		releaseLaunch = resolve;
+	});
+	const session = new BrowserSession({
+		processes,
+		executablePath: "/usr/bin/chromium",
+		launch: async () => {
+			await launchGate;
+			return {
+				handle: processes.spawn("/usr/bin/chromium", []),
+				webSocketDebuggerUrl: "ws://127.0.0.1:1/devtools",
+				userDataDir: "/tmp/profile-racing",
+				port: 1,
+			};
+		},
+		connect: async () => createFakeCdpTransport(),
+		removeProfileDir: async () => {},
+	});
+
+	const starting = session.start();
+	// Shutdown arrives before the launch finished registering anything.
+	const closing = session.close();
+	releaseLaunch?.();
+	await starting;
+	const report = await closing;
+
+	assert.deepEqual(report.failures, []);
+	assert.equal(processes.alive, 0, "the Chrome the in-flight launch registered must not outlive the session");
+	assert.equal(session.openResourceCount, 0);
+});
+
+test("connecting to a socket that never answers times out instead of hanging the open action", async () => {
+	const { createServer } = await import("node:net");
+	const server = createServer(() => {
+		// Accept the TCP connection and say nothing: the WebSocket stays CONNECTING.
+	});
+	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
+	const address = server.address();
+	const port = typeof address === "object" && address ? address.port : 0;
+	try {
+		const { createWebSocketTransport } = await import(
+			"../../packages/coding-agent/src/extensions/browser/cdp-client.js"
+		);
+		await assert.rejects(
+			createWebSocketTransport(`ws://127.0.0.1:${port}/devtools`, { timeoutMs: 150 }),
+			/Timed out connecting to the browser/,
+		);
+	} finally {
+		server.close();
+	}
+});
+
 test("close resolves and reports the failure when Chrome ignores every kill signal", async () => {
 	const processes = createFakeProcesses();
 	// A wedged Chrome: kill signals land, the process never exits.

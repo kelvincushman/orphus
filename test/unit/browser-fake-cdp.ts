@@ -4,6 +4,7 @@ export interface SentCommand {
 	id: number;
 	method: string;
 	params?: Record<string, unknown>;
+	sessionId?: string;
 }
 
 export interface FakeCdpTransport extends CdpTransport {
@@ -13,8 +14,8 @@ export interface FakeCdpTransport extends CdpTransport {
 	reply(id: number, result: Record<string, unknown>): void;
 	/** Answer a command with a protocol error. */
 	replyError(id: number, error: { code: number; message: string; data?: string }): void;
-	/** Deliver a CDP event. */
-	emit(method: string, params?: Record<string, unknown>): void;
+	/** Deliver a CDP event, optionally tagged with its originating target session. */
+	emit(method: string, params?: Record<string, unknown>, sessionId?: string): void;
 	/** Deliver a frame verbatim, including malformed ones. */
 	deliver(raw: string): void;
 	/** Simulate the far end going away. */
@@ -34,6 +35,7 @@ export type FakeCdpHandler = (
 export const DEFAULT_TARGET_HANDLERS: Record<string, FakeCdpHandler> = {
 	"Target.createTarget": () => ({ targetId: "target-1" }),
 	"Target.attachToTarget": () => ({ sessionId: "session-1" }),
+	"Target.closeTarget": () => ({ success: true }),
 	"Page.enable": () => ({}),
 	// A real browser fires `load` after a navigation; a fake that never does
 	// would make every navigation wait out its load budget.
@@ -65,7 +67,8 @@ export function createFakeCdpTransport(options?: {
 	const deliver = (raw: string) => {
 		for (const listener of [...messageListeners]) listener(raw);
 	};
-	const emit = (method: string, params?: Record<string, unknown>) => deliver(JSON.stringify({ method, params }));
+	const emit = (method: string, params?: Record<string, unknown>, sessionId?: string) =>
+		deliver(JSON.stringify({ method, params, ...(sessionId === undefined ? {} : { sessionId }) }));
 
 	return {
 		sent,
@@ -77,10 +80,13 @@ export function createFakeCdpTransport(options?: {
 			sent.push(parsed);
 			const handler = handlers[parsed.method];
 			if (handler) {
-				// Answer on a later microtask, like a real socket would.
+				// Answer on a later microtask, like a real socket would. Events a
+				// handler emits carry the command's session, like a real target's do.
+				const emitForCommand = (method: string, eventParams?: Record<string, unknown>) =>
+					emit(method, eventParams, parsed.sessionId);
 				queueMicrotask(() => {
 					try {
-						deliver(JSON.stringify({ id: parsed.id, result: handler(parsed.params ?? {}, emit) }));
+						deliver(JSON.stringify({ id: parsed.id, result: handler(parsed.params ?? {}, emitForCommand) }));
 					} catch (error) {
 						deliver(
 							JSON.stringify({

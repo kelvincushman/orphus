@@ -82,10 +82,13 @@ test(
 		try {
 			dom.renderANSI(renderSelectorHtml(model.getState(), { columns: 120, rows: 40 }));
 
+			// Every sample must keep all 500 sessions matched — "releases" and
+			// "refactors" both appear in every fixture's text — or the median
+			// quietly measures the cheap empty-list render instead.
 			const samples: number[] = [];
-			for (const character of "release prep session") {
+			for (const query of Array.from({ length: 20 }, (_, index) => (index % 2 === 0 ? "release" : "refactor"))) {
 				const started = performance.now();
-				model.setQuery(model.getState().query + character);
+				model.setQuery(query);
 				dom.renderANSI(renderSelectorHtml(model.getState(), { columns: 120, rows: 40 }));
 				samples.push(performance.now() - started);
 			}

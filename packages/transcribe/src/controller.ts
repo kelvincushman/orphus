@@ -58,6 +58,11 @@ export class TranscribeController {
 		return this.current;
 	}
 
+	/** Whether Escape has anything to cancel: recording, transcribing, or a start still resolving. */
+	get cancellable(): boolean {
+		return this.starting || this.current !== "idle";
+	}
+
 	/** Start recording when idle; stop and transcribe when recording. */
 	async toggle(): Promise<void> {
 		if (this.starting) return;
@@ -71,11 +76,15 @@ export class TranscribeController {
 
 	private async start(): Promise<void> {
 		this.starting = true;
+		this.cancelled = false;
 		try {
 			const backend = this.backend ?? (await this.options.resolveBackend());
 			if (!backend) return;
 			this.backend = backend;
-			this.cancelled = false;
+			// Escape arrived while the backend was resolving — setup and a model
+			// download can take minutes. Honour it: do not start recording from a
+			// keystroke that asked to stop.
+			if (this.cancelled) return;
 			try {
 				await backend.startRecording(this.options.device?.());
 			} catch (error) {
@@ -122,6 +131,14 @@ export class TranscribeController {
 	 * through to whatever else wanted it when dictation was idle.
 	 */
 	async cancel(): Promise<boolean> {
+		if (this.starting && this.current === "idle") {
+			// The backend is still resolving; claim the pending start and let
+			// `start` abandon it instead of beginning to record.
+			this.cancelled = true;
+			this.options.ui.setStatus(undefined);
+			this.options.ui.notify("Dictation cancelled.", "info");
+			return true;
+		}
 		if (this.current === "idle") return false;
 		this.cancelled = true;
 		this.stopMeter();

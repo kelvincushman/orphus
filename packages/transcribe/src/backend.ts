@@ -57,6 +57,13 @@ export interface TranscriptionBackend {
 /** How long `dispose` waits for the backend's acknowledgement before moving on. */
 export const DISPOSE_ACK_TIMEOUT_MS = 2_000;
 
+/**
+ * How long `initialize` waits for `ready`. A channel that opens and then never
+ * writes — a wedged native library — must fail the attempt, not hang the
+ * worker→helper ladder. Deliberately generous: initialize loads a model.
+ */
+export const INITIALIZE_TIMEOUT_MS = 30_000;
+
 export class TranscribeBackendError extends Error {
 	readonly code: string;
 	constructor(code: string, message: string) {
@@ -100,13 +107,17 @@ export class ProtocolBackend implements TranscriptionBackend {
 	}
 
 	async initialize(options: InitializeOptions): Promise<void> {
-		const response = await this.request({
-			kind: "initialize",
-			id: this.newId(),
-			modelPath: options.modelPath,
-			language: options.language,
-			sampleRate: options.sampleRate,
-		});
+		const response = await withTimeout(
+			this.request({
+				kind: "initialize",
+				id: this.newId(),
+				modelPath: options.modelPath,
+				language: options.language,
+				sampleRate: options.sampleRate,
+			}),
+			INITIALIZE_TIMEOUT_MS,
+			"initialize",
+		);
 		if (response.kind !== "ready") throw this.unexpected("initialize", response);
 		if (response.protocolVersion !== TRANSCRIBE_PROTOCOL_VERSION) {
 			throw new TranscribeBackendError(
@@ -239,6 +250,33 @@ export class ProtocolBackend implements TranscriptionBackend {
 	private failAll(error: Error): void {
 		for (const pending of this.pending.values()) pending.reject(error);
 		this.pending.clear();
+	}
+}
+
+/** Race a response against a deadline. Only the handshake needs one: every later
+ * request belongs to a backend that already proved it answers, and
+ * `stopAndTranscribe` legitimately runs long. */
+async function withTimeout(
+	pending: Promise<TranscribeResponse>,
+	timeoutMs: number,
+	label: string,
+): Promise<TranscribeResponse> {
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	try {
+		return await Promise.race([
+			pending,
+			new Promise<never>((_resolve, reject) => {
+				timer = setTimeout(
+					() => reject(new TranscribeBackendError("internal", `${label} timed out after ${timeoutMs}ms`)),
+					timeoutMs,
+				);
+				timer.unref?.();
+			}),
+		]);
+	} finally {
+		if (timer) clearTimeout(timer);
+		// The loser of the race must not surface as an unhandled rejection.
+		void pending.catch(() => undefined);
 	}
 }
 

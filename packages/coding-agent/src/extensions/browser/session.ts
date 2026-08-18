@@ -74,7 +74,7 @@ export class BrowserSession {
 			);
 		}
 		const launch = this.options.launch ?? launchIsolatedChrome;
-		const connect = this.options.connect ?? createWebSocketTransport;
+		const connect = this.options.connect ?? ((url: string) => createWebSocketTransport(url, { signal }));
 		const removeProfileDir =
 			this.options.removeProfileDir ?? ((path: string) => rm(path, { recursive: true, force: true }));
 
@@ -144,6 +144,10 @@ export class BrowserSession {
 	 * not take is worth saying out loud.
 	 */
 	async close(): Promise<CleanupReport> {
+		// A launch in flight registers its Chrome, profile, and connection as it
+		// goes. Releasing before it finishes would report an empty registry as
+		// success while the browser it is about to register outlives the session.
+		await this.starting?.catch(() => undefined);
 		const report = await this.registry.release();
 		this.page = undefined;
 		this.client = undefined;

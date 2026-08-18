@@ -18,7 +18,7 @@ import {
 	submitLogin,
 	typeInto,
 } from "./actions.ts";
-import { CredentialGate, describeDenial, parseOriginAllowlist } from "./credential-gate.ts";
+import { CredentialGate, describeDenial, originOf, parseOriginAllowlist } from "./credential-gate.ts";
 import type { BrowserFlags } from "./env.ts";
 import { formatCleanupReport } from "./resource-registry.ts";
 import type { BrowserSession } from "./session.ts";
@@ -167,6 +167,15 @@ export function createBrowserTool(options: BrowserToolOptions): ToolDefinition {
 			const decision = await gate.resolve(params.credentialLabel, status.url);
 			// A denial is a tool error, not a result the model can mistake for success.
 			if (!decision.ok) throw new Error(describeDenial(decision.denial, params.credentialLabel));
+			// The gate's check and the fill are separated by the approval prompt —
+			// human-scale time in which the page can navigate. Re-read the origin
+			// so the secret only ever reaches the origin that was authorized.
+			const atFill = await readStatus(client);
+			if (originOf(atFill.url) !== decision.grant.origin) {
+				throw new Error(
+					`The page left ${decision.grant.origin} before the login was submitted. No credential was entered.`,
+				);
+			}
 			const label = await runMutating("login", () =>
 				submitLogin(client, decision.grant, {
 					usernameSelector: params.usernameSelector,

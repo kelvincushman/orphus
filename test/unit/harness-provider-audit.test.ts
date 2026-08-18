@@ -224,6 +224,30 @@ test("numeric fields whose names merely resemble credentials are kept", () => {
 	assert.deepEqual(redactedPaths, []);
 });
 
+test("a request id that is not a safe path component cannot choose where a body spills", async () => {
+	// `newRequestId` is injectable; an id carrying a separator or traversal
+	// must fail the attempt, not write the body outside the session directory.
+	const { appended, sink } = createSink({});
+	const fs = createFakeFileSystem();
+	const recorder = new ProviderAuditRecorder({
+		session: sink,
+		fs,
+		clock: createFakeClock(),
+		newRequestId: () => "../escape",
+	});
+	await assert.rejects(
+		recorder.recordRequest({
+			payload: { pad: "x".repeat(MAX_INLINE_BODY_BYTES + 1) },
+			provider: "p",
+			model: "m",
+			api: "a",
+		}),
+		/not a safe path component/,
+	);
+	assert.deepEqual(appended, [], "a request that could not spill safely records nothing");
+	assert.equal(fs.files.size, 0, "nothing was written anywhere");
+});
+
 test("records nothing when recording is disabled, but still returns a request id", async () => {
 	const { recorder, appended } = createRecorder({ enabled: false });
 	const requestId = await recorder.recordRequest({ payload: {}, provider: "p", model: "m", api: "a" });

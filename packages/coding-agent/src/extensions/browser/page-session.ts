@@ -30,7 +30,10 @@ export class AttachedPage implements CdpSession {
 	}
 
 	once(method: string, timeoutMs?: number): Promise<Record<string, unknown>> {
-		return this.client.once(method, timeoutMs);
+		// Session-filtered, like `send`: with `flatten: true` every target's
+		// events share one connection, and this page must not resolve on
+		// another page's event.
+		return this.client.once(method, timeoutMs, this.sessionId);
 	}
 }
 
@@ -44,10 +47,17 @@ export class AttachedPage implements CdpSession {
 export async function attachNewPage(client: CdpClient, url = "about:blank"): Promise<AttachedPage> {
 	const created = (await client.send("Target.createTarget", { url })) as { targetId?: string };
 	if (!created.targetId) throw new Error("The browser did not return a page target");
-	const attached = (await client.send("Target.attachToTarget", {
-		targetId: created.targetId,
-		flatten: true,
-	})) as { sessionId?: string };
-	if (!attached.sessionId) throw new Error("The browser did not return a target session");
-	return new AttachedPage(client, created.targetId, attached.sessionId);
+	try {
+		const attached = (await client.send("Target.attachToTarget", {
+			targetId: created.targetId,
+			flatten: true,
+		})) as { sessionId?: string };
+		if (!attached.sessionId) throw new Error("The browser did not return a target session");
+		return new AttachedPage(client, created.targetId, attached.sessionId);
+	} catch (error) {
+		// The target exists whether or not the attach succeeded; do not leave a
+		// page open that nothing can reach.
+		await client.send("Target.closeTarget", { targetId: created.targetId }).catch(() => {});
+		throw error;
+	}
 }

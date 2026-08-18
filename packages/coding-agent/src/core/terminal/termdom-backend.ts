@@ -40,10 +40,7 @@ export class TermDomSelectorHost implements SelectorHost {
 
 	async selectSession(run: SessionSelectorRunOptions): Promise<SessionSelectionResult> {
 		const keybindings = this.options.keybindings ?? KeybindingsManager.create();
-		const transport = this.options.transport ?? transportFromProcess();
-		const dom = new TermDOM({ transport });
-		this.dom = dom;
-		await dom.attach();
+		const { dom, transport } = await this.attach();
 
 		const { document, window } = dom;
 		const model = run.model;
@@ -105,10 +102,7 @@ export class TermDomSelectorHost implements SelectorHost {
 
 	async selectFromList(run: ListSelectionRunOptions): Promise<ListSelectionResult> {
 		const keybindings = this.options.keybindings ?? KeybindingsManager.create();
-		const transport = this.options.transport ?? transportFromProcess();
-		const dom = new TermDOM({ transport });
-		this.dom = dom;
-		await dom.attach();
+		const { dom, transport } = await this.attach();
 
 		const { document, window } = dom;
 		const model = run.model;
@@ -147,6 +141,20 @@ export class TermDomSelectorHost implements SelectorHost {
 			window.addEventListener("resize", render);
 			render();
 		});
+	}
+
+	/**
+	 * Attach one renderer. A selection while another is live would put two
+	 * readers on stdin — the exact failure this class exists to prevent — so it
+	 * is refused loudly rather than silently orphaning the first attachment.
+	 */
+	private async attach(): Promise<{ dom: TermDOM; transport: TerminalTransport }> {
+		if (this.dom) throw new Error("A selection is already running on this host. Dispose it before starting another.");
+		const transport = this.options.transport ?? transportFromProcess();
+		const dom = new TermDOM({ transport });
+		this.dom = dom;
+		await dom.attach();
+		return { dom, transport };
 	}
 
 	/** Hand the terminal back. Idempotent per attachment, and awaited by every caller. */
@@ -194,8 +202,19 @@ export function applyKey(
 	if (state.mode === "confirm-delete") {
 		if (keybindings.matches(data, "tui.select.confirm")) {
 			const path = state.confirmingDeletePath;
-			model.removeSession(path ?? "");
-			if (path && run.deleteSession) void run.deleteSession(path).catch((error) => model.setError(String(error)));
+			if (!path || !run.deleteSession) {
+				// Nothing to delete, or nothing that can: close the confirmation
+				// rather than pretending.
+				model.cancelDelete();
+				return undefined;
+			}
+			model.removeSession(path);
+			void run.deleteSession(path).catch(async (error) => {
+				// The file is still there; a list that hides it would be lying.
+				// Reload the scope from disk so the row comes back with the truth.
+				await reloadScope(run, model.getState().scope);
+				model.setError(`Could not delete the session: ${errorMessage(error)}`);
+			});
 			return undefined;
 		}
 		if (keybindings.matches(data, "tui.select.cancel")) model.cancelDelete();
@@ -210,15 +229,19 @@ export function applyKey(
 		if (keybindings.matches(data, "tui.select.confirm")) {
 			const committed = model.commitRename();
 			if (committed && run.renameSession) {
-				void run.renameSession(committed.path, committed.name).catch((error) => model.setError(String(error)));
+				void run.renameSession(committed.path, committed.name).catch(async (error) => {
+					// The rename never landed on disk; put the real names back.
+					await reloadScope(run, model.getState().scope);
+					model.setError(`Could not rename the session: ${errorMessage(error)}`);
+				});
 			}
 			return undefined;
 		}
 		if (data === "\x7f") {
-			model.setRenameDraft(state.renameDraft.slice(0, -1));
+			model.setRenameDraft(dropLastCodePoint(state.renameDraft));
 			return undefined;
 		}
-		if (data.length === 1 && data >= " ") model.setRenameDraft(state.renameDraft + data);
+		if (isPrintableKeystroke(data)) model.setRenameDraft(state.renameDraft + data);
 		return undefined;
 	}
 
@@ -262,10 +285,10 @@ export function applyKey(
 		return undefined;
 	}
 	if (data === "\x7f") {
-		model.setQuery(state.query.slice(0, -1));
+		model.setQuery(dropLastCodePoint(state.query));
 		return undefined;
 	}
-	if (data.length === 1 && data >= " ") model.setQuery(state.query + data);
+	if (isPrintableKeystroke(data)) model.setQuery(state.query + data);
 	return undefined;
 }
 
@@ -290,11 +313,37 @@ export function applyListKey(
 	}
 	const state = model.getState();
 	if (data === "\x7f") {
-		model.setQuery(state.query.slice(0, -1));
+		model.setQuery(dropLastCodePoint(state.query));
 		return undefined;
 	}
-	if (data.length === 1 && data >= " ") model.setQuery(state.query + data);
+	if (isPrintableKeystroke(data)) model.setQuery(state.query + data);
 	return undefined;
+}
+
+/**
+ * One keystroke of text: a single code point at or above U+0020. Counted in
+ * code points, not UTF-16 units — the keyboard bridge deliberately lets an
+ * emoji through as one keystroke, and a `length === 1` check here would throw
+ * it away again.
+ */
+function isPrintableKeystroke(data: string): boolean {
+	if ([...data].length !== 1) return false;
+	const codePoint = data.codePointAt(0);
+	return codePoint !== undefined && codePoint >= 0x20 && codePoint !== 0x7f;
+}
+
+/** Backspace by code point, so deleting after an emoji cannot strand a surrogate half. */
+function dropLastCodePoint(text: string): string {
+	return [...text].slice(0, -1).join("");
+}
+
+function errorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
+}
+
+/** Refresh one scope from disk after a persist failure, so the list tells the truth. */
+async function reloadScope(run: SessionSelectorRunOptions, scope: "current" | "all"): Promise<void> {
+	await loadScope(run, scope, scope === "all" ? run.loadAllSessions : run.loadCurrentSessions);
 }
 
 export const termDomBackend: TerminalUiBackend = {

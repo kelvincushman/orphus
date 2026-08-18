@@ -42,6 +42,8 @@ export interface KeychainCredentialOptions {
 	/** Absolute path to the non-secret registry. */
 	registryPath: string;
 	platform?: NodeJS.Platform;
+	/** A locked keychain prompts a human who may not be there. Default 5s. */
+	lookupTimeoutMs?: number;
 }
 
 export function keychainLookupCommand(
@@ -113,7 +115,13 @@ export function createKeychainCredentials(options: KeychainCredentialOptions): C
 		async reveal(label: string): Promise<string | undefined> {
 			const lookup = keychainLookupCommand(label, platform);
 			if (!lookup) return undefined;
-			const result = await options.processes.exec(lookup.command, lookup.args);
+			// Bounded: `security` and `secret-tool` block on an unlock prompt when
+			// the keychain is locked, and on a headless machine nobody answers. An
+			// aborted lookup resolves with a non-zero code, which the guard below
+			// already treats as "indistinguishable from absent".
+			const result = await options.processes.exec(lookup.command, lookup.args, {
+				signal: AbortSignal.timeout(options.lookupTimeoutMs ?? 5_000),
+			});
 			if (result.code !== 0) return undefined;
 			const secret = result.stdout.replace(/\r?\n$/, "");
 			return secret.length > 0 ? secret : undefined;

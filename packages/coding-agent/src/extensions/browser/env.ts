@@ -27,6 +27,16 @@ function isTruthy(value: string | undefined): boolean {
 	);
 }
 
+/**
+ * A security-relevant switch takes only an explicit affirmative. The loose
+ * parser above is fine where the loose direction keeps the safe default;
+ * `--no-sandbox` removes a boundary, so "no" and "disabled" must not enable it.
+ */
+function isExplicitlyEnabled(value: string | undefined): boolean {
+	const normalized = value?.trim().toLowerCase();
+	return normalized === "1" || normalized === "true" || normalized === "on" || normalized === "yes";
+}
+
 export interface BrowserFlags {
 	enabled: boolean;
 	loginEnabled: boolean;
@@ -51,6 +61,6 @@ export function readBrowserFlags(env: Record<string, string | undefined> = proce
 		loginOrigins: env[ENV_BROWSER_LOGIN_ORIGINS],
 		executablePath: env[ENV_BROWSER_EXECUTABLE]?.trim() || undefined,
 		headless: env[ENV_BROWSER_HEADLESS] === undefined ? true : isTruthy(env[ENV_BROWSER_HEADLESS]),
-		noSandbox: isTruthy(env[ENV_BROWSER_NO_SANDBOX]),
+		noSandbox: isExplicitlyEnabled(env[ENV_BROWSER_NO_SANDBOX]),
 	};
 }

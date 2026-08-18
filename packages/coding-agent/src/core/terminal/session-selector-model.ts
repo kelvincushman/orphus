@@ -237,8 +237,16 @@ export class SessionSelectorModel {
 		const path = this.renameTargetPath;
 		if (!path) return undefined;
 		const name = this.renameDraft.trim();
+		// Canonical comparison, the same rule `removeSession` uses: the two
+		// scopes can hold the same session under differently-formed paths, and a
+		// rename must land in both or the scope toggle shows the old name.
+		const canonical = canonicalizePath(path) ?? path;
 		const apply = (sessions: SessionInfo[] | undefined) =>
-			sessions?.map((session) => (session.path === path ? { ...session, name: name || undefined } : session));
+			sessions?.map((session) =>
+				(canonicalizePath(session.path) ?? session.path) === canonical
+					? { ...session, name: name || undefined }
+					: session,
+			);
 		this.sessionsByScope = { current: apply(this.sessionsByScope.current), all: apply(this.sessionsByScope.all) };
 		this.mode = "list";
 		this.renameTargetPath = undefined;
