@@ -17,6 +17,19 @@ Orphus accepts environment variables for configuration, provider credentials, an
 
 `PI_CACHE_RETENTION=long` is a provider/upstream prompt-cache option and intentionally has no Orphus-prefixed alias. `VISUAL` and `EDITOR` select the Ctrl+G external editor when `externalEditor` is unset.
 
+### Browser operation
+
+Off by default. Nothing is registered without `ORPHUS_ENABLE_BROWSER`; see [Browser operation](/browser).
+
+| Variable | Purpose |
+|---|---|
+| `ORPHUS_ENABLE_BROWSER` | Master switch for the `browser` tool |
+| `ORPHUS_ENABLE_BROWSER_LOGIN` | Allow credential injection. Requires the switch above |
+| `ORPHUS_BROWSER_LOGIN_ORIGINS` | Space- or comma-separated origins credentials may be used on, e.g. `https://app.example.com` |
+| `ORPHUS_BROWSER_EXECUTABLE` | Explicit Chrome/Chromium path |
+| `ORPHUS_BROWSER_HEADLESS` | `0` runs Chrome with a visible window |
+| `ORPHUS_BROWSER_NO_SANDBOX` | Pass `--no-sandbox`. Disables Chrome's sandbox — only for a container running as root |
+
 ### Roundtable memory
 
 The bundled Roundtable extension shares one Dossier project across sessions and

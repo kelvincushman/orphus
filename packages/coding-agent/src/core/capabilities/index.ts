@@ -32,6 +32,7 @@ export type {
 	ProcessCapability,
 	ProcessExit,
 	ProcessHandle,
+	ProcessResult,
 	SpawnOptions,
 	TerminalTransportCapability,
 	TranscriptionCapability,

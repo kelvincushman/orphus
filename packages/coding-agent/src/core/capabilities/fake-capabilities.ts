@@ -11,6 +11,7 @@ import type {
 	ProcessCapability,
 	ProcessExit,
 	ProcessHandle,
+	ProcessResult,
 	TerminalTransportCapability,
 	TranscriptionCapability,
 	WriteFileOptions,
@@ -117,6 +118,8 @@ export function createFakeFileSystem(seed?: Record<string, string>): FakeFileSys
 export interface ScriptedProcess {
 	/** Exit status the spawned process settles with. */
 	exit?: ProcessExit;
+	/** What `exec` returns for this command. */
+	result?: ProcessResult;
 }
 
 export interface FakeProcesses extends ProcessCapability {
@@ -138,6 +141,10 @@ export function createFakeProcesses(): FakeProcesses {
 		},
 		script(command, scripted) {
 			scripts.set(command, scripted);
+		},
+		async exec(command, args, options): Promise<ProcessResult> {
+			spawned.push({ command, args: [...args], cwd: options?.cwd });
+			return scripts.get(command)?.result ?? { code: 0, stdout: "", stderr: "" };
 		},
 		spawn(command, args, options): ProcessHandle {
 			spawned.push({ command, args: [...args], cwd: options?.cwd });

@@ -98,6 +98,7 @@ messages intact verbatim and only early exploration collapsed.
 | **[The `roundtable` tool](docs/roundtable-tool.md)** | Every action, parameter, and default, with the reasoning. |
 | **[Architecture](docs/architecture.md)** | What runs where, and what the bound actually guarantees. |
 | **[Harness](packages/coding-agent/docs/harness.md)** | The capability boundary, the provider/tool session records, and `orphus inspect runtime`. |
+| **[Browser operation](packages/coding-agent/docs/browser.md)** | Driving an isolated browser, and the four gates a credential passes first. Off by default. |
 | **[Troubleshooting](docs/troubleshooting.md)** | The three failures that look like success. |
 | **[All documentation](docs/README.md)** | Roles, memory, Orca, CI, design decisions. |
 

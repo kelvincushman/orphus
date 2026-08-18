@@ -12,6 +12,7 @@ import type {
 	ProcessCapability,
 	ProcessExit,
 	ProcessHandle,
+	ProcessResult,
 	SpawnOptions,
 	TerminalTransportCapability,
 	TranscriptionCapability,
@@ -58,7 +59,10 @@ export const nodeProcesses: ProcessCapability = {
 			cwd: options?.cwd,
 			env: options?.env ? { ...process.env, ...options.env } : process.env,
 			signal: options?.signal,
-			stdio: ["ignore", "pipe", "pipe"],
+			// Nothing reads these: `ProcessHandle` offers no stream access, and an
+			// undrained pipe eventually blocks a long-lived child. `exec` is the
+			// capability for output.
+			stdio: "ignore",
 		});
 		// `spawn` reports a missing binary asynchronously through "error"; fold that
 		// into the same settled exit every caller already awaits so a failed launch
@@ -76,6 +80,26 @@ export const nodeProcesses: ProcessCapability = {
 				child.kill(signal);
 			},
 		};
+	},
+	exec(command: string, args: readonly string[], options?: SpawnOptions): Promise<ProcessResult> {
+		return new Promise<ProcessResult>((resolve) => {
+			const child = nodeSpawn(command, [...args], {
+				cwd: options?.cwd,
+				env: options?.env ? { ...process.env, ...options.env } : process.env,
+				signal: options?.signal,
+				stdio: ["ignore", "pipe", "pipe"],
+			});
+			let stdout = "";
+			let stderr = "";
+			child.stdout?.on("data", (chunk: Buffer) => {
+				stdout += chunk.toString();
+			});
+			child.stderr?.on("data", (chunk: Buffer) => {
+				stderr += chunk.toString();
+			});
+			child.once("exit", (code) => resolve({ code, stdout, stderr }));
+			child.once("error", (error) => resolve({ code: null, stdout, stderr: stderr || error.message }));
+		});
 	},
 };
 

@@ -76,8 +76,20 @@ export interface ProcessHandle {
 	kill(signal?: NodeJS.Signals): void;
 }
 
+export interface ProcessResult {
+	code: number | null;
+	stdout: string;
+	stderr: string;
+}
+
 export interface ProcessCapability extends NamedCapability {
 	spawn(command: string, args: readonly string[], options?: SpawnOptions): ProcessHandle;
+	/**
+	 * Run a command to completion and collect its output. For short-lived
+	 * helpers — a keychain lookup, a version probe — where streaming would be
+	 * ceremony. Never throws on a non-zero exit; the code is part of the result.
+	 */
+	exec(command: string, args: readonly string[], options?: SpawnOptions): Promise<ProcessResult>;
 }
 
 /**
