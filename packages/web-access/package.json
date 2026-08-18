@@ -20,6 +20,7 @@
   "files": [
     "*.ts",
     "curator-page-assets/**/*.ts",
+    "skills/**/*",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
@@ -27,6 +28,9 @@
   "pi": {
     "extensions": [
       "./index.ts"
+    ],
+    "skills": [
+      "./skills"
     ]
   },
   "peerDependencies": {
