@@ -203,6 +203,13 @@ export function createWebSocketTransport(
 	options?: { timeoutMs?: number; signal?: AbortSignal },
 ): Promise<CdpTransport> {
 	return new Promise((resolve, reject) => {
+		// "abort" fires once, at abort time — a listener registered on an already-
+		// aborted signal never runs, which would leave this connect waiting out its
+		// full timeout. Check first, and open no socket at all for a dead signal.
+		if (options?.signal?.aborted) {
+			reject(new Error(`Connecting to the browser at ${url} was aborted`));
+			return;
+		}
 		const socket = new WebSocket(url);
 		const messageListeners = new Set<(payload: string) => void>();
 		const closeListeners = new Set<(reason?: string) => void>();

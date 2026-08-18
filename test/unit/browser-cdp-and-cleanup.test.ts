@@ -441,6 +441,32 @@ test("connecting to a socket that never answers times out instead of hanging the
 	}
 });
 
+test("an already-aborted signal rejects the connect immediately, before any socket opens", async () => {
+	// The "abort" event fires once, at abort time. A listener registered on an
+	// already-aborted signal never runs, so without an upfront check this
+	// connect would wait out its full timeout and misreport the abort as one.
+	const { createServer } = await import("node:net");
+	let connections = 0;
+	const server = createServer(() => {
+		connections += 1;
+	});
+	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
+	const address = server.address();
+	const port = typeof address === "object" && address ? address.port : 0;
+	try {
+		const { createWebSocketTransport } = await import(
+			"../../packages/coding-agent/src/extensions/browser/cdp-client.js"
+		);
+		await assert.rejects(
+			createWebSocketTransport(`ws://127.0.0.1:${port}/devtools`, { timeoutMs: 150, signal: AbortSignal.abort() }),
+			/was aborted/,
+		);
+		assert.equal(connections, 0, "no socket may be opened for an abort that already happened");
+	} finally {
+		server.close();
+	}
+});
+
 test("profile removal retries once past a straggler, and still reports a held directory", async () => {
 	// Chrome's helper processes can write into the profile for a beat after the
 	// main process exits, which makes the first recursive remove fail ENOTEMPTY.
