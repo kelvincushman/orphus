@@ -11,7 +11,10 @@ import {
 	formatCleanupReport,
 	ResourceRegistry,
 } from "../../packages/coding-agent/src/extensions/browser/resource-registry.js";
-import { BrowserSession } from "../../packages/coding-agent/src/extensions/browser/session.js";
+import {
+	BrowserSession,
+	removeDirWithStragglerRetry,
+} from "../../packages/coding-agent/src/extensions/browser/session.js";
 import { createFakeCdpTransport } from "./browser-fake-cdp.js";
 
 const immediateTimer = (callback: () => void) => {
@@ -436,6 +439,25 @@ test("connecting to a socket that never answers times out instead of hanging the
 	} finally {
 		server.close();
 	}
+});
+
+test("profile removal retries once past a straggler, and still reports a held directory", async () => {
+	// Chrome's helper processes can write into the profile for a beat after the
+	// main process exits, which makes the first recursive remove fail ENOTEMPTY.
+	const attempts: string[] = [];
+	await removeDirWithStragglerRetry("/tmp/profile-straggler", async (path) => {
+		attempts.push(path);
+		if (attempts.length === 1) throw new Error("ENOTEMPTY: directory not empty");
+	});
+	assert.equal(attempts.length, 2, "the straggler window gets exactly one retry");
+
+	// A directory that is genuinely held keeps failing, and the failure surfaces.
+	await assert.rejects(
+		removeDirWithStragglerRetry("/tmp/profile-held", async () => {
+			throw new Error("EBUSY: directory in use");
+		}),
+		/EBUSY/,
+	);
 });
 
 test("close resolves and reports the failure when Chrome ignores every kill signal", async () => {

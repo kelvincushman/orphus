@@ -75,8 +75,7 @@ export class BrowserSession {
 		}
 		const launch = this.options.launch ?? launchIsolatedChrome;
 		const connect = this.options.connect ?? ((url: string) => createWebSocketTransport(url, { signal }));
-		const removeProfileDir =
-			this.options.removeProfileDir ?? ((path: string) => rm(path, { recursive: true, force: true }));
+		const removeProfileDir = this.options.removeProfileDir ?? removeDirWithStragglerRetry;
 
 		const launched = await launch({
 			processes: this.options.processes,
@@ -153,6 +152,26 @@ export class BrowserSession {
 		this.client = undefined;
 		this.launched = undefined;
 		return report;
+	}
+}
+
+/**
+ * Remove the throwaway profile, tolerating Chrome's own stragglers.
+ *
+ * The kill waits on the main process, but Chrome's helper processes can outlive
+ * it by a beat and write into the profile while it is being removed — `rm`
+ * then fails with ENOTEMPTY on a directory it just emptied. One short retry
+ * covers the straggler; a directory still held after that is reported.
+ */
+export async function removeDirWithStragglerRetry(
+	path: string,
+	remove: (path: string) => Promise<void> = (target) => rm(target, { recursive: true, force: true }),
+): Promise<void> {
+	try {
+		await remove(path);
+	} catch {
+		await new Promise((resolve) => setTimeout(resolve, 500));
+		await remove(path);
 	}
 }
 
