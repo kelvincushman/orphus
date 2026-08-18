@@ -32,6 +32,12 @@ export interface SessionSelectorRunOptions {
 	deleteSession?: (sessionPath: string) => Promise<void>;
 }
 
+export interface ListSelectionRunOptions {
+	model: import("./list-selector-model.ts").ListSelectorModel;
+}
+
+export type ListSelectionResult = { outcome: "selected"; index: number } | { outcome: "cancelled" };
+
 export type SessionSelectionResult =
 	| { outcome: "selected"; sessionPath: string }
 	| { outcome: "cancelled" }
@@ -48,6 +54,8 @@ export type SessionSelectionResult =
 export interface SelectorHost {
 	readonly kind: TuiBackendName;
 	selectSession(options: SessionSelectorRunOptions): Promise<SessionSelectionResult>;
+	/** Startup selection: choose one labelled item from a short list. */
+	selectFromList(options: ListSelectionRunOptions): Promise<ListSelectionResult>;
 	dispose(): Promise<void>;
 }
 

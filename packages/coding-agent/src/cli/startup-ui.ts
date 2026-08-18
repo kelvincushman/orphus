@@ -3,8 +3,9 @@ import { ProcessTerminal, setKeybindings, TUI } from "@earendil-works/pi-tui";
 import { ENV_AGENT_DIR, getAgentConfigPaths, getAgentDir, getEnvValue } from "../config.ts";
 import { KeybindingsManager } from "../core/keybindings.ts";
 import type { SettingsManager } from "../core/settings-manager.ts";
+import { createSelectorHost } from "../core/terminal/index.ts";
+import { ListSelectorModel } from "../core/terminal/list-selector-model.ts";
 import { ExtensionInputComponent } from "../modes/interactive/components/extension-input.ts";
-import { ExtensionSelectorComponent } from "../modes/interactive/components/extension-selector.ts";
 import {
 	FirstTimeSetupComponent,
 	type FirstTimeSetupResult,
@@ -90,36 +91,33 @@ export async function showFirstTimeSetup(settingsManager: SettingsManager): Prom
 	});
 }
 
+/**
+ * Startup selection, on whichever terminal backend this session resolves to.
+ *
+ * The second of the two surfaces in the termDOM pilot. Like the session picker,
+ * the host is disposed and that disposal awaited before this returns, so the
+ * terminal is fully handed back before anything else attaches.
+ */
 export async function showStartupSelector<T>(
 	settingsManager: SettingsManager,
 	title: string,
 	options: Array<{ label: string; value: T }>,
 ): Promise<T | undefined> {
-	return new Promise((resolve) => {
-		const ui = createStartupTui(settingsManager);
-
-		let settled = false;
-		const finish = async (result: T | undefined) => {
-			if (settled) {
-				return;
-			}
-			settled = true;
-			await clearStartupTui(ui);
-			ui.stop();
-			resolve(result);
-		};
-
-		const selector = new ExtensionSelectorComponent(
-			title,
-			options.map((option) => option.label),
-			(option) => void finish(options.find((entry) => entry.label === option)?.value),
-			() => void finish(undefined),
-			{ tui: ui },
-		);
-		ui.addChild(selector);
-		ui.setFocus(selector);
-		ui.start();
-	});
+	initTheme(settingsManager.getTheme());
+	setKeybindings(KeybindingsManager.create());
+	const { host, warning } = await createSelectorHost({ setting: settingsManager.getTuiBackend() });
+	if (warning) console.error(warning);
+	try {
+		const result = await host.selectFromList({
+			model: new ListSelectorModel(
+				title,
+				options.map((option) => ({ label: option.label })),
+			),
+		});
+		return result.outcome === "selected" ? options[result.index]?.value : undefined;
+	} finally {
+		await host.dispose();
+	}
 }
 
 export async function showStartupInput(

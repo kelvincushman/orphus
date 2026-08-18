@@ -1,6 +1,8 @@
 import { TermDOM, type TerminalTransport, transportFromProcess } from "@b9g/termdom";
 import { KeybindingsManager } from "../keybindings.ts";
 import type {
+	ListSelectionResult,
+	ListSelectionRunOptions,
 	SelectorHost,
 	SessionSelectionResult,
 	SessionSelectorRunOptions,
@@ -8,6 +10,8 @@ import type {
 	TuiBackendName,
 } from "./backend.ts";
 import { type KeyboardEventLike, keyboardEventToData } from "./keyboard-bridge.ts";
+import type { ListSelectorModel } from "./list-selector-model.ts";
+import { renderListSelectorHtml } from "./termdom-list-view.ts";
 import { renderSelectorHtml } from "./termdom-view.ts";
 
 export interface TermDomSelectorHostOptions {
@@ -85,6 +89,52 @@ export class TermDomSelectorHost implements SelectorHost {
 			render();
 
 			void loadScopes(run);
+		});
+	}
+
+	async selectFromList(run: ListSelectionRunOptions): Promise<ListSelectionResult> {
+		const keybindings = this.options.keybindings ?? KeybindingsManager.create();
+		const transport = this.options.transport ?? transportFromProcess();
+		const dom = new TermDOM({ transport });
+		this.dom = dom;
+		await dom.attach();
+
+		const { document, window } = dom;
+		const model = run.model;
+		const render = () => {
+			document.body.innerHTML = renderListSelectorHtml(model.getState(), {
+				columns: transport.cols,
+				rows: transport.rows,
+			});
+		};
+
+		return new Promise<ListSelectionResult>((resolve) => {
+			let settled = false;
+			const finish = (result: ListSelectionResult) => {
+				if (settled) return;
+				settled = true;
+				unsubscribe();
+				document.removeEventListener("keydown", onKeyDown);
+				document.removeEventListener("click", onClick);
+				window.removeEventListener("resize", render);
+				resolve(result);
+			};
+			const onKeyDown = (event: Event) => {
+				const data = keyboardEventToData(event as unknown as KeyboardEventLike);
+				if (data === undefined) return;
+				const outcome = applyListKey(data, keybindings, model);
+				if (outcome) finish(outcome);
+			};
+			const onClick = (event: Event) => {
+				const target = event.target as { getAttribute?: (name: string) => string | null } | null;
+				const index = Number(target?.getAttribute?.("data-index") ?? Number.NaN);
+				if (Number.isInteger(index)) model.select(index);
+			};
+			const unsubscribe = model.subscribe(render);
+			document.addEventListener("keydown", onKeyDown);
+			document.addEventListener("click", onClick);
+			window.addEventListener("resize", render);
+			render();
 		});
 	}
 
@@ -195,6 +245,34 @@ export function applyKey(
 		model.startRename();
 		return undefined;
 	}
+	if (data === "\x7f") {
+		model.setQuery(state.query.slice(0, -1));
+		return undefined;
+	}
+	if (data.length === 1 && data >= " ") model.setQuery(state.query + data);
+	return undefined;
+}
+
+/** One key press against a startup list. Same keybinding configuration as everywhere else. */
+export function applyListKey(
+	data: string,
+	keybindings: KeybindingsManager,
+	model: ListSelectorModel,
+): ListSelectionResult | undefined {
+	if (keybindings.matches(data, "tui.select.confirm")) {
+		const index = model.selectedOriginalIndex;
+		return index === undefined ? undefined : { outcome: "selected", index };
+	}
+	if (keybindings.matches(data, "tui.select.cancel")) return { outcome: "cancelled" };
+	if (keybindings.matches(data, "tui.select.up")) {
+		model.move(-1);
+		return undefined;
+	}
+	if (keybindings.matches(data, "tui.select.down")) {
+		model.move(1);
+		return undefined;
+	}
+	const state = model.getState();
 	if (data === "\x7f") {
 		model.setQuery(state.query.slice(0, -1));
 		return undefined;

@@ -1,8 +1,11 @@
 import { ProcessTerminal, setKeybindings, TUI } from "@earendil-works/pi-tui";
 import { getAgentDir } from "../../config.ts";
+import { ExtensionSelectorComponent } from "../../modes/interactive/components/extension-selector.ts";
 import { SessionSelectorComponent } from "../../modes/interactive/components/session-selector.ts";
 import { KeybindingsManager } from "../keybindings.ts";
 import type {
+	ListSelectionResult,
+	ListSelectionRunOptions,
 	SelectorHost,
 	SessionSelectionResult,
 	SessionSelectorRunOptions,
@@ -59,6 +62,32 @@ export class PiSelectorHost implements SelectorHost {
 
 			ui.addChild(selector);
 			ui.setFocus(selector.getSessionList());
+			ui.start();
+		});
+	}
+
+	selectFromList(run: ListSelectionRunOptions): Promise<ListSelectionResult> {
+		return new Promise<ListSelectionResult>((resolve) => {
+			const state = run.model.getState();
+			const ui = new TUI(new ProcessTerminal(), undefined, getAgentDir());
+			setKeybindings(KeybindingsManager.create());
+			this.ui = ui;
+			let settled = false;
+			const finish = (result: ListSelectionResult) => {
+				if (settled) return;
+				settled = true;
+				resolve(result);
+			};
+			const labels = state.rows.map((row) => row.choice.label);
+			const selector = new ExtensionSelectorComponent(
+				state.title,
+				labels,
+				(label: string) => finish({ outcome: "selected", index: state.rows[labels.indexOf(label)]?.index ?? -1 }),
+				() => finish({ outcome: "cancelled" }),
+				{ tui: ui },
+			);
+			ui.addChild(selector);
+			ui.setFocus(selector);
 			ui.start();
 		});
 	}

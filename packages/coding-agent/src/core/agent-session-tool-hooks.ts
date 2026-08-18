@@ -11,9 +11,19 @@ import {
 import { collectText, redirectOversizedToolResult } from "./tools/oversized-tool-result.js";
 
 /**
- * Append `orphus.tool.audit.v1`. Observation must never take the tool down, so a
- * write failure is swallowed — unlike the provider request record, whose absence
- * makes a dispatch unreplayable and therefore fails the attempt.
+ * Append `orphus.tool.audit.v1` — when there is something to say.
+ *
+ * A call that ran exactly the arguments the model asked for is already recorded:
+ * the assistant's own tool call is in the transcript. Writing a second entry
+ * saying "and nothing changed it" would double the entry count of every
+ * tool-heavy session to record the absence of news. So the record is written
+ * when a hook changed the arguments, when the call was blocked, or when
+ * revalidation rejected it — the three cases where what ran differs from what
+ * was asked for, or did not run at all.
+ *
+ * Observation must never take the tool down, so a write failure is swallowed —
+ * unlike the provider request record, whose absence makes a dispatch
+ * unreplayable and therefore fails the attempt.
  */
 export function _recordToolAudit(
 	this: AgentSession,
@@ -27,10 +37,9 @@ export function _recordToolAudit(
 	},
 ): void {
 	try {
-		this.sessionManager.appendCustomEntry(
-			TOOL_AUDIT_ENTRY,
-			buildToolAuditRecord({ ...input, timestamp: this._capabilities.clock.now() }),
-		);
+		const record = buildToolAuditRecord({ ...input, timestamp: this._capabilities.clock.now() });
+		if (record.outcome === "executed" && record.mutatedPaths.length === 0) return;
+		this.sessionManager.appendCustomEntry(TOOL_AUDIT_ENTRY, record);
 	} catch {
 		// Intentionally ignored — see the doc comment.
 	}

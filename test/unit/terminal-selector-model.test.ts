@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
+import { KeybindingsManager } from "../../packages/coding-agent/src/core/keybindings.js";
 import type { SessionInfo } from "../../packages/coding-agent/src/core/session-manager.js";
 import {
 	DEFAULT_TUI_BACKEND,
@@ -7,7 +8,9 @@ import {
 	resolveTuiBackend,
 } from "../../packages/coding-agent/src/core/terminal/backend.js";
 import { keyboardEventToData } from "../../packages/coding-agent/src/core/terminal/keyboard-bridge.js";
+import { ListSelectorModel } from "../../packages/coding-agent/src/core/terminal/list-selector-model.js";
 import { SessionSelectorModel } from "../../packages/coding-agent/src/core/terminal/session-selector-model.js";
+import { applyListKey } from "../../packages/coding-agent/src/core/terminal/termdom-backend.js";
 
 function session(overrides: Partial<SessionInfo> & { path: string }): SessionInfo {
 	return {
@@ -240,4 +243,47 @@ test("keyboard events re-encode to the bytes the keybinding layer matches", () =
 	assert.equal(keyboardEventToData({ key: "é" }), "é");
 	assert.equal(keyboardEventToData({ key: "Shift" }), undefined, "a bare modifier is not a keystroke");
 	assert.equal(keyboardEventToData({ key: "F13" }), undefined);
+});
+
+test("the startup list filters, moves, and reports the original index of what was chosen", () => {
+	const model = new ListSelectorModel("Pick a provider", [
+		{ label: "Anthropic" },
+		{ label: "OpenAI" },
+		{ label: "Google" },
+	]);
+
+	assert.equal(model.getState().rows.length, 3);
+	model.move(2);
+	assert.equal(model.selectedOriginalIndex, 2);
+
+	model.setQuery("open");
+	assert.deepEqual(
+		model.getState().rows.map((row) => row.choice.label),
+		["OpenAI"],
+	);
+	assert.equal(model.selectedOriginalIndex, 1, "the index is into the original list, not the filtered one");
+
+	model.setQuery("nothing matches");
+	assert.equal(model.selectedOriginalIndex, undefined);
+});
+
+test("startup-list keys go through the same keybinding configuration", () => {
+	const keybindings = KeybindingsManager.create();
+	const model = new ListSelectorModel("Pick", [{ label: "first" }, { label: "second" }]);
+
+	assert.equal(applyListKey("\x1b[B", keybindings, model), undefined);
+	assert.equal(model.getState().selectedIndex, 1);
+	assert.deepEqual(applyListKey("\r", keybindings, model), { outcome: "selected", index: 1 });
+	assert.deepEqual(applyListKey("\x1b", keybindings, model), { outcome: "cancelled" });
+
+	applyListKey("s", keybindings, model);
+	assert.equal(model.getState().query, "s");
+	applyListKey("\x7f", keybindings, model);
+	assert.equal(model.getState().query, "");
+});
+
+test("an empty startup list cannot be confirmed into a selection", () => {
+	const keybindings = KeybindingsManager.create();
+	const model = new ListSelectorModel("Pick", []);
+	assert.equal(applyListKey("\r", keybindings, model), undefined);
 });

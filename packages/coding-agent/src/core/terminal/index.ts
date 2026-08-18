@@ -5,6 +5,8 @@ export {
 	DEFAULT_TUI_BACKEND,
 	ENV_TUI_BACKEND,
 	isTuiBackendName,
+	type ListSelectionResult,
+	type ListSelectionRunOptions,
 	type ResolvedTuiBackend,
 	resolveTuiBackend,
 	type SelectorHost,
@@ -14,6 +16,7 @@ export {
 	type TuiBackendName,
 } from "./backend.ts";
 export { keyboardEventToData } from "./keyboard-bridge.ts";
+export { type ListChoice, ListSelectorModel, type ListSelectorState } from "./list-selector-model.ts";
 export {
 	type NameFilter,
 	type SelectorMode,
@@ -22,6 +25,7 @@ export {
 	type SessionSelectorState,
 	type SortMode,
 } from "./session-selector-model.ts";
+export { LIST_DETAIL_MIN_COLUMNS, renderListSelectorHtml } from "./termdom-list-view.ts";
 export { DETAIL_PANEL_MIN_COLUMNS, renderSelectorHtml, type ViewportSize } from "./termdom-view.ts";
 
 /**

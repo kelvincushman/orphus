@@ -93,7 +93,7 @@ test("every attempt before a completed response shares one turn, and each has it
 	assert.equal(responses.at(-1)?.finishReason, "stop");
 });
 
-test("a tool call is audited with the arguments it actually ran with", async () => {
+test("an unmodified tool call writes no audit record, because the tool call is already the record", async () => {
 	const calls: unknown[] = [];
 	const runtime = await boot({
 		customTools: [echoTool(calls)],
@@ -106,14 +106,8 @@ test("a tool call is audited with the arguments it actually ran with", async () 
 
 	await runtime.session.prompt("use the tool");
 
-	assert.deepEqual(calls, [{ message: "from the model" }]);
-	const audits = runtime.toolAudits();
-	assert.equal(audits.length, 1);
-	assert.equal(audits[0].toolName, "echo");
-	assert.equal(audits[0].toolCallId, "call-1");
-	assert.equal(audits[0].outcome, "executed");
-	assert.deepEqual(audits[0].arguments, { message: "from the model" });
-	assert.deepEqual(audits[0].mutatedPaths, []);
+	assert.deepEqual(calls, [{ message: "from the model" }], "it ran exactly what the model asked for");
+	assert.deepEqual(runtime.toolAudits(), [], "no hook changed anything, so there is nothing to report");
 });
 
 test("a hook that rewrites arguments into an invalid shape blocks execution and records why", async () => {

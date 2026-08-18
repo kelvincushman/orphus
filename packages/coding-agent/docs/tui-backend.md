@@ -28,10 +28,15 @@ typo in a setting should not stop you opening a session picker.
 
 ## What the pilot covers
 
-Only the surfaces named above. **The main chat shell is always pi**, and every
-public `Component`, custom editor, renderer, and extension API is unchanged.
-Migrating the chat shell is a separate question for after the pilot, not part of
-it.
+Two surfaces:
+
+- **Startup selection** — the labelled list shown before a session begins
+  (`showStartupSelector`), driven by `ListSelectorModel`.
+- **The session picker** — `--resume`, driven by `SessionSelectorModel`.
+
+**The main chat shell is always pi**, and every public `Component`, custom
+editor, renderer, and extension API is unchanged. Migrating the chat shell is a
+separate question for after the pilot, not part of it.
 
 Within the picker, both backends drive the same
 [`SessionSelectorModel`](../src/core/terminal/session-selector-model.ts):
