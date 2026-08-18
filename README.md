@@ -245,6 +245,8 @@ packages/fleet/               Fleet blueprints: /fleet, /fleetsetup, the fleet t
                                 six examples, and the orchestration + kie-ai-media skills
 packages/coding-agent/        The `orphus` binary (Atomic-derived)
 packages/{workflows,subagents,intercom,mcp,web-access,natives}
+  web-access/browser-tool.ts    Opt-in `browser` tool (CDP-driven) + `/credential` vault —
+                                  both off by default (see "Interactive browsing" below)
 orphus.roles.yaml · roles/    Example role manifest and briefs — copy-me templates
 test/unit/roundtable-*        Rooms, memory, socket, digest, broker lifecycle, and role-launcher tests
 patches/atomic/               The 0001–0004 series, as applied to upstream `d84fc43`
@@ -463,6 +465,46 @@ so any LLM can sit behind any role, and you can mix providers freely: Claude as
 planner, a fast cheap model as researcher, a different family as critic. Launch
 recipes, role briefs, and the phase-2 declarative role manifest:
 [docs/roles.md](docs/roles.md).
+
+## Interactive browsing and a credential vault
+
+`@orphus/web-access` is mostly read-only retrieval (search, fetch, extract), plus one opt-in
+exception: a `browser` tool that drives a real Chrome via the DevTools Protocol for pages
+behind a login that plain fetching can't reach. Off by default, on with one flag:
+
+```bash
+export ORPHUS_ENABLE_BROWSER=1
+```
+
+```typescript
+browser({ action: "open", url: "https://example.com" })
+browser({ action: "read", as: "text" })
+browser({ action: "click", selector: "#next" })
+```
+
+Clicks escalate from a cheap synthetic click to a trusted input event automatically, only when
+a page requires it — there is no CAPTCHA-solving or anti-bot capability, by design. Logging in
+is a second, separate opt-in, and storing the credential is a step only a person takes, never
+the agent:
+
+```bash
+export ORPHUS_ENABLE_BROWSER_LOGIN=1
+export ORPHUS_VAULT_SECRET='the password'   # a person exports this; never a command argument
+```
+
+```
+/credential add example.com work alice@example.com   # writes to the OS keychain, then unset the var above
+/credential confirm example.com                       # required once per session before login
+```
+
+```typescript
+browser({ action: "login", domain: "example.com", label: "work",
+          usernameSelector: "#email", passwordSelector: "#password" })
+```
+
+The password streams straight from the OS keychain into the page field; the model only ever
+sees the username. Full reference, including exactly what this does and does not protect:
+[packages/web-access/README.md](packages/web-access/README.md#interactive-browsing-and-the-credential-vault).
 
 ## Roadmap: the self-improving harness
 

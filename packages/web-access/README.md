@@ -237,6 +237,139 @@ Browse stored search results interactively. Lists all results from the current s
 
 Show the active Google account currently authenticated for Gemini Web. Useful when multiple Chromium profiles exist or `chromeProfile` is set in config.
 
+## Interactive browsing and the credential vault
+
+Everything above is **read-only** retrieval. The `browser` tool drives a real, live Chrome —
+navigate, read, click, type, wait, and (gated) log in — for pages `fetch_content` can't reach
+because they sit behind a form. It is off by default and stays off until you opt in.
+
+```sh
+ORPHUS_ENABLE_BROWSER=1        # required for any browser action; default off
+ORPHUS_ENABLE_BROWSER_LOGIN=1  # required (in addition) for the login action; default off
+ORPHUS_CHROME_PATH=...         # override the Chrome/Chromium binary Orphus launches
+ORPHUS_VAULT_SECRET=...        # exported just before /credential add, unset right after
+```
+
+The tool is always registered — it is not hidden from the model — but every action refuses
+with a typed error unless `ORPHUS_ENABLE_BROWSER=1` is set.
+
+### The `browser` tool
+
+One action-dispatched tool. Each call operates a session-scoped, disposable Chrome instance
+(headless, isolated profile, resolved via `ORPHUS_CHROME_PATH` or a short list of common
+install paths) launched through the Chrome DevTools Protocol — not your everyday logged-in
+browser. Up to 4 instances run concurrently (a typed `CapacityExhausted` refusal past that),
+and every instance launched by a session is killed when that session shuts down; nothing is
+left running.
+
+| action | what it does |
+|---|---|
+| `open` | Navigate to `url` in a named handle (default `"default"`), creating the Chrome instance if needed |
+| `read` | Sense the page as `text` (default), `dom`, `accessibility`, or `screenshot` (base64 PNG) |
+| `click` | Click `selector` — see the meatbag ladder below |
+| `type` | Insert `text` at the current focus |
+| `wait_for` | Poll for `selector` to appear (or `document.readyState === "complete"` with no selector), up to 10s |
+| `close` | Stop the named Chrome instance |
+| `login` | Fill a login form from a vault credential — see below; needs `ORPHUS_ENABLE_BROWSER_LOGIN=1` |
+
+```typescript
+browser({ action: "open", url: "https://example.com/login" })
+browser({ action: "read", as: "text" })
+browser({ action: "click", selector: "#accept-cookies" })
+browser({ action: "type", text: "hello world" })
+browser({ action: "wait_for", selector: "#results" })
+browser({ action: "close" })
+```
+
+Sense → act → verify: after every act, `read` (or `wait_for`) through a different channel than
+the one you acted on — the tool doesn't tell you whether a click "worked," only whether the
+page changed.
+
+**The meatbag ladder is coded, not just advised.** `click` tries a cheap synthetic click
+(`element.click()` via `Runtime.evaluate`) first. If a caller-supplied check reports no
+observable change, it automatically escalates to a trusted `Input.dispatchMouseEvent`
+press+release at the element's computed center — the same event path a physical mouse
+produces, which some pages require before they'll respond. The tool result names which rung
+landed: `synthetic`, `trusted`, or `failed`. There is no third rung: no CAPTCHA-solving, no
+human-like mouse jitter, no vision-based tile solving. A page that needs that stops here.
+
+### Credential vault
+
+Site logins are keyed by `{domain, label}`. The secret lives **only** in the OS keychain —
+macOS `security` (`add-generic-password` / `find-generic-password` / `delete-generic-password`)
+or Linux `secret-tool` (`store` / `lookup` / `clear`) — under the service name
+`orphus-web-vault`. A non-secret index (domain, label, username), a domain allowlist, and an
+append-only audit log of every set/remove/inject live as plain JSON/text files under your
+Orphus config directory (`~/.orphus/` by default) — never the secret itself.
+
+The agent has no way to write to the vault. Storing, listing, and removing credentials is a
+`/credential` command a **person** types at the prompt:
+
+```
+/credential add <domain> <label> <username>   # adds domain to the allowlist too
+/credential list                               # domain / label / username — never the secret
+/credential remove <domain> <label>
+/credential confirm <domain>                   # required once per session before login
+```
+
+There's no masked-input field in the TUI, so `add` never takes the secret as a command
+argument (a 4th token is rejected as a parse error, not silently accepted). Instead, set it in
+the shell just before running the command, then unset it:
+
+```sh
+export ORPHUS_VAULT_SECRET='the password'
+# in Orphus:  /credential add example.com work alice@example.com
+unset ORPHUS_VAULT_SECRET
+```
+
+The value is never echoed, logged, or written to any file outside the OS keychain.
+
+### Logging in
+
+`browser({ action: "login", domain, label, usernameSelector, passwordSelector })` fills a
+login form without the password ever reaching the model. Three gates are enforced, in order,
+each its own typed refusal:
+
+1. `ORPHUS_ENABLE_BROWSER_LOGIN=1` is set (default off, independent of `ORPHUS_ENABLE_BROWSER`).
+2. `domain` is on the vault's allowlist (added automatically by `/credential add`).
+3. `domain` has been confirmed this session via `/credential confirm <domain>` — confirmation
+   is in-memory only, so it does not carry over to the next session.
+
+The username is non-secret and gets typed into `usernameSelector` directly. The password is
+read from the keychain and streamed straight into `passwordSelector` via `Input.insertText`
+inside the vault's own callback — it is never assigned anywhere the tool code could return,
+log, or otherwise leak it. The tool's result reports only `domain` and `username`; the model
+never sees the secret.
+
+### Security — what is NOT protected
+
+Say this plainly rather than implying more containment than exists:
+
+- **A driven browser holding real login cookies acts as you.** Anything reachable from a
+  logged-in session — this tool's session included — is reachable by whatever calls the
+  `browser` tool while that session is authenticated. The vault protects the *password*; it
+  does not sandbox what a logged-in page can do.
+- **No CAPTCHA or anti-bot capability is shipped.** The ladder stops at a trusted synthetic
+  click; there is no vision-based challenge solving and no human-input simulation. A page that
+  gates on either of those is not defeated by this tool — the skill instructs stopping and
+  reporting rather than improvising a workaround.
+- **Anti-detection is deliberately minimal.** There is no patch to `navigator.webdriver` or
+  `window.chrome`. This is intentional, not an oversight: patching those to look "more human"
+  is the empirically *worse* choice — it flips headless-detection tests from pass to fail
+  rather than the other way around. A plain, unpatched CDP-attached Chrome is left alone.
+- **The secret never enters model context, a log line, or a persisted file** — only the OS
+  keychain holds it. On macOS, though, the write path itself passes the secret as a `security
+  ... -w <secret>` command-line argument. That is a real, documented caveat: for the brief
+  window the command runs, the argument is visible to anything on the same machine that can
+  inspect process argv (e.g. another process running as you, or `ps` on a shared multi-user
+  box). This is a property of macOS's `security` CLI, not something hidden.
+- **The trust boundary is local-machine, same-user.** This is not a remote or multi-tenant
+  credential store, and nothing about it changes that.
+- **The Linux `secret-tool` backend is implemented but not exercised on the machine this was
+  built on.** The secret is piped over stdin rather than argv (avoiding the macOS caveat
+  above), but it has not been run for real against a Linux keyring daemon — treat it as
+  implemented, not yet verified.
+
 ## Activity Monitor
 
 Toggle with **CTRL+SHIFT+W** to see live request/response activity:
@@ -335,6 +468,17 @@ Rate limits: Perplexity is capped at 10 requests/minute (client-side). Content f
 | `gemini-web-config.ts` | Gemini Web profile and browser-cookie opt-in config |
 | `gemini-api.ts` | Gemini REST API client (generateContent) |
 | `chrome-cookies.ts` | macOS/Linux Chromium-based cookie extraction (Keychain/secret-tool + SQLite) |
+| `cdp/connection.ts` | Minimal native CDP client — `send`/`subscribe` over a raw WebSocket, no typed schema |
+| `browser-manager.ts` | Launches/tracks isolated Chrome instances, caps concurrency, kills all on session shutdown |
+| `find-chrome.ts` | Resolves the Chrome/Chromium binary (`ORPHUS_CHROME_PATH` or common install paths) |
+| `browser-actions.ts` | Sense/act primitives: read (text/dom/accessibility/screenshot), the click escalation ladder, type |
+| `browser-tool.ts` | The `browser` tool: action dispatch, `ORPHUS_ENABLE_BROWSER` gate, session-shutdown cleanup |
+| `browser-login.ts` | The `login` action's no-leak fill: vault → CDP, gated by flag + allowlist + confirmation |
+| `credential-vault.ts` | In-memory vault: allowlist checks, non-secret index, audit hook, secret only via `injectInto` |
+| `credential-command.ts` | The human-only `/credential add|list|remove|confirm` command |
+| `vault/keychain.ts` | OS secret backends — macOS `security`, Linux `secret-tool` |
+| `vault/vault-store.ts` | Wires the vault to a real backend and persists the non-secret index/allowlist/audit log to disk |
+| `skills/browser-operation/` | Bundled skill teaching the sense→act→verify loop and the ladder |
 | `youtube-extract.ts` | YouTube detection, three-tier extraction, frame extraction |
 | `video-extract.ts` | Local video detection, Files API upload, Gemini analysis |
 | `github-extract.ts` | GitHub URL parsing, clone cache, content generation |

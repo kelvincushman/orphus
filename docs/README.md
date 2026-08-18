@@ -22,6 +22,7 @@ any of their context windows. Start with the first link; the rest are reference.
 | **[Workflow playbook](workflow-playbook.md)** | Multi-stage workflow execution, inherited from Atomic. |
 | **[The refine loop](refine.md)** | `/refine` — gated, reversible self-modification: what the gate refuses, and what it does not claim. |
 | **[Execution kernels](repl.md)** | `repl` — values that outlive a tool call. **Not a security sandbox**, and honest about which pieces are wired. |
+| **[Interactive browsing & the credential vault](../packages/web-access/README.md#interactive-browsing-and-the-credential-vault)** | The `browser` tool (CDP-driven open/read/click/type/login) and the `/credential` vault, both gated off by default. Design: [web-operation design](superpowers/specs/2026-08-16-orphus-web-operation-design.md) and the [web-automation methodology](superpowers/web-automation-methodology.md) it follows. |
 
 ## Understanding it
 

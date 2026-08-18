@@ -31,6 +31,19 @@ worktrees. Its directory is created on first use.
 
 Provider keys include `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AZURE_OPENAI_API_KEY`, `GEMINI_API_KEY`, AWS/Bedrock credentials, and the variables listed in [Providers](/providers#environment-variables-or-auth-file). `ANTHROPIC_AUTH_TOKEN` is a distinct header-only bearer credential for Anthropic-compatible gateways: Orphus sends `Authorization: Bearer …` without requiring or inventing an API key, including normal turns, isolated execution, branch summaries, and Verbatim Compaction. Custom headers remain independent.
 
+## Interactive browser & credential vault
+
+`@orphus/web-access`'s `browser` tool and `/credential` command. See
+[packages/web-access/README.md](../../web-access/README.md#interactive-browsing-and-the-credential-vault)
+for the full picture, including what the vault does and does not protect.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `ORPHUS_ENABLE_BROWSER` | off | Required for any `browser` tool action to run |
+| `ORPHUS_ENABLE_BROWSER_LOGIN` | off | Required, in addition, for the `login` action specifically |
+| `ORPHUS_CHROME_PATH` | unset | Override the Chrome/Chromium binary the `browser` tool launches |
+| `ORPHUS_VAULT_SECRET` | unset | Set just before `/credential add`, unset right after; never a command argument |
+
 ## Bash session environment
 
 Every built-in, factory-created, direct, foreground/background, workflow-stage, and isolated bash execution receives one execution-time snapshot:
