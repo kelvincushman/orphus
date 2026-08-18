@@ -117,13 +117,25 @@ export function canonicalJson(value: unknown): string {
  * Split a resolved system prompt into its top-level `# ` sections. Everything
  * before the first heading is reported as `preamble`, which is where the bulk
  * of the default prompt lives.
+ *
+ * Fenced code blocks are tracked, because the prompt carries whole context
+ * files verbatim and a shell comment inside a fence starts with `# ` too.
+ * Without this, `# stamp a real version onto the tag commit` from a README's
+ * code sample becomes a "section", and the hashes stop describing anything.
  */
 export function splitPromptSections(prompt: string): { heading: string; body: string }[] {
 	const sections: { heading: string; body: string }[] = [];
 	let heading = "preamble";
 	let body: string[] = [];
+	let fence: string | undefined;
 	for (const line of prompt.split("\n")) {
-		if (line.startsWith("# ")) {
+		const fenceMatch = /^\s*(```+|~~~+)/.exec(line);
+		if (fenceMatch) {
+			const marker = fenceMatch[1];
+			// A fence closes only on a marker at least as long as the one that opened it.
+			if (fence === undefined) fence = marker;
+			else if (marker[0] === fence[0] && marker.length >= fence.length) fence = undefined;
+		} else if (fence === undefined && line.startsWith("# ")) {
 			sections.push({ heading, body: body.join("\n") });
 			heading = line.slice(2).trim();
 			body = [];

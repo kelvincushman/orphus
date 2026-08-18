@@ -154,6 +154,37 @@ test("splitPromptSections handles a prompt with no headings", () => {
 	assert.deepEqual(splitPromptSections("just text"), [{ heading: "preamble", body: "just text" }]);
 });
 
+test("a shell comment inside a fenced block is not a section heading", () => {
+	// The prompt carries whole context files verbatim, so this is what a README's
+	// code sample looks like once it is inlined.
+	const prompt = [
+		"preamble text",
+		"# Real Heading",
+		"```sh",
+		"# not a heading, a shell comment",
+		"bun run scripts/cut-release.ts 0.1.0",
+		"```",
+		"still inside Real Heading",
+		"# Another Heading",
+		"~~~",
+		"# also not a heading",
+		"~~~",
+	].join("\n");
+
+	assert.deepEqual(
+		splitPromptSections(prompt).map((section) => section.heading),
+		["preamble", "Real Heading", "Another Heading"],
+	);
+});
+
+test("an unterminated fence does not swallow every later heading", () => {
+	const prompt = ["# One", "````", "# inside a long fence", "```", "# still inside", "````", "# Two"].join("\n");
+	assert.deepEqual(
+		splitPromptSections(prompt).map((section) => section.heading),
+		["One", "Two"],
+	);
+});
+
 test("canonicalJson sorts keys at every depth", () => {
 	assert.equal(
 		canonicalJson({ b: { d: 1, c: 2 }, a: [3, { f: 1, e: 2 }] }),
