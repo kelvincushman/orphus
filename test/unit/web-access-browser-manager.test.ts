@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { CdpConnection } from "../../packages/web-access/cdp/connection.js";
 import { BrowserManager } from "../../packages/web-access/browser-manager.js";
+import type { CdpConnection } from "../../packages/web-access/cdp/connection.js";
 import { findChrome } from "../../packages/web-access/find-chrome.js";
 import { installBunGlobal } from "../helpers/runtime.js";
 
@@ -14,7 +14,10 @@ installBunGlobal();
 
 function fakes() {
 	const killed: string[] = [];
-	const spawn = (_bin: string, _args: string[]) => ({ pid: 1000 + killed.length, kill: (_s?: string) => killed.push(_bin) });
+	const spawn = (_bin: string, _args: string[]) => ({
+		pid: 1000 + killed.length,
+		kill: (_s?: string) => killed.push(_bin),
+	});
 	const wsEndpoint = async (_port: number) => "ws://127.0.0.1/devtools/browser/xyz";
 	const connect = async (_wsUrl: string) => ({ close() {} }) as unknown as CdpConnection;
 	return { killed, spawn, wsEndpoint, connect };
@@ -22,7 +25,12 @@ function fakes() {
 
 test("stopAll kills every launched instance", async () => {
 	const f = fakes();
-	const m = new BrowserManager({ spawn: f.spawn, wsEndpoint: f.wsEndpoint, profileRoot: "/tmp/x", connect: f.connect });
+	const m = new BrowserManager({
+		spawn: f.spawn,
+		wsEndpoint: f.wsEndpoint,
+		profileRoot: "/tmp/x",
+		connect: f.connect,
+	});
 	await m.launch("a");
 	await m.launch("b");
 	await m.stopAll();

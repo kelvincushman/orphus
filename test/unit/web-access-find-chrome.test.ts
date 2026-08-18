@@ -1,5 +1,5 @@
-import { test } from "vitest";
 import assert from "node:assert/strict";
+import { test } from "vitest";
 import { findChrome } from "../../packages/web-access/find-chrome.js";
 
 test("ORPHUS_CHROME_PATH wins when it exists", () => {
@@ -8,10 +8,16 @@ test("ORPHUS_CHROME_PATH wins when it exists", () => {
 });
 
 test("falls back to the first existing platform candidate", () => {
-	const got = findChrome({} as NodeJS.ProcessEnv, (p) => p.includes("Google Chrome") || p.includes("chromium") || p.includes("chrome"));
+	const got = findChrome(
+		{} as NodeJS.ProcessEnv,
+		(p) => p.includes("Google Chrome") || p.includes("chromium") || p.includes("chrome"),
+	);
 	assert.ok(got && got.length > 0);
 });
 
 test("returns null when nothing is found", () => {
-	assert.equal(findChrome({} as NodeJS.ProcessEnv, () => false), null);
+	assert.equal(
+		findChrome({} as NodeJS.ProcessEnv, () => false),
+		null,
+	);
 });
