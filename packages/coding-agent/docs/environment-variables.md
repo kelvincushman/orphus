@@ -13,6 +13,7 @@ Orphus accepts environment variables for configuration, provider credentials, an
 | `ORPHUS_SKIP_VERSION_CHECK` | `PI_SKIP_VERSION_CHECK` | Skip automatic startup version checks; explicit self-update still checks |
 | `ORPHUS_TELEMETRY` | `PI_TELEMETRY` | Enable/disable install/update telemetry |
 | `ORPHUS_REDUCED_MOTION` | `PI_REDUCED_MOTION` | Use static reduced-motion presentation |
+| `ORPHUS_PROVIDER_AUDIT` | — | Set to `0`/`false`/`off` to stop recording exact provider request bodies into the session. On by default; see [Harness](/harness) |
 
 `PI_CACHE_RETENTION=long` is a provider/upstream prompt-cache option and intentionally has no Orphus-prefixed alias. `VISUAL` and `EDITOR` select the Ctrl+G external editor when `externalEditor` is unset.
 

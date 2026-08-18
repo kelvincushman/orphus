@@ -1,30 +1,92 @@
 import type { PrepareNextTurnContext } from "@earendil-works/pi-agent-core";
 import type { AgentSessionInternalSurface as AgentSession } from "./agent-session-methods.ts";
 import { assertToolPairingInvariant } from "./context-tool-pairing.js";
+import {
+	applyValidatedArguments,
+	buildToolAuditRecord,
+	revalidateToolArguments,
+	TOOL_AUDIT_ENTRY,
+	type ToolAuditOutcome,
+} from "./tool-audit.ts";
 import { collectText, redirectOversizedToolResult } from "./tools/oversized-tool-result.js";
 
+/**
+ * Append `orphus.tool.audit.v1`. Observation must never take the tool down, so a
+ * write failure is swallowed — unlike the provider request record, whose absence
+ * makes a dispatch unreplayable and therefore fails the attempt.
+ */
+export function _recordToolAudit(
+	this: AgentSession,
+	input: {
+		toolCallId: string;
+		toolName: string;
+		outcome: ToolAuditOutcome;
+		argumentsBefore: unknown;
+		argumentsAfter: unknown;
+		reason?: string;
+	},
+): void {
+	try {
+		this.sessionManager.appendCustomEntry(
+			TOOL_AUDIT_ENTRY,
+			buildToolAuditRecord({ ...input, timestamp: this._capabilities.clock.now() }),
+		);
+	} catch {
+		// Intentionally ignored — see the doc comment.
+	}
+}
+
 export function _installAgentToolHooks(this: AgentSession): void {
+	// resolve → initial schema validation (both upstream in the agent loop) →
+	// mutable hooks → snapshot → schema revalidation → policy/approval → execute.
+	// Everything from the snapshot onwards lives here.
 	this.agent.beforeToolCall = async ({ toolCall, args }) => {
 		const runner = this._extensionRunner;
-		if (!runner.hasHandlers("tool_call")) {
-			return undefined;
-		}
+		const argumentsBefore = structuredClone(args);
+		let hookResult: Awaited<ReturnType<typeof runner.emitToolCall>>;
 
-		await this._agentEventQueue;
-
-		try {
-			return await runner.emitToolCall({
-				type: "tool_call",
-				toolName: toolCall.name,
-				toolCallId: toolCall.id,
-				input: args as Record<string, unknown>,
-			});
-		} catch (err) {
-			if (err instanceof Error) {
-				throw err;
+		if (runner.hasHandlers("tool_call")) {
+			await this._agentEventQueue;
+			try {
+				hookResult = await runner.emitToolCall({
+					type: "tool_call",
+					toolName: toolCall.name,
+					toolCallId: toolCall.id,
+					input: args as Record<string, unknown>,
+				});
+			} catch (err) {
+				if (err instanceof Error) {
+					throw err;
+				}
+				throw new Error(`Extension failed, blocking execution: ${String(err)}`);
 			}
-			throw new Error(`Extension failed, blocking execution: ${String(err)}`);
 		}
+
+		// Snapshot, then revalidate what the hooks left behind. Policy and the
+		// tool itself must both see these arguments and no earlier version.
+		const revalidation = revalidateToolArguments(this.getToolDefinition(toolCall.name), args);
+		if (!revalidation.ok) {
+			this._recordToolAudit({
+				toolCallId: toolCall.id,
+				toolName: toolCall.name,
+				outcome: "invalid_arguments",
+				argumentsBefore,
+				argumentsAfter: args,
+				reason: revalidation.reason,
+			});
+			return { block: true, reason: revalidation.reason };
+		}
+		applyValidatedArguments(args, revalidation.args);
+
+		this._recordToolAudit({
+			toolCallId: toolCall.id,
+			toolName: toolCall.name,
+			outcome: hookResult?.block ? "blocked" : "executed",
+			argumentsBefore,
+			argumentsAfter: args,
+			reason: hookResult?.block ? hookResult.reason : undefined,
+		});
+		return hookResult;
 	};
 
 	this.agent.afterToolCall = async ({ toolCall, args, result, isError }) => {
@@ -150,4 +212,5 @@ export function _installAgentNextTurnRefresh(this: AgentSession): void {
 export const agentSessionToolHooksMethods = {
 	_installAgentToolHooks,
 	_installAgentNextTurnRefresh,
+	_recordToolAudit,
 };

@@ -7,14 +7,28 @@ import type {
 	RegisteredTool,
 } from "./types.ts";
 
+/**
+ * Run `run` inside a resource-registration transaction.
+ *
+ * A throw rolls the whole transaction back rather than committing it. The
+ * previous `finally { end() }` published whatever a failed handler had already
+ * registered — a half-installed tool set from a hook that died partway through
+ * was indistinguishable from a successful one.
+ */
 export async function runResourceRegistrationBatch<T>(runtime: ExtensionRuntime, run: () => Promise<T>): Promise<T> {
-	if (!runtime.beginResourceRegistrationBatch || !runtime.endResourceRegistrationBatch) return run();
+	const commit = runtime.commitResourceRegistrationBatch ?? runtime.endResourceRegistrationBatch;
+	if (!runtime.beginResourceRegistrationBatch || !commit) return run();
 	runtime.beginResourceRegistrationBatch();
+	let result: T;
 	try {
-		return await run();
-	} finally {
-		runtime.endResourceRegistrationBatch();
+		result = await run();
+	} catch (error) {
+		if (runtime.rollbackResourceRegistrationBatch) runtime.rollbackResourceRegistrationBatch();
+		else commit();
+		throw error;
 	}
+	commit();
+	return result;
 }
 
 function registrationKey(extension: Extension, name: string): string {
@@ -27,7 +41,6 @@ export function createExtensionRuntime(): ExtensionRuntime {
 		throw new Error("Extension runtime not initialized. Action methods cannot be called during extension loading.");
 	};
 	const state: { staleMessage?: string } = {};
-	let batchDepth = 0;
 	const pendingTools = new Map<string, { extension: Extension; name: string; registration: RegisteredTool }>();
 	const pendingCommands = new Map<string, { extension: Extension; name: string; registration: RegisteredCommand }>();
 	const pendingFlags = new Map<
@@ -35,8 +48,37 @@ export function createExtensionRuntime(): ExtensionRuntime {
 		{ extension: Extension; name: string; registration: ExtensionFlag; defaultValue?: boolean | string }
 	>();
 	const pendingShortcuts = new Map<string, { extension: Extension; name: string; registration: ExtensionShortcut }>();
+
+	/**
+	 * One open transaction. `undo` is replayed in reverse to restore every write
+	 * the transaction made — both the staged registrations held in the pending
+	 * maps and the direct writes `loader-api` performs for non-inherited
+	 * extensions, which reach `extension.tools`/`commands`/`flags`/`shortcuts`
+	 * immediately.
+	 */
+	interface TransactionFrame {
+		undo: (() => void)[];
+		previousActiveToolNames: string[] | undefined;
+		providerSnapshot: ExtensionRuntime["pendingProviderRegistrations"];
+		/** Set when a direct tool registration inside this frame already refreshed the live registry. */
+		touchedLiveTools: boolean;
+	}
+	const frames: TransactionFrame[] = [];
+	const inTransaction = () => frames.length > 0;
+	const recordUndo = (undo: () => void) => {
+		frames[frames.length - 1]?.undo.push(undo);
+	};
+	const recordMapUndo = <K, V>(map: Map<K, V>, key: K) => {
+		if (!inTransaction()) return;
+		const had = map.has(key);
+		const previous = map.get(key);
+		recordUndo(() => {
+			if (had) map.set(key, previous as V);
+			else map.delete(key);
+		});
+	};
 	const shouldStage = (extension: Extension) =>
-		batchDepth > 0 && extension.sourceInfo.configurationOrigin === "inherited-pi";
+		inTransaction() && extension.sourceInfo.configurationOrigin === "inherited-pi";
 	let pendingActiveToolNames: string[] | undefined;
 	const assertActive = () => {
 		if (state.staleMessage) throw new Error(state.staleMessage);
@@ -65,11 +107,40 @@ export function createExtensionRuntime(): ExtensionRuntime {
 		pendingProviderRegistrations: [],
 		canRegisterResource: () => true,
 		beginResourceRegistrationBatch: () => {
-			batchDepth += 1;
+			frames.push({
+				undo: [],
+				previousActiveToolNames: pendingActiveToolNames ? [...pendingActiveToolNames] : undefined,
+				providerSnapshot: [...runtime.pendingProviderRegistrations],
+				touchedLiveTools: false,
+			});
+		},
+		rollbackResourceRegistrationBatch: () => {
+			const frame = frames.pop();
+			if (!frame) return;
+			for (let index = frame.undo.length - 1; index >= 0; index--) frame.undo[index]();
+			pendingActiveToolNames = frame.previousActiveToolNames;
+			runtime.pendingProviderRegistrations = frame.providerSnapshot;
+			// The batch's own refresh and activation are deliberately not applied —
+			// nothing it registered may become visible. A direct (non-staged)
+			// registration is the exception: it already reached the live registry
+			// during the batch, so the registry is resynced against the maps this
+			// rollback has just restored.
+			if (frame.touchedLiveTools) runtime.refreshTools();
 		},
 		endResourceRegistrationBatch: () => {
-			batchDepth -= 1;
-			if (batchDepth !== 0) return;
+			runtime.commitResourceRegistrationBatch?.();
+		},
+		commitResourceRegistrationBatch: () => {
+			const frame = frames.pop();
+			if (!frame) return;
+			if (frames.length > 0) {
+				// An inner commit publishes nothing. Its undo log is adopted by the
+				// parent so an outer rollback still unwinds this frame's writes.
+				const parent = frames[frames.length - 1];
+				parent.undo.push(...frame.undo);
+				parent.touchedLiveTools ||= frame.touchedLiveTools;
+				return;
+			}
 			const refreshTools = pendingTools.size > 0;
 			for (const pending of pendingTools.values()) pending.extension.tools.set(pending.name, pending.registration);
 			for (const pending of pendingCommands.values())
@@ -96,25 +167,53 @@ export function createExtensionRuntime(): ExtensionRuntime {
 			pendingActiveToolNames = undefined;
 		},
 		stageToolRegistration: (extension, name, registration) => {
-			if (!shouldStage(extension)) return false;
+			if (!shouldStage(extension)) {
+				// Not staged: `loader-api` is about to write straight through to the
+				// live maps. Capture the pre-write state so a rollback can undo it.
+				recordMapUndo(extension.tools, name);
+				const frame = frames[frames.length - 1];
+				if (frame) frame.touchedLiveTools = true;
+				return false;
+			}
+			recordMapUndo(pendingTools, registrationKey(extension, name));
+			if (inTransaction()) {
+				const previousActive = pendingActiveToolNames ? [...pendingActiveToolNames] : undefined;
+				recordUndo(() => {
+					pendingActiveToolNames = previousActive;
+				});
+			}
 			pendingTools.set(registrationKey(extension, name), { extension, name, registration });
 			if (pendingActiveToolNames && !pendingActiveToolNames.includes(name)) pendingActiveToolNames.push(name);
 			return true;
 		},
 		stageCommandRegistration: (extension, name, registration) => {
-			if (!shouldStage(extension)) return false;
+			if (!shouldStage(extension)) {
+				recordMapUndo(extension.commands, name);
+				return false;
+			}
+			recordMapUndo(pendingCommands, registrationKey(extension, name));
 			pendingCommands.set(registrationKey(extension, name), { extension, name, registration });
 			return true;
 		},
 		stageFlagRegistration: (extension, name, registration, defaultValue) => {
-			if (!shouldStage(extension)) return false;
-			const key = registrationKey(extension, name);
-			const firstDefault = pendingFlags.get(key)?.defaultValue;
-			pendingFlags.set(key, { extension, name, registration, defaultValue: firstDefault ?? defaultValue });
+			// Flag ownership is claimed on the first registration regardless of which
+			// path takes it, so both paths record its undo before claiming.
 			runtime.flagOwners ??= new Map();
 			const owners = runtime.flagOwners;
 			runtime.flagOwnerOrigins ??= new Map();
 			const ownerOrigins = runtime.flagOwnerOrigins;
+			if (!owners.has(name)) {
+				recordMapUndo(owners, name);
+				recordMapUndo(ownerOrigins, name);
+			}
+			if (!shouldStage(extension)) {
+				recordMapUndo(extension.flags, name);
+				return false;
+			}
+			const key = registrationKey(extension, name);
+			recordMapUndo(pendingFlags, key);
+			const firstDefault = pendingFlags.get(key)?.defaultValue;
+			pendingFlags.set(key, { extension, name, registration, defaultValue: firstDefault ?? defaultValue });
 			if (!owners.has(name)) {
 				owners.set(name, extension.path);
 				ownerOrigins.set(name, extension.sourceInfo.configurationOrigin);
@@ -122,7 +221,11 @@ export function createExtensionRuntime(): ExtensionRuntime {
 			return true;
 		},
 		stageShortcutRegistration: (extension, name, registration) => {
-			if (!shouldStage(extension)) return false;
+			if (!shouldStage(extension)) {
+				recordMapUndo(extension.shortcuts, name);
+				return false;
+			}
+			recordMapUndo(pendingShortcuts, registrationKey(extension, name));
 			pendingShortcuts.set(registrationKey(extension, name), { extension, name, registration });
 			return true;
 		},
@@ -186,10 +289,11 @@ export function createExtensionRuntime(): ExtensionRuntime {
 		},
 		refreshToolsAfterRegistration: () => {
 			runtime.refreshTools();
-			if (batchDepth > 0 && pendingActiveToolNames) pendingActiveToolNames = runtime.getActiveTools();
+			if (inTransaction() && pendingActiveToolNames) pendingActiveToolNames = runtime.getActiveTools();
 		},
 		applyFlagDefaultAfterRegistration: (name, _ownerPath, value, configurationOrigin) => {
 			if (runtime.flagOwnerOrigins?.get(name) === configurationOrigin && !runtime.flagValues.has(name)) {
+				recordMapUndo(runtime.flagValues, name);
 				runtime.flagValues.set(name, value);
 			}
 		},
@@ -202,7 +306,11 @@ export function createExtensionRuntime(): ExtensionRuntime {
 			return [...names];
 		},
 		setActiveToolsAfterRegistration: (extension, toolNames) => {
-			if (batchDepth === 0) return false;
+			if (!inTransaction()) return false;
+			const previousActive = pendingActiveToolNames ? [...pendingActiveToolNames] : undefined;
+			recordUndo(() => {
+				pendingActiveToolNames = previousActive;
+			});
 			pendingActiveToolNames = [...toolNames];
 			if (extension.sourceInfo.configurationOrigin !== "inherited-pi") return false;
 			const liveNames = new Set(runtime.getAllTools().map((tool) => tool.name));

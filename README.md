@@ -97,6 +97,7 @@ messages intact verbatim and only early exploration collapsed.
 | **[Getting started](docs/getting-started.md)** | Clone to working fleet, in five tiers. The first needs no model and no API key. |
 | **[The `roundtable` tool](docs/roundtable-tool.md)** | Every action, parameter, and default, with the reasoning. |
 | **[Architecture](docs/architecture.md)** | What runs where, and what the bound actually guarantees. |
+| **[Harness](packages/coding-agent/docs/harness.md)** | The capability boundary, the provider/tool session records, and `orphus inspect runtime`. |
 | **[Troubleshooting](docs/troubleshooting.md)** | The three failures that look like success. |
 | **[All documentation](docs/README.md)** | Roles, memory, Orca, CI, design decisions. |
 
@@ -180,6 +181,19 @@ supported key is listed in
 
 Rooms and memory arrive automatically — `packages/roundtable` is a builtin package, so every
 session gets the `roundtable` and `memory` tools with no extra install.
+
+To see what a session actually resolved to — the model, the tools and their schema hashes,
+the extensions and the order their hooks run in, flag and settings provenance, and the
+system-prompt section hashes — ask the binary rather than reading the wiring:
+
+```bash
+orphus inspect runtime --json
+```
+
+It dispatches nothing, its output is deterministic (so a diff between two runs is a real
+difference), and secrets are redacted. Sessions also record the exact body of every provider
+request and what came back — see
+[harness.md](packages/coding-agent/docs/harness.md).
 
 Skills extend from there: `orphus install <git-url>` consumes community skill packs
 ([mattpocock/skills](https://github.com/mattpocock/skills) for engineering workflow,
