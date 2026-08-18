@@ -24,10 +24,10 @@ export interface SessionSelectorRunOptions {
 	/**
 	 * Drives the termDOM host's whole picker. The pi host is the pre-pilot
 	 * `SessionSelectorComponent` unchanged, which keeps its own internal state:
-	 * it reads only the loaders and the rename/delete callbacks, so initial
-	 * state configured on the model shapes termDOM only. That divergence is the
-	 * pilot's deliberate fidelity trade — pi's behaviour must not move while
-	 * termDOM is built beside it.
+	 * it reads only the loaders and the rename callback — deletion runs through
+	 * its own internal path, and initial state configured on the model shapes
+	 * termDOM only. That divergence is the pilot's deliberate fidelity trade —
+	 * pi's behaviour must not move while termDOM is built beside it.
 	 */
 	model: SessionSelectorModel;
 	/** Sessions rooted at the current working directory. */
