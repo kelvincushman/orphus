@@ -391,21 +391,21 @@ const { session } = await createAgentSession({
 });
 ```
 
-Orphus reads primary `.orphus` locations first and legacy `.pi` locations for compatibility when multiple config directories are supported. Passing an explicit `agentDir` makes that directory the user override.
+Orphus reads primary `.orphus` locations first and legacy `.atomic` and `.pi` locations for compatibility when multiple config directories are supported. Passing an explicit `agentDir` makes that directory the user override.
 
 `cwd` is used by `DefaultResourceLoader` for:
-- Project extensions (`.orphus/extensions/`, then legacy `.pi/extensions/`)
+- Project extensions (`.orphus/extensions/`, then legacy `.atomic/extensions/` and `.pi/extensions/`)
 - Project skills:
-  - `.orphus/skills/`, then legacy `.pi/skills/`
+  - `.orphus/skills/`, then legacy `.atomic/skills/` and `.pi/skills/`
   - `.agents/skills/` in `cwd` and ancestor directories (up to git repo root, or filesystem root when not in a repo)
-- Project prompts (`.orphus/prompts/`, then legacy `.pi/prompts/`)
+- Project prompts (`.orphus/prompts/`, then legacy `.atomic/prompts/` and `.pi/prompts/`)
 - Context files (`AGENTS.md` walking up from cwd)
 - Session directory naming
 
 `agentDir` is used by `DefaultResourceLoader` for:
 - Global extensions (`extensions/`)
 - Global skills:
-  - `skills/` under `agentDir` (for example `~/.orphus/agent/skills/`; legacy `~/.pi/agent/skills/` is also considered by default)
+  - `skills/` under `agentDir` (for example `~/.orphus/agent/skills/`; legacy `~/.atomic/agent/skills/` and `~/.pi/agent/skills/` are also considered by default)
   - `~/.agents/skills/`
 - Global prompts (`prompts/`)
 - Global context file (`AGENTS.md`)
@@ -672,7 +672,7 @@ await createAgentSession({
 
 ### Extensions
 
-Extensions are loaded by the `ResourceLoader`. `DefaultResourceLoader` discovers extensions from `~/.orphus/agent/extensions/` and `.orphus/extensions/` first, then legacy `~/.pi/agent/extensions/` and `.pi/extensions/`, plus settings.json extension sources.
+Extensions are loaded by the `ResourceLoader`. `DefaultResourceLoader` discovers extensions from `~/.orphus/agent/extensions/` and `.orphus/extensions/` first, then the legacy `.atomic` and `.pi` extension directories, plus settings.json extension sources.
 
 ```typescript
 import { createAgentSession, DefaultResourceLoader } from "@orphus/coding-agent";
@@ -930,8 +930,8 @@ const { session } = await createAgentSession({
 **Project-specific settings:**
 
 Settings load from Orphus-first locations and merge:
-1. Global: `~/.orphus/agent/settings.json`, then legacy `~/.pi/agent/settings.json`
-2. Project: `<cwd>/.orphus/settings.json`, then legacy `<cwd>/.pi/settings.json`
+1. Global: `~/.orphus/agent/settings.json`, then legacy `~/.atomic/agent/settings.json` and `~/.pi/agent/settings.json`
+2. Project: `<cwd>/.orphus/settings.json`, then legacy `<cwd>/.atomic/settings.json` and `<cwd>/.pi/settings.json`
 
 Project overrides global. Nested objects merge keys. Setters modify global settings by default.
 

@@ -29,7 +29,7 @@ Use `/login <provider>` (for example `/login openrouter` or `/login kimi-coding`
 
 Escape or Ctrl+C quietly cancels the matching login, including immediate/pre-device native aborts, and leaves the previously committed credential and catalog unchanged. Provider denial, device expiry, timeout, browser/network/protocol failure, malformed responses, token exchange, and persistence failures remain visible. Orphus claims success when the provider flow and credential persistence complete; it does not wait for model-catalog or ambient-availability refresh work.
 
-Use `/logout` to clear credentials. Logout immediately invalidates authentication in the active interactive engine and removes the selected provider from both `~/.orphus/agent/auth.json` and any effective legacy `~/.pi/agent/auth.json`, so the provider remains logged out after restart. Environment variables, command-line credentials, and `models.json` configuration cannot be cleared by Orphus; when one of those sources still authenticates the provider, the logout status names the remaining source.
+Use `/logout` to clear credentials. Logout immediately invalidates authentication in the active interactive engine and removes the selected provider from both `~/.orphus/agent/auth.json` and any effective legacy `~/.atomic/agent/auth.json` and `~/.pi/agent/auth.json`, so the provider remains logged out after restart. Environment variables, command-line credentials, and `models.json` configuration cannot be cleared by Orphus; when one of those sources still authenticates the provider, the logout status names the remaining source.
 
 ### Token Refresh
 

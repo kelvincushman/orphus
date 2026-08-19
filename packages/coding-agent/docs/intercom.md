@@ -125,7 +125,7 @@ Intercom connections are normally tool-driven. Ordinary sessions and delegated c
 A session becomes intercom-connected when all of these are true:
 
 - the intercom extension is loaded in that session
-- `enabled` is not set to `false` in `~/.orphus/agent/intercom/config.json` (or the legacy `~/.pi/agent/intercom/config.json` fallback)
+- `enabled` is not set to `false` in `~/.orphus/agent/intercom/config.json` (or the legacy `~/.atomic/agent/intercom/config.json` and `~/.pi/agent/intercom/config.json` fallbacks)
 - the model or user has invoked an Intercom surface in that session, **or** the parent runtime is authorizing an Intercom-enabled child supervisor relationship
 - the local broker is running or can be auto-started
 
@@ -370,7 +370,7 @@ For delegated background children, queued messages and terminal lifecycle notice
 
 ## Configuration
 
-Create `~/.orphus/agent/intercom/config.json`. The legacy `~/.pi/agent/intercom/config.json` fallback is read when the Orphus config is absent:
+Create `~/.orphus/agent/intercom/config.json`. The legacy `~/.atomic/agent/intercom/config.json` and `~/.pi/agent/intercom/config.json` fallbacks are read when the Orphus config is absent:
 
 ```json
 {

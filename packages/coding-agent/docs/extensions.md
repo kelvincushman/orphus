@@ -4,7 +4,7 @@
 
 Extensions are TypeScript modules that extend Orphus's behavior. They can subscribe to lifecycle events, register custom tools callable by the LLM, add commands, and more.
 
-> **Placement for /reload:** Put extensions in `~/.orphus/agent/extensions/` (global) or `.orphus/extensions/` (project-local) for auto-discovery; legacy `.pi` paths remain supported. Use `atomic -e ./path.ts` only for quick tests. Extensions in auto-discovered locations can be hot-reloaded with `/reload`.
+> **Placement for /reload:** Put extensions in `~/.orphus/agent/extensions/` (global) or `.orphus/extensions/` (project-local) for auto-discovery; legacy `.atomic` and `.pi` paths remain supported. Use `atomic -e ./path.ts` only for quick tests. Extensions in auto-discovered locations can be hot-reloaded with `/reload`.
 
 **Key capabilities:**
 - **Custom tools** - Register tools the LLM can call via `pi.registerTool()`
@@ -174,7 +174,7 @@ Extensions are auto-discovered from:
 | `.orphus/extensions/*.ts` | Project-local |
 | `.orphus/extensions/*/index.ts` | Project-local (subdirectory) |
 
-Orphus also discovers extensions and package resources inherited from legacy `~/.pi/agent` and `.pi` configuration. When an inherited Pi extension uses the exact same tool, command, prompt, flag, or shortcut name as an extension bundled with Orphus, Orphus keeps the bundled registration and ignores only that conflicting inherited registration. Other resources from the inherited extension remain available. Interactive startup reports all such overlaps in one yellow summary; print and RPC modes apply the same winners without changing the Pi settings or package files.
+Orphus also discovers extensions and package resources inherited from legacy `~/.atomic/agent`, `~/.pi/agent`, and `.pi` configuration. When an inherited Pi extension uses the exact same tool, command, prompt, flag, or shortcut name as an extension bundled with Orphus, Orphus keeps the bundled registration and ignores only that conflicting inherited registration. Other resources from the inherited extension remain available. Interactive startup reports all such overlaps in one yellow summary; print and RPC modes apply the same winners without changing the Pi settings or package files.
 
 This compatibility rule applies only to inherited Pi resources. Extensions configured through `.orphus` or passed explicitly with `--extension` retain the normal intentional override and load-order behavior described below.
 
@@ -413,7 +413,7 @@ exit (CTRL+C, CTRL+D, SIGHUP, SIGTERM)
 
 #### project_trust
 
-Fired before Orphus decides whether to trust a project with dynamic configs (`.orphus`, legacy `.pi`, or `.agents/skills`). It runs during startup and when session replacement (for example `/resume`) enters a cwd whose trust has not been resolved in the current process. Only user/global extensions and CLI `-e` extensions participate; project-local extensions are not loaded until after trust is resolved.
+Fired before Orphus decides whether to trust a project with dynamic configs (`.orphus`, legacy `.atomic` and `.pi`, or `.agents/skills`). It runs during startup and when session replacement (for example `/resume`) enters a cwd whose trust has not been resolved in the current process. Only user/global extensions and CLI `-e` extensions participate; project-local extensions are not loaded until after trust is resolved.
 
 ```typescript
 pi.on("project_trust", async (event, ctx) => {
@@ -1000,7 +1000,7 @@ UI methods for user interaction. See [Custom UI](#custom-ui) for full details.
 
 Current working directory.
 
-Use `CONFIG_DIR_NAME` instead of hardcoding `.orphus` (or legacy `.pi`) when constructing project-local config paths. Rebranded distributions can use a different config directory name.
+Use `CONFIG_DIR_NAME` instead of hardcoding `.orphus` (or legacy `.atomic` and `.pi`) when constructing project-local config paths. Rebranded distributions can use a different config directory name.
 
 ```typescript
 import { CONFIG_DIR_NAME, type ExtensionAPI } from "@orphus/coding-agent";

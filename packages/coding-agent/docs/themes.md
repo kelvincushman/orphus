@@ -19,8 +19,8 @@ Themes are JSON files that define colors for the TUI.
 Orphus loads themes from:
 
 - Built-in: `dark`, `light`, `catppuccin-frappe`, `catppuccin-latte`, `catppuccin-macchiato`, `catppuccin-mocha`
-- Global: `~/.orphus/agent/themes/*.json` (legacy `~/.pi/agent/themes/*.json`)
-- Project: `.orphus/themes/*.json` (legacy `.pi/themes/*.json`, only after the project is trusted)
+- Global: `~/.orphus/agent/themes/*.json` (legacy `~/.atomic/agent/themes/*.json` and `~/.pi/agent/themes/*.json`)
+- Project: `.orphus/themes/*.json` (legacy `.atomic/themes/*.json` and `.pi/themes/*.json`, only after the project is trusted)
 - Packages: `themes/` directories, `atomic.themes`, or legacy `pi.themes` entries in `package.json`
 - Settings: `themes` array with files or directories
 - CLI: `--theme <path>` (repeatable)

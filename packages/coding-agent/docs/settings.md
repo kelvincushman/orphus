@@ -23,7 +23,7 @@ That order applies to both the global (`~/<dir>/agent/`) and project (`<cwd>/<di
 
 ## Project Trust
 
-On interactive startup, Orphus asks before trusting a project folder that contains trust-gated project inputs and has no saved decision for the folder or a parent folder in `~/.orphus/agent/trust.json`. Trusting a project allows Orphus to load project-local `.orphus/settings.json` and `.orphus` resources, legacy `.pi/settings.json` and `.pi` resources, project-local context files, install missing project packages, and execute project extensions.
+On interactive startup, Orphus asks before trusting a project folder that contains trust-gated project inputs and has no saved decision for the folder or a parent folder in `~/.orphus/agent/trust.json`. Trusting a project allows Orphus to load project-local `.orphus/settings.json` and `.orphus` resources, legacy `.atomic` and `.pi` settings and resources, project-local context files, install missing project packages, and execute project extensions.
 
 Non-interactive modes (`-p`, `--mode json`, and `--mode rpc`) do not show a trust prompt. Without an applicable saved trust decision, they use `defaultProjectTrust` from global settings: `ask` (default) and `never` ignore trust-gated project inputs, while `always` trusts them. Pass `--approve`/`-a` or `--no-approve`/`-na` to override project trust for one run.
 

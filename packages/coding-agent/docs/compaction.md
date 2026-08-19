@@ -472,7 +472,7 @@ Verbatim planning and branch summarization are standalone provider requests. Eac
 
 ## Settings
 
-Configure compaction in `~/.orphus/agent/settings.json` or `<project-dir>/.orphus/settings.json` (legacy `.pi` paths are also supported):
+Configure compaction in `~/.orphus/agent/settings.json` or `<project-dir>/.orphus/settings.json` (legacy `.atomic` and `.pi` paths are also supported):
 
 ```json
 {

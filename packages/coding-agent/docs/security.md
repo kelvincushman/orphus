@@ -8,7 +8,7 @@ Project trust controls whether Orphus loads project-local settings, resources, p
 
 Orphus considers a project to have trust inputs when it finds any of these from the current working directory:
 
-- `.orphus/` (or legacy `.pi/`) in the current directory
+- `.orphus/` (or legacy `.atomic/` and `.pi/`) in the current directory
 - `AGENTS.md` or `CLAUDE.md` in the current directory or an ancestor directory
 - `.agents/skills` in the current directory or an ancestor directory
 
@@ -16,12 +16,12 @@ When an interactive session starts in a project with configs in `.orphus`/`.pi`,
 
 Trusting a project allows Orphus to load trust-gated project inputs, including:
 
-- `.orphus/settings.json` (or legacy `.pi/settings.json`)
+- `.orphus/settings.json` (or legacy `.atomic/settings.json` and `.pi/settings.json`)
 - `.orphus`/`.pi` resources such as extensions, skills, prompt templates, themes, and system prompt files
 - missing project packages configured through project settings
 - project-local extensions and project package-managed extensions
 
-Declining trust skips protected resources. Orphus also skips project-local `AGENTS.md` and `CLAUDE.md` context-file discovery while the project is untrusted; global context and explicitly supplied CLI resources remain available. Before trust is resolved, Orphus only loads user/global extensions and explicit CLI `-e` package-level extensions so those trusted extensions can handle the `project_trust` event; the first extension that returns a yes/no decision owns the decision. When `-e <dir>` discovers project-local resources borrowed from that directory's `.orphus` or legacy `.pi` config, or from `.agents/skills`, Orphus resolves trust for that extension source before loading those borrowed resources, because borrowed extensions and workflows can execute code with the Orphus process permissions.
+Declining trust skips protected resources. Orphus also skips project-local `AGENTS.md` and `CLAUDE.md` context-file discovery while the project is untrusted; global context and explicitly supplied CLI resources remain available. Before trust is resolved, Orphus only loads user/global extensions and explicit CLI `-e` package-level extensions so those trusted extensions can handle the `project_trust` event; the first extension that returns a yes/no decision owns the decision. When `-e <dir>` discovers project-local resources borrowed from that directory's `.orphus` or legacy `.atomic` and `.pi` config, or from `.agents/skills`, Orphus resolves trust for that extension source before loading those borrowed resources, because borrowed extensions and workflows can execute code with the Orphus process permissions.
 
 Non-interactive modes (`-p`, `--mode json`, and `--mode rpc`) do not show a trust prompt. Without an applicable saved trust decision, `defaultProjectTrust: "ask"` and `"never"` ignore such resources, while `"always"` trusts them. Use `--approve`/`-a` or `--no-approve`/`-na` to override project trust for one run.
 

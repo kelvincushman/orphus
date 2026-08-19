@@ -3317,7 +3317,7 @@ Validation uses the final retained transcript for a repeated stage replay key, s
 
 **Alpine/musl archives.** Musl release archives deliberately omit `@embedded-postgres/*` binary packages because the available packages are glibc-linked and cannot run on musl. Durable workflows on Alpine must use external Postgres by setting `DBOS_SYSTEM_DATABASE_URL` or use Docker. If neither is available, Orphus falls back to a process-local in-memory backend with a loud non-durable warning; state does not survive process exit and cross-process resume is unavailable.
 
-DBOS/Postgres durability requires no setup on supported local platforms. To use an existing Postgres database, set `DBOS_SYSTEM_DATABASE_URL` before starting Orphus; otherwise Orphus provisions embedded Postgres where a compatible platform package exists (with drop-privilege support when running as root on Linux), with Docker as a platform fallback. The DBOS SDK ships with `@orphus/coding-agent`. If no durable backend can be provisioned, workflows run on a process-local in-memory backend with a loud non-durable warning — never on the legacy per-workflow file store under `~/.orphus/workflow-durable` — and cross-process resume is unavailable until Postgres provisioning is fixed.
+DBOS/Postgres durability requires no setup on supported local platforms. To use an existing Postgres database, set `DBOS_SYSTEM_DATABASE_URL` before starting Orphus; otherwise Orphus provisions embedded Postgres where a compatible platform package exists (with drop-privilege support when running as root on Linux), with Docker as a platform fallback. The DBOS SDK ships with `@orphus/coding-agent`. If no durable backend can be provisioned, workflows run on a process-local in-memory backend with a loud non-durable warning — never on the legacy per-workflow file store under `~/.atomic/workflow-durable` — and cross-process resume is unavailable until Postgres provisioning is fixed.
 
 ```bash
 export DBOS_SYSTEM_DATABASE_URL="postgresql://user:password@localhost:5432/atomic_dbos_sys"
@@ -3327,7 +3327,7 @@ When `/workflow resume` lists or resumes a DBOS-backed workflow in a fresh proce
 
 Orphus updates the in-memory replay mirror for awaited DBOS checkpoints only after DBOS accepts the write, and root metadata is mirrored as versioned DBOS records where the latest timestamp wins during hydration. Unmarked raw-output checkpoint records remain readable as generic stage checkpoints when their workflow has compatible current metadata; marked envelopes with unsupported envelope versions are ignored rather than decoded as raw output, while unsupported or malformed additive topology fields are ignored without dropping an otherwise valid stage envelope.
 
-Orphus does not use the legacy file backend under `~/.orphus/workflow-durable`; cross-session `/workflow resume` reads DBOS only.
+Orphus does not use the legacy file backend under `~/.atomic/workflow-durable`; cross-session `/workflow resume` reads DBOS only.
 
 ## Workflow Locations
 
@@ -3336,9 +3336,9 @@ Orphus discovers workflow definitions in this order:
 | Location | Scope | Notes |
 |----------|-------|-------|
 | `.orphus/extensions/workflow/config.json` | Project | `workflows.<name>.path`; project entries override global entries |
-| `.orphus/workflows/*.{ts,js,mjs,cjs}` | Project | Legacy `.pi/workflows/` is also checked |
+| `.orphus/workflows/*.{ts,js,mjs,cjs}` | Project | Legacy `.atomic/workflows/` and `.pi/workflows/` are also checked |
 | `~/.orphus/agent/extensions/workflow/config.json` | Global | `workflows.<name>.path` for user-wide configured paths |
-| `~/.orphus/agent/workflows/*.{ts,js,mjs,cjs}` | Global | Legacy `~/.pi/agent/workflows/` is also checked |
+| `~/.orphus/agent/workflows/*.{ts,js,mjs,cjs}` | Global | Legacy `~/.atomic/agent/workflows/` and `~/.pi/agent/workflows/` are also checked |
 | Installed Orphus packages | Package | Uses package metadata or conventional `workflows/` directories |
 | Bundled workflows | Built-in | Shipped with `@orphus/workflows` |
 
@@ -3384,7 +3384,7 @@ Orphus loads workflow files with [jiti](https://github.com/unjs/jiti), so TypeSc
 
 ## Reloading workflow resources
 
-Run `/workflow reload` after adding, editing, renaming, or deleting workflow modules or changing workflow config. Reload rescans project and user conventional directories, legacy `.pi` locations, configured file/directory paths, and package resources without restarting Orphus. The workflow tool's `reload` action uses the same in-process path.
+Run `/workflow reload` after adding, editing, renaming, or deleting workflow modules or changing workflow config. Reload rescans project and user conventional directories, legacy `.atomic` and `.pi` locations, configured file/directory paths, and package resources without restarting Orphus. The workflow tool's `reload` action uses the same in-process path.
 
 Reload builds a complete replacement registry before publishing it. Concurrent requests are serialized and coalesced, stale discovery from an earlier session cannot overwrite newer state, and a fatal refresh failure retains the previous registry. Reload is safe while workflows are running: existing runs keep the definition and runtime snapshot they started with, while subsequent list/get/inputs/help/completion/invocation calls use the newly published registry.
 

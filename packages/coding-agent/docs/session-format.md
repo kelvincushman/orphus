@@ -12,7 +12,7 @@ Where `<path>` is the working directory with `/` replaced by `-`.
 
 ## Deleting Sessions
 
-Sessions can be removed by deleting their `.jsonl` files under `~/.orphus/agent/sessions/` (legacy `~/.pi/agent/sessions/` may exist from older Pi installs).
+Sessions can be removed by deleting their `.jsonl` files under `~/.orphus/agent/sessions/` (legacy `~/.atomic/agent/sessions/` and `~/.pi/agent/sessions/` may exist from older Pi installs).
 
 Orphus also supports deleting sessions interactively from `/resume` (select a session and press `CTRL+D`, then confirm). When available, Orphus uses the `trash` CLI to avoid permanent deletion.
 
