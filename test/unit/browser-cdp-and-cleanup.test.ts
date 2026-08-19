@@ -175,6 +175,53 @@ test("a launch runs its own profile directory and reports the debugger endpoint"
 	for (const flag of ISOLATION_FLAGS) assert.ok(spawn.args.includes(flag), `missing isolation flag ${flag}`);
 });
 
+test("a launch whose Chrome died reports Chrome's exit status, not the poller's symptom", async () => {
+	// "fetch failed" describes our probe. It is the same string whether Chrome
+	// was OOM-killed, crashed, or refused its flags, so on its own it diagnoses
+	// nothing — which is exactly what a CI failure needs it to do.
+	const killed = {
+		pid: 5150,
+		exited: Promise.resolve({ code: null, signal: "SIGKILL" }),
+		kill: () => {},
+	};
+	await assert.rejects(
+		launchIsolatedChrome({
+			processes: { kind: "process", spawn: () => killed, exec: async () => ({ code: 0, stdout: "", stderr: "" }) },
+			executablePath: "/usr/bin/chromium",
+			port: 45125,
+			startupTimeoutMs: 50,
+			sleep: async () => {},
+			createProfileDir: async () => "/tmp/profile-killed",
+			removeProfileDir: async () => {},
+			readDebuggerUrl: async () => {
+				throw new Error("fetch failed");
+			},
+		}),
+		/exited before its DevTools endpoint came up \(killed by SIGKILL\)/,
+	);
+
+	const refused = {
+		pid: 5151,
+		exited: Promise.resolve({ code: 21, signal: null }),
+		kill: () => {},
+	};
+	await assert.rejects(
+		launchIsolatedChrome({
+			processes: { kind: "process", spawn: () => refused, exec: async () => ({ code: 0, stdout: "", stderr: "" }) },
+			executablePath: "/usr/bin/chromium",
+			port: 45126,
+			startupTimeoutMs: 50,
+			sleep: async () => {},
+			createProfileDir: async () => "/tmp/profile-refused",
+			removeProfileDir: async () => {},
+			readDebuggerUrl: async () => {
+				throw new Error("fetch failed");
+			},
+		}),
+		/exited before its DevTools endpoint came up \(exit code 21\)/,
+	);
+});
+
 test("a launch that never comes up is killed and its profile removed", async () => {
 	const processes = createFakeProcesses();
 	const removed: string[] = [];
