@@ -5,14 +5,14 @@ Sessions are stored as JSONL (JSON Lines) files. Each line is a JSON object with
 ## File Location
 
 ```
-~/.atomic/agent/sessions/--<path>--/<timestamp>_<uuid>.jsonl
+~/.orphus/agent/sessions/--<path>--/<timestamp>_<uuid>.jsonl
 ```
 
 Where `<path>` is the working directory with `/` replaced by `-`.
 
 ## Deleting Sessions
 
-Sessions can be removed by deleting their `.jsonl` files under `~/.atomic/agent/sessions/` (legacy `~/.pi/agent/sessions/` may exist from older Pi installs).
+Sessions can be removed by deleting their `.jsonl` files under `~/.orphus/agent/sessions/` (legacy `~/.pi/agent/sessions/` may exist from older Pi installs).
 
 Orphus also supports deleting sessions interactively from `/resume` (select a session and press `CTRL+D`, then confirm). When available, Orphus uses the `trash` CLI to avoid permanent deletion.
 

@@ -28,7 +28,7 @@ Configure via `package.json`:
 {
   "atomicConfig": {
     "name": "atomic",
-    "configDir": ".atomic"
+    "configDir": ".orphus"
   }
 }
 ```
@@ -49,7 +49,7 @@ Never use `__dirname` directly for package assets.
 
 ## Debug Command
 
-`/debug` (hidden) writes to `~/.atomic/agent/atomic-debug.log`:
+`/debug` (hidden) writes to `~/.orphus/agent/atomic-debug.log`:
 - Rendered TUI lines with ANSI codes
 - Last messages sent to the LLM
 

@@ -6,7 +6,7 @@ Orphus accepts environment variables for configuration, provider credentials, an
 
 | Orphus variable | Legacy alias | Purpose |
 |---|---|---|
-| `ORPHUS_CODING_AGENT_DIR` | `PI_CODING_AGENT_DIR` | Agent/config directory; default `~/.atomic/agent` |
+| `ORPHUS_CODING_AGENT_DIR` | `PI_CODING_AGENT_DIR` | Agent/config directory; default `~/.orphus/agent` |
 | `ORPHUS_CODING_AGENT_SESSION_DIR` | `PI_CODING_AGENT_SESSION_DIR` | Session directory; `--session-dir` takes precedence |
 | `ORPHUS_PACKAGE_DIR` | `PI_PACKAGE_DIR` | Package directory override |
 | `ORPHUS_OFFLINE` | `PI_OFFLINE` | Disable startup network operations |

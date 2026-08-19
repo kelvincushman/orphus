@@ -82,7 +82,7 @@ Configure delivery in [Settings](/settings) with `steeringMode` and `followUpMod
 
 ## Sessions
 
-Sessions are saved automatically to `~/.atomic/agent/sessions/`, organized by working directory.
+Sessions are saved automatically to `~/.orphus/agent/sessions/`, organized by working directory.
 
 ```bash
 atomic -c                  # Continue most recent session
@@ -110,7 +110,7 @@ See [Sessions](/sessions) and [Compaction](/compaction) for details.
 
 Orphus loads `AGENTS.md` or `CLAUDE.md` at startup from:
 
-- `~/.atomic/agent/AGENTS.md` for global instructions
+- `~/.orphus/agent/AGENTS.md` for global instructions
 - parent directories, walking up from the current working directory
 - the current directory
 
@@ -129,8 +129,8 @@ Orphus's default `Guidelines` section applies Orwell's six writing rules to ever
 
 Replace the default system prompt with:
 
-- `.atomic/SYSTEM.md` for a project
-- `~/.atomic/agent/SYSTEM.md` globally
+- `.orphus/SYSTEM.md` for a project
+- `~/.orphus/agent/SYSTEM.md` globally
 
 Append to the default prompt without replacing it with `APPEND_SYSTEM.md` in either location.
 
@@ -266,7 +266,7 @@ Default built-in tools: `read`, `bash`, `edit`, `write`, `find`, `search`, `ask_
 | `--approve`, `-a` | Trust project-local files/resources for this run |
 | `--no-approve`, `-na` | Ignore project-local files/resources for this run |
 
-Project trust gates `.atomic`/legacy `.pi` project resources, project package settings, project-local context files, and `.agents/skills` discovered from the project tree. Saved trust decisions can be managed with `/trust`; see [Security](/security).
+Project trust gates `.orphus`/legacy `.pi` project resources, project package settings, project-local context files, and `.agents/skills` discovered from the project tree. Saved trust decisions can be managed with `/trust`; see [Security](/security).
 
 ### Resource Options
 
@@ -340,7 +340,7 @@ atomic --tools read,search,find,ls -p "Review the code"
 
 | Variable | Description |
 |----------|-------------|
-| `ORPHUS_CODING_AGENT_DIR` | Override config directory; default is `~/.atomic/agent`. Bundled intercom runtime/config files live under its `intercom/` subdirectory |
+| `ORPHUS_CODING_AGENT_DIR` | Override config directory; default is `~/.orphus/agent`. Bundled intercom runtime/config files live under its `intercom/` subdirectory |
 | `ORPHUS_CODING_AGENT_SESSION_DIR` | Override session storage directory; overridden by `--session-dir` |
 | `ORPHUS_PACKAGE_DIR` | Override package directory, useful for Nix/Guix store paths |
 | `ORPHUS_REDUCED_MOTION` | Set to `1` to skip startup choreography and render the ordinary working identity as a static regular accent `∀` without a timer |

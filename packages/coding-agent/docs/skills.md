@@ -24,17 +24,17 @@ Orphus implements the [Agent Skills standard](https://agentskills.io/specificati
 Orphus loads skills from:
 
 - Global:
-  - `~/.atomic/agent/skills/` (legacy `~/.pi/agent/skills/`)
+  - `~/.orphus/agent/skills/` (legacy `~/.pi/agent/skills/`)
   - `~/.agents/skills/`
 - Project (only after the project is trusted):
-  - `.atomic/skills/` (legacy `.pi/skills/`)
+  - `.orphus/skills/` (legacy `.pi/skills/`)
   - `.agents/skills/` in `cwd` and ancestor directories (up to git repo root, or filesystem root when not in a repo)
 - Packages: `skills/` directories, `atomic.skills`, or legacy `pi.skills` entries in `package.json`
 - Settings: `skills` array with files or directories
 - CLI: `--skill <path>` (repeatable, additive even with `--no-skills`)
 
 Discovery rules:
-- In `~/.atomic/agent/skills/` and `.atomic/skills/` (plus legacy `~/.pi/agent/skills/` and `.pi/skills/`), direct root `.md` files are discovered as individual skills
+- In `~/.orphus/agent/skills/` and `.orphus/skills/` (plus legacy `~/.pi/agent/skills/` and `.pi/skills/`), direct root `.md` files are discovered as individual skills
 - In all skill locations, directories containing `SKILL.md` are discovered recursively
 - In `~/.agents/skills/` and project `.agents/skills/`, root `.md` files are ignored
 
@@ -53,7 +53,7 @@ To use skills from Claude Code or OpenAI Codex, add their directories to setting
 }
 ```
 
-For project-level Claude Code skills, add to `.atomic/settings.json` (legacy `.pi/settings.json` is also supported):
+For project-level Claude Code skills, add to `.orphus/settings.json` (legacy `.pi/settings.json` is also supported):
 
 ```json
 {

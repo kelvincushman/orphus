@@ -24,8 +24,8 @@ Use the [example extension](https://github.com/bastani-inc/atomic/tree/main/pack
 Setup:
 
 ```bash
-cp -R packages/coding-agent/examples/extensions/gondolin ~/.atomic/agent/extensions/gondolin
-cd ~/.atomic/agent/extensions/gondolin
+cp -R packages/coding-agent/examples/extensions/gondolin ~/.orphus/agent/extensions/gondolin
+cd ~/.orphus/agent/extensions/gondolin
 bun install --ignore-scripts
 ```
 
@@ -33,7 +33,7 @@ Run from the project you want mounted:
 
 ```bash
 cd /path/to/project
-atomic -e ~/.atomic/agent/extensions/gondolin
+atomic -e ~/.orphus/agent/extensions/gondolin
 ```
 
 The extension mounts the host cwd at `/workspace` in the VM and overrides `read`, `write`, `edit`, `bash`, `find`, and `search` so the default coding tools operate inside the VM.
@@ -46,7 +46,7 @@ Requirements: Bun for dependency installation, Node.js >= 23.6.0 for `@earendil-
 
 Run the whole `atomic` process in Docker when you want the simplest local container boundary.
 
-`Dockerfile.atomic`:
+`Dockerfile.orphus`:
 
 ```dockerfile
 FROM node:24-bookworm-slim
@@ -63,18 +63,18 @@ ENTRYPOINT ["atomic"]
 Build and run:
 
 ```bash
-docker build -t atomic-sandbox -f Dockerfile.atomic .
+docker build -t atomic-sandbox -f Dockerfile.orphus .
 
 docker run --rm -it \
   -e ANTHROPIC_API_KEY \
   -v "$PWD:/workspace" \
-  -v atomic-agent-home:/root/.atomic/agent \
+  -v atomic-agent-home:/root/.orphus/agent \
   atomic-sandbox
 ```
 
 The `-v "$PWD:/workspace"` mounts your current directory into the container at /workspace such that reads and writes in `/workspace` inside Docker directly affect your host files, like in the Gondolin example.
 
-Use a named volume for `/root/.atomic/agent` if you want container-local settings and sessions. Mounting your host `~/.atomic/agent` exposes host auth and session files to the container.
+Use a named volume for `/root/.orphus/agent` if you want container-local settings and sessions. Mounting your host `~/.orphus/agent` exposes host auth and session files to the container.
 
 ## OpenShell
 

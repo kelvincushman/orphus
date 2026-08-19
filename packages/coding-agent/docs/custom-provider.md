@@ -357,7 +357,7 @@ interface OAuthLoginCallbacks {
 
 ### OAuthCredentials
 
-Credentials are persisted in `~/.atomic/agent/auth.json` (legacy `~/.pi/agent/auth.json` may be read for compatibility):
+Credentials are persisted in `~/.orphus/agent/auth.json` (legacy `~/.pi/agent/auth.json` may be read for compatibility):
 
 ```typescript
 interface OAuthCredentials {

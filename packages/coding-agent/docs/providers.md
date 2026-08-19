@@ -1,6 +1,6 @@
 # Providers
 
-Orphus supports subscription-based providers via OAuth and API-key providers via environment variables or the auth file. Built-in catalogs ship with Orphus; configured and native providers may refresh newer catalogs independently and cache them in `~/.atomic/agent/models-store.json` for offline use.
+Orphus supports subscription-based providers via OAuth and API-key providers via environment variables or the auth file. Built-in catalogs ship with Orphus; configured and native providers may refresh newer catalogs independently and cache them in `~/.orphus/agent/models-store.json` for offline use.
 
 ## Table of Contents
 
@@ -29,7 +29,7 @@ Use `/login <provider>` (for example `/login openrouter` or `/login kimi-coding`
 
 Escape or Ctrl+C quietly cancels the matching login, including immediate/pre-device native aborts, and leaves the previously committed credential and catalog unchanged. Provider denial, device expiry, timeout, browser/network/protocol failure, malformed responses, token exchange, and persistence failures remain visible. Orphus claims success when the provider flow and credential persistence complete; it does not wait for model-catalog or ambient-availability refresh work.
 
-Use `/logout` to clear credentials. Logout immediately invalidates authentication in the active interactive engine and removes the selected provider from both `~/.atomic/agent/auth.json` and any effective legacy `~/.pi/agent/auth.json`, so the provider remains logged out after restart. Environment variables, command-line credentials, and `models.json` configuration cannot be cleared by Orphus; when one of those sources still authenticates the provider, the logout status names the remaining source.
+Use `/logout` to clear credentials. Logout immediately invalidates authentication in the active interactive engine and removes the selected provider from both `~/.orphus/agent/auth.json` and any effective legacy `~/.pi/agent/auth.json`, so the provider remains logged out after restart. Environment variables, command-line credentials, and `models.json` configuration cannot be cleared by Orphus; when one of those sources still authenticates the provider, the logout status names the remaining source.
 
 ### Token Refresh
 
@@ -100,7 +100,7 @@ After a successful API-key or OAuth login, Orphus persists the credential and im
 
 `/logout` follows the same transaction boundary in reverse: once the stored credential is deleted, Orphus immediately removes that stored-auth projection and returns to the editor without refreshing model catalogs. A short, bounded local probe preserves models when authentication still exists through an environment variable or runtime key. Refresh work that began before either login or logout cannot later overwrite the newer credential snapshot.
 
-On a remote or headless machine, paste the authorization code or final redirect URL into the login prompt when the provider offers manual entry. A completed exchange must either return to the editor or show an error; it does not require deleting `~/.atomic`. Existing OAuth credentials use the same `auth.json` schema after the pi-ai model-runtime migration and are loaded in place.
+On a remote or headless machine, paste the authorization code or final redirect URL into the login prompt when the provider offers manual entry. A completed exchange must either return to the editor or show an error; it does not require deleting `~/.orphus`. Existing OAuth credentials use the same `auth.json` schema after the pi-ai model-runtime migration and are loaded in place.
 
 Remote pi.dev catalogs persist their ETag and are revalidated with `If-None-Match`; an empty `304` keeps the cached models and counts as a successful check. Orphus renders the cached snapshot immediately, preserves each provider's last usable catalog on refresh failure, and prefers newer bundled data over stale remote overlays. See [Custom Models](/models#catalog-freshness-and-precedence).
 
@@ -146,7 +146,7 @@ Reference for environment variables and `auth.json` keys: `findEnvKeys()` / `get
 
 #### Auth File
 
-Store credentials in `~/.atomic/agent/auth.json`:
+Store credentials in `~/.orphus/agent/auth.json`:
 
 ```json
 {

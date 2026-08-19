@@ -213,8 +213,8 @@ Custom agents are Markdown files with YAML frontmatter and a system prompt body.
 
 | Scope | Path |
 |---|---|
-| User | `~/.atomic/agent/agents/**/*.md` |
-| Project | `.atomic/agents/**/*.md` |
+| User | `~/.orphus/agent/agents/**/*.md` |
+| Project | `.orphus/agents/**/*.md` |
 
 A small custom read-only inspection agent:
 

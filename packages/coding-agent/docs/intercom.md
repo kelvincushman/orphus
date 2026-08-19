@@ -125,7 +125,7 @@ Intercom connections are normally tool-driven. Ordinary sessions and delegated c
 A session becomes intercom-connected when all of these are true:
 
 - the intercom extension is loaded in that session
-- `enabled` is not set to `false` in `~/.atomic/agent/intercom/config.json` (or the legacy `~/.pi/agent/intercom/config.json` fallback)
+- `enabled` is not set to `false` in `~/.orphus/agent/intercom/config.json` (or the legacy `~/.pi/agent/intercom/config.json` fallback)
 - the model or user has invoked an Intercom surface in that session, **or** the parent runtime is authorizing an Intercom-enabled child supervisor relationship
 - the local broker is running or can be auto-started
 
@@ -370,7 +370,7 @@ For delegated background children, queued messages and terminal lifecycle notice
 
 ## Configuration
 
-Create `~/.atomic/agent/intercom/config.json`. The legacy `~/.pi/agent/intercom/config.json` fallback is read when the Orphus config is absent:
+Create `~/.orphus/agent/intercom/config.json`. The legacy `~/.pi/agent/intercom/config.json` fallback is read when the Orphus config is absent:
 
 ```json
 {
@@ -446,7 +446,7 @@ The broker is a standalone process that manages session registration and message
 
 Transport is local IPC only — a Unix domain socket on macOS/Linux or a named pipe on Windows — using length-prefixed JSON (4-byte length + payload) with request correlation for session listing, explicit delivery failures, and validation of malformed or out-of-order messages. `ask` stays client-side: the broker routes plain messages, and the client waits for the matching reply before returning it as the tool result.
 
-Runtime files live under the active agent directory — `~/.atomic/agent/intercom/` by default, or below `ORPHUS_CODING_AGENT_DIR` when set (the legacy `PI_CODING_AGENT_DIR` alias is honored when the Orphus variable is unset):
+Runtime files live under the active agent directory — `~/.orphus/agent/intercom/` by default, or below `ORPHUS_CODING_AGENT_DIR` when set (the legacy `PI_CODING_AGENT_DIR` alias is honored when the Orphus variable is unset):
 
 - `broker.sock` — Unix domain socket (macOS/Linux; Windows uses a named pipe instead)
 - `broker-launch.vbs` — Windows helper script to launch the broker without a console window
