@@ -629,15 +629,18 @@ download_file() {
     fi
     download_status=$?
     # A write failure is not a download failure. curl 23 and wget 3 mean the
-    # bytes arrived and the disk refused them, and curl 56 covers the short
-    # write a filling volume produces mid-transfer. Calling either a failed
-    # download sends the user after a network problem that is not there.
+    # bytes arrived and the disk refused them, so they name the volume.
+    #
+    # curl 56 is CURLE_RECV_ERROR, which curl also returns for a short write to
+    # a full destination — that is what a real disk-full install reported
+    # (issue #70). It cannot tell the two apart, so it names both and ranks
+    # neither; "failed to download" would name only the wrong one.
     case $DOWNLOADER:$download_status in
         curl:23|wget:3)
             fail "could not write $download_destination: the volume is out of space"
             ;;
         curl:56)
-            fail "the transfer to $download_destination ended early: usually a full volume, otherwise a dropped connection"
+            fail "the transfer to $download_destination ended early: either the connection dropped or the volume is full"
             ;;
     esac
     return "$download_status"
