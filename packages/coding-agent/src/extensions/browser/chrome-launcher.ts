@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ProcessCapability, ProcessHandle } from "../../core/capabilities/index.ts";
+import type { ProcessCapability, ProcessExit, ProcessHandle } from "../../core/capabilities/index.ts";
 
 /**
  * Chrome flags that make this instance ours and only ours.
@@ -121,6 +121,12 @@ async function fetchDebuggerUrl(port: number, signal?: AbortSignal): Promise<str
  * the startup budget the process is killed and the profile removed, so a failed
  * launch does not leave a half-started browser behind.
  */
+function describeExit(status: ProcessExit | undefined): string {
+	if (!status) return "exit status unavailable";
+	if (status.signal) return `killed by ${status.signal}`;
+	return status.code === null ? "no exit code reported" : `exit code ${status.code}`;
+}
+
 export async function launchIsolatedChrome(options: LaunchChromeOptions): Promise<LaunchedChrome> {
 	const createProfileDir = options.createProfileDir ?? (() => mkdtemp(join(tmpdir(), "orphus-browser-")));
 	const removeProfileDir = options.removeProfileDir ?? ((path: string) => rm(path, { recursive: true, force: true }));
@@ -141,8 +147,10 @@ export async function launchIsolatedChrome(options: LaunchChromeOptions): Promis
 	const handle = options.processes.spawn(options.executablePath, args, { signal: options.signal });
 
 	let exited = false;
-	void handle.exited.then(() => {
+	let exitStatus: ProcessExit | undefined;
+	void handle.exited.then((status) => {
 		exited = true;
+		exitStatus = status;
 	});
 
 	const deadline = Date.now() + startupTimeoutMs;
@@ -159,10 +167,14 @@ export async function launchIsolatedChrome(options: LaunchChromeOptions): Promis
 
 	handle.kill("SIGKILL");
 	await removeProfileDir(userDataDir).catch(() => {});
+	// When Chrome died, its own exit status is the diagnosis and the poller's
+	// last error is only the symptom — "fetch failed" describes our probe, not
+	// the browser. A signal separates an environment that killed Chrome (SIGKILL
+	// on a memory-starved runner) from Chrome refusing to start (a code).
 	const detail = lastError instanceof Error ? `: ${lastError.message}` : "";
 	throw new Error(
 		exited
-			? `Chrome exited before its DevTools endpoint came up${detail}`
+			? `Chrome exited before its DevTools endpoint came up (${describeExit(exitStatus)})`
 			: `Chrome did not expose a DevTools endpoint within ${startupTimeoutMs}ms${detail}`,
 	);
 }
