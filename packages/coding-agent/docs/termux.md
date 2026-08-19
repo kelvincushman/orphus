@@ -25,7 +25,7 @@ npm install -g @orphus/coding-agent
 # bun add -g @orphus/coding-agent
 
 # Create config directory
-mkdir -p ~/.atomic/agent
+mkdir -p ~/.orphus/agent
 
 # Run Orphus
 atomic
@@ -41,7 +41,7 @@ Image clipboard is not supported on Termux (the `ctrl+v` image paste feature wil
 
 ## Example AGENTS.md for Termux
 
-Create `~/.atomic/agent/AGENTS.md` to help the agent understand the Termux environment:
+Create `~/.orphus/agent/AGENTS.md` to help the agent understand the Termux environment:
 
 ````markdown
 # Agent Environment: Termux on Android

@@ -623,10 +623,27 @@ download_file() {
     download_url=$1
     download_destination=$2
     if [ "$DOWNLOADER" = curl ]; then
-        curl -fsSL -o "$download_destination" "$download_url"
+        curl -fsSL -o "$download_destination" "$download_url" && return 0
     else
-        wget -q -O "$download_destination" "$download_url"
+        wget -q -O "$download_destination" "$download_url" && return 0
     fi
+    download_status=$?
+    # A write failure is not a download failure. curl 23 and wget 3 mean the
+    # bytes arrived and the disk refused them, so they name the volume.
+    #
+    # curl 56 is CURLE_RECV_ERROR, which curl also returns for a short write to
+    # a full destination — that is what a real disk-full install reported
+    # (issue #70). It cannot tell the two apart, so it names both and ranks
+    # neither; "failed to download" would name only the wrong one.
+    case $DOWNLOADER:$download_status in
+        curl:23|wget:3)
+            fail "could not write $download_destination: the volume is out of space"
+            ;;
+        curl:56)
+            fail "the transfer to $download_destination ended early: either the connection dropped or the volume is full"
+            ;;
+    esac
+    return "$download_status"
 }
 
 tag_from_release_url() {
@@ -784,13 +801,16 @@ fi
 
 if [ -z "$RELEASE_TAG" ]; then
     prepare_api_auth
-    if ! RELEASE_JSON=$(http_get "$API_URL"); then
-        if [ -n "$REQUESTED_REF" ]; then
-            fail "failed to resolve the GitHub release"
-        fi
-        # GitHub's /releases/latest excludes prereleases, and while Orphus
-        # ships alphas only there is no non-prerelease to point at. The release
-        # list's first entry is the newest published release, prerelease or not.
+    # GitHub's /releases/latest excludes prereleases, and while Orphus ships
+    # alphas only there is no non-prerelease to point at. The release list's
+    # first entry is the newest published release, prerelease or not.
+    #
+    # That 404 is expected, so the probe that has a fallback behind it is the
+    # one probe whose stderr is silenced. A pinned --ref resolves a specific
+    # tag with nothing to fall back to, and the fallback itself stays loud.
+    if [ -n "$REQUESTED_REF" ]; then
+        RELEASE_JSON=$(http_get "$API_URL") || fail "failed to resolve the GitHub release"
+    elif ! RELEASE_JSON=$(http_get "$API_URL" 2>/dev/null); then
         RELEASE_JSON=$(http_get "$GITHUB_API/repos/$REPOSITORY/releases?per_page=1") ||
             fail "failed to resolve the GitHub release"
     fi

@@ -21,7 +21,7 @@ async function readDocumentation(): Promise<string> {
 }
 
 function extractExample(documentation: string, filename: string): string {
-	const marker = `// .atomic/workflows/${filename}`;
+	const marker = `// .orphus/workflows/${filename}`;
 	const opening = `\`\`\`ts\n${marker}\n`;
 	const tail = documentation.split(opening)[1];
 	if (tail === undefined) throw new Error(`missing ${filename} example`);

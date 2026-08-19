@@ -49,7 +49,7 @@ These commands manage Orphus packages and `atomic update` can update the Orphus 
 
 Self-update resolves an exact advertised package/version target and installs that pinned spec, so the update cannot drift to a newer registry release during installation. Any release note supplied by the update service is shown before installation. Orphus only updates installations it can verify are writable and managed by the detected global package manager; otherwise it prints a manual command. On Windows, loaded native dependencies are temporarily quarantined during replacement and stale quarantine directories are cleaned on later update attempts.
 
-By default, `install` and `remove` write to user settings (`~/.atomic/agent/settings.json`). Use `-l` to write to project settings (`.atomic/settings.json`; legacy `.pi/settings.json` is also read) instead. Project settings can be shared with your team, and Orphus installs any missing packages automatically on startup after the project is trusted.
+By default, `install` and `remove` write to user settings (`~/.orphus/agent/settings.json`). Use `-l` to write to project settings (`.orphus/settings.json`; legacy `.atomic/settings.json` and `.pi/settings.json` are also read) instead. Project settings can be shared with your team, and Orphus installs any missing packages automatically on startup after the project is trusted.
 
 To try a package without installing it, use `--extension` or `-e`. This installs to a temporary directory for the current run only:
 
@@ -58,7 +58,7 @@ atomic -e npm:@foo/bar
 atomic -e git:github.com/user/repo
 ```
 
-For local directories, `-e <dir>` also borrows project-local Orphus resources under `<dir>/.atomic`, legacy `<dir>/.pi`, and `<dir>/.agents/skills` when present. Because borrowed extensions and workflows can execute code, Orphus resolves trust for that extension source before loading those borrowed project-local resources.
+For local directories, `-e <dir>` also borrows project-local Orphus resources under `<dir>/.orphus`, legacy `<dir>/.atomic` and `<dir>/.pi`, and `<dir>/.agents/skills` when present. Because borrowed extensions and workflows can execute code, Orphus resolves trust for that extension source before loading those borrowed project-local resources.
 
 Workflows discovered through `-e` keep that same trusted resource set when they create child stage sessions. Stage agents get fresh resource loaders seeded from the parent snapshot, so package tools/extensions, subagents and agent definitions, skills, prompt templates, themes, workflows, and trusted borrowed project-local resources remain available in workflow stages unless the stage supplies its own explicit `resourceLoader`.
 
@@ -75,7 +75,7 @@ npm:pkg
 
 - Versioned specs are pinned and skipped by package updates (`atomic update --extensions`, `atomic update --all`).
 - User installs use the configured npm-compatible package-manager command (npm by default) and resolve from the managed Orphus npm area.
-- Project installs go under `.atomic/npm/` (legacy `.pi/npm/` remains a compatibility fallback).
+- Project installs go under `.orphus/npm/` (legacy `.atomic/npm/` and `.pi/npm/` remain compatibility fallbacks).
 - Set `npmCommand` in `settings.json` to pin npm package lookup and install operations to a specific wrapper command such as `mise` or `asdf`.
 
 Example:
@@ -102,7 +102,7 @@ ssh://git@github.com/user/repo@v1
 - For non-interactive runs (for example CI), you can set `GIT_TERMINAL_PROMPT=0` to disable credential prompts and set `GIT_SSH_COMMAND` (for example `ssh -o BatchMode=yes -o ConnectTimeout=5`) to fail fast.
 - Refs are pinned tags or commits. `atomic update --extensions` and `atomic update --all` do not move them to newer refs, but they do reconcile an existing clone to the configured ref.
 - Use `atomic install git:host/user/repo@new-ref` to update settings and move an existing package to a new pinned ref.
-- Cloned to `~/.atomic/agent/git/<host>/<path>` (global) or `.atomic/git/<host>/<path>` (project; legacy `.pi/git/` remains a compatibility fallback).
+- Cloned to `~/.orphus/agent/git/<host>/<path>` (global) or `.orphus/git/<host>/<path>` (project; legacy `.atomic/git/` and `.pi/git/` remain compatibility fallbacks).
 - When reconciliation changes the checkout, Orphus resets and cleans the clone, then runs the configured npm-compatible install command if `package.json` exists.
 
 **SSH examples:**
@@ -124,7 +124,7 @@ atomic install git:git@github.com:user/repo@v1.0.0
 ./relative/path/to/package
 ```
 
-Local paths point to files or directories on disk and are added to settings without copying. Relative paths are resolved against the settings file they appear in. If the path is a file, it loads as a single extension. If it is a directory, Orphus loads resources using package rules. Temporary local directories supplied with `-e` may also expose `.atomic`/`.pi` project-local resources and `.agents/skills` after the extension source is trusted.
+Local paths point to files or directories on disk and are added to settings without copying. Relative paths are resolved against the settings file they appear in. If the path is a file, it loads as a single extension. If it is a directory, Orphus loads resources using package rules. Temporary local directories supplied with `-e` may also expose `.orphus`/`.atomic`/`.pi` project-local resources and `.agents/skills` after the extension source is trusted.
 
 ## Creating an Orphus Package
 
@@ -239,7 +239,7 @@ Filter what a package loads using the object form in settings:
 
 ## Enable and Disable Resources
 
-Use `atomic config` to enable or disable extensions, skills, prompt templates, and themes. It starts in global settings (`~/.atomic/agent/settings.json`); press Tab to switch global/project scope. Use `atomic config -l` to start in project overrides (`.atomic/settings.json`) with inherited global resources dimmed. Workflow package filters can be configured with `workflows` patterns.
+Use `atomic config` to enable or disable extensions, skills, prompt templates, and themes. It starts in global settings (`~/.orphus/agent/settings.json`); press Tab to switch global/project scope. Use `atomic config -l` to start in project overrides (`.orphus/settings.json`) with inherited global resources dimmed. Workflow package filters can be configured with `workflows` patterns.
 
 ## Scope and Deduplication
 

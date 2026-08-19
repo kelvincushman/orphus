@@ -4,7 +4,7 @@ Orphus saves conversations as sessions so you can continue work, branch from ear
 
 ## Session Storage
 
-Sessions auto-save to `~/.atomic/agent/sessions/`, organized by working directory. Each session is a JSONL file with a tree structure.
+Sessions auto-save to `~/.orphus/agent/sessions/`, organized by working directory. Each session is a JSONL file with a tree structure.
 
 ```bash
 atomic -c                  # Continue most recent session
@@ -19,7 +19,7 @@ Use `/session` in interactive mode to see the current session file, session ID, 
 
 ### Custom session directories
 
-Use `--session-dir <dir>`, `ORPHUS_CODING_AGENT_SESSION_DIR`, or the matching settings override to save the active chat session outside the default `~/.atomic/agent/sessions/` store. When a workflow runs from a session that uses one of these non-default directories, Orphus also writes workflow stage transcripts to that same directory so a headless command such as `atomic --mode json --session-dir <dir> -p '/workflow <name> ...'` captures the main transcript and all stage transcripts together. Workflow definitions can still set a per-stage `sessionDir`; that explicit stage directory wins over the inherited host directory. If the host session uses the default session store, workflow stages keep the previous default behavior and write to the global store unless a stage explicitly sets `sessionDir`.
+Use `--session-dir <dir>`, `ORPHUS_CODING_AGENT_SESSION_DIR`, or the matching settings override to save the active chat session outside the default `~/.orphus/agent/sessions/` store. When a workflow runs from a session that uses one of these non-default directories, Orphus also writes workflow stage transcripts to that same directory so a headless command such as `atomic --mode json --session-dir <dir> -p '/workflow <name> ...'` captures the main transcript and all stage transcripts together. Workflow definitions can still set a per-stage `sessionDir`; that explicit stage directory wins over the inherited host directory. If the host session uses the default session store, workflow stages keep the previous default behavior and write to the global store unless a stage explicitly sets `sessionDir`.
 
 For the JSONL file format and SessionManager API, see [Session Format](/session-format).
 
