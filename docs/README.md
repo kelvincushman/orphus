@@ -22,12 +22,16 @@ any of their context windows. Start with the first link; the rest are reference.
 | **[Workflow playbook](workflow-playbook.md)** | Multi-stage workflow execution, inherited from Atomic. |
 | **[The refine loop](refine.md)** | `/refine` — gated, reversible self-modification: what the gate refuses, and what it does not claim. |
 | **[Execution kernels](repl.md)** | `repl` — values that outlive a tool call. **Not a security sandbox**, and honest about which pieces are wired. |
+| **[Browser operation](../packages/coding-agent/docs/browser.md)** | Driving an isolated browser, and the four gates a credential passes before it reaches a page. Off by default. |
+| **[Transcription](../packages/coding-agent/docs/transcribe.md)** | Local dictation: the worker/helper protocol, the pinned model catalog, and why it is not enabled yet. |
+| **[Terminal backend](../packages/coding-agent/docs/tui-backend.md)** | The termDOM pilot for startup selection and the session picker. Opt-in; pi stays the default. |
 
 ## Understanding it
 
 | | |
 | --- | --- |
 | **[Architecture](architecture.md)** | What runs where, what the bound actually guarantees, and where the trust boundary sits. |
+| **[Harness](../packages/coding-agent/docs/harness.md)** | The capability boundary, the provider/tool session records, and `orphus inspect runtime`. |
 | **[Design decisions](../packages/roundtable/DESIGN.md)** | Why each choice went the way it did, including the alternatives rejected. |
 | **[The self-improvement loop](self-improvement-loop.md)** | The design behind [refine](refine.md). Collect, propose, gate and apply are built; the *deliberate* stage and Dossier ingest are still intent. |
 | **[RLM security posture](rlm-security-posture.md)** | The rules self-modification and persistent execution sessions must obey, and which of them the runtime actually enforces. |

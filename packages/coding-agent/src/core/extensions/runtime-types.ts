@@ -93,8 +93,13 @@ export interface ExtensionRuntimeState {
 	>;
 	/** Resource-level compatibility gate installed after extension provenance is resolved. */
 	canRegisterResource?: (extension: Extension, resourceType: ResourceOverlap["resourceType"], name: string) => boolean;
+	/** Open a registration transaction. Transactions nest; only the outermost commit publishes. */
 	beginResourceRegistrationBatch?: () => void;
+	/** Commit the innermost open transaction. Alias of {@link commitResourceRegistrationBatch}. */
 	endResourceRegistrationBatch?: () => void;
+	commitResourceRegistrationBatch?: () => void;
+	/** Discard everything the innermost open transaction registered, staged or direct. */
+	rollbackResourceRegistrationBatch?: () => void;
 	refreshToolsAfterRegistration?: () => void;
 	applyFlagDefaultAfterRegistration?: (
 		name: string,

@@ -56,6 +56,10 @@
         "group": "Reference",
         "pages": [
           "tools",
+          "browser",
+          "harness",
+          "transcribe",
+          "tui-backend",
           "session-format"
         ]
       },

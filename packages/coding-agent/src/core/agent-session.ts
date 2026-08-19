@@ -35,6 +35,7 @@ import type {
 } from "./agent-session-types.ts";
 import type { AsyncJobManager } from "./async/job-manager.js";
 import { createSessionAsyncJobManager } from "./async/session-manager.js";
+import { createDefaultCapabilities, type HarnessCapabilities } from "./capabilities/index.ts";
 import type { VerbatimCompactionResult } from "./compaction/index.ts";
 import { ContextAccounting } from "./context-accounting.js";
 import type {
@@ -50,6 +51,7 @@ import type {
 } from "./extensions/index.ts";
 import type { BashExecutionMessage, CustomMessage } from "./messages.ts";
 import type { ModelRuntime } from "./model-runtime.ts";
+import type { ProviderAuditRecorder } from "./provider-audit.ts";
 import type { ResourceLoader } from "./resource-loader.ts";
 import type { SessionManager } from "./session-manager.ts";
 import type { SettingsManager } from "./settings-manager.ts";
@@ -118,6 +120,8 @@ class AgentSessionBase {
 	protected _pendingPostToolCompactionGuard: PendingPostToolCompactionGuard | undefined = undefined;
 	protected _terminatingToolCallIds = new Set<string>();
 	protected _contextAccounting = new ContextAccounting();
+	protected _capabilities: HarnessCapabilities = createDefaultCapabilities();
+	protected _providerAudit: ProviderAuditRecorder | undefined = undefined;
 	protected _branchSummaryAbortController: AbortController | undefined = undefined;
 	protected _retryAbortController: AbortController | undefined = undefined;
 	protected _retryAttempt = 0;
@@ -177,6 +181,8 @@ class AgentSessionBase {
 		this._orchestrationContext = config.orchestrationContext;
 		this._subagentPolicy = config.subagentPolicy;
 		this._systemPromptTransform = config.systemPromptTransform;
+		if (config.capabilities) this._capabilities = config.capabilities;
+		this._providerAudit = config.providerAudit;
 		const stageContext =
 			config.orchestrationContext?.kind === "workflow-stage" ? config.orchestrationContext : undefined;
 		this._workflowStageAdmission =
