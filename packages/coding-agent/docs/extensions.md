@@ -174,7 +174,7 @@ Extensions are auto-discovered from:
 | `.orphus/extensions/*.ts` | Project-local |
 | `.orphus/extensions/*/index.ts` | Project-local (subdirectory) |
 
-Orphus also discovers extensions and package resources inherited from legacy `~/.atomic/agent`, `~/.pi/agent`, and `.pi` configuration. When an inherited Pi extension uses the exact same tool, command, prompt, flag, or shortcut name as an extension bundled with Orphus, Orphus keeps the bundled registration and ignores only that conflicting inherited registration. Other resources from the inherited extension remain available. Interactive startup reports all such overlaps in one yellow summary; print and RPC modes apply the same winners without changing the Pi settings or package files.
+Orphus also discovers extensions and package resources inherited from the legacy global directories `~/.atomic/agent` and `~/.pi/agent`, and from project-local `.atomic` and `.pi` configuration. When an inherited Pi extension uses the exact same tool, command, prompt, flag, or shortcut name as an extension bundled with Orphus, Orphus keeps the bundled registration and ignores only that conflicting inherited registration. Other resources from the inherited extension remain available. Interactive startup reports all such overlaps in one yellow summary; print and RPC modes apply the same winners without changing the Pi settings or package files.
 
 This compatibility rule applies only to inherited Pi resources. Extensions configured through `.orphus` or passed explicitly with `--extension` retain the normal intentional override and load-order behavior described below.
 

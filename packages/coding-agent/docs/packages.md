@@ -49,7 +49,7 @@ These commands manage Orphus packages and `atomic update` can update the Orphus 
 
 Self-update resolves an exact advertised package/version target and installs that pinned spec, so the update cannot drift to a newer registry release during installation. Any release note supplied by the update service is shown before installation. Orphus only updates installations it can verify are writable and managed by the detected global package manager; otherwise it prints a manual command. On Windows, loaded native dependencies are temporarily quarantined during replacement and stale quarantine directories are cleaned on later update attempts.
 
-By default, `install` and `remove` write to user settings (`~/.orphus/agent/settings.json`). Use `-l` to write to project settings (`.orphus/settings.json`; legacy `.atomic/settings.json` and `.pi/settings.json` is also read) instead. Project settings can be shared with your team, and Orphus installs any missing packages automatically on startup after the project is trusted.
+By default, `install` and `remove` write to user settings (`~/.orphus/agent/settings.json`). Use `-l` to write to project settings (`.orphus/settings.json`; legacy `.atomic/settings.json` and `.pi/settings.json` are also read) instead. Project settings can be shared with your team, and Orphus installs any missing packages automatically on startup after the project is trusted.
 
 To try a package without installing it, use `--extension` or `-e`. This installs to a temporary directory for the current run only:
 
@@ -124,7 +124,7 @@ atomic install git:git@github.com:user/repo@v1.0.0
 ./relative/path/to/package
 ```
 
-Local paths point to files or directories on disk and are added to settings without copying. Relative paths are resolved against the settings file they appear in. If the path is a file, it loads as a single extension. If it is a directory, Orphus loads resources using package rules. Temporary local directories supplied with `-e` may also expose `.orphus`/`.pi` project-local resources and `.agents/skills` after the extension source is trusted.
+Local paths point to files or directories on disk and are added to settings without copying. Relative paths are resolved against the settings file they appear in. If the path is a file, it loads as a single extension. If it is a directory, Orphus loads resources using package rules. Temporary local directories supplied with `-e` may also expose `.orphus`/`.atomic`/`.pi` project-local resources and `.agents/skills` after the extension source is trusted.
 
 ## Creating an Orphus Package
 

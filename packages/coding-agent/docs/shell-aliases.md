@@ -2,7 +2,7 @@
 
 Orphus runs bash in non-interactive mode (`bash -c`), which doesn't expand aliases by default.
 
-To enable your shell aliases, add to `~/.orphus/agent/settings.json` (legacy `~/.atomic/agent/settings.json` and `~/.pi/agent/settings.json` is also read):
+To enable your shell aliases, add to `~/.orphus/agent/settings.json` (legacy `~/.atomic/agent/settings.json` and `~/.pi/agent/settings.json` are also read):
 
 ```json
 {

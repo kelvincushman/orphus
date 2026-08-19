@@ -12,12 +12,12 @@ Orphus considers a project to have trust inputs when it finds any of these from 
 - `AGENTS.md` or `CLAUDE.md` in the current directory or an ancestor directory
 - `.agents/skills` in the current directory or an ancestor directory
 
-When an interactive session starts in a project with configs in `.orphus`/`.pi`, project-local context files, or `.agents/skills` and no saved decision for the current directory or a parent directory, Orphus follows `defaultProjectTrust` from global settings. The default value is `"ask"`, which asks whether to trust the project when UI is available. Saved decisions are stored by canonical directory in `~/.orphus/agent/trust.json`, and the closest saved decision on the current or parent path applies before the global default.
+When an interactive session starts in a project with configs in `.orphus`/`.atomic`/`.pi`, project-local context files, or `.agents/skills` and no saved decision for the current directory or a parent directory, Orphus follows `defaultProjectTrust` from global settings. The default value is `"ask"`, which asks whether to trust the project when UI is available. Saved decisions are stored by canonical directory in `~/.orphus/agent/trust.json`, and the closest saved decision on the current or parent path applies before the global default.
 
 Trusting a project allows Orphus to load trust-gated project inputs, including:
 
 - `.orphus/settings.json` (or legacy `.atomic/settings.json` and `.pi/settings.json`)
-- `.orphus`/`.pi` resources such as extensions, skills, prompt templates, themes, and system prompt files
+- `.orphus`/`.atomic`/`.pi` resources such as extensions, skills, prompt templates, themes, and system prompt files
 - missing project packages configured through project settings
 - project-local extensions and project package-managed extensions
 
