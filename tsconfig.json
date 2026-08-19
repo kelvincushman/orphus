@@ -34,13 +34,16 @@
             "@orphus/intercom": ["./packages/intercom/index.ts"],
             "@orphus/intercom/*": ["./packages/intercom/*"],
             "@orphus/roundtable": ["./packages/roundtable/index.ts"],
-            "@orphus/roundtable/*": ["./packages/roundtable/*"]
+            "@orphus/roundtable/*": ["./packages/roundtable/*"],
+            "@orphus/transcribe": ["./packages/transcribe/src/index.ts"],
+            "@orphus/transcribe/*": ["./packages/transcribe/src/*"]
         }
     },
     "include": [
         "packages/coding-agent/src/**/*.d.ts",
         "packages/workflows/**/*",
         "packages/roundtable/**/*",
+        "packages/transcribe/**/*",
         "test/**/*",
         "examples/**/*",
         "evals/longcontext/**/*",

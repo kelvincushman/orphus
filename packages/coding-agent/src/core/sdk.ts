@@ -6,6 +6,7 @@ import { resolvePath } from "../utils/paths.ts";
 import { AgentSession } from "./agent-session.ts";
 import { restoreAnthropicReplayThinkingBlocks } from "./anthropic-thinking-guard.ts";
 import { formatNoModelsAvailableMessage } from "./auth-guidance.ts";
+import { createDefaultCapabilities } from "./capabilities/index.ts";
 import {
 	shouldApplyCodexFastMode,
 	streamWithCodexFastMode,
@@ -19,6 +20,7 @@ import { findInitialModel, resolveRestoredModelReference } from "./model-resolve
 import { ModelRuntime } from "./model-runtime.ts";
 import { sanitizeOpenAIResponsesPayload } from "./openai-responses-payload-sanitizer.ts";
 import { mergeProviderAttributionHeaders } from "./provider-attribution.ts";
+import { isProviderAuditEnabled, ProviderAuditRecorder } from "./provider-audit.ts";
 import { scrubPreCompactionAssistantUsage } from "./provider-context-usage.ts";
 import { DefaultResourceLoader } from "./resource-loader.ts";
 import type { CreateAgentSessionOptions, CreateAgentSessionResult } from "./sdk-types.ts";
@@ -192,6 +194,14 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 
 	let lastConvertedLlmMessages: Message[] | undefined;
 
+	const capabilities = options.capabilities ?? createDefaultCapabilities();
+	const providerAudit = new ProviderAuditRecorder({
+		session: sessionManager,
+		fs: capabilities.fs,
+		clock: capabilities.clock,
+		enabled: isProviderAuditEnabled(),
+	});
+
 	// Create convertToLlm wrapper that filters images if blockImages is enabled (defense-in-depth)
 	const convertToLlmWithBlockImages = (messages: AgentMessage[]): Message[] => {
 		const converted = convertToLlm(messages);
@@ -324,9 +334,20 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 					? restoreAnthropicReplayThinkingBlocks(extensionPayload, sourceMessages, model)
 					: extensionPayload;
 			}
-			return sanitizeOpenAIResponsesPayload(finalPayload, model);
+			const sanitizedPayload = sanitizeOpenAIResponsesPayload(finalPayload, model);
+			// Last point before dispatch: hooks have run and sanitization is done, so
+			// this is the body the provider receives. A failure here fails the attempt
+			// rather than dispatching something no replay can reproduce.
+			await providerAudit.recordRequest({
+				payload: sanitizedPayload,
+				provider: model.provider,
+				model: model.id,
+				api: model.api,
+			});
+			return sanitizedPayload;
 		},
 		onResponse: async (response, _model) => {
+			providerAudit.noteResponseStatus(response.status);
 			const runner = extensionRunnerRef.current;
 			if (!runner?.hasHandlers("after_provider_response")) {
 				return;
@@ -382,6 +403,8 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		orchestrationContext: options.orchestrationContext,
 		subagentPolicy: options.subagentPolicy,
 		systemPromptTransform: options.systemPromptTransform,
+		capabilities,
+		providerAudit,
 	});
 	const extensionsResult = resourceLoader.getExtensions();
 

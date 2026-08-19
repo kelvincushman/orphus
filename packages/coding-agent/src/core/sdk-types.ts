@@ -84,6 +84,12 @@ export interface CreateAgentSessionOptions {
 	systemPromptTransform?: (prompt: string) => string;
 	/** Filter inherited session messages before they enter the new AgentSession. */
 	initialContextTransform?: (messages: AgentMessage[]) => AgentMessage[];
+	/**
+	 * Injected world access — clock, filesystem, processes, credentials, browser,
+	 * transcription, terminal. Defaults to the production bundle. Replay and tests
+	 * pass fakes so they exercise this same composition rather than a parallel one.
+	 */
+	capabilities?: import("./capabilities/index.ts").HarnessCapabilities;
 }
 
 /** Result from createAgentSession */

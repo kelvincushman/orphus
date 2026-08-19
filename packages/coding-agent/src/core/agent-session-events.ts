@@ -204,6 +204,14 @@ export async function _processAgentEvent(this: AgentSession, event: AgentEvent):
 			this._lastAssistantMessage = event.message;
 
 			const assistantMsg = event.message as AssistantMessage;
+			// Close out the provider request this message answered. This is the one
+			// place that holds the finish reason, usage, and error text together;
+			// status and duration were captured at dispatch.
+			this._providerAudit?.recordResponse({
+				finishReason: assistantMsg.stopReason,
+				usage: assistantMsg.usage,
+				error: assistantMsg.errorMessage,
+			});
 			// Treat degenerate empty completions (no content, zero output tokens) and
 			// intercepted canned safety refusals as failures alongside stopReason ===
 			// "error". Otherwise such a turn that stops with reason "stop"/"length"

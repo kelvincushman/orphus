@@ -206,6 +206,7 @@ export async function createSessionManager(
 			const selectedPath = await selectSession(
 				(onProgress) => SessionManager.list(cwd, sessionDir, onProgress),
 				(onProgress) => SessionManager.listAll(sessionDir, onProgress),
+				{ settingsManager },
 			);
 			if (!selectedPath) {
 				console.log(chalk.dim("No session selected"));

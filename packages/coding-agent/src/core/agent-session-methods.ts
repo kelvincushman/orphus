@@ -113,6 +113,8 @@ export interface AgentSessionMethodSurface extends AgentSessionQueuePauseControl
 	readonly retryAttempt: number;
 	/** What tool results have put into this session's context window. */
 	readonly contextAccounting: ReadonlyContextAccounting;
+	/** The injected world access this session runs on. */
+	readonly capabilities: import("./capabilities/index.ts").HarnessCapabilities;
 	readonly isCompacting: boolean;
 	readonly compactionReason?: import("./agent-session-types.ts").CompactionReason;
 	readonly messages: AgentMessage[];
@@ -138,6 +140,14 @@ export interface AgentSessionMethodSurface extends AgentSessionQueuePauseControl
 	): Promise<{ apiKey?: string; headers?: ProviderHeaders; baseUrl?: string }>;
 	_installAgentToolHooks(): void;
 	_installAgentNextTurnRefresh(): void;
+	_recordToolAudit(input: {
+		toolCallId: string;
+		toolName: string;
+		outcome: import("./tool-audit.ts").ToolAuditOutcome;
+		argumentsBefore: unknown;
+		argumentsAfter: unknown;
+		reason?: string;
+	}): void;
 	_emit(event: AgentSessionEvent): void;
 	_emitQueueUpdate(): void;
 	_createRetryPromiseForAgentEnd(event: AgentEvent): void;
@@ -321,6 +331,7 @@ export interface AgentSessionPublicSurface
 		| "systemPrompt"
 		| "retryAttempt"
 		| "contextAccounting"
+		| "capabilities"
 		| "isCompacting"
 		| "compactionReason"
 		| "messages"
@@ -421,6 +432,8 @@ export interface AgentSessionInternalSurface extends AgentSessionMethodSurface, 
 	_pendingPostToolCompactionGuard: PendingPostToolCompactionGuard | undefined;
 	_terminatingToolCallIds: Set<string>;
 	_contextAccounting: ContextAccounting;
+	_capabilities: import("./capabilities/index.ts").HarnessCapabilities;
+	_providerAudit: import("./provider-audit.ts").ProviderAuditRecorder | undefined;
 	_pendingInterruptDeliveries: number;
 	_activeInterruptQueueHold: InterruptQueueHold | undefined;
 	_queuedMessagesPaused: boolean;
