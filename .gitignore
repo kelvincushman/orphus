@@ -314,4 +314,4 @@ evals/jobs/
 
 # Fleet-member progress scratch (subagents write theirs under isolated artifact storage;
 # this one only appears when a member is pointed at the repo root).
-progress.md
+/progress.md

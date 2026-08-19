@@ -280,6 +280,8 @@ const wgetWrapper = [
 	`        rest=${shellExpansion("url%/*")}`,
 	`        tag=${shellExpansion("rest##*/")}`,
 	`        [ "${shellExpansion("ORPHUS_FIXTURE_FAIL_FILE:-")}" = "$name" ] && exit 1`,
+	// wget reports a full volume as exit 3, its file I/O status.
+	`        if [ "${shellExpansion("ORPHUS_FIXTURE_WRITE_FAIL:-")}" = "$name" ]; then printf 'wget: cannot write to %s: No space left on device\\n' "$output" >&2; exit 3; fi`,
 	`        /bin/cp "$ORPHUS_FIXTURE_RELEASES/$tag/$name" "$output"`,
 	"        ;;",
 	"    *) exit 1 ;;",
@@ -1002,6 +1004,25 @@ unixTest("a download that fills the volume is reported as a write failure, not a
 		// Reporting that as a failed download sends the user after a network
 		// problem that is not there.
 		const result = fixture.run({
+			args: ["--ref", "v1.0.0"],
+			environment: { ORPHUS_FIXTURE_WRITE_FAIL: "orphus-linux-x64.tar.gz" },
+		});
+		assert.notEqual(result.exitCode, 0);
+		const stderr = result.stderr.toString();
+		assert.match(stderr, /out of space/u);
+		assert.doesNotMatch(stderr, /failed to download release asset/u);
+	} finally {
+		fixture.cleanup();
+	}
+});
+
+unixTest("wget's file I/O status is reported as a write failure too", () => {
+	const fixture = createFixture();
+	try {
+		// wget exit 3 is its file I/O status, the same condition curl reports as
+		// 23. Both downloaders must name the volume rather than the network.
+		const result = fixture.run({
+			downloader: "wget",
 			args: ["--ref", "v1.0.0"],
 			environment: { ORPHUS_FIXTURE_WRITE_FAIL: "orphus-linux-x64.tar.gz" },
 		});
