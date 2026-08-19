@@ -159,6 +159,10 @@ export interface AgentSessionConfig {
 	subagentPolicy?: SubagentChildPolicy;
 	systemPromptTransform?: (prompt: string) => string;
 	orchestrationContext?: OrchestrationContext;
+	/** Injected world access. Defaults to the production bundle. */
+	capabilities?: import("./capabilities/index.ts").HarnessCapabilities;
+	/** Writes the provider request/response records. Omitted only when nothing dispatches. */
+	providerAudit?: import("./provider-audit.ts").ProviderAuditRecorder;
 }
 
 export interface ExtensionBindings {

@@ -68,7 +68,9 @@ export interface CustomToolCallEvent extends ToolCallEventBase {
  * Fired before a tool executes. Can block.
  *
  * `event.input` is mutable. Mutate it in place to patch tool arguments before execution.
- * Later `tool_call` handlers see earlier mutations. No re-validation is performed after mutation.
+ * Later `tool_call` handlers see earlier mutations. After the last handler returns, the
+ * arguments are re-validated against the tool's schema: a mutation that leaves them invalid
+ * becomes a durable tool error and the tool does not run.
  */
 export type ToolCallEvent =
 	| BashToolCallEvent

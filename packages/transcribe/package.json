@@ -1,0 +1,37 @@
+{
+  "name": "@orphus/transcribe",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Local speech-to-text dictation for Orphus. Derived from pi-transcribe (MIT); see UPSTREAM.md.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.19.0",
+    "bun": ">=1.3.14"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src/**/*.ts",
+    "native/**/*",
+    "README.md",
+    "UPSTREAM.md",
+    "LICENSE"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@orphus/coding-agent": "*"
+  },
+  "peerDependenciesMeta": {
+    "@orphus/coding-agent": {
+      "optional": true
+    }
+  }
+}
