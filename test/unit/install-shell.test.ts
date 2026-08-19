@@ -221,6 +221,9 @@ const curlWrapper = [
 	`        [ "${shellExpansion("ORPHUS_FIXTURE_FAIL_FILE:-")}" = "$name" ] && exit 22`,
 	// A full volume: curl received the bytes and could not write them out.
 	`        if [ "${shellExpansion("ORPHUS_FIXTURE_WRITE_FAIL:-")}" = "$name" ]; then printf 'curl: (23) Failure writing output to destination\\n' >&2; exit 23; fi`,
+	// The same condition reported as 56: curl returns CURLE_RECV_ERROR for a
+	// short write to a full destination as well as for a dropped connection.
+	`        if [ "${shellExpansion("ORPHUS_FIXTURE_RECV_FAIL:-")}" = "$name" ]; then printf 'curl: (56) Failure writing output to destination\\n' >&2; exit 56; fi`,
 	`        /bin/cp "$ORPHUS_FIXTURE_RELEASES/$tag/$name" "$output"`,
 	"        ;;",
 	"    *) exit 22 ;;",
@@ -1029,6 +1032,29 @@ unixTest("wget's file I/O status is reported as a write failure too", () => {
 		assert.notEqual(result.exitCode, 0);
 		const stderr = result.stderr.toString();
 		assert.match(stderr, /out of space/u);
+		assert.doesNotMatch(stderr, /failed to download release asset/u);
+	} finally {
+		fixture.cleanup();
+	}
+});
+
+unixTest("curl's ambiguous exit 56 names both causes and ranks neither", () => {
+	const fixture = createFixture();
+	try {
+		// 56 is CURLE_RECV_ERROR, which curl returns for a dropped connection
+		// and for a short write to a full destination alike — issue #70 was
+		// reported with exactly this status on a volume that was 99% full.
+		// curl cannot separate the two, so the message names both and ranks
+		// neither; the generic download error would name only the wrong one.
+		const result = fixture.run({
+			args: ["--ref", "v1.0.0"],
+			environment: { ORPHUS_FIXTURE_RECV_FAIL: "orphus-linux-x64.tar.gz" },
+		});
+		assert.notEqual(result.exitCode, 0);
+		const stderr = result.stderr.toString();
+		assert.match(stderr, /ended early/u);
+		assert.match(stderr, /connection dropped/u);
+		assert.match(stderr, /volume is full/u);
 		assert.doesNotMatch(stderr, /failed to download release asset/u);
 	} finally {
 		fixture.cleanup();
