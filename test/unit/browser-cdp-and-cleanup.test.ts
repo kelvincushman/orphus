@@ -186,7 +186,7 @@ test("a launch whose Chrome died reports Chrome's exit status, not the poller's 
 	};
 	await assert.rejects(
 		launchIsolatedChrome({
-			processes: { name: "process", spawn: () => killed, exec: async () => ({ code: 0, stdout: "", stderr: "" }) },
+			processes: { kind: "process", spawn: () => killed, exec: async () => ({ code: 0, stdout: "", stderr: "" }) },
 			executablePath: "/usr/bin/chromium",
 			port: 45125,
 			startupTimeoutMs: 50,
@@ -207,7 +207,7 @@ test("a launch whose Chrome died reports Chrome's exit status, not the poller's 
 	};
 	await assert.rejects(
 		launchIsolatedChrome({
-			processes: { name: "process", spawn: () => refused, exec: async () => ({ code: 0, stdout: "", stderr: "" }) },
+			processes: { kind: "process", spawn: () => refused, exec: async () => ({ code: 0, stdout: "", stderr: "" }) },
 			executablePath: "/usr/bin/chromium",
 			port: 45126,
 			startupTimeoutMs: 50,
