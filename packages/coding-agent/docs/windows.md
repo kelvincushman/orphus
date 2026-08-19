@@ -2,7 +2,7 @@
 
 Orphus requires a bash shell on Windows. Checked locations (in order):
 
-1. Custom path from `~/.atomic/agent/settings.json` (legacy `~/.pi/agent/settings.json` also supported)
+1. Custom path from `~/.orphus/agent/settings.json` (legacy `~/.atomic/agent/settings.json` and `~/.pi/agent/settings.json` also supported)
 2. Git Bash (`C:\Program Files\Git\bin\bash.exe`)
 3. `bash.exe` on PATH (Cygwin, MSYS2, WSL)
 
@@ -24,6 +24,6 @@ On Windows, Orphus canonicalizes paths before starting native filesystem watcher
 
 `atomic update --self` can update Windows installations that Orphus can identify as writable global package-manager installs. `atomic update` includes the same self-update step before updating packages unless you pass `--extensions`.
 
-When self-update starts on Windows, Orphus first cleans any previous `.atomic-native-quarantine` directory under the global package root. If native add-ons from the current install are loaded by the running process, Orphus moves those files into a per-run quarantine directory and copies them back into place before invoking the package manager. This lets the package manager replace native dependency files that Windows would otherwise keep locked.
+When self-update starts on Windows, Orphus first cleans any previous `.orphus-native-quarantine` directory under the global package root. If native add-ons from the current install are loaded by the running process, Orphus moves those files into a per-run quarantine directory and copies them back into place before invoking the package manager. This lets the package manager replace native dependency files that Windows would otherwise keep locked.
 
 If Orphus cannot safely self-update the current installation, it exits with a clear message instead of guessing. The message explains that the install is unsupported, unmanaged, or not writable; prints the detected executable path when available; and tells you to update Orphus with the package manager, wrapper, source checkout, or release artifact that originally installed it. Standalone Bun binaries direct users to the current [Orphus releases](https://github.com/bastani-inc/atomic/releases/latest), never upstream Pi artifacts.

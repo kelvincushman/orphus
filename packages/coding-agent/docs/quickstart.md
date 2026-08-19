@@ -53,7 +53,7 @@ pnpm remove -g @orphus/coding-agent
 bun remove -g @orphus/coding-agent
 ```
 
-This removes the CLI package only. User configuration, auth, sessions, and packages remain under `~/.atomic/agent/` unless you delete that directory yourself.
+This removes the CLI package only. User configuration, auth, sessions, and packages remain under `~/.orphus/agent/` unless you delete that directory yourself.
 
 ## Authenticate
 
@@ -78,7 +78,7 @@ export ANTHROPIC_API_KEY=sk-ant-...
 atomic
 ```
 
-You can also run `/login` and select an API-key provider to store the key in `~/.atomic/agent/auth.json`.
+You can also run `/login` and select an API-key provider to store the key in `~/.orphus/agent/auth.json`.
 
 See [Providers](/providers) for all supported providers, environment variables, and cloud-provider setup.
 
@@ -186,9 +186,9 @@ consolidates findings into blockers vs. suggestions and returns
 Orphus will:
 
 - ask clarifying questions if stage purpose, inputs, models, or handoffs are ambiguous,
-- write a `.atomic/workflows/<name>.ts` definition that uses `workflow({ ... })` and imports `Type` from `typebox`,
+- write a `.orphus/workflows/<name>.ts` definition that uses `workflow({ ... })` and imports `Type` from `typebox`,
 - run `/workflow reload` so the generated workflow is rediscovered and can be launched with `/workflow <name>`,
-- then report the generated workflow folder so you can inspect the code it wrote, using `Custom workflow created. You can inspect its code at: <workflow-folder-path>` (for example, `.atomic/workflows/`); Orphus does this only for newly created custom workflows, never builtin or pre-existing workflows.
+- then report the generated workflow folder so you can inspect the code it wrote, using `Custom workflow created. You can inspect its code at: <workflow-folder-path>` (for example, `.orphus/workflows/`); Orphus does this only for newly created custom workflows, never builtin or pre-existing workflows.
 
 The same plain-chat approach works for editing or hardening an existing workflow. For the full authoring reference, see [Workflows](/workflows), including composition with user-defined workflows and all nine builtins from `@orphus/workflows/builtin`.
 
@@ -227,7 +227,7 @@ Orphus loads context files at startup. Add an `AGENTS.md` file to tell it how to
 
 Orphus loads:
 
-- `~/.atomic/agent/AGENTS.md` for global instructions
+- `~/.orphus/agent/AGENTS.md` for global instructions
 - `AGENTS.md` or `CLAUDE.md` from parent directories and the current directory
 
 Restart Orphus, or run `/reload`, after changing context files.

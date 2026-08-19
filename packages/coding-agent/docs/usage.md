@@ -82,7 +82,7 @@ Configure delivery in [Settings](/settings) with `steeringMode` and `followUpMod
 
 ## Sessions
 
-Sessions are saved automatically to `~/.atomic/agent/sessions/`, organized by working directory.
+Sessions are saved automatically to `~/.orphus/agent/sessions/`, organized by working directory.
 
 ```bash
 atomic -c                  # Continue most recent session
@@ -110,7 +110,7 @@ See [Sessions](/sessions) and [Compaction](/compaction) for details.
 
 Orphus loads `AGENTS.md` or `CLAUDE.md` at startup from:
 
-- `~/.atomic/agent/AGENTS.md` for global instructions
+- `~/.orphus/agent/AGENTS.md` for global instructions
 - parent directories, walking up from the current working directory
 - the current directory
 
@@ -129,8 +129,8 @@ Orphus's default `Guidelines` section applies Orwell's six writing rules to ever
 
 Replace the default system prompt with:
 
-- `.atomic/SYSTEM.md` for a project
-- `~/.atomic/agent/SYSTEM.md` globally
+- `.orphus/SYSTEM.md` for a project
+- `~/.orphus/agent/SYSTEM.md` globally
 
 Append to the default prompt without replacing it with `APPEND_SYSTEM.md` in either location.
 
@@ -266,7 +266,7 @@ Default built-in tools: `read`, `bash`, `edit`, `write`, `find`, `search`, `ask_
 | `--approve`, `-a` | Trust project-local files/resources for this run |
 | `--no-approve`, `-na` | Ignore project-local files/resources for this run |
 
-Project trust gates `.atomic`/legacy `.pi` project resources, project package settings, project-local context files, and `.agents/skills` discovered from the project tree. Saved trust decisions can be managed with `/trust`; see [Security](/security).
+Project trust gates `.orphus`/legacy `.atomic` and `.pi` project resources, project package settings, project-local context files, and `.agents/skills` discovered from the project tree. Saved trust decisions can be managed with `/trust`; see [Security](/security).
 
 ### Resource Options
 
@@ -340,7 +340,7 @@ atomic --tools read,search,find,ls -p "Review the code"
 
 | Variable | Description |
 |----------|-------------|
-| `ORPHUS_CODING_AGENT_DIR` | Override config directory; default is `~/.atomic/agent`. Bundled intercom runtime/config files live under its `intercom/` subdirectory |
+| `ORPHUS_CODING_AGENT_DIR` | Override config directory; default is `~/.orphus/agent`. Bundled intercom runtime/config files live under its `intercom/` subdirectory |
 | `ORPHUS_CODING_AGENT_SESSION_DIR` | Override session storage directory; overridden by `--session-dir` |
 | `ORPHUS_PACKAGE_DIR` | Override package directory, useful for Nix/Guix store paths |
 | `ORPHUS_REDUCED_MOTION` | Set to `1` to skip startup choreography and render the ordinary working identity as a static regular accent `∀` without a timer |
@@ -363,7 +363,7 @@ Every foreground or background bash execution receives one execution-time snapsh
 
 The snapshot is taken when the command executes, not when the tool is created, so resumed sessions, workflow stages, isolated sessions, model changes, and concurrent sessions cannot reuse stale metadata. Orphus preserves all unrelated inherited and caller-supplied environment variables; only the ten names above are cleared and overlaid. Factory-created bash tools expose the same metadata by default and can set `exposeSessionEnvironment: false` to omit it.
 
-`PI_*` aliases are also supported for app-specific `ORPHUS_*` variables for legacy compatibility. For example, [Intercom](/intercom) honors `PI_CODING_AGENT_DIR` when `ORPHUS_CODING_AGENT_DIR` is unset and still reads legacy `~/.pi/agent/intercom/config.json` when the Orphus config is absent. `PI_CACHE_RETENTION` is not one of those aliases and has no `ORPHUS_*` equivalent. Use `PI_CACHE_RETENTION=long` when configuring prompt-cache retention for providers/upstreams that support long-lived caches. Intercom's default broker starter works across Node-based installs, Bun source checkouts, and standalone Orphus binaries without requiring `npx`, `tsx`, or `bun` to be present on `PATH`; custom broker commands remain explicit opt-in overrides.
+`PI_*` aliases are also supported for app-specific `ORPHUS_*` variables for legacy compatibility. For example, [Intercom](/intercom) honors `PI_CODING_AGENT_DIR` when `ORPHUS_CODING_AGENT_DIR` is unset and still reads legacy `~/.atomic/agent/intercom/config.json` and `~/.pi/agent/intercom/config.json` when the Orphus config is absent. `PI_CACHE_RETENTION` is not one of those aliases and has no `ORPHUS_*` equivalent. Use `PI_CACHE_RETENTION=long` when configuring prompt-cache retention for providers/upstreams that support long-lived caches. Intercom's default broker starter works across Node-based installs, Bun source checkouts, and standalone Orphus binaries without requiring `npx`, `tsx`, or `bun` to be present on `PATH`; custom broker commands remain explicit opt-in overrides.
 
 ## Design Principles
 
