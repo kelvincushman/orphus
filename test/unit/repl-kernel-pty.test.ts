@@ -177,3 +177,15 @@ test("shellJoin leaves simple arguments alone and quotes everything else", () =>
 	// The one case that would break out of the quoting if mishandled.
 	assert.equal(shellJoin("cmd", ["it's"]), `cmd 'it'\\''s'`);
 });
+
+test("python is asked for its basic REPL, so TERM=dumb does not produce a warning", () => {
+	// TERM=dumb keeps ANSI out of what we parse, but Python 3.13+ then warns that
+	// pyrepl lacks a clear capability — on every kernel's first exec. Removing the
+	// cause beats filtering it out of genuine stderr.
+	const { session, calls } = fakePty();
+
+	createPtyKernel({ language: "python", cwd: "/w", onData: () => {}, createSession: () => session });
+
+	assert.equal(calls.start?.env?.TERM, "dumb");
+	assert.equal(calls.start?.env?.PYTHON_BASIC_REPL, "1");
+});
