@@ -10,7 +10,9 @@ description: One line.     # required
 version: 1                 # optional; only 1 exists
 
 orchestrator:              # optional
-  model: anthropic/claude-opus   # provider/model for the lead session; must be a configured provider
+  model: anthropic/claude-opus   # provider/model for the lead session; must be a configured provider.
+                                 # An optional :off|:minimal|:low|:medium|:high|:xhigh|:max suffix
+                                 # (e.g. anthropic/claude-opus:high) sets the session thinking level.
 
 defaults:                  # optional
   concurrency: 4           # dispatch fan-out width; >4 warns, >50 fails

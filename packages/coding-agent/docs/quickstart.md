@@ -4,56 +4,51 @@ This page gets you from install to a useful first Orphus session. Orphus is the 
 
 ## Prerequisites
 
-- **Node.js 24 LTS or newer** — Orphus requires the latest Node LTS runtime. Check with `node --version`.
-- **A package manager** — use npm (included with Node), pnpm, Yarn, or Bun. Use Bun 1.3.14+ for Bun installs or workflow-authoring examples.
+- **A supported platform** — the release binaries cover macOS arm64 (Apple silicon) and Linux x64 (glibc 2.27+). Nothing else is required to run them; Node and Bun matter only when building from a clone.
 - **Model-provider access** — Use `/login` after startup. Supports provider subscriptions and APIs.
 
 ## Install
 
-Install the published package globally with npm, pnpm, or Bun:
-
-With npm:
-
-```bash
-npm install -g @orphus/coding-agent
-```
-
-With pnpm:
+Orphus is not published to npm. The release installer detects your platform, downloads
+the newest GitHub Release archive, verifies its checksum, and links `orphus` into
+`~/.local/bin`:
 
 ```bash
-pnpm add -g @orphus/coding-agent
+curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.sh | sh
 ```
 
-With Bun:
+`install.sh --help` documents pinning an exact release (`--ref v2.0.0`) and the
+`ORPHUS_INSTALL_DIR` / `ORPHUS_BIN_DIR` overrides. Later upgrades are `orphus update`,
+which follows your channel: a stable install only moves to newer stable releases, a
+prerelease install tracks the newest release of any kind.
 
-```bash
-bun add -g @orphus/coding-agent
-```
+To run from a clone instead — required on platforms without a release archive — build
+the binary with Node ≥ 22.13, Bun 1.3.14, and a Rust toolchain; see
+[the repository README](https://github.com/kelvincushman/orphus#tier-2--use-orphus-as-your-agent).
 
-Orphus does not require package install scripts. If you want to disable dependency lifecycle scripts during the Orphus install, you can add `--ignore-scripts` to the install command.
+### Platforms without an archive
 
-### Alpine and musl Linux archives
-
-For Alpine Linux, use `atomic-linux-x64-musl.tar.gz` on x64 or `atomic-linux-arm64-musl.tar.gz` on arm64. These archives provide native search and PTY bindings. Install their runtime libraries with `apk add --no-cache libgcc libstdc++`, then see the [Alpine and musl Linux archive notes](/index#alpine-and-musl-linux-archives) for the clipboard fallback and external Postgres or Docker requirement for durable workflows.
+macOS arm64 and Linux x64 (glibc) are the built platforms. Windows, Linux arm64, and
+musl (Alpine) archives are not built yet — the installer refuses politely rather than
+guessing — so on those platforms run from a clone, or open an issue.
 
 Then start Orphus in the project directory you want it to work on:
 
 ```bash
 cd /path/to/project
-atomic
+orphus
 ```
 
 ## Uninstall
 
-Remove the global package with the same package manager you used to install it:
+Remove the installed versions and the launcher link:
 
 ```bash
-npm uninstall -g @orphus/coding-agent
-pnpm remove -g @orphus/coding-agent
-bun remove -g @orphus/coding-agent
+rm -rf ~/.local/share/orphus     # or your ORPHUS_INSTALL_DIR
+rm -f ~/.local/bin/orphus        # or the link in your ORPHUS_BIN_DIR
 ```
 
-This removes the CLI package only. User configuration, auth, sessions, and packages remain under `~/.orphus/agent/` unless you delete that directory yourself.
+This removes the CLI only. User configuration, auth, sessions, and packages remain under `~/.orphus/agent/` unless you delete that directory yourself.
 
 ## Authenticate
 
@@ -75,7 +70,7 @@ Set an API key before launching Orphus:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
-atomic
+orphus
 ```
 
 You can also run `/login` and select an API-key provider to store the key in `~/.orphus/agent/auth.json`.
@@ -84,7 +79,7 @@ See [Providers](/providers) for all supported providers, environment variables, 
 
 ## First session
 
-On a fresh install with no prior Orphus startup state, Orphus shows a one-time first-run explanation after any What's New notes and directly above the input box describing Orphus as a verifiable coding agent runtime for building and running agent workflows you can feel confident in. Returning users with prior startup state are marked onboarded automatically and continue directly into the normal chat UI; stored credentials by themselves do not skip the first-run explanation. The composer is the normal Orphus input from the start: type a message, run `/login` first if no provider is connected, open `/atomic`, or launch a workflow command without a special onboarding transition.
+On a fresh install with no prior Orphus startup state, Orphus shows a one-time first-run explanation after any What's New notes and directly above the input box describing Orphus as a verifiable coding agent runtime for building and running agent workflows you can feel confident in. Returning users with prior startup state are marked onboarded automatically and continue directly into the normal chat UI; stored credentials by themselves do not skip the first-run explanation. The composer is the normal Orphus input from the start: type a message, run `/login` first if no provider is connected, open `/orphus`, or launch a workflow command without a special onboarding transition.
 
 Once Orphus starts, default to a workflow for non-trivial work and for requests with inherent structure plus a verifiable objective. Implementation, build, debugging, bug fixes, migrations, features, scoped multi-file edits, validation/review work, and loop-shaped requests are workflow candidates; reserve direct chat for tiny deterministic low-risk answers or edits where tracking clearly adds more overhead than value.
 
@@ -92,7 +87,7 @@ Workflow-first is not builtin-only or monolithic. Orphus can discover and run na
 
 Orphus turns repeatable engineering loops into executable stages with inspectable evidence instead of relying on a markdown checklist the model may or may not follow.
 
-For an interactive tour any time, run `/atomic` inside the TUI; `/atomic overview`, `/atomic workflows`, and `/atomic example` walk through the same flow in more depth.
+For an interactive tour any time, run `/orphus` inside the TUI; `/orphus overview`, `/orphus workflows`, and `/orphus example` walk through the same flow in more depth.
 
 ### Try the built-in workflows
 
@@ -239,8 +234,8 @@ Restart Orphus, or run `/reload`, after changing context files.
 Type `@` in any interactive editor to fuzzy-search files; or pass files on the command line:
 
 ```bash
-atomic @README.md "Summarize this"
-atomic @src/app.ts @src/app.test.ts "Review these together"
+orphus @README.md "Summarize this"
+orphus @src/app.ts @src/app.test.ts "Review these together"
 ```
 
 Images can be pasted with CTRL+V (ALT+V on Windows) or dragged into supported terminals.
@@ -264,10 +259,10 @@ Use `/model` or CTRL+L to choose a model. Use SHIFT+Tab to cycle thinking level.
 Sessions are saved automatically:
 
 ```bash
-atomic -c                  # Continue most recent session
-atomic -r                  # Browse previous sessions
-atomic --name "my task"    # Set session display name at startup
-atomic --session <path|id> # Open a specific session
+orphus -c                  # Continue most recent session
+orphus -r                  # Browse previous sessions
+orphus --name "my task"    # Set session display name at startup
+orphus --session <path|id> # Open a specific session
 ```
 
 Inside Orphus, use `/resume`, `/new`, `/tree`, `/fork`, and `/clone` to manage sessions.
@@ -277,9 +272,9 @@ Inside Orphus, use `/resume`, `/new`, `/tree`, `/fork`, and `/clone` to manage s
 For one-shot prompts:
 
 ```bash
-atomic -p "Summarize this codebase"
-cat README.md | atomic -p "Summarize this text"
-atomic -p @screenshot.png "What's in this image?"
+orphus -p "Summarize this codebase"
+cat README.md | orphus -p "Summarize this text"
+orphus -p @screenshot.png "What's in this image?"
 ```
 
 Use `--mode json` for JSON event output or `--mode rpc` for process integration.

@@ -151,7 +151,7 @@ curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.s
 orphus
 ```
 
-`install.sh --help` documents pinning a version (`--ref v0.1.0`) and the
+`install.sh --help` documents pinning a version (`--ref v2.0.0`) and the
 `ORPHUS_INSTALL_DIR` / `ORPHUS_BIN_DIR` overrides. Add an **API key** for whichever provider
 you use, or log in from inside a session with `/login`.
 
@@ -376,8 +376,10 @@ git fetch upstream && git merge upstream/main
   late-joiner ratio against a 40% ceiling, and `evals:baseline -- --check` diffs the measured
   cost of an oversized tool result against the committed scorecard. Both fail the build
   rather than reporting a worse number.
-- **`suites`** — native bindings, the package build, then the full inherited unit suite and
-  the CI contract tests.
+- **`suites`** — native bindings, the package build, then every inherited suite: unit and
+  integration through the flake wrapper (one bounded retry, per-test duration budgets,
+  diagnostics uploaded), the full coding-agent workspace suite through the same wrapper,
+  the script tests, and the CI contract tests.
 - **`review-gate`** — fails a pull request whose automated review reported passing but was
   actually skipped. Large diffs silently exceed CodeRabbit's file limit, so without this a
   PR could show a green review that never happened.

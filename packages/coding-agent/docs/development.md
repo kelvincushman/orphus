@@ -1,12 +1,12 @@
 # Development
 
-See [AGENTS.md](https://github.com/bastani-inc/atomic/blob/main/AGENTS.md) for additional guidelines.
+See [AGENTS.md](https://github.com/kelvincushman/orphus/blob/main/AGENTS.md) for additional guidelines.
 
 ## Setup
 
 ```bash
-git clone https://github.com/bastani-inc/atomic
-cd atomic
+git clone https://github.com/kelvincushman/orphus
+cd orphus
 npm ci --ignore-scripts
 npm run typecheck
 ```
@@ -26,14 +26,14 @@ Configure via `package.json`:
 
 ```json
 {
-  "atomicConfig": {
-    "name": "atomic",
+  "orphusConfig": {
+    "name": "orphus",
     "configDir": ".orphus"
   }
 }
 ```
 
-Change `name`, `configDir`, and the `bin` field for your fork. The app-specific `<appName>Config` key is preferred; legacy `piConfig` remains a backwards-compatible shim. Orphus sets these to `orphus`, `.orphus`, and the `orphus` executable (with the Atomic and Pi spellings accepted as legacy fallbacks). Affects CLI banner, config paths, and environment variable names.
+Change `name`, `configDir`, and the `bin` field for your fork. `orphusConfig` is read first, then the `<appName>Config` key derived from the package name, then the legacy `piConfig` shim. Orphus sets these to `orphus`, `.orphus`, and the `orphus` executable (with the Atomic and Pi spellings accepted as legacy fallbacks). Affects CLI banner, config paths, and environment variable names.
 
 ## Path Resolution
 
@@ -49,7 +49,7 @@ Never use `__dirname` directly for package assets.
 
 ## Debug Command
 
-`/debug` (hidden) writes to `~/.orphus/agent/atomic-debug.log`:
+`/debug` (hidden) writes to `~/.orphus/agent/orphus-debug.log`:
 - Rendered TUI lines with ANSI codes
 - Last messages sent to the LLM
 
@@ -81,7 +81,7 @@ bun run scripts/generate-coding-agent-shrinkwrap.mjs --check
 
 ## Release security boundary
 
-Atomic's release bases remain at the `0.0.0` placeholder. `scripts/cut-release.ts` stamps the real version only on a detached tagged release commit. Tag creation runs an inert signal workflow; a separate `workflow_run` publisher loaded from protected `main` validates the exact upstream repository, source workflow/event/run, tag/SHA, immutable release-base trailers, and deterministic release tree. The privileged trigger checks out only protected workflow code: it treats the tag tree as data, exports it only after deterministic verification, and makes every read-only build verify the protected job's source checksum instead of checking out tag-selected code. Same-run artifact transport failures receive at most one retry after partial-download cleanup and still fail explicitly on the second error; verified source archives are streamed to tar over stdin for portable Windows drive-letter handling. Preparation restores the digest-verified source after documentation validation before producing artifacts. Release-source jobs configure no dependency cache, npm publication has OIDC without repository write, and GitHub Release creation has repository write without OIDC. Never move or recreate a failed release tag or dispatch the privileged publisher. See the repository's [CI/CD pipeline](https://github.com/bastani-inc/atomic/blob/main/docs/ci.md#release-pipeline) for trusted-publisher configuration.
+Atomic's release bases remain at the `0.0.0` placeholder. `scripts/cut-release.ts` stamps the real version only on a detached tagged release commit. Tag creation runs an inert signal workflow; a separate `workflow_run` publisher loaded from protected `main` validates the exact upstream repository, source workflow/event/run, tag/SHA, immutable release-base trailers, and deterministic release tree. The privileged trigger checks out only protected workflow code: it treats the tag tree as data, exports it only after deterministic verification, and makes every read-only build verify the protected job's source checksum instead of checking out tag-selected code. Same-run artifact transport failures receive at most one retry after partial-download cleanup and still fail explicitly on the second error; verified source archives are streamed to tar over stdin for portable Windows drive-letter handling. Preparation restores the digest-verified source after documentation validation before producing artifacts. Release-source jobs configure no dependency cache, npm publication has OIDC without repository write, and GitHub Release creation has repository write without OIDC. Never move or recreate a failed release tag or dispatch the privileged publisher. See the repository's [CI/CD pipeline](https://github.com/kelvincushman/orphus/blob/main/docs/ci.md#release-pipeline) for trusted-publisher configuration.
 
 ## Project Structure
 

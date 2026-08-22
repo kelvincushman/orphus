@@ -2,12 +2,12 @@
 
 RPC mode enables headless operation of the coding agent via a JSON protocol over stdin/stdout. This is useful for embedding the agent in other applications, IDEs, or custom UIs.
 
-**Note for Node.js/TypeScript users**: If you're building a Node.js application, consider using `AgentSession` directly from `@orphus/coding-agent` instead of spawning a subprocess. See [`src/core/agent-session.ts`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/agent-session.ts) for the API. For a subprocess-based TypeScript client, see [`src/modes/rpc/rpc-client.ts`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/modes/rpc/rpc-client.ts).
+**Note for Node.js/TypeScript users**: If you're building a Node.js application, consider using `AgentSession` directly from `@orphus/coding-agent` instead of spawning a subprocess. See [`src/core/agent-session.ts`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/agent-session.ts) for the API. For a subprocess-based TypeScript client, see [`src/modes/rpc/rpc-client.ts`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/modes/rpc/rpc-client.ts).
 
 ## Starting RPC Mode
 
 ```bash
-atomic --mode rpc [options]
+orphus --mode rpc [options]
 ```
 
 Common options:
@@ -537,7 +537,7 @@ If output was truncated, includes `fullOutputPath`:
     "exitCode": 0,
     "cancelled": false,
     "truncated": true,
-    "fullOutputPath": "/tmp/atomic-bash-abc123.log"
+    "fullOutputPath": "/tmp/orphus-bash-abc123.log"
   }
 }
 ```
@@ -834,7 +834,7 @@ Response:
 }
 ```
 
-The current session name is available via `get_state` in the `sessionName` field. To set the initial name when starting RPC mode, pass `--name <name>` or `-n <name>` to the `atomic --mode rpc` process.
+The current session name is available via `get_state` in the `sessionName` field. To set the initial name when starting RPC mode, pass `--name <name>` or `-n <name>` to the `orphus --mode rpc` process.
 
 ### Commands
 
@@ -1325,7 +1325,7 @@ Set the terminal window/tab title. Fire-and-forget.
   "type": "extension_ui_request",
   "id": "uuid-8",
   "method": "setTitle",
-  "title": "atomic - my project"
+  "title": "orphus - my project"
 }
 ```
 
@@ -1395,8 +1395,8 @@ Parse errors:
 Source files and installed definitions:
 - `node_modules/@earendil-works/pi-ai/dist/types.d.ts` - `Model`, `UserMessage`, `AssistantMessage`, `ToolResultMessage`
 - `node_modules/@earendil-works/pi-agent-core/dist/types.d.ts` - `AgentMessage`, `AgentEvent`
-- [`src/core/messages.ts`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/messages.ts) - `BashExecutionMessage`
-- [`src/modes/rpc/rpc-types.ts`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/modes/rpc/rpc-types.ts) - RPC command/response types, extension UI request/response types
+- [`src/core/messages.ts`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/messages.ts) - `BashExecutionMessage`
+- [`src/modes/rpc/rpc-types.ts`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/modes/rpc/rpc-types.ts) - RPC command/response types, extension UI request/response types
 
 ### Model
 
@@ -1513,7 +1513,7 @@ import subprocess
 import json
 
 proc = subprocess.Popen(
-    ["atomic", "--mode", "rpc", "--no-session"],
+    ["orphus", "--mode", "rpc", "--no-session"],
     stdin=subprocess.PIPE,
     stdout=subprocess.PIPE,
     text=True
@@ -1544,15 +1544,15 @@ for event in read_events():
 
 ## Example: Interactive Client (Node.js)
 
-See [`test/rpc-example.ts`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/test/rpc-example.ts) for a complete interactive example, or [`src/modes/rpc/rpc-client.ts`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/modes/rpc/rpc-client.ts) for a typed client implementation.
+See [`test/rpc-example.ts`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/test/rpc-example.ts) for a complete interactive example, or [`src/modes/rpc/rpc-client.ts`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/modes/rpc/rpc-client.ts) for a typed client implementation.
 
-For a complete example of handling the extension UI protocol, see [`examples/rpc-extension-ui.ts`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/rpc-extension-ui.ts) which pairs with the [`examples/extensions/rpc-demo.ts`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/rpc-demo.ts) extension.
+For a complete example of handling the extension UI protocol, see [`examples/rpc-extension-ui.ts`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/rpc-extension-ui.ts) which pairs with the [`examples/extensions/rpc-demo.ts`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/rpc-demo.ts) extension.
 
 ```javascript
 const { spawn } = require("child_process");
 const { StringDecoder } = require("string_decoder");
 
-const agent = spawn("atomic", ["--mode", "rpc", "--no-session"]);
+const agent = spawn("orphus", ["--mode", "rpc", "--no-session"]);
 
 function attachJsonlReader(stream, onLine) {
     const decoder = new StringDecoder("utf8");

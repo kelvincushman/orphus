@@ -37,7 +37,9 @@ write the code itself.
 name: coding-team
 description: Design deliberation, bounded dispatch, adversarial review.
 orchestrator:
-  model: anthropic/claude-opus     # optional — your choice at setup, never assumed
+  model: anthropic/claude-opus     # optional — your choice at setup, never assumed.
+                                   # A :high-style thinking suffix is accepted and applied
+                                   # as the orchestrator session's thinking level.
 teams:
   design:
     mode: deliberate               # debate in a room, converge on FINAL: lines
