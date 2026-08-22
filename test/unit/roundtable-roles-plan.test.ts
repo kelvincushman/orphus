@@ -55,10 +55,7 @@ describe("launch plan", () => {
 		// Explicitness, not path equality: `cwd: .` resolves to the manifest dir
 		// yet is still the author's choice, and must cd under orca too.
 		const explicitDot = buildLaunchPlan(
-			parseRoleManifest(
-				SOURCE.replace("model: grok }", 'model: grok, cwd: "." }'),
-				join(dir, "orphus.roles.yaml"),
-			),
+			parseRoleManifest(SOURCE.replace("model: grok }", 'model: grok, cwd: "." }'), join(dir, "orphus.roles.yaml")),
 		);
 		assert.match(formatPlan(explicitDot, "orca"), /cd /u);
 
