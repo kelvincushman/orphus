@@ -1,7 +1,8 @@
-import { existsSync, readdirSync } from "fs";
+import { type Dirent, existsSync, readdirSync } from "fs";
 import { homedir } from "os";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { FleetBlueprintError } from "./types.js";
 
 /**
  * Blueprint discovery: project `.orphus/fleets/` (with `.atomic`/`.pi` lineage
@@ -71,7 +72,18 @@ export function fleetRoots(cwd: string, env: NodeJS.ProcessEnv = process.env): F
 
 function fleetsIn(dir: string, scope: FleetSource["scope"]): Omit<FleetSource, "shadowed">[] {
   if (!existsSync(dir)) return [];
-  return readdirSync(dir, { withFileTypes: true })
+  let entries: Dirent[];
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch (error) {
+    // existsSync passes for a regular file squatting where a fleets directory
+    // is expected (ENOTDIR) and for a directory this user cannot read (EACCES);
+    // a raw fs error here escapes every FleetBlueprintError-only catch upstream.
+    throw new FleetBlueprintError(
+      `${dir}: cannot list fleets — ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  return entries
     .filter((entry) => entry.isFile() && entry.name.endsWith(FLEET_SUFFIX))
     .map((entry) => ({
       name: entry.name.slice(0, -FLEET_SUFFIX.length),
