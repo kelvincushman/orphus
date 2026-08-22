@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from "fs";
+import { mkdirSync, mkdtempSync, rmSync, statSync, symlinkSync } from "fs";
+import { createConnection, createServer } from "net";
 import { tmpdir } from "os";
 import { join } from "path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RoundtableBroker } from "../../packages/roundtable/broker/broker.js";
 import { RoundtableClient } from "../../packages/roundtable/broker/client.js";
+import { createMessageReader, writeMessage } from "../../packages/roundtable/broker/framing.js";
 import { getBrokerPidPath, getBrokerSocketPath, getRoundtableDirPath } from "../../packages/roundtable/broker/paths.js";
 import { createRoundtableTool, type RoundtableToolParams } from "../../packages/roundtable/roundtable-tool.js";
 import { fileExists, readText } from "../helpers/runtime.js";
@@ -22,6 +24,8 @@ function captureRoundtableTool(client: RoundtableClient, exportRoot: string, rol
 	const run = (params: ExportToolParams) => tool.execute("call-1", params, undefined, undefined, undefined as never);
 	return { ensureConnected, run };
 }
+
+const unixIt = process.platform === "win32" ? it.skip : it;
 
 describe("roundtable broker and client over a real socket", () => {
 	let agentDir: string;
@@ -48,6 +52,79 @@ describe("roundtable broker and client over a real socket", () => {
 		clients.push(client);
 		return client;
 	}
+
+	unixIt("the socket comes up owner-only, so the same-user trust boundary is real", () => {
+		// docs/roundtable-tool.md promises user-only socket permissions; umask was
+		// the only thing delivering them, and under 0022 the socket was 0755.
+		assert.equal(statSync(socketPath).mode & 0o777, 0o600);
+	});
+
+	it("a second register on one connection is refused, not silently orphaned", async () => {
+		// The close handler deletes only the latest session id, so accepting a
+		// second register would leave the first as a ghost member — and a ghost
+		// keeps sessions.size > 0, which blocks the broker's idle exit forever.
+		await new Promise<void>((resolve, reject) => {
+			const socket = createConnection(socketPath);
+			const replies: Array<{ type: string; error?: string }> = [];
+			const reader = createMessageReader(
+				(msg) => {
+					replies.push(msg as { type: string; error?: string });
+					if (replies.length === 1) {
+						writeMessage(socket, { type: "register", name: "again", pid: process.pid, cwd: "/" });
+						return;
+					}
+					try {
+						assert.equal(replies[0]?.type, "registered");
+						assert.equal(replies[1]?.type, "error");
+						assert.match(replies[1]?.error ?? "", /already registered/u);
+						socket.destroy();
+						resolve();
+					} catch (error) {
+						socket.destroy();
+						reject(error);
+					}
+				},
+				(error) => reject(error),
+			);
+			socket.on("data", reader);
+			socket.on("error", reject);
+			socket.on("connect", () => {
+				writeMessage(socket, { type: "register", name: "first", pid: process.pid, cwd: "/" });
+			});
+		});
+	});
+
+	it("a registration that times out destroys its socket instead of leaking it", async () => {
+		// A peer that accepts and never answers used to leave the client socket
+		// open and ref'd — three stuck connects meant three handles holding the
+		// event loop open for good.
+		const silentDir = mkdtempSync(join(tmpdir(), "roundtable-silent-"));
+		const silentPath = join(silentDir, "silent.sock");
+		const hangups: Array<Promise<void>> = [];
+		const server = createServer((socket) => {
+			// Read and discard: a paused socket never surfaces the peer's FIN, so
+			// without this the close below would be unobservable. The server stays
+			// silent but flowing — exactly a wedged broker.
+			socket.resume();
+			hangups.push(new Promise<void>((resolve) => socket.once("close", resolve)));
+		});
+		await new Promise<void>((resolve) => server.listen(silentPath, resolve));
+		try {
+			const client = new RoundtableClient("timed-out", silentPath, 150);
+			await assert.rejects(client.connect(), /registration timed out/u);
+			assert.equal(client.connected, false, "the client must not report a live connection");
+			assert.equal(hangups.length, 1, "the server accepted exactly one connection");
+			await Promise.race([
+				Promise.all(hangups),
+				new Promise((_, reject) =>
+					setTimeout(() => reject(new Error("server never observed the client hang up")), 5_000),
+				),
+			]);
+		} finally {
+			server.close();
+			rmSync(silentDir, { recursive: true, force: true });
+		}
+	});
 
 	it("registers, joins, posts, and fetches across two clients", async () => {
 		const planner = await connect("planner");

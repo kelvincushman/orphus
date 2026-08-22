@@ -36,6 +36,26 @@ function plan(): LaunchPlan {
 }
 
 describe("launch plan", () => {
+	it("--format orca honors an explicit cwd and leaves the defaulted one to the worktree", () => {
+		// sh and tmux always cd; orca dropped cwd entirely, so the three formats
+		// disagreed silently. The default (manifest dir) must STAY out of the orca
+		// command — the worktree decides where that terminal opens — but an
+		// explicit cwd is the author overriding the worktree, and must survive.
+		const explicit = buildLaunchPlan(
+			parseRoleManifest(
+				SOURCE.replace("model: grok }", "model: grok, cwd: sub/dir }"),
+				join(dir, "orphus.roles.yaml"),
+			),
+		);
+		const script = formatPlan(explicit, "orca");
+		// The path arrives shell-quoted inside the --command string, so match
+		// through the quoting rather than asserting the bare concatenation.
+		expect(script).toMatch(/cd .*sub\/dir/);
+
+		const defaulted = formatPlan(plan(), "orca");
+		expect(defaulted).not.toContain("cd ");
+	});
+
 	it("emits one launch per role, in manifest order", () => {
 		expect(plan().launches.map((launch) => launch.role)).toEqual(["planner", "critic"]);
 	});

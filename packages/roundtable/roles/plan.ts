@@ -64,5 +64,5 @@ export function buildLaunchPlan(manifest: RoleManifest, options: PlanOptions = {
       footer,
     };
   });
-  return { task: manifest.task, room: manifest.room, budgets: manifest.budgets, launches };
+  return { task: manifest.task, room: manifest.room, budgets: manifest.budgets, launches, manifestDir: manifest.dir };
 }

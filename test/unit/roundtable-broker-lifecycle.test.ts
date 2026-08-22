@@ -2,12 +2,13 @@ import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, test, vi } from "vitest";
 import { RoundtableBroker } from "../../packages/roundtable/broker/broker.js";
 import { RoundtableClient } from "../../packages/roundtable/broker/client.js";
 import { getBrokerPidPath, getBrokerSocketPath, getRoundtableDirPath } from "../../packages/roundtable/broker/paths.js";
 import { canConnect } from "../../packages/roundtable/broker/socket-probe.js";
-import { sleep } from "../helpers/runtime.js";
+import { describeStartupObstruction } from "../../packages/roundtable/broker/spawn.js";
+import { sleep, spawnProcess } from "../helpers/runtime.js";
 
 // Short enough that a test asserts on the idle timer firing rather than on a
 // wall-clock wait, long enough that a loaded runner still completes the socket
@@ -27,6 +28,41 @@ function makeBroker(agentDir: string, options: { exitWhenIdle?: boolean } = {}):
 		{ idleGraceMs: IDLE_GRACE_MS, ...options },
 	);
 }
+
+describe("broker startup-lock post-mortem", () => {
+	// The broker child runs detached with stdio ignored, so its stale-lock
+	// message dies with it and the spawner used to report only "did not start
+	// in time" — a permanent wedge with the one useful diagnosis discarded.
+	test("a lock held by a dead process is named, with the fix", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "roundtable-lock-"));
+		const lockPath = join(dir, "broker.pid.startup.lock");
+		try {
+			const child = spawnProcess([process.execPath, "-e", "process.exit(0)"]);
+			await child.exited;
+			const deadPid = child.pid;
+			assert.ok(deadPid, "fixture child must have had a pid");
+			writeFileSync(lockPath, JSON.stringify({ pid: deadPid, token: "t" }));
+			const detail = describeStartupObstruction(lockPath);
+			assert.match(detail, /stale startup lock/u);
+			assert.match(detail, /remove that file and retry/u);
+			assert.ok(detail.includes(lockPath), "the message must name the file to remove");
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	test("a live lock holder and a missing lock both stay silent", () => {
+		const dir = mkdtempSync(join(tmpdir(), "roundtable-lock-"));
+		const lockPath = join(dir, "broker.pid.startup.lock");
+		try {
+			assert.equal(describeStartupObstruction(lockPath), "", "no lock, no diagnosis");
+			writeFileSync(lockPath, JSON.stringify({ pid: process.pid, token: "t" }));
+			assert.equal(describeStartupObstruction(lockPath), "", "a live holder is contention, not a wedge");
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+});
 
 describe("roundtable broker lifecycle", () => {
 	let agentDir: string;

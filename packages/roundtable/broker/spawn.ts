@@ -1,9 +1,9 @@
 import { spawn } from "child_process";
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { createRequire } from "module";
 import { fileURLToPath } from "url";
-import { getBrokerSocketPath, getRoundtableDirPath } from "./paths.ts";
+import { getBrokerPidPath, getBrokerSocketPath, getRoundtableDirPath } from "./paths.ts";
 import { canConnect } from "./socket-probe.ts";
 
 const EXTENSION_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -40,7 +40,7 @@ function brokerCommand(): { command: string; args: string[] } {
 export async function ensureBrokerRunning(socketPath: string = getBrokerSocketPath()): Promise<void> {
   if (await canConnect(socketPath)) return;
 
-  mkdirSync(getRoundtableDirPath(), { recursive: true });
+  mkdirSync(getRoundtableDirPath(), { recursive: true, mode: 0o700 });
   const { command, args } = brokerCommand();
   const child = spawn(command, args, {
     detached: true,
@@ -53,5 +53,27 @@ export async function ensureBrokerRunning(socketPath: string = getBrokerSocketPa
     await sleep(SPAWN_WAIT_INTERVAL_MS);
     if (await canConnect(socketPath)) return;
   }
-  throw new Error("Roundtable broker did not start in time");
+  throw new Error(`Roundtable broker did not start in time${describeStartupObstruction()}`);
+}
+
+/**
+ * The broker child runs detached with stdio ignored, so when it dies on a
+ * stale startup lock its remove-and-retry message dies with it and every
+ * caller here sees only the timeout. A post-mortem read of the lock file
+ * recovers that diagnosis. Read-only on purpose: the broker's own fail-closed
+ * reasoning (no compare-and-unlink; deleting could take out a live contender's
+ * lock) applies to this process too.
+ */
+export function describeStartupObstruction(lockPath: string = `${getBrokerPidPath()}.startup.lock`): string {
+  try {
+    const owner = JSON.parse(readFileSync(lockPath, "utf8")) as { pid?: number };
+    if (typeof owner.pid !== "number") return "";
+    process.kill(owner.pid, 0);
+    return "";
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ESRCH") {
+      return ` — a stale startup lock at ${lockPath} belongs to a dead process; remove that file and retry`;
+    }
+    return "";
+  }
 }

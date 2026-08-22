@@ -65,6 +65,8 @@ export interface LaunchPlan {
   readonly room: string;
   readonly budgets: RoleBudgets;
   readonly launches: readonly RoleLaunch[];
+  /** Where the manifest lives — a launch cwd equal to this is the default, not a choice. */
+  readonly manifestDir: string;
 }
 
 /** Thrown for any malformed manifest; message names the file and the key path. */

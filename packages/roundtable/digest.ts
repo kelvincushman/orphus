@@ -81,8 +81,14 @@ export function buildDigest(messages: readonly RoomMessage[], options: DigestOpt
 			},
 			headline: (message, cappedFirstLine, hasMore) =>
 				`· ${message.from.name}#${message.seq}: ${cappedFirstLine}${hasMore ? " …" : ""}`,
-			collapsed: (count) =>
-				`(${count} older message${count === 1 ? "" : "s"} collapsed — raise budget or fetch by seq to expand)`,
+			// The digest advances the read cursor past everything it consumed,
+			// collapsed included — so "raise budget and re-digest" is a dead end
+			// (the next digest starts after these). Advise the one recovery that
+			// works: fetch names the exact seq range the collapse swallowed.
+			collapsed: (count) => {
+				const oldest = newestFirst[newestFirst.length - 1]?.seq ?? 1;
+				return `(${count} older message${count === 1 ? "" : "s"} collapsed — fetch with after_seq ${oldest - 1} to read them)`;
+			},
 		},
 	});
 

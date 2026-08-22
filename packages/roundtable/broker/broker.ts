@@ -1,5 +1,5 @@
 import net from "net";
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, unlinkSync, writeFileSync } from "fs";
+import { chmodSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, unlinkSync, writeFileSync } from "fs";
 import { randomUUID } from "crypto";
 import { createMessageReader, writeMessage } from "./framing.ts";
 import { getBrokerPidPath, getBrokerSocketPath, getRoundtableDirPath } from "./paths.ts";
@@ -130,7 +130,7 @@ export class RoundtableBroker {
     private dirPath: string = getRoundtableDirPath(),
     private options: BrokerOptions = {},
   ) {
-    mkdirSync(this.dirPath, { recursive: true });
+    mkdirSync(this.dirPath, { recursive: true, mode: 0o700 });
     this.server = net.createServer(this.handleConnection.bind(this));
   }
 
@@ -184,6 +184,17 @@ export class RoundtableBroker {
     this.server.listen(this.socketPath, () => {
       this.server.off("error", onError);
       this.ownsSocket = true;
+      // The docs promise a same-user trust boundary; umask was the only thing
+      // delivering it. Under 0022 the socket came up 0755 and any local user
+      // could register with any name — auth-storage already does this for the
+      // credential file, and the same reasoning holds for the wire.
+      if (process.platform !== "win32") {
+        try {
+          chmodSync(this.socketPath, 0o600);
+        } catch {
+          // The socket can vanish if the broker loses a shutdown race here.
+        }
+      }
       // Diagnostic only — `ps` against a broker whose socket looks wedged. It is
       // deliberately not a lock: pids are reused, and a lock file cannot say
       // whether the holder is still serving. The socket answers that directly,
@@ -292,6 +303,15 @@ export class RoundtableBroker {
     sessionId: string | null,
   ): string | null {
     if (msg.type === "register") {
+      // One connection, one session: the close handler deletes only the latest
+      // id, so accepting a second register here would orphan the first as a
+      // permanent ghost member — and sessions.size > 0 blocks the idle exit,
+      // so the broker would never shut down again. No shipped client sends a
+      // second register; a hand-rolled peer gets told instead of ignored.
+      if (sessionId) {
+        this.send(socket, { type: "error", error: "This connection is already registered" });
+        return sessionId;
+      }
       const id = randomUUID();
       this.sessions.set(id, { id, name: msg.name, pid: msg.pid, cwd: msg.cwd, socket });
       this.send(socket, { type: "registered", sessionId: id });
