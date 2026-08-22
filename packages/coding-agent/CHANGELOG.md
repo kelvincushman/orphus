@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-08-22
+
 ### Added
 
 - **`@orphus/transcribe`: first-party local dictation, derived from pi-transcribe (MIT, with attribution and a pinned upstream-sync record).** `/transcribe` and `Ctrl+Alt+Z` toggle recording, Escape cancels while recording *or* transcribing, and the transcript is pasted into the editor and never submitted — a draft you have not read is not a message you meant to send. First run asks the language, offers the models that cover it, and states each one's size and licence before a byte downloads; downloads are verified on exact size then SHA-256 against a pinned catalog entry, and a file failing either is deleted rather than left where something might load it. Settings are written atomically at `0600`. The backend speaks one versioned JSON-Lines protocol limited to `initialize`, `listDevices`, `startRecording`, `stopAndTranscribe`, `cancel`, and `dispose`; the primary runtime is a dedicated Bun Worker owning the model, session, microphone, ring buffer, and cancellation token, and a helper executable speaking the same protocol takes over automatically when FFI loading, ABI verification, worker startup, or the health check fails — with the reason reported rather than a silent downgrade. A backend is refused unless it reports the expected native ABI version and build hash. **The package is not bundled or enabled yet**: the native miniaudio/transcribe.cpp artifacts for the eight release targets are not built in this repository, so both channels fail closed and dictation is unavailable until they are.

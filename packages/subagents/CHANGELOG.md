@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-08-22
+
 ### Added
 
 - **The `ponytail` skill is bundled.** Every session now carries [ponytail](skills/ponytail/SKILL.md) — the laziest-solution-that-works discipline (YAGNI, reuse before writing, stdlib before custom code, one line before fifty), with `lite`/`full`/`ultra` intensity via `/ponytail`. Vendored from [dietrichgebert/ponytail](https://github.com/dietrichgebert/ponytail) (MIT); it is also the named default discipline for agents working on this repository (see the root `AGENTS.md`).
