@@ -196,15 +196,18 @@ describe("/fleetsetup", () => {
 		// context and the transcript. https://user:token@host is a real shape CI
 		// writes into .git/config, and the raw regex used to pass it through.
 		mkdirSync(join(cwd, ".git"), { recursive: true });
+		// The password itself contains @: userinfo ends at the LAST @ in the
+		// authority (RFC 3986), and a first-@ strip leaked the password's tail.
 		writeFileSync(
 			join(cwd, ".git", "config"),
-			'[remote "origin"]\n\turl = https://kelvin:ghp_AAAABBBBCCCCDDDD@github.com/acme/private.git\n',
+			'[remote "origin"]\n\turl = https://kelvin:ghp_AAAA@BBBB@github.com/acme/private.git\n',
 		);
 		const { sent, pi, ctx } = stubs();
 		await createFleetSetupHandler(pi as never, handlerDeps())("", ctx as never);
 		assert.equal(sent.userMessages.length, 1);
 		const briefing = sent.userMessages[0]!.content;
-		assert.doesNotMatch(briefing, /ghp_AAAABBBBCCCCDDDD/u, "the token must never enter model context");
+		assert.doesNotMatch(briefing, /ghp_AAAA/u, "the token must never enter model context");
+		assert.doesNotMatch(briefing, /BBBB@github/u, "an @ inside the password must not leak its tail");
 		assert.match(briefing, /https:\/\/github\.com\/acme\/private\.git/u, "the repo hint itself survives");
 	});
 

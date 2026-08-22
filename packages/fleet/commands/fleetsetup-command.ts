@@ -47,9 +47,12 @@ function readGitRemote(cwd: string): string | undefined {
   try {
     const config = readFileSync(join(cwd, ".git", "config"), "utf8");
     const url = /\n\s*url\s*=\s*(\S+)/.exec(config)?.[1];
+    // Greedy to the LAST @ before the path: RFC 3986 ends userinfo at the
+    // final @ in the authority, and a password may itself contain @ — stopping
+    // at the first one leaked the password's tail.
     return url
-      ?.replace(/^([a-z][\w+.-]*:\/\/)[^@/]+@/iu, "$1")
-      .replace(/^[^@/:]+:[^@/]+@/u, "");
+      ?.replace(/^([a-z][\w+.-]*:\/\/)[^/?#]*@/iu, "$1")
+      .replace(/^[^@/:]+:[^/]*@/u, "");
   } catch {
     return undefined;
   }
