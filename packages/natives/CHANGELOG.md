@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-08-22
+
 ### Added
 
 - Added the Rust `SubagentControl` N-API surface with canonical child identities, RAII spawn reservations, turn-scoped execution guards, LRU residency, status watches, and explicit 100 ms interruption grace for in-process subagents (#2188).
