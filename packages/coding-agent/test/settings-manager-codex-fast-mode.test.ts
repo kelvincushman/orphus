@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ENV_CODEX_FAST_MODE } from "../src/config.ts";
+import { CONFIG_DIR_NAME, ENV_CODEX_FAST_MODE } from "../src/config.ts";
 import { SettingsManager } from "../src/core/settings-manager.ts";
 
 describe("SettingsManager codexFastMode", () => {
@@ -51,9 +51,9 @@ describe("SettingsManager codexFastMode", () => {
 
 	it("merges missing nested fields from global and project settings", () => {
 		writeFileSync(join(agentDir, "settings.json"), JSON.stringify({ codexFastMode: { chat: true } }, null, 2));
-		mkdirSync(join(cwd, ".atomic"), { recursive: true });
+		mkdirSync(join(cwd, CONFIG_DIR_NAME), { recursive: true });
 		writeFileSync(
-			join(cwd, ".atomic", "settings.json"),
+			join(cwd, CONFIG_DIR_NAME, "settings.json"),
 			JSON.stringify({ codexFastMode: { workflow: true } }, null, 2),
 		);
 
@@ -67,9 +67,9 @@ describe("SettingsManager codexFastMode", () => {
 			join(agentDir, "settings.json"),
 			JSON.stringify({ codexFastMode: { chat: false, workflow: false } }, null, 2),
 		);
-		mkdirSync(join(cwd, ".atomic"), { recursive: true });
+		mkdirSync(join(cwd, CONFIG_DIR_NAME), { recursive: true });
 		writeFileSync(
-			join(cwd, ".atomic", "settings.json"),
+			join(cwd, CONFIG_DIR_NAME, "settings.json"),
 			JSON.stringify({ codexFastMode: { workflow: false } }, null, 2),
 		);
 		const manager = SettingsManager.create(cwd, agentDir);
@@ -79,7 +79,7 @@ describe("SettingsManager codexFastMode", () => {
 
 		expect(manager.getCodexFastModeSettings()).toEqual({ chat: false, workflow: true });
 		const savedGlobal = JSON.parse(readFileSync(join(agentDir, "settings.json"), "utf-8"));
-		const savedProject = JSON.parse(readFileSync(join(cwd, ".atomic", "settings.json"), "utf-8"));
+		const savedProject = JSON.parse(readFileSync(join(cwd, CONFIG_DIR_NAME, "settings.json"), "utf-8"));
 		expect(savedGlobal.codexFastMode).toEqual({ chat: false, workflow: true });
 		expect(savedProject.codexFastMode).toEqual({ workflow: true });
 	});
@@ -129,9 +129,9 @@ describe("SettingsManager codexFastMode", () => {
 			join(agentDir, "settings.json"),
 			JSON.stringify({ codexFastMode: { chat: false, workflow: true } }, null, 2),
 		);
-		mkdirSync(join(cwd, ".atomic"), { recursive: true });
+		mkdirSync(join(cwd, CONFIG_DIR_NAME), { recursive: true });
 		writeFileSync(
-			join(cwd, ".atomic", "settings.json"),
+			join(cwd, CONFIG_DIR_NAME, "settings.json"),
 			JSON.stringify({ codexFastMode: { workflow: false } }, null, 2),
 		);
 		const manager = SettingsManager.create(cwd, agentDir);
@@ -141,7 +141,7 @@ describe("SettingsManager codexFastMode", () => {
 
 		expect(manager.getCodexFastModeSettings()).toEqual({ chat: true, workflow: false });
 		const savedGlobal = JSON.parse(readFileSync(join(agentDir, "settings.json"), "utf-8"));
-		const savedProject = JSON.parse(readFileSync(join(cwd, ".atomic", "settings.json"), "utf-8"));
+		const savedProject = JSON.parse(readFileSync(join(cwd, CONFIG_DIR_NAME, "settings.json"), "utf-8"));
 		expect(savedGlobal.codexFastMode).toEqual({ chat: true, workflow: true });
 		expect(savedProject.codexFastMode).toEqual({ workflow: false });
 	});

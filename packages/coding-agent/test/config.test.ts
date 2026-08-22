@@ -14,7 +14,9 @@ const originalPath = process.env.PATH;
 const originalAtomicPackageDir = process.env.ORPHUS_PACKAGE_DIR;
 let tempDir: string | undefined;
 
-const testUnixWritableBits = process.platform === "win32" ? test.skip : test;
+// Permission bits neither exist on win32 nor bind root, which writes straight
+// through a 0o500 directory — the fixture can only deny a regular unix user.
+const testUnixWritableBits = process.platform === "win32" || process.getuid?.() === 0 ? test.skip : test;
 
 function commandFileName(command: string): string {
 	return process.platform === "win32" ? `${command}.cmd` : command;

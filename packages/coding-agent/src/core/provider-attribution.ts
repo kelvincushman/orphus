@@ -44,7 +44,7 @@ function getDefaultAttributionHeaders(
 
 	if (isOpenRouterModel(model)) {
 		return {
-			"HTTP-Referer": "https://atomic.sh",
+			"HTTP-Referer": "https://github.com/kelvincushman/orphus",
 			"X-OpenRouter-Title": APP_NAME,
 			"X-OpenRouter-Categories": "cli-agent",
 		};

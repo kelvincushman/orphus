@@ -315,6 +315,21 @@ work headroom and derive the assertion from a named constant (see `STALLED_ATTEM
 suite, and do not shard — `test/ci/test-workflow-topology.test.ts` forbids
 `--parallel|--shard|--concurrent|--max-concurrency` for exactly this reason.
 
+### Ambient provider credentials
+
+A test that only passes on a machine *without* provider credentials is a bug in
+that test, exactly like load sensitivity. Model-world fixtures build a real
+`ModelRuntime` over pi-ai's full builtin provider list, and some providers
+authenticate from the environment alone (amazon-bedrock via the AWS default
+chain, google-vertex via ADC) — so a developer's configured AWS CLI, or a
+sandbox proxy injecting dummy AWS keys, silently makes "no models available"
+fixtures see a 114-model catalog and spawned CLI children dispatch real
+provider requests. `packages/coding-agent/test/provider-env-scrub.ts` (wired as
+that project's vitest `setupFiles`) deletes the ambient credential variables
+before any test module loads; fixtures that need a credential set their own
+afterwards. When adding a suite outside that project that touches model
+availability, scrub the same list rather than assuming a bare environment.
+
 ### Hook name compatibility
 
 Use `beforeAll`/`afterAll` for once-per-suite setup/teardown and `beforeEach`/`afterEach` for
