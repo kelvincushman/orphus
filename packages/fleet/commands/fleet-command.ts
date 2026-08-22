@@ -9,6 +9,8 @@ import {
   type FleetToolDeps,
   listFleets,
   validateFleet,
+  baseModelReference,
+  thinkingSuffix,
   validateFleetModelPins,
 } from "../fleet-tool.ts";
 
@@ -127,7 +129,12 @@ export function createFleetCommandHandler(pi: ExtensionAPI, deps: FleetCommandDe
     // configured aborts BEFORE any turn: silently orchestrating on the wrong
     // model is exactly the surprise the blueprint field exists to prevent.
     if (blueprint.orchestratorModel) {
-      const [provider, ...idParts] = blueprint.orchestratorModel.split("/");
+      // Resolve through the same suffix stripping the preflight used: the
+      // registry knows "provider/model", not "provider/model:high", and a raw
+      // split here made the handler refuse the exact reference its own
+      // validator had just accepted.
+      const base = baseModelReference(blueprint.orchestratorModel);
+      const [provider, ...idParts] = base.split("/");
       const modelId = idParts.join("/");
       const model = provider && modelId ? ctx.modelRegistry.find(provider, modelId) : undefined;
       if (!model) {
@@ -138,6 +145,12 @@ export function createFleetCommandHandler(pi: ExtensionAPI, deps: FleetCommandDe
         return;
       }
       const switched = await pi.setModel(model as Parameters<ExtensionAPI["setModel"]>[0]);
+      if (switched) {
+        // The suffix is the author's thinking level for the orchestrator, not
+        // decoration — apply it rather than silently running at the default.
+        const level = thinkingSuffix(blueprint.orchestratorModel);
+        if (level) pi.setThinkingLevel(level as Parameters<ExtensionAPI["setThinkingLevel"]>[0]);
+      }
       if (!switched) {
         notify(
           pi,
