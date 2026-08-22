@@ -267,7 +267,7 @@ test("a justification comment before the budget argument does not hide it", () =
 	const source = [
 		"const REAL_CHROME_SMOKE_TIMEOUT_MS = 60_000;",
 		"const smokeTest = chromePath ? test : test.skip;",
-		'smokeTest(',
+		"smokeTest(",
 		'\t"a real browser launches",',
 		"\tasync () => {",
 		"\t},",
