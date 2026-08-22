@@ -48,17 +48,41 @@ test("the Orphus gate typechecks the binary's own source", async () => {
 	assert.match(verify, /working-directory: packages\/coding-agent\n\s+run: npm run build/u);
 });
 
+/**
+ * A wrapped-suite step, matched as ONE step: the name, the folded `run: >-`
+ * body, and the target command inside that same body. A lazy cross-block
+ * pattern would accept a wrapper in one step plus a bare command in another —
+ * exactly the drift this contract exists to refuse.
+ */
+function wrappedSuiteStep(stepName: string, bodyLines: string[]): RegExp {
+	const quote = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+	return new RegExp(`- name: ${quote(stepName)}\\n\\s+run: >-\\n\\s+${bodyLines.map(quote).join("\\n\\s+")}`, "u");
+}
+
 test("the Orphus gate runs the inherited unit suite and the CI contracts", async () => {
 	const suites = jobBlock(await readText(ciPath), "suites");
 	// The unit suite runs through the flake wrapper so the duration gate and
 	// the .ci-diagnostics upload are real, not just described. The wrapper must
 	// end in `npm run test:unit` — that one-script indirection is how it finds
 	// the vitest config whose budget it enforces.
-	assert.match(suites, /run-flaky-test-suite\.ts[\s\S]*?-- npm run test:unit\b/u);
+	assert.match(
+		suites,
+		wrappedSuiteStep("Unit tests (one bounded flake retry)", [
+			'bun run scripts/run-flaky-test-suite.ts --label "unit tests"',
+			"--no-retry-file flaky-test-suite-runner.test.ts",
+			"-- npm run test:unit",
+		]),
+	);
 	assert.match(suites, /run: npm run test:ci-contracts\b/u);
 	// Integration and script suites are enforced here too — green on this fork
 	// and cheap.
-	assert.match(suites, /run-flaky-test-suite\.ts[\s\S]*?-- npm run test:integration\b/u);
+	assert.match(
+		suites,
+		wrappedSuiteStep("Integration tests (one bounded flake retry)", [
+			'bun run scripts/run-flaky-test-suite.ts --label "integration tests"',
+			"-- npm run test:integration",
+		]),
+	);
 	assert.match(suites, /ORPHUS_REQUIRE_INSTALLED_NODE_SMOKE: "1"/u);
 	assert.match(suites, /run: npm run test:scripts\b/u);
 	// The coding-agent workspace suite gates again now that its rebrand-stale
@@ -66,7 +90,13 @@ test("the Orphus gate runs the inherited unit suite and the CI contracts", async
 	// diagnostics), and must stay green without LFS objects — the inherited
 	// compaction fixtures 404 forever on this fork, so their tests skip on
 	// pointer detection and the checkout below stays LFS-free.
-	assert.match(suites, /run-flaky-test-suite\.ts[\s\S]*?-- npm run test --workspace=@orphus\/coding-agent\b/u);
+	assert.match(
+		suites,
+		wrappedSuiteStep("Coding-agent workspace suite (one bounded flake retry)", [
+			'bun run scripts/run-flaky-test-suite.ts --label "coding-agent workspace suite"',
+			"-- npm run test --workspace=@orphus/coding-agent",
+		]),
+	);
 	// The unit suite imports the bundled subagent extension, which loads the
 	// Rust control plane in crates/atomic-natives. Without a binding the import
 	// fails and the whole suite dies, not just the runner tests.

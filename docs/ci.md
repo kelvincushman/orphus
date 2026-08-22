@@ -102,9 +102,6 @@ missing file is countable.
 
 - **No Windows leg.** The inherited matrix had one; this fork does not.
   `prek.toml` records a Windows-only line-ending bug that reached main.
-- **No coding-agent package suite** (`npm run test --workspace=@orphus/coding-agent`).
-  It is red on this fork — rebrand-stale assertions plus LFS fixtures the fork
-  cannot fetch — and joins the gate only once it is green.
 - **No Rust tests.** `cargo fmt` and `cargo clippy` exist only as prek hooks.
 
 `test/ci/orphus-gate-contracts.test.ts` pins each of the guarantees above, so
