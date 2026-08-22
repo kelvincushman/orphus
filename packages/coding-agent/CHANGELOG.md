@@ -26,6 +26,7 @@
 
 ### Fixed
 
+- In-process subagents now announce `session_shutdown` before their session is disposed. `dispose()` invalidates every captured extension ctx but emits nothing, and that event is the only signal an extension gets to release what it holds — so a child's roundtable instance kept a ref'd broker socket open, the event loop never drained, and `orphus -p '/fleet …'` hung after its answer had already been printed. Ctrl-C recovered it; an interactive run leaked a socket and timer per member instead. Every extension with a shutdown handler leaked the same way, which is why the fix is in the runner rather than in roundtable.
 - `/fleetsetup` strips credentials from the git remote before the briefing is sent. The remote URL from `.git/config` was interpolated verbatim into a user message — so a CI-style `https://user:token@host/repo.git` put the token into model context and the session transcript. The token is dropped; the host and repo the hint exists for survive.
 - `fleet({action:"validate"})` no longer echoes the target file into its error. A non-YAML target (a `.env`, a key) parses as one scalar, and the error used to splice the whole body in; it now shows at most an 80-character prefix with a length count.
 - `/fleet` accepts a thinking-suffixed orchestrator model (`provider/model:high`) instead of refusing the reference its own preflight had just validated, and applies the suffix as the session thinking level rather than silently dropping it.

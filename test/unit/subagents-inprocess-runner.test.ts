@@ -271,6 +271,34 @@ test("typed status is the sole result outcome discriminator", async () => {
 	}
 });
 
+test("a finished child announces session_shutdown before its session is disposed", async () => {
+	// dispose() invalidates every captured extension ctx and emits nothing, so an
+	// extension holding a resource never learns the session ended. roundtable's is
+	// a ref'd broker socket: it kept the event loop alive and `orphus -p '/fleet …'`
+	// hung after printing its answer. Any extension with a shutdown handler leaked
+	// the same way, which is why the emit belongs here rather than in roundtable.
+	const root = mkdtempSync(join(tmpdir(), "atomic-inprocess-shutdown-"));
+	const shutdownLogPath = join(root, "shutdown.log");
+	try {
+		const control = new SubagentControlRuntime({ path: "parent", depth: 0 }, join(root, "sessions"));
+		control.registerAgents([sampleAgent()]);
+		const admitted = control.admitChildSession(
+			{ ...sampleSpec(root), testSession: { output: "done", shutdownLogPath } },
+			{ path: "parent", depth: 0 },
+		).admitted;
+		assert.ok(admitted);
+		const neverAbort = new AbortController().signal;
+		const running = control.startAttempt(admitted, {}, { abort: neverAbort, interrupt: neverAbort });
+		const outcome = await running.promise;
+		assert.equal(outcome.status, "ok");
+
+		assert.ok(existsSync(shutdownLogPath), "teardown must emit session_shutdown, not dispose silently");
+		assert.equal(readFileSync(shutdownLogPath, "utf8").trim(), "session_shutdown:quit");
+	} finally {
+		rmSync(root, { recursive: true, force: true });
+	}
+});
+
 test("nested interrupt flushes JSONL and resume reloads the same in-process child", async () => {
 	const root = mkdtempSync(join(tmpdir(), "atomic-inprocess-nested-control-"));
 	const gate = Promise.withResolvers<void>();
