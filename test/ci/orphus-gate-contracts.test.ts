@@ -111,6 +111,10 @@ test("the Orphus gate runs the inherited unit suite and the CI contracts", async
 		/git fetch --no-tags https:\/\/github\.com\/bastani-inc\/atomic\.git 'refs\/tags\/\*:refs\/tags\/\*'/u,
 	);
 	assert.doesNotMatch(suites, /lfs:\s*true/u);
+	// .ci-diagnostics is dot-hidden and upload-artifact skips hidden paths by
+	// default; without the flag the diagnostics upload silently finds nothing,
+	// which is indistinguishable from a run that produced none.
+	assert.match(suites, /path: \.ci-diagnostics\/\n(?:\s+#[^\n]*\n)*\s+include-hidden-files: true/u);
 });
 
 test("the demo runs as an assertion, not as a smoke test", async () => {
