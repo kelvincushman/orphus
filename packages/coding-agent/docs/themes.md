@@ -21,7 +21,7 @@ Orphus loads themes from:
 - Built-in: `dark`, `light`, `catppuccin-frappe`, `catppuccin-latte`, `catppuccin-macchiato`, `catppuccin-mocha`
 - Global: `~/.orphus/agent/themes/*.json` (legacy `~/.atomic/agent/themes/*.json` and `~/.pi/agent/themes/*.json`)
 - Project: `.orphus/themes/*.json` (legacy `.atomic/themes/*.json` and `.pi/themes/*.json`, only after the project is trusted)
-- Packages: `themes/` directories, `atomic.themes`, or legacy `pi.themes` entries in `package.json`
+- Packages: `themes/` directories, `orphus.themes`, or legacy `pi.themes` entries in `package.json`
 - Settings: `themes` array with files or directories
 - CLI: `--theme <path>` (repeatable)
 
@@ -302,9 +302,9 @@ echo $COLORTERM  # Should output "truecolor" or "24bit"
 ## Examples
 
 See the built-in themes:
-- [dark.json](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/modes/interactive/theme/dark.json)
-- [light.json](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/modes/interactive/theme/light.json)
-- [catppuccin-frappe.json](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/modes/interactive/theme/catppuccin-frappe.json)
-- [catppuccin-latte.json](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/modes/interactive/theme/catppuccin-latte.json)
-- [catppuccin-macchiato.json](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/modes/interactive/theme/catppuccin-macchiato.json)
-- [catppuccin-mocha.json](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/modes/interactive/theme/catppuccin-mocha.json)
+- [dark.json](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/modes/interactive/theme/dark.json)
+- [light.json](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/modes/interactive/theme/light.json)
+- [catppuccin-frappe.json](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/modes/interactive/theme/catppuccin-frappe.json)
+- [catppuccin-latte.json](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/modes/interactive/theme/catppuccin-latte.json)
+- [catppuccin-macchiato.json](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/modes/interactive/theme/catppuccin-macchiato.json)
+- [catppuccin-mocha.json](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/modes/interactive/theme/catppuccin-mocha.json)

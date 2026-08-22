@@ -273,7 +273,7 @@ Each candidate can also carry its own reasoning effort — see [Reasoning levels
 
 ## Reasoning levels
 
-Set the reasoning (thinking) effort for each model candidate with a `model_name:thinking_effort` suffix on `model` and on every `fallbackModels` entry. Valid efforts are `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max` — the same shorthand used by `atomic --model sonnet:high`. `xhigh` and `max` are used only when the selected model's capability map supports them.
+Set the reasoning (thinking) effort for each model candidate with a `model_name:thinking_effort` suffix on `model` and on every `fallbackModels` entry. Valid efforts are `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max` — the same shorthand used by `orphus --model sonnet:high`. `xhigh` and `max` are used only when the selected model's capability map supports them.
 
 ```markdown
 ---

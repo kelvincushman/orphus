@@ -236,7 +236,7 @@ await showMenu();  // First show
 await showMenu();  // "Back" = just call again
 ```
 
-See [overlay-qa-tests.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/overlay-qa-tests.ts) for comprehensive examples covering anchors, margins, stacking, responsive visibility, and animation.
+See [overlay-qa-tests.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/overlay-qa-tests.ts) for comprehensive examples covering anchors, margins, stacking, responsive visibility, and animation.
 
 ## Built-in Components
 
@@ -507,7 +507,7 @@ its upstream name; a directory path writes one `tui-<timestamp>-<pid>.log` file
 per process.
 
 ```bash
-PI_TUI_WRITE_LOG=/tmp/tui-ansi.log atomic
+PI_TUI_WRITE_LOG=/tmp/tui-ansi.log orphus
 ```
 
 Orphus vendors TUI components through the installed `@earendil-works/pi-tui` dependency.
@@ -704,7 +704,7 @@ pi.registerCommand("pick", {
 });
 ```
 
-**Examples:** [preset.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/preset.ts), [tools.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/tools.ts)
+**Examples:** [preset.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/preset.ts), [tools.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/tools.ts)
 
 ### Pattern 2: Async Operation with Cancel (BorderedLoader)
 
@@ -736,7 +736,7 @@ pi.registerCommand("fetch", {
 });
 ```
 
-**Examples:** [qna.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/qna.ts), [handoff.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/handoff.ts)
+**Examples:** [qna.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/qna.ts), [handoff.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/handoff.ts)
 
 ### Pattern 3: Settings/Toggles (SettingsList)
 
@@ -780,7 +780,7 @@ pi.registerCommand("settings", {
 });
 ```
 
-**Examples:** [tools.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/tools.ts)
+**Examples:** [tools.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/tools.ts)
 
 ### Pattern 4: Persistent Status Indicator
 
@@ -794,7 +794,7 @@ ctx.ui.setStatus("my-ext", ctx.ui.theme.fg("accent", "● active"));
 ctx.ui.setStatus("my-ext", undefined);
 ```
 
-**Examples:** [status-line.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/status-line.ts), [plan-mode/index.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/plan-mode/index.ts), [preset.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/preset.ts)
+**Examples:** [status-line.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/status-line.ts), [plan-mode/index.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/plan-mode/index.ts), [preset.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/preset.ts)
 
 ### Pattern 4b: Working Indicator Customization
 
@@ -826,7 +826,7 @@ This affects the normal Working indicator from accepted prompt submission throug
 
 Post-tool autocompaction is more precisely delimited by its own event pair. Pi opens the follow-up turn while the compaction is still unmatched, so the compaction status — not a generic Working message — owns the status surface from `compaction_start` until `compaction_end`, and the interposed turn does not take it back early. The status paints as soon as the compaction starts rather than on the next animation frame, in the main chat and in an attached workflow-stage chat alike. Ordinary Working then resumes for the continuing stream on any successful mid-turn completion, including a compaction that found nothing to compact and therefore reports no result. A cancelled or failed compaction stops all activity instead. The main chat reports automatic cancellation; an attached workflow-stage chat clears the transient status because the abort event carries no error text. Failures retain their event-provided error text.
 
-**Examples:** [working-indicator.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/working-indicator.ts)
+**Examples:** [working-indicator.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/working-indicator.ts)
 
 ### Pattern 5: Widgets Above/Below Editor
 
@@ -856,7 +856,7 @@ ctx.ui.setWidget("my-widget", (_tui, theme) => {
 ctx.ui.setWidget("my-widget", undefined);
 ```
 
-**Examples:** [plan-mode/index.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/plan-mode/index.ts)
+**Examples:** [plan-mode/index.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/plan-mode/index.ts)
 
 ### Pattern 6: Custom Footer
 
@@ -880,7 +880,7 @@ ctx.ui.setFooter(undefined); // restore default
 
 Token stats available via `ctx.sessionManager.getBranch()` and `ctx.model`.
 
-**Examples:** [custom-footer.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/custom-footer.ts)
+**Examples:** [custom-footer.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/custom-footer.ts)
 
 ### Pattern 7: Custom Editor (vim mode, etc.)
 
@@ -956,7 +956,7 @@ export default function (pi: ExtensionAPI) {
 - **Factory pattern**: `setEditorComponent` receives a factory function that gets `tui`, `theme`, and `keybindings`
 - **Pass `undefined`** to restore the default editor: `ctx.ui.setEditorComponent(undefined)`
 
-**Examples:** [modal-editor.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/modal-editor.ts)
+**Examples:** [modal-editor.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/modal-editor.ts)
 
 ## Key Rules
 
@@ -972,12 +972,12 @@ export default function (pi: ExtensionAPI) {
 
 ## Examples
 
-- **Selection UI**: [examples/extensions/preset.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/preset.ts) - SelectList with DynamicBorder framing
-- **Async with cancel**: [examples/extensions/qna.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/qna.ts) - BorderedLoader for LLM calls
-- **Settings toggles**: [examples/extensions/tools.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/tools.ts) - SettingsList for tool enable/disable
-- **Status indicators**: [examples/extensions/plan-mode/index.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/plan-mode/index.ts) - setStatus and setWidget
-- **Working indicator**: [examples/extensions/working-indicator.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/working-indicator.ts) - setWorkingIndicator
-- **Custom footer**: [examples/extensions/custom-footer.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/custom-footer.ts) - setFooter with stats
-- **Custom editor**: [examples/extensions/modal-editor.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/modal-editor.ts) - Vim-like modal editing
-- **Snake game**: [examples/extensions/snake.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/snake.ts) - Full game with keyboard input, game loop
-- **Custom tool rendering**: [examples/extensions/todo.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/todo.ts) - renderCall and renderResult
+- **Selection UI**: [examples/extensions/preset.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/preset.ts) - SelectList with DynamicBorder framing
+- **Async with cancel**: [examples/extensions/qna.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/qna.ts) - BorderedLoader for LLM calls
+- **Settings toggles**: [examples/extensions/tools.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/tools.ts) - SettingsList for tool enable/disable
+- **Status indicators**: [examples/extensions/plan-mode/index.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/plan-mode/index.ts) - setStatus and setWidget
+- **Working indicator**: [examples/extensions/working-indicator.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/working-indicator.ts) - setWorkingIndicator
+- **Custom footer**: [examples/extensions/custom-footer.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/custom-footer.ts) - setFooter with stats
+- **Custom editor**: [examples/extensions/modal-editor.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/modal-editor.ts) - Vim-like modal editing
+- **Snake game**: [examples/extensions/snake.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/snake.ts) - Full game with keyboard input, game loop
+- **Custom tool rendering**: [examples/extensions/todo.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/todo.ts) - renderCall and renderResult
