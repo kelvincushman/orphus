@@ -5,10 +5,11 @@
 # it is an account-level authorization the repo owner must grant; a config file
 # alone does nothing.
 #
-# Scope: Orphus is a fork of a large vendored Atomic/Pi tree. Reviewing all of
-# it would bury the signal, so path_filters focus CodeRabbit on the code this
-# project actually authors. Widen the list when you start working on the
-# harness itself.
+# Scope: Orphus is a fork of a large vendored Atomic/Pi tree. path_filters
+# below is EXCLUSION-ONLY — it hides noise (lockfiles, vendored assets), it
+# does not allowlist reviewed paths. Never add a positive pattern: that turns
+# the list into an allowlist, which is exactly how PR #69 was silently skipped.
+# The warning beside path_filters is the authority; this header defers to it.
 language: en-US
 
 tone_instructions: >-
