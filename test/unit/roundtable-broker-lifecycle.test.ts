@@ -62,6 +62,11 @@ describe("broker startup-lock post-mortem", () => {
 			writeFileSync(lockPath, JSON.stringify({ pid: "invalid" }));
 			assert.equal(describeStartupObstruction(lockPath), "", "malformed metadata diagnoses nothing");
 			writeFileSync(lockPath, "not json at all");
+			assert.equal(describeStartupObstruction(lockPath), "", "non-JSON metadata diagnoses nothing");
+			// A genuinely unreadable lock: readFileSync THROWS here (EISDIR),
+			// where the non-JSON case above reads fine and fails at parse.
+			rmSync(lockPath, { force: true });
+			mkdirSync(lockPath);
 			assert.equal(describeStartupObstruction(lockPath), "", "an unreadable lock diagnoses nothing");
 		} finally {
 			rmSync(dir, { recursive: true, force: true });

@@ -74,7 +74,9 @@ describe("roundtable broker and client over a real socket", () => {
 			staleDir,
 		);
 		try {
-			await new Promise<void>((resolve) => stale.start(resolve));
+			// Both callbacks: a startup failure must reject promptly, not hang the
+			// test to its timeout with the finally cleanup never running.
+			await new Promise<void>((resolve, reject) => stale.start(resolve, reject));
 			assert.equal(statSync(staleDir).mode & 0o777, 0o700);
 		} finally {
 			stale.shutdown();
