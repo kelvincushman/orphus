@@ -161,6 +161,23 @@ jobs:
           --no-retry-file flaky-test-suite-runner.test.ts
           -- npm run test:unit
 
+      # Green on this fork and cheap (~3 min): enforcing them here closes most
+      # of the audit's "three of five suites enforced by nothing". The coding-
+      # agent workspace suite stays out — it is red with rebrand-stale
+      # assertions and reads LFS fixtures this fork cannot fetch; enabling it
+      # is tracked separately rather than pretended here.
+      - name: Integration tests (one bounded flake retry)
+        run: >-
+          bun run scripts/run-flaky-test-suite.ts --label "integration tests"
+          -- npm run test:integration
+        env:
+          # Hard-require the installed-package Node smoke: the coding-agent
+          # build above guarantees dist/ exists in this job.
+          ORPHUS_REQUIRE_INSTALLED_NODE_SMOKE: "1"
+
+      - name: Script tests
+        run: npm run test:scripts
+
       # These pin the workflows in .github/workflows, including this file.
       - name: CI contract tests
         run: npm run test:ci-contracts

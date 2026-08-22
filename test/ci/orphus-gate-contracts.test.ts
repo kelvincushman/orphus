@@ -56,6 +56,13 @@ test("the Orphus gate runs the inherited unit suite and the CI contracts", async
 	// the vitest config whose budget it enforces.
 	assert.match(suites, /run-flaky-test-suite\.ts[\s\S]*?-- npm run test:unit\b/u);
 	assert.match(suites, /run: npm run test:ci-contracts\b/u);
+	// Integration and script suites are enforced here too — green on this fork
+	// and cheap. The workspace suite is deliberately absent (rebrand-stale
+	// assertions, LFS fixtures the fork cannot fetch); do not add it without
+	// making it green first.
+	assert.match(suites, /run-flaky-test-suite\.ts[\s\S]*?-- npm run test:integration\b/u);
+	assert.match(suites, /ORPHUS_REQUIRE_INSTALLED_NODE_SMOKE: "1"/u);
+	assert.match(suites, /run: npm run test:scripts\b/u);
 	// The unit suite imports the bundled subagent extension, which loads the
 	// Rust control plane in crates/atomic-natives. Without a binding the import
 	// fails and the whole suite dies, not just the runner tests.
