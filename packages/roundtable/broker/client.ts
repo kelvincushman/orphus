@@ -33,6 +33,8 @@ export class RoundtableClient {
   constructor(
     readonly name: string,
     private socketPath: string = getBrokerSocketPath(),
+    /** Test seam: the production default is the only value shipped code uses. */
+    private registrationTimeoutMs: number = REQUEST_TIMEOUT_MS,
   ) {}
 
   onActivity(listener: (event: ActivityEvent) => void): () => void {
@@ -46,7 +48,13 @@ export class RoundtableClient {
     this.socket = socket;
 
     const registered = new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("Roundtable registration timed out")), REQUEST_TIMEOUT_MS);
+      const timer = setTimeout(() => {
+        reject(new Error("Roundtable registration timed out"));
+        // Reject alone leaves the socket open and ref'd — a peer that accepts
+        // and never answers would hold this process's event loop forever.
+        // destroy() fires "close", which resets this.socket for the next try.
+        socket.destroy();
+      }, this.registrationTimeoutMs);
       const reader = createMessageReader(
         (raw) => {
           const msg = raw as RoundtableBrokerMessage;
