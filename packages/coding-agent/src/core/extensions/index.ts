@@ -39,7 +39,7 @@ export type {
 	ShutdownHandler,
 	SwitchSessionHandler,
 } from "./runner.ts";
-export { ExtensionRunner } from "./runner.ts";
+export { ExtensionRunner, emitSessionShutdownEvent } from "./runner.ts";
 export type {
 	AfterProviderResponseEvent,
 	AgentEndEvent,

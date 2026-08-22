@@ -124,6 +124,7 @@ export {
 	defineTool,
 	discoverAndLoadExtensions,
 	ExtensionRunner,
+	emitSessionShutdownEvent,
 	installReactiveWidget,
 	isBashToolResult,
 	isEditToolResult,
