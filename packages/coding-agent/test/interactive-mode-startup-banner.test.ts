@@ -116,7 +116,7 @@ describe("InteractiveMode startup banner", () => {
 
 		const lines = rendered.split("\n");
 		expect(lines[0]).toContain("██████");
-		expect(lines[0]).toContain("Atomic v0.0.0");
+		expect(lines[0]).toContain("Orphus v0.0.0");
 	});
 
 	it("stacks the identity text under the logo when the meta column would wrap", () => {
@@ -125,7 +125,7 @@ describe("InteractiveMode startup banner", () => {
 			chatFastMode: false,
 			reasoning: false,
 			thinkingLevel: "off",
-			maxWidth: 40,
+			maxWidth: 64,
 		});
 
 		const lines = rendered.split("\n");
@@ -133,13 +133,13 @@ describe("InteractiveMode startup banner", () => {
 		// and shredded the logo on narrow terminals).
 		for (const line of lines) {
 			if (line.includes("██████")) {
-				expect(line.trimEnd().length).toBeLessThanOrEqual(40);
-				expect(line).not.toContain("Atomic");
+				expect(line.trimEnd().length).toBeLessThanOrEqual(64);
+				expect(line).not.toContain("Orphus");
 				expect(line).not.toContain("openai");
 			}
 		}
 		expect(lines.some((line) => line.includes("██████"))).toBe(true);
-		expect(rendered).toContain("Atomic v0.0.0");
+		expect(rendered).toContain("Orphus v0.0.0");
 		expect(rendered).toContain("(openai) gpt-5.1-codex");
 		expect(rendered).toContain("/tmp/project");
 	});
@@ -154,7 +154,7 @@ describe("InteractiveMode startup banner", () => {
 		});
 
 		expect(rendered).not.toContain("█");
-		expect(rendered).toContain("Atomic v0.0.0");
+		expect(rendered).toContain("Orphus v0.0.0");
 		expect(rendered).toContain("(openai) gpt-5.1-codex");
 		expect(rendered).toContain("/tmp/project");
 	});
@@ -170,7 +170,7 @@ describe("InteractiveMode startup banner", () => {
 				gap,
 			});
 			expect(rendered, `gap ${gap}`).not.toBe("");
-			expect(rendered).toContain("Atomic v0.0.0");
+			expect(rendered).toContain("Orphus v0.0.0");
 			expect(rendered).not.toContain("█");
 		}
 	});
@@ -193,7 +193,7 @@ describe("InteractiveMode startup banner", () => {
 					raw: true,
 				});
 				expect(plain(rendered).trim()).not.toBe("");
-				if (state.gap === 0) expect(rendered).toContain("Atomic v0.0.0");
+				if (state.gap === 0) expect(rendered).toContain("Orphus v0.0.0");
 				expect(rendered).not.toMatch(/\u001b\[(?:38;|39m)/);
 			}
 		} finally {
@@ -246,8 +246,8 @@ describe("InteractiveMode startup banner", () => {
 		expect(STARTUP_ASSEMBLY_GAPS).toEqual([10, 8, 6, 4, 3, 2, 1, 1, 0]);
 		for (const gap of STARTUP_ASSEMBLY_GAPS.slice(0, -1)) {
 			const frame = renderAtomicAssemblyBanner(gap, theme, "off").map(plain);
-			expect(frame).toHaveLength(11);
-			expect(frame.every((line) => line.length === 36)).toBe(true);
+			expect(frame).toHaveLength(7);
+			expect(frame.every((line) => line.length === 50)).toBe(true);
 			expect(frame.join(""), `gap ${gap}`).not.toContain("░");
 		}
 		expect(renderAtomicAssemblyBanner(0, theme, "off").map(plain).join("")).toContain("░");

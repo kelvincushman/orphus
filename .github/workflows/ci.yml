@@ -162,10 +162,7 @@ jobs:
           -- npm run test:unit
 
       # Green on this fork and cheap (~3 min): enforcing them here closes most
-      # of the audit's "three of five suites enforced by nothing". The coding-
-      # agent workspace suite stays out — it is red with rebrand-stale
-      # assertions and reads LFS fixtures this fork cannot fetch; enabling it
-      # is tracked separately rather than pretended here.
+      # of the audit's "three of five suites enforced by nothing".
       - name: Integration tests (one bounded flake retry)
         run: >-
           bun run scripts/run-flaky-test-suite.ts --label "integration tests"
@@ -174,6 +171,17 @@ jobs:
           # Hard-require the installed-package Node smoke: the coding-agent
           # build above guarantees dist/ exists in this job.
           ORPHUS_REQUIRE_INSTALLED_NODE_SMOKE: "1"
+
+      # The fork's largest suite, green again after the rebrand-stale
+      # assertions were fixed. It must stay green WITHOUT LFS objects: the two
+      # inherited compaction fixtures 404 forever on this fork's LFS server, so
+      # their tests skip on pointer detection and this job's checkout keeps
+      # LFS off. Same wrapper, so its duration budgets and diagnostics are
+      # enforced here too.
+      - name: Coding-agent workspace suite (one bounded flake retry)
+        run: >-
+          bun run scripts/run-flaky-test-suite.ts --label "coding-agent workspace suite"
+          -- npm run test --workspace=@orphus/coding-agent
 
       - name: Script tests
         run: npm run test:scripts

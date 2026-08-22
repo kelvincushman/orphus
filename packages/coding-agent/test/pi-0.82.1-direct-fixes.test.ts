@@ -83,7 +83,9 @@ describe("Pi 0.82.1 remaining direct coding-agent parity", () => {
 		const sources = {
 			"cli/startup-ui.ts": "getAgentDir()",
 			"cli/config-selector.ts": "options.agentDir",
-			"cli/session-picker.ts": "getAgentDir()",
+			// The --resume picker's TUI construction moved behind the backend host
+			// factory in the termDOM pilot; the constructor lives in pi-backend now.
+			"core/terminal/pi-backend.ts": "getAgentDir()",
 			"main-session.ts": "getAgentDir()",
 			"modes/interactive/interactive-mode-base.ts": "runtimeHost.services.agentDir",
 			"modes/interactive-engine/engine-render-service.ts": "getAgentDir()",

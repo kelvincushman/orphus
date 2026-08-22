@@ -191,7 +191,7 @@ function hasTrustRequiringConfigResources(cwd: string): boolean {
 
 /**
  * Returns true when cwd has project-local resources that must be gated by
- * project trust: trust-requiring entries under cwd/.atomic or cwd/.pi, or
+ * project trust: trust-requiring entries under a project config dir (cwd/.orphus, cwd/.atomic, or cwd/.pi), or
  * .agents/skills in cwd or one of its ancestors. Returns false for inert
  * state-only config directories. The user-global ~/.agents/skills directory is
  * always treated as a trusted user resource and ignored, even when cwd is $HOME.

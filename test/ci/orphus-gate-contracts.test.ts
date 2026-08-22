@@ -57,12 +57,16 @@ test("the Orphus gate runs the inherited unit suite and the CI contracts", async
 	assert.match(suites, /run-flaky-test-suite\.ts[\s\S]*?-- npm run test:unit\b/u);
 	assert.match(suites, /run: npm run test:ci-contracts\b/u);
 	// Integration and script suites are enforced here too — green on this fork
-	// and cheap. The workspace suite is deliberately absent (rebrand-stale
-	// assertions, LFS fixtures the fork cannot fetch); do not add it without
-	// making it green first.
+	// and cheap.
 	assert.match(suites, /run-flaky-test-suite\.ts[\s\S]*?-- npm run test:integration\b/u);
 	assert.match(suites, /ORPHUS_REQUIRE_INSTALLED_NODE_SMOKE: "1"/u);
 	assert.match(suites, /run: npm run test:scripts\b/u);
+	// The coding-agent workspace suite gates again now that its rebrand-stale
+	// assertions are fixed. It runs through the same wrapper (duration budgets,
+	// diagnostics), and must stay green without LFS objects — the inherited
+	// compaction fixtures 404 forever on this fork, so their tests skip on
+	// pointer detection and the checkout below stays LFS-free.
+	assert.match(suites, /run-flaky-test-suite\.ts[\s\S]*?-- npm run test --workspace=@orphus\/coding-agent\b/u);
 	// The unit suite imports the bundled subagent extension, which loads the
 	// Rust control plane in crates/atomic-natives. Without a binding the import
 	// fails and the whole suite dies, not just the runner tests.

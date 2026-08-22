@@ -89,7 +89,9 @@ describe("Coding Agent Tools", () => {
 			).rejects.toThrow("Could not edit file: missing.txt. Error code: ENOENT.");
 		});
 
-		it("surfaces EACCES for unreadable hashline targets", async () => {
+		// chmod 0o444 cannot deny root, so the edit would succeed instead of rejecting.
+		const itUnlessRoot = process.getuid?.() === 0 ? it.skip : it;
+		itUnlessRoot("surfaces EACCES for unreadable hashline targets", async () => {
 			const store = createHashlineSnapshotStore();
 			const read = createReadToolDefinition(testDir, { hashlineStore: store });
 			const edit = createEditToolDefinition(testDir, { hashlineStore: store });

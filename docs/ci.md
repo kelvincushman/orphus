@@ -42,8 +42,11 @@ without a binding, taking the whole suite with it), then the coding-agent build
 (`test/unit/pi-0.82.1-artifacts.test.ts` degrades to `test.skip` when `dist/` is
 absent), then the unit suite through `scripts/run-flaky-test-suite.ts` (which
 writes the per-test duration table to `.ci-diagnostics/` and enforces the
-duration budgets), `npm run test:integration` through the same wrapper,
-`npm run test:scripts`, and `npm run test:ci-contracts`.
+duration budgets), `npm run test:integration` through the same wrapper, the
+coding-agent workspace suite (`npm run test --workspace=@orphus/coding-agent`,
+also wrapped — it must stay green without LFS objects, because the two
+inherited compaction fixtures 404 forever on this fork and their tests skip on
+pointer detection), `npm run test:scripts`, and `npm run test:ci-contracts`.
 
 It also fetches the **inherited upstream tags** before running. `changelog.test.ts`
 compares each released changelog section against the git tag that released it,

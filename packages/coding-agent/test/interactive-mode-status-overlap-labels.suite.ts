@@ -41,7 +41,7 @@ describe("InteractiveMode overlap labels", () => {
 		});
 
 		const output = normalizeRenderedOutput(fakeThis.chatContainer);
-		expect(output).toContain("`package-a` and `package-b` provide resources already bundled with Atomic.");
+		expect(output).toContain("`package-a` and `package-b` provide resources already bundled with Orphus.");
 	});
 
 	test("disambiguates local package sources with the same basename", () => {
@@ -76,7 +76,7 @@ describe("InteractiveMode overlap labels", () => {
 		});
 
 		const output = normalizeRenderedOutput(fakeThis.chatContainer);
-		expect(output).toContain("`a/plugin` and `b/plugin` provide resources already bundled with Atomic.");
+		expect(output).toContain("`a/plugin` and `b/plugin` provide resources already bundled with Orphus.");
 	});
 
 	test("disambiguates local package labels from npm package labels", () => {
@@ -119,7 +119,7 @@ describe("InteractiveMode overlap labels", () => {
 		});
 
 		const output = normalizeRenderedOutput(fakeThis.chatContainer);
-		expect(output).toContain("`plugin` and `tmp/plugin` provide resources already bundled with Atomic.");
+		expect(output).toContain("`plugin` and `tmp/plugin` provide resources already bundled with Orphus.");
 	});
 
 	test("preserves distinct auto-discovered extension labels", () => {
@@ -164,6 +164,6 @@ describe("InteractiveMode overlap labels", () => {
 		});
 
 		const output = normalizeRenderedOutput(fakeThis.chatContainer);
-		expect(output).toContain("`plugin-a` and `plugin-b` provide resources already bundled with Atomic.");
+		expect(output).toContain("`plugin-a` and `plugin-b` provide resources already bundled with Orphus.");
 	});
 });
