@@ -64,6 +64,18 @@ describe("roundtable digest", () => {
 		expect(digest.text).toContain("chars)");
 	});
 
+	it("the collapse marker's advice actually works after the cursor advances", () => {
+		// The digest marks everything consumed, collapsed included, so "raise
+		// budget and re-digest" was a dead end — the next digest starts after
+		// these messages and reports nothing. The marker now names the one
+		// recovery that works: a fetch from just before the oldest collapsed seq.
+		const many = Array.from({ length: 12 }, (_, i) => message(i + 5, `message number ${i} ${"padding ".repeat(30)}`));
+		const digest = buildDigest(many, { budget: 300 });
+		expect(digest.collapsed).toBeGreaterThan(0);
+		expect(digest.text).toContain("fetch with after_seq 4");
+		expect(digest.text).not.toContain("raise budget");
+	});
+
 	it("collapses everything to a count line under a tiny budget", () => {
 		const messages = Array.from({ length: 30 }, (_, i) => message(i + 1, `msg ${i}: ${"z".repeat(200)}`));
 		const digest = buildDigest(messages, { budget: 200 });

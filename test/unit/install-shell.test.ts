@@ -1038,6 +1038,27 @@ unixTest("wget's file I/O status is reported as a write failure too", () => {
 	}
 });
 
+unixTest("updates retain the previous version for rollback and prune the rest", () => {
+	// Without a cap every update added a full compressed release to $HOME
+	// forever, and nothing consumed the older copies — the README's "kept for
+	// rollback" needs exactly one previous version, not an unbounded museum.
+	const fixture = createFixture();
+	try {
+		addRelease(fixture, "v1.1.0");
+		addRelease(fixture, "v1.2.0");
+		assertSuccess(fixture.run({ args: ["--ref", "v1.0.0"] }));
+		assertSuccess(fixture.run({ args: ["--ref", "v1.1.0"] }));
+		assertSuccess(fixture.run({ args: ["--ref", "v1.2.0"] }));
+		const versions = readdirSync(join(fixture.installRoot, "versions"))
+			.filter((entry) => !entry.startsWith("."))
+			.sort();
+		assert.deepEqual(versions, ["v1.1.0", "v1.2.0"], "current plus one previous, nothing older");
+		assert.equal(currentVersion(fixture), "v1.2.0");
+	} finally {
+		fixture.cleanup();
+	}
+});
+
 unixTest("curl's ambiguous exit 56 names both causes and ranks neither", () => {
 	const fixture = createFixture();
 	try {

@@ -65,12 +65,15 @@ export async function getLatestPiRelease(
 	options: { timeoutMs?: number; currentVersion?: string } = {},
 ): Promise<LatestPiRelease | undefined> {
 	if (getEnvValue(ENV_OFFLINE)) return undefined;
-	const requestInit = {
+	// One signal per request: AbortSignal.timeout starts at construction, so a
+	// shared signal gave the fallback fetch only whatever the first one left —
+	// aborting the exact path the fallthrough exists to serve.
+	const requestInit = () => ({
 		headers: {
 			accept: "application/vnd.github+json",
 		},
 		signal: AbortSignal.timeout(options.timeoutMs ?? DEFAULT_VERSION_CHECK_TIMEOUT_MS),
-	};
+	});
 
 	// Stable runners track the stable channel: a stable install must not be
 	// dragged onto a newer beta. Prerelease runners opted onto the bleeding
@@ -78,15 +81,21 @@ export async function getLatestPiRelease(
 	// exist, the stable endpoint 404s and everyone falls through to the list.
 	const currentVersion = options.currentVersion ?? VERSION;
 	if (!isPrereleaseVersion(currentVersion)) {
-		const stable = await fetch(STABLE_CHANNEL_URL, requestInit);
+		const stable = await fetch(STABLE_CHANNEL_URL, requestInit());
 		if (stable.ok) {
 			const data = (await stable.json()) as { tag_name?: unknown };
 			const version = versionFromTag(data.tag_name);
 			if (version) return { version };
+		} else if (stable.status !== 404) {
+			// 404 is the one documented fallthrough: no stable release exists yet.
+			// Any other failure (403 rate limit, 5xx) says nothing about what the
+			// newest stable IS — falling through offered a stable install the
+			// newest prerelease instead. "Could not check" is the honest answer.
+			return undefined;
 		}
 	}
 
-	const response = await fetch(NEWEST_RELEASE_URL, requestInit);
+	const response = await fetch(NEWEST_RELEASE_URL, requestInit());
 	if (!response.ok) return undefined;
 	const data = (await response.json()) as unknown;
 	if (!Array.isArray(data) || data.length === 0) return undefined;

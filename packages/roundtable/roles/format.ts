@@ -122,12 +122,18 @@ function renderOrca(plan: LaunchPlan): string {
     "",
   ];
   for (const launch of plan.launches) {
+    // A defaulted cwd (the manifest dir) stays out of the command: the whole
+    // point of --worktree is that orca decides where the terminal opens. An
+    // EXPLICIT cwd is the author overriding that, and sh/tmux already honor
+    // it — dropping it only here made the three formats disagree silently.
+    // The flag, not a path comparison: `cwd: .` resolves to the manifest dir
+    // yet is still the author's choice.
     lines.push(
       [
         "orca terminal create",
         `--worktree ${shellQuote(launch.worktree)}`,
         `--title ${shellQuote(launch.role)}`,
-        `--command ${shellQuote(commandLine(launch))}`,
+        `--command ${shellQuote(launch.cwdExplicit ? shellCommand(launch) : commandLine(launch))}`,
       ].join(" "),
     );
   }

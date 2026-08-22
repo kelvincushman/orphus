@@ -59,7 +59,12 @@ function describe(value: unknown): string {
   if (value === null) return "null";
   if (Array.isArray(value)) return "a list";
   if (isRecord(value)) return "a map";
-  return `${typeof value} (${JSON.stringify(value)})`;
+  // Cap the echo. validate() gets pointed at arbitrary paths, and when the
+  // target was never YAML (a .env, a key) the "scalar" here is the whole file —
+  // splicing it into the error turns a validation failure into disclosure. The
+  // type and a short prefix diagnose just as well; listFleets set the precedent.
+  const rendered = JSON.stringify(value) ?? String(value);
+  return `${typeof value} (${rendered.length <= 80 ? rendered : `${rendered.slice(0, 80)}… [${rendered.length} chars]`})`;
 }
 
 function rejectUnknownKeys(raw: Record<string, unknown>, allowed: readonly string[], path: string, prefix: string): void {
@@ -191,6 +196,21 @@ function parseTeam(
   const room = raw.room !== undefined
     ? requireName(raw.room, path, `${keyPath}.room`, KEYS_CURSORS)
     : `fleet-${fleetName}-${teamName}`;
+
+  // A deliberating member whose explicit tools omit roundtable is told, at
+  // render time, that its first call must be roundtable({action:"join"}) — a
+  // tool it cannot call. tools: [] is the same trap at its sharpest: the spec
+  // grants nothing, overriding the agent's own list. Statically decidable, so
+  // say it here rather than letting the run discover it.
+  if (mode !== "dispatch") {
+    for (const [index, member] of members.entries()) {
+      if (member.tools !== undefined && !member.tools.includes("roundtable")) {
+        warnings.push(
+          `${keyPath}.members[${index}].tools omits "roundtable", but ${mode} mode instructs this member to join the room — add it, or drop the tools override`,
+        );
+      }
+    }
+  }
 
   const rounds = parsePositiveInt(raw.rounds, path, `${keyPath}.rounds`, DEFAULT_ROUNDS);
   if (rounds > MAX_ROUNDS) fail(path, `${keyPath}.rounds`, `${rounds} exceeds the sane ceiling of ${MAX_ROUNDS}`);
