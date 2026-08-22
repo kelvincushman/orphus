@@ -46,6 +46,7 @@ describe("broker startup-lock post-mortem", () => {
 			assert.match(detail, /stale startup lock/u);
 			assert.match(detail, /remove that file and retry/u);
 			assert.ok(detail.includes(lockPath), "the message must name the file to remove");
+			assert.ok(detail.includes(String(deadPid)), "the message must name the dead owner");
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}
@@ -58,6 +59,10 @@ describe("broker startup-lock post-mortem", () => {
 			assert.equal(describeStartupObstruction(lockPath), "", "no lock, no diagnosis");
 			writeFileSync(lockPath, JSON.stringify({ pid: process.pid, token: "t" }));
 			assert.equal(describeStartupObstruction(lockPath), "", "a live holder is contention, not a wedge");
+			writeFileSync(lockPath, JSON.stringify({ pid: "invalid" }));
+			assert.equal(describeStartupObstruction(lockPath), "", "malformed metadata diagnoses nothing");
+			writeFileSync(lockPath, "not json at all");
+			assert.equal(describeStartupObstruction(lockPath), "", "an unreadable lock diagnoses nothing");
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}

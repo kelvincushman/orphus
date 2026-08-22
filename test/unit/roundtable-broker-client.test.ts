@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, statSync, symlinkSync } from "fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, statSync, symlinkSync } from "fs";
 import { createConnection, createServer } from "net";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -57,6 +57,29 @@ describe("roundtable broker and client over a real socket", () => {
 		// docs/roundtable-tool.md promises user-only socket permissions; umask was
 		// the only thing delivering them, and under 0022 the socket was 0755.
 		assert.equal(statSync(socketPath).mode & 0o777, 0o600);
+		assert.equal(statSync(getRoundtableDirPath(agentDir)).mode & 0o777, 0o700);
+	});
+
+	unixIt("a pre-existing permissive broker directory is tightened, not trusted", async () => {
+		// mkdir's mode applies only on creation — a directory left 0755 by an
+		// older broker would keep its bits forever if creation were the only
+		// enforcement point.
+		const staleAgentDir = mkdtempSync(join(tmpdir(), "roundtable-perm-"));
+		const staleDir = getRoundtableDirPath(staleAgentDir);
+		mkdirSync(staleDir, { recursive: true, mode: 0o755 });
+		chmodSync(staleDir, 0o755);
+		const stale = new RoundtableBroker(
+			getBrokerSocketPath(process.platform, staleAgentDir),
+			getBrokerPidPath(staleAgentDir),
+			staleDir,
+		);
+		try {
+			await new Promise<void>((resolve) => stale.start(resolve));
+			assert.equal(statSync(staleDir).mode & 0o777, 0o700);
+		} finally {
+			stale.shutdown();
+			rmSync(staleAgentDir, { recursive: true, force: true });
+		}
 	});
 
 	it("a second register on one connection is refused, not silently orphaned", async () => {

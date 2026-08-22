@@ -18,6 +18,13 @@ export interface RoleSpec {
   readonly room: string;
   /** Working directory for the session, absolute. Defaults to the manifest dir. */
   readonly cwd: string;
+  /**
+   * Whether the manifest set cwd at all. Comparing resolved paths loses this:
+   * an explicit `cwd: .` resolves to the manifest dir yet is still a choice —
+   * and under `--format orca` the difference decides whether the terminal
+   * follows the worktree or the author.
+   */
+  readonly cwdExplicit: boolean;
   /** Orca worktree selector (`name:planner`, `path:/…`, `active`). Default "active". */
   readonly worktree: string;
 }
@@ -53,6 +60,7 @@ export interface RoleLaunch {
   readonly model: string;
   readonly briefPath?: string;
   readonly cwd: string;
+  readonly cwdExplicit: boolean;
   readonly worktree: string;
   readonly command: string;
   readonly args: readonly string[];
@@ -65,8 +73,6 @@ export interface LaunchPlan {
   readonly room: string;
   readonly budgets: RoleBudgets;
   readonly launches: readonly RoleLaunch[];
-  /** Where the manifest lives — a launch cwd equal to this is the default, not a choice. */
-  readonly manifestDir: string;
 }
 
 /** Thrown for any malformed manifest; message names the file and the key path. */

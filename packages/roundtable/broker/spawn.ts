@@ -1,5 +1,5 @@
 import { spawn } from "child_process";
-import { existsSync, mkdirSync, readFileSync } from "fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { createRequire } from "module";
 import { fileURLToPath } from "url";
@@ -41,6 +41,8 @@ export async function ensureBrokerRunning(socketPath: string = getBrokerSocketPa
   if (await canConnect(socketPath)) return;
 
   mkdirSync(getRoundtableDirPath(), { recursive: true, mode: 0o700 });
+  // mkdir's mode applies only on creation; enforce on a pre-existing dir too.
+  if (process.platform !== "win32") chmodSync(getRoundtableDirPath(), 0o700);
   const { command, args } = brokerCommand();
   const child = spawn(command, args, {
     detached: true,
@@ -65,14 +67,16 @@ export async function ensureBrokerRunning(socketPath: string = getBrokerSocketPa
  * lock) applies to this process too.
  */
 export function describeStartupObstruction(lockPath: string = `${getBrokerPidPath()}.startup.lock`): string {
+  let lastProbedPid: number | undefined;
   try {
     const owner = JSON.parse(readFileSync(lockPath, "utf8")) as { pid?: number };
     if (typeof owner.pid !== "number") return "";
+    lastProbedPid = owner.pid;
     process.kill(owner.pid, 0);
     return "";
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ESRCH") {
-      return ` — a stale startup lock at ${lockPath} belongs to a dead process; remove that file and retry`;
+      return ` — a stale startup lock at ${lockPath} belongs to dead pid ${lastProbedPid}; remove that file and retry`;
     }
     return "";
   }

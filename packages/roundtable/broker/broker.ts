@@ -131,6 +131,9 @@ export class RoundtableBroker {
     private options: BrokerOptions = {},
   ) {
     mkdirSync(this.dirPath, { recursive: true, mode: 0o700 });
+    // mkdir's mode applies only on creation — a pre-existing permissive
+    // directory keeps its bits, so enforce rather than hope.
+    if (process.platform !== "win32") chmodSync(this.dirPath, 0o700);
     this.server = net.createServer(this.handleConnection.bind(this));
   }
 
@@ -191,8 +194,16 @@ export class RoundtableBroker {
       if (process.platform !== "win32") {
         try {
           chmodSync(this.socketPath, 0o600);
-        } catch {
-          // The socket can vanish if the broker loses a shutdown race here.
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+            // Serving an open socket the boundary was never applied to would
+            // be the exact hole this chmod exists to close. ENOENT alone is
+            // benign — the broker lost a shutdown race and the socket is gone.
+            releaseLock();
+            this.server.close();
+            onLost?.(error instanceof Error ? error : new Error(String(error)));
+            return;
+          }
         }
       }
       // Diagnostic only — `ps` against a broker whose socket looks wedged. It is

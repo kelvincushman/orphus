@@ -58,11 +58,12 @@ export function buildLaunchPlan(manifest: RoleManifest, options: PlanOptions = {
       model: role.model,
       ...(role.briefPath !== undefined ? { briefPath: role.briefPath } : {}),
       cwd: role.cwd,
+      cwdExplicit: role.cwdExplicit,
       worktree: role.worktree,
       command,
       args: buildArgs(role, footer),
       footer,
     };
   });
-  return { task: manifest.task, room: manifest.room, budgets: manifest.budgets, launches, manifestDir: manifest.dir };
+  return { task: manifest.task, room: manifest.room, budgets: manifest.budgets, launches };
 }

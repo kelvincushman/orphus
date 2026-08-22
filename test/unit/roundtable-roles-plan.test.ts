@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { spawnSync } from "child_process";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
@@ -47,13 +48,21 @@ describe("launch plan", () => {
 				join(dir, "orphus.roles.yaml"),
 			),
 		);
-		const script = formatPlan(explicit, "orca");
 		// The path arrives shell-quoted inside the --command string, so match
 		// through the quoting rather than asserting the bare concatenation.
-		expect(script).toMatch(/cd .*sub\/dir/);
+		assert.match(formatPlan(explicit, "orca"), /cd .*sub\/dir/u);
 
-		const defaulted = formatPlan(plan(), "orca");
-		expect(defaulted).not.toContain("cd ");
+		// Explicitness, not path equality: `cwd: .` resolves to the manifest dir
+		// yet is still the author's choice, and must cd under orca too.
+		const explicitDot = buildLaunchPlan(
+			parseRoleManifest(
+				SOURCE.replace("model: grok }", 'model: grok, cwd: "." }'),
+				join(dir, "orphus.roles.yaml"),
+			),
+		);
+		assert.match(formatPlan(explicitDot, "orca"), /cd /u);
+
+		assert.doesNotMatch(formatPlan(plan(), "orca"), /cd /u);
 	});
 
 	it("emits one launch per role, in manifest order", () => {
