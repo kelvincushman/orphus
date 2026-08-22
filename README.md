@@ -156,8 +156,8 @@ orphus
 you use, or log in from inside a session with `/login`.
 
 From then on, `orphus update` upgrades in place: it checks this repository's releases,
-re-runs the installer, and flips the `current` pointer — prior versions stay on disk for
-rollback. Nobody reinstalls by hand. Updates follow your channel: a stable install tracks
+re-runs the installer, and flips the `current` pointer — the previous version stays on
+disk for rollback (older ones are pruned). Nobody reinstalls by hand. Updates follow your channel: a stable install tracks
 stable releases only, so it is never dragged onto a beta; a prerelease install tracks the
 newest release of any kind.
 

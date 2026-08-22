@@ -60,6 +60,40 @@ describe("version checks", () => {
 		);
 	});
 
+	it("a rate-limited stable check reports nothing rather than offering a prerelease", async () => {
+		// Only 404 means "no stable release exists yet". A 403 or 5xx says
+		// nothing about what the newest stable IS — falling through to the
+		// any-kind list offered a stable install the newest beta, as a spurious
+		// upgrade it would not even receive.
+		const fetchMock = vi.fn(async (url: RequestInfo | URL) =>
+			String(url).includes("/releases/latest")
+				? new Response("rate limited", { status: 403 })
+				: Response.json([{ tag_name: "v1.3.0-beta.2" }]),
+		);
+		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
+		expect(await getLatestPiVersion({ currentVersion: "1.2.0" })).toBeUndefined();
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
+	it("each request gets its own timeout budget", async () => {
+		// AbortSignal.timeout starts at construction: one shared init gave the
+		// fallback request only whatever the stable probe left of the budget —
+		// aborting the exact path the fallthrough exists to serve.
+		const signals: Array<AbortSignal | undefined> = [];
+		const fetchMock = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+			signals.push(init?.signal ?? undefined);
+			return String(url).includes("/releases/latest")
+				? new Response("nope", { status: 404 })
+				: Response.json([{ tag_name: "v1.2.4-beta.1" }]);
+		});
+		vi.spyOn(globalThis, "fetch").mockImplementation(fetchMock as never);
+		await getLatestPiVersion({ currentVersion: "1.2.0" });
+		expect(signals).toHaveLength(2);
+		expect(signals[0]).toBeDefined();
+		expect(signals[1]).toBeDefined();
+		expect(signals[0]).not.toBe(signals[1]);
+	});
+
 	it("falls back to the release list while only prereleases exist", async () => {
 		const fetchMock = vi.fn(async (url: RequestInfo | URL) =>
 			String(url).endsWith("/releases/latest")

@@ -107,7 +107,8 @@ orphus
 ```
 
 Later upgrades are one command — `orphus update` checks this repository's
-releases and installs in place, keeping prior versions for rollback. Updates
+releases and installs in place, keeping the previous version for rollback
+(older ones are pruned). Updates
 follow your channel, and the channel is a property of the version you are
 running: a stable install only ever moves to newer stable releases, while a
 prerelease install tracks the newest release of any kind. `--ref` pins one
