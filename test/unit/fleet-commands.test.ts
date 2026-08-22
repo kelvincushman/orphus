@@ -28,6 +28,7 @@ interface Sent {
 	sessionName: string | undefined;
 	setModelCalls: string[];
 	setModelResult: boolean;
+	thinkingCalls: string[];
 }
 
 function stubs(overrides: { configured?: string[]; sessionName?: string; setModelResult?: boolean } = {}) {
@@ -37,6 +38,7 @@ function stubs(overrides: { configured?: string[]; sessionName?: string; setMode
 		sessionName: overrides.sessionName,
 		setModelCalls: [],
 		setModelResult: overrides.setModelResult ?? true,
+		thinkingCalls: [],
 	};
 	const configured = overrides.configured ?? ["anthropic"];
 	const pi = {
@@ -49,6 +51,9 @@ function stubs(overrides: { configured?: string[]; sessionName?: string; setMode
 		setModel: async (model: { provider: string; id: string }) => {
 			sent.setModelCalls.push(`${model.provider}/${model.id}`);
 			return sent.setModelResult;
+		},
+		setThinkingLevel: (level: string) => {
+			sent.thinkingCalls.push(level);
 		},
 	};
 	const ctx = {
@@ -106,6 +111,21 @@ describe("/fleet", () => {
 		assert.match(sent.userMessages[0]!.content, /add a --version flag/u);
 		assert.equal(sent.sessionName, "fleet-coding-team-lead");
 		assert.deepEqual(sent.setModelCalls, ["anthropic/claude-opus"]);
+	});
+
+	test("a thinking-suffixed orchestrator model runs instead of refusing its own validated reference", async () => {
+		// The preflight strips ":high" before its registry lookup; the handler
+		// used to split the raw string and exact-match "claude-opus:high" against
+		// the registry, refusing the exact blueprint its own validator accepted.
+		writeFileSync(
+			join(cwd, ".orphus", "fleets", "coding-team.fleet.yaml"),
+			VALID.replace("model: anthropic/claude-opus", "model: anthropic/claude-opus:high"),
+		);
+		const { sent, pi, ctx } = stubs();
+		await createFleetCommandHandler(pi as never, handlerDeps())("coding-team do it", ctx as never);
+		assert.deepEqual(sent.setModelCalls, ["anthropic/claude-opus"], "the base model must be pinned");
+		assert.deepEqual(sent.thinkingCalls, ["high"], "the suffix is the author's thinking level, not decoration");
+		assert.equal(sent.userMessages.length, 1, "the run must proceed to its briefing");
 	});
 
 	test("a pre-named session keeps its name", async () => {
@@ -169,6 +189,23 @@ describe("/fleetsetup", () => {
 		assert.doesNotMatch(providersBlock, /openai-codex/u);
 		assert.match(briefing, /coding-team/u);
 		assert.match(briefing, /\.fleet\.yaml/u);
+	});
+
+	test("a credentialed git remote reaches the briefing with its secret stripped", async () => {
+		// The briefing is sent as a user message: everything in it enters model
+		// context and the transcript. https://user:token@host is a real shape CI
+		// writes into .git/config, and the raw regex used to pass it through.
+		mkdirSync(join(cwd, ".git"), { recursive: true });
+		writeFileSync(
+			join(cwd, ".git", "config"),
+			'[remote "origin"]\n\turl = https://kelvin:ghp_AAAABBBBCCCCDDDD@github.com/acme/private.git\n',
+		);
+		const { sent, pi, ctx } = stubs();
+		await createFleetSetupHandler(pi as never, handlerDeps())("", ctx as never);
+		assert.equal(sent.userMessages.length, 1);
+		const briefing = sent.userMessages[0]!.content;
+		assert.doesNotMatch(briefing, /ghp_AAAABBBBCCCCDDDD/u, "the token must never enter model context");
+		assert.match(briefing, /https:\/\/github\.com\/acme\/private\.git/u, "the repo hint itself survives");
 	});
 
 	test("buildSetupBriefing embeds the schema reference and the validate loop", () => {
