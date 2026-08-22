@@ -260,7 +260,10 @@ packages/roundtable/          The Orphus contribution — rooms and the context-
   skills/                       Discussion etiquette, shipped as an agent skill
 packages/fleet/               Fleet blueprints: /fleet, /fleetsetup, the fleet tool, SCHEMA.md,
                                 six examples, and the orchestration + kie-ai-media skills
-packages/coding-agent/        The `orphus` binary (Atomic-derived)
+packages/coding-agent/        The `orphus` binary (Atomic-derived, plus the first-party
+                                harness boundary, browser operation, and termDOM backend)
+packages/transcribe/          Local dictation, derived from pi-transcribe — protocol, model
+                                catalog, ABI pin. Not bundled: fails closed until natives exist
 packages/{workflows,subagents,intercom,mcp,web-access,natives}
 orphus.roles.yaml · roles/    Example role manifest and briefs — copy-me templates
 test/unit/roundtable-*        Rooms, memory, socket, digest, broker lifecycle, and role-launcher tests
