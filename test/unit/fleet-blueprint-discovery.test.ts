@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, test } from "vitest";
 import { discoverFleets, fleetRoots } from "../../packages/fleet/blueprint/discovery.ts";
+import { FleetBlueprintError } from "../../packages/fleet/blueprint/types.ts";
 
 let root: string;
 let cwd: string;
@@ -93,6 +94,17 @@ describe("fleet discovery", () => {
 	test("default roots point bundledDir at the package examples", () => {
 		const roots = fleetRoots(cwd, { ORPHUS_CODING_AGENT_DIR: agentDir });
 		assert.match(roots.bundledDir, /packages[/\\]fleet[/\\]examples$|fleet[/\\]examples$/u);
+	});
+
+	test("a regular file squatting on a fleets path fails with a named error, not a raw ENOTDIR", () => {
+		// existsSync passes for a file, then readdirSync used to throw ENOTDIR
+		// straight past every FleetBlueprintError-only catch upstream.
+		mkdirSync(join(cwd, ".orphus"), { recursive: true });
+		writeFileSync(join(cwd, ".orphus", "fleets"), "not a directory");
+		assert.throws(
+			() => discoverFleets(fleetRoots(cwd, { ORPHUS_CODING_AGENT_DIR: agentDir })),
+			(error: unknown) => error instanceof FleetBlueprintError && /cannot list fleets/u.test(error.message),
+		);
 	});
 
 	test("ignores files without the .fleet.yaml suffix and missing directories", () => {

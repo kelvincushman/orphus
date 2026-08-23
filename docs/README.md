@@ -55,13 +55,25 @@ loop, providers, tools, MCP, subagents, workflows, and the TUI all come from
 there and behave as they do upstream.
 
 What Orphus authors is `packages/roundtable/` — rooms, the budgeted digest, the
-broker, the role launcher, the memory adapter — and `packages/fleet/` — the
-blueprint loader, `/fleet` and `/fleetsetup`, and the orchestration skills —
-plus their tests, this documentation, and `.github/workflows/ci.yml`.
+broker, the role launcher, the memory adapter — `packages/fleet/` — the
+blueprint loader, `/fleet` and `/fleetsetup`, and the orchestration skills — and
+`packages/transcribe/`, local dictation derived from pi-transcribe. It also authors
+several subsystems *inside* the otherwise-vendored `packages/coding-agent/`:
+the injectable capability boundary and the provider/tool session records,
+`orphus inspect runtime`, browser operation, and the termDOM terminal backend.
+Add their tests, this documentation, and `.github/workflows/ci.yml`.
 
-The practical consequence: a question about *rooms, digests, roles, memory, or
-fleets* belongs here. A question about the harness underneath is usually
-answered upstream, and a bug there is worth reporting to both.
+[Architecture](architecture.md#where-orphus-ends-and-atomic-begins) has the
+path-by-path table, which is the one to check before assuming a file is
+upstream's.
+
+The practical consequence: a question about *rooms, digests, roles, memory,
+fleets, dictation*, or any of the `coding-agent` subsystems named above belongs
+here. A question about the agent loop, providers, tools, or the chat TUI is
+usually answered upstream, and a bug there is worth reporting to both. Note that
+"harness" is ambiguous in this repository: [harness.md](../packages/coding-agent/docs/harness.md)
+describes Orphus's own capability boundary and session records, not the
+inherited agent machinery.
 
 The `archive/upstream/` directory holds Atomic's inherited working notes — 383
 files written for a different project. Nothing reads them, and nothing new

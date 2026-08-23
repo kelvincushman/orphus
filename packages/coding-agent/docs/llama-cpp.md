@@ -40,7 +40,7 @@ Enter the router URL and optional API key. The default URL is `http://127.0.0.1:
 ```bash
 export LLAMA_BASE_URL=http://127.0.0.1:8080
 export LLAMA_API_KEY=optional-secret
-atomic
+orphus
 ```
 
 If the server requires a key, start `llama-server` with the matching `--api-key`. Keep `--host 127.0.0.1` for local-only access.

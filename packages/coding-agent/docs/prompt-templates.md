@@ -10,7 +10,7 @@ Orphus loads prompt templates from:
 
 - Global: `~/.orphus/agent/prompts/*.md` (legacy `~/.atomic/agent/prompts/*.md` and `~/.pi/agent/prompts/*.md`)
 - Project: `.orphus/prompts/*.md` (legacy `.atomic/prompts/*.md` and `.pi/prompts/*.md`, only after the project is trusted)
-- Packages: `prompts/` directories, `atomic.prompts`, or legacy `pi.prompts` entries in `package.json`
+- Packages: `prompts/` directories, `orphus.prompts`, or legacy `pi.prompts` entries in `package.json`
 - Settings: `prompts` array with files or directories
 - CLI: `--prompt-template <path>` (repeatable)
 

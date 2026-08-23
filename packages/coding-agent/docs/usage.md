@@ -17,9 +17,9 @@ The editor can be replaced temporarily by built-in UI such as `/settings` or by 
 
 ### Startup and Working Identity
 
-On an interactive TTY, the startup ∀ assembles from two separated halves in whole-column steps, lands its shadow and session identity, then reveals the one-time manifesto beat. Any key—including Ctrl+C—completes the sequence immediately before normal input routing continues. Terminals narrower than the mark show compact textual identity throughout assembly instead of a blank startup area. Quiet startup suppresses the sequence; a mounted interactive UI without a TTY, or with `ORPHUS_REDUCED_MOTION=1`, starts in the complete settled state. `NO_COLOR` suppresses foreground color across the mark, metadata, and manifesto while retaining weight emphasis.
+On an interactive TTY, the startup ORPHUS wordmark assembles from two separated halves in whole-column steps, lands its shadow and session identity, then reveals the one-time manifesto beat. Any key—including Ctrl+C—completes the sequence immediately before normal input routing continues. Terminals narrower than the mark show compact textual identity throughout assembly instead of a blank startup area. Quiet startup suppresses the sequence; a mounted interactive UI without a TTY, or with `ORPHUS_REDUCED_MOTION=1`, starts in the complete settled state. `NO_COLOR` suppresses foreground color across the mark, metadata, and manifesto while retaining weight emphasis.
 
-While ordinary agent work is active, the exact one-cell `∀` remains visible and follows a pronounced ten-frame dark → accent → bright/bold → accent → dark luminance ramp at an 88ms cadence. Optional theme tone overrides control any terminal-supported foreground phase exactly, including palette indices 0–255; Orphus derives omitted tones from selected-surface, `accent`, and `text` roles. Dark, light, custom, and dynamically reloaded themes therefore remain correct without changing glyph shape or geometry. It occupies the same inline, one-row footprint as the standard spinner: one glyph immediately before the existing text. Main and workflow-stage chat preserve all 453 of Atomic's original randomized whimsical working verbs, selecting one message per turn; even the longest fits the tested 64-column surface. Every agent and SDK turn resets to the dark regular phase with a fresh lifecycle-relative cadence, while turn, terminal, error, replacement, and disposal paths stop the active timer cleanly. Restoring the ordinary indicator after an extension override also resets its phase and cadence; extension-provided frames and intervals remain unchanged and render verbatim. Under `NO_COLOR`, regular/bold weight preserves visible activity without foreground-color escapes. With `ORPHUS_REDUCED_MOTION=1`, `∀` remains static, regular, and accent-colored without an animation timer. Factual retry, fallback, error, cancellation, and compaction status suppresses the thematic indicator, while blocker and human-approval/prompt surfaces hide ordinary work chrome and factual receipts remain verbatim.
+While ordinary agent work is active, the exact one-cell `⊙` — the round-table mark — remains visible and follows a pronounced ten-frame dark → accent → bright/bold → accent → dark luminance ramp at an 88ms cadence. Optional theme tone overrides control any terminal-supported foreground phase exactly, including palette indices 0–255; Orphus derives omitted tones from selected-surface, `accent`, and `text` roles. Dark, light, custom, and dynamically reloaded themes therefore remain correct without changing glyph shape or geometry. It occupies the same inline, one-row footprint as the standard spinner: one glyph immediately before the existing text. Main and workflow-stage chat preserve all 453 of Atomic's original randomized whimsical working verbs, selecting one message per turn; even the longest fits the tested 64-column surface. Every agent and SDK turn resets to the dark regular phase with a fresh lifecycle-relative cadence, while turn, terminal, error, replacement, and disposal paths stop the active timer cleanly. Restoring the ordinary indicator after an extension override also resets its phase and cadence; extension-provided frames and intervals remain unchanged and render verbatim. Under `NO_COLOR`, regular/bold weight preserves visible activity without foreground-color escapes. With `ORPHUS_REDUCED_MOTION=1`, `⊙` remains static, regular, and accent-colored without an animation timer. Factual retry, fallback, error, cancellation, and compaction status suppresses the thematic indicator, while blocker and human-approval/prompt surfaces hide ordinary work chrome and factual receipts remain verbatim.
 
 ### Editor Features
 
@@ -85,13 +85,13 @@ Configure delivery in [Settings](/settings) with `steeringMode` and `followUpMod
 Sessions are saved automatically to `~/.orphus/agent/sessions/`, organized by working directory.
 
 ```bash
-atomic -c                  # Continue most recent session
-atomic -r                  # Browse and select a session
-atomic --no-session        # Ephemeral mode; do not save
-atomic --session <path|id> # Use a specific session file or partial session ID
-atomic --session-id <id>   # Use/create an exact project-local session ID
-atomic --name "Refactor"   # Set the session display name
-atomic --fork <path|id>    # Fork a session into a new session file
+orphus -c                  # Continue most recent session
+orphus -r                  # Browse and select a session
+orphus --no-session        # Ephemeral mode; do not save
+orphus --session <path|id> # Use a specific session file or partial session ID
+orphus --session-id <id>   # Use/create an exact project-local session ID
+orphus --name "Refactor"   # Set the session display name
+orphus --fork <path|id>    # Fork a session into a new session file
 ```
 
 When `--session-id` does not match an exact session in the current project, Orphus warns that no session was found and then creates the requested new session. Reusing an existing exact ID opens it without that warning.
@@ -145,47 +145,47 @@ Treat exported and shared sessions as sensitive: transcripts can contain source 
 ## CLI Reference
 
 ```bash
-atomic [options] [@files...] [messages...]
+orphus [options] [@files...] [messages...]
 ```
 
 Use `--` to end option parsing when positional prompt text begins with `-`, `--`, or `@`. Every argument after the terminator is treated as literal message text rather than an option or file argument:
 
 ```bash
-atomic --print -- "- leading-dash prompt"
+orphus --print -- "- leading-dash prompt"
 ```
 
 ### Package Commands
 
 ```bash
-atomic install <source> [-l]       # Install package, -l for project-local
-atomic remove <source> [-l]        # Remove package
-atomic uninstall <source> [-l]     # Alias for remove
-atomic update [source|self|atomic] # Update Orphus only, or one package source
-atomic update --all                # Update Orphus and packages; reconcile pinned git refs
-atomic update --extensions         # Update packages only; reconcile pinned git refs
-atomic update --models             # Force-refresh authenticated provider model catalogs
-atomic update --self               # Update Orphus only
-atomic update --extension <src>    # Update one package
-atomic list                        # List installed packages
-atomic config                      # Enable/disable package resources
+orphus install <source> [-l]       # Install package, -l for project-local
+orphus remove <source> [-l]        # Remove package
+orphus uninstall <source> [-l]     # Alias for remove
+orphus update [source|self|orphus] # Update Orphus only, or one package source
+orphus update --all                # Update Orphus and packages; reconcile pinned git refs
+orphus update --extensions         # Update packages only; reconcile pinned git refs
+orphus update --models             # Force-refresh authenticated provider model catalogs
+orphus update --self               # Update Orphus only
+orphus update --extension <src>    # Update one package
+orphus list                        # List installed packages
+orphus config                      # Enable/disable package resources
 ```
 
-These commands manage Orphus packages and `atomic update` can update the Orphus CLI installation. To uninstall Orphus itself, see [Quickstart](/quickstart#uninstall). `atomic config` and project package commands accept `--approve`/`--no-approve` to trust or ignore project-local settings for one command. `atomic update` never prompts for project trust.
+These commands manage Orphus packages and `orphus update` can update the Orphus CLI installation. To uninstall Orphus itself, see [Quickstart](/quickstart#uninstall). `orphus config` and project package commands accept `--approve`/`--no-approve` to trust or ignore project-local settings for one command. `orphus update` never prompts for project trust.
 
 See [Orphus Packages](/packages) for package sources and security notes.
 
 ### Credential Commands
 
 ```bash
-atomic auth print-api-key --model <model> [--provider <p>]
-atomic auth print-bearer-token --model <model> [--provider <p>] [--min-expiry <dur>]
+orphus auth print-api-key --model <model> [--provider <p>]
+orphus auth print-bearer-token --model <model> [--provider <p>] [--min-expiry <dur>]
 ```
 
-Print one configured credential for an external client — a proxy, a script, or another tool that needs the same key Orphus already holds. The credential goes to **stdout and nothing else**; warnings, provider selection, refresh notices, and help all go to stderr, so `KEY=$(atomic auth print-api-key --model gpt-5.5)` can never capture a diagnostic.
+Print one configured credential for an external client — a proxy, a script, or another tool that needs the same key Orphus already holds. The credential goes to **stdout and nothing else**; warnings, provider selection, refresh notices, and help all go to stderr, so `KEY=$(orphus auth print-api-key --model gpt-5.5)` can never capture a diagnostic.
 
 `--model` is required. There is no ambient "current model", so the command cannot emit a credential you did not name. When several configured providers offer the model, pass `--provider` to choose one. `--provider` and `--model` are the only options either subcommand accepts: any other flag — including `--export`, `--session-dir`, `--print`, and `--help` — is a usage error rather than a flag this path happens to ignore.
 
-`atomic auth` on its own — and `atomic auth help`, `--help`, or `-h` — prints this usage on stderr and exits `0`. Any other subcommand exits `1` and names the two valid ones. Help never uses stdout, so stdout from this command family is a credential or empty.
+`orphus auth` on its own — and `orphus auth help`, `--help`, or `-h` — prints this usage on stderr and exits `0`. Any other subcommand exits `1` and names the two valid ones. Help never uses stdout, so stdout from this command family is a credential or empty.
 
 `print-bearer-token` works only on OAuth providers and `print-api-key` only on API-key providers; asking for the wrong kind is an error rather than a silent fallback. A bearer token with less than `--min-expiry` remaining (default `30m`, accepting `ms`, `s`, `m`, or `h`) is refreshed first. Both `--min-expiry 30m` and `--min-expiry=30m` are accepted. `--min-expiry` with `print-api-key` is a usage error — an API key has no expiry. A failed refresh leaves your stored credential untouched.
 
@@ -219,10 +219,10 @@ Stdout is empty on every non-zero exit but one. Once the credential reaches stdo
 In print mode, Orphus also reads piped stdin and merges it into the initial prompt:
 
 ```bash
-cat README.md | atomic -p "Summarize this text"
+cat README.md | orphus -p "Summarize this text"
 ```
 
-When a print-mode turn correctly finishes by calling an opt-in terminating structured-output tool created with `createStructuredOutputTool` (for example from an extension, SDK caller, or workflow item with a schema), Orphus ends after that tool result without an extra follow-up assistant turn. Print-mode stdout contains the terminating structured JSON payload, so `atomic -p` remains script-friendly while the same value is also available through the SDK `capture` sink, tool `details`, a configured file sink, workflow `result.structured`, or subagent `result.structuredOutput`. This also works for custom factory names such as `final_decision`. Non-terminating or unrelated tool results are not printed as the final response.
+When a print-mode turn correctly finishes by calling an opt-in terminating structured-output tool created with `createStructuredOutputTool` (for example from an extension, SDK caller, or workflow item with a schema), Orphus ends after that tool result without an extra follow-up assistant turn. Print-mode stdout contains the terminating structured JSON payload, so `orphus -p` remains script-friendly while the same value is also available through the SDK `capture` sink, tool `details`, a configured file sink, workflow `result.structured`, or subagent `result.structuredOutput`. This also works for custom factory names such as `final_decision`. Non-terminating or unrelated tool results are not printed as the final response.
 
 ### Model Options
 
@@ -257,7 +257,7 @@ When a print-mode turn correctly finishes by calling an opt-in terminating struc
 | `--no-builtin-tools`, `-nbt` | Disable built-in tools but keep extension/custom tools enabled |
 | `--no-tools`, `-nt` | Disable all tools |
 
-Default built-in tools: `read`, `bash`, `edit`, `write`, `find`, `search`, `ask_user_question`, `todo`. `find.paths` accepts directories, files, or glob paths such as `*.ts` and honors `timeout`; `search` accepts `pattern`, optional `paths`, `i`, `gitignore`, and `skip` for regex content-search pagination. Use `--exclude-tools` to disable one or more tools while leaving the rest available, for example `atomic --exclude-tools ask_user_question`.
+Default built-in tools: `read`, `bash`, `edit`, `write`, `find`, `search`, `ask_user_question`, `todo`. `find.paths` accepts directories, files, or glob paths such as `*.ts` and honors `timeout`; `search` accepts `pattern`, optional `paths`, `i`, `gitignore`, and `skip` for regex content-search pagination. Use `--exclude-tools` to disable one or more tools while leaving the rest available, for example `orphus --exclude-tools ask_user_question`.
 
 ### Project Trust Options
 
@@ -285,7 +285,7 @@ Project trust gates `.orphus`/legacy `.atomic` and `.pi` project resources, proj
 Combine `--no-*` with explicit flags to load exactly what you need, ignoring settings. Example:
 
 ```bash
-atomic --no-extensions -e ./my-extension.ts
+orphus --no-extensions -e ./my-extension.ts
 ```
 
 ### Other Options
@@ -303,37 +303,37 @@ atomic --no-extensions -e ./my-extension.ts
 Prefix files with `@` to include them in the message:
 
 ```bash
-atomic @prompt.md "Answer this"
-atomic -p @screenshot.png "What's in this image?"
-atomic @code.ts @test.ts "Review these files"
+orphus @prompt.md "Answer this"
+orphus -p @screenshot.png "What's in this image?"
+orphus @code.ts @test.ts "Review these files"
 ```
 
 ### Examples
 
 ```bash
 # Interactive with initial prompt
-atomic "List all .ts files in src/"
+orphus "List all .ts files in src/"
 
 # Non-interactive
-atomic -p "Summarize this codebase"
+orphus -p "Summarize this codebase"
 
 # Non-interactive with piped stdin
-cat README.md | atomic -p "Summarize this text"
+cat README.md | orphus -p "Summarize this text"
 
 # Different model
-atomic --provider openai --model gpt-4o "Help me refactor"
+orphus --provider openai --model gpt-4o "Help me refactor"
 
 # Model with provider prefix
-atomic --model openai/gpt-4o "Help me refactor"
+orphus --model openai/gpt-4o "Help me refactor"
 
 # Model with thinking level shorthand
-atomic --model sonnet:high "Solve this complex problem"
+orphus --model sonnet:high "Solve this complex problem"
 
 # Limit model cycling
-atomic --models "claude-*,gpt-4o"
+orphus --models "claude-*,gpt-4o"
 
 # Read-only mode
-atomic --tools read,search,find,ls -p "Review the code"
+orphus --tools read,search,find,ls -p "Review the code"
 ```
 
 ### Environment Variables
@@ -343,7 +343,7 @@ atomic --tools read,search,find,ls -p "Review the code"
 | `ORPHUS_CODING_AGENT_DIR` | Override config directory; default is `~/.orphus/agent`. Bundled intercom runtime/config files live under its `intercom/` subdirectory |
 | `ORPHUS_CODING_AGENT_SESSION_DIR` | Override session storage directory; overridden by `--session-dir` |
 | `ORPHUS_PACKAGE_DIR` | Override package directory, useful for Nix/Guix store paths |
-| `ORPHUS_REDUCED_MOTION` | Set to `1` to skip startup choreography and render the ordinary working identity as a static regular accent `∀` without a timer |
+| `ORPHUS_REDUCED_MOTION` | Set to `1` to skip startup choreography and render the ordinary working identity as a static regular accent `⊙` without a timer |
 | `ORPHUS_OFFLINE` | Disable startup network operations, including update checks, package update checks, and install/update telemetry |
 | `ORPHUS_SKIP_VERSION_CHECK` | Skip the Orphus version update check at startup. This prevents the latest-version request |
 | `ORPHUS_TELEMETRY` | Override install/update telemetry: `1`/`true`/`yes` or `0`/`false`/`no`. This does not disable update checks |

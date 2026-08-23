@@ -158,6 +158,18 @@ function buildRequestedModeError(params: SubagentParamsLike, message: string): S
 	);
 }
 
+/**
+ * A counted task's clones must not share a `name`: the roundtable broker keys
+ * read cursors and attribution purely on that string, so N siblings under one
+ * name became one member — every digest marked messages read for all of them,
+ * and their posts merged into a single identity. Suffix each clone the way a
+ * person would have (`reviewer-1`, `reviewer-2`); a lone clone keeps the name.
+ */
+function cloneCountedTask<T extends { name?: string }>(task: T, count: number | undefined, repeat: number): T {
+	if (task.name === undefined || count === undefined || count <= 1) return { ...task };
+	return { ...task, name: `${task.name}-${repeat + 1}` };
+}
+
 function expandTopLevelTaskCounts(tasks: TaskParam[]): { tasks?: TaskParam[]; error?: string } {
 	const expanded: TaskParam[] = [];
 	for (let taskIndex = 0; taskIndex < tasks.length; taskIndex++) {
@@ -168,7 +180,7 @@ function expandTopLevelTaskCounts(tasks: TaskParam[]): { tasks?: TaskParam[]; er
 		}
 		const { count, ...concreteTask } = task;
 		for (let repeat = 0; repeat < (rawCount ?? 1); repeat++) {
-			expanded.push({ ...concreteTask });
+			expanded.push(cloneCountedTask(concreteTask, rawCount, repeat));
 		}
 	}
 	return { tasks: expanded };
@@ -191,7 +203,7 @@ function expandChainParallelCounts(chain: ChainStep[]): { chain?: ChainStep[]; e
 			}
 			const { count, ...concreteTask } = task;
 			for (let repeat = 0; repeat < (rawCount ?? 1); repeat++) {
-				expandedParallel.push({ ...concreteTask });
+				expandedParallel.push(cloneCountedTask(concreteTask, rawCount, repeat));
 			}
 		}
 		expandedChain.push({ ...step, parallel: expandedParallel });

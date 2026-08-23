@@ -28,7 +28,7 @@ npm install -g @orphus/coding-agent
 mkdir -p ~/.orphus/agent
 
 # Run Orphus
-atomic
+orphus
 ```
 
 Orphus does not require package install scripts. If you want to disable dependency lifecycle scripts during the Orphus install, you can add `--ignore-scripts` to the install command.

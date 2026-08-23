@@ -40,7 +40,13 @@ Runs the upstream recipe on a standard runner: a Rust toolchain and
 extension loads the control plane in `crates/atomic-natives` and fails at import
 without a binding, taking the whole suite with it), then the coding-agent build
 (`test/unit/pi-0.82.1-artifacts.test.ts` degrades to `test.skip` when `dist/` is
-absent), then `npm run test:unit` and `npm run test:ci-contracts`.
+absent), then the unit suite through `scripts/run-flaky-test-suite.ts` (which
+writes the per-test duration table to `.ci-diagnostics/` and enforces the
+duration budgets), `npm run test:integration` through the same wrapper, the
+coding-agent workspace suite (`npm run test --workspace=@orphus/coding-agent`,
+also wrapped — it must stay green without LFS objects, because the two
+inherited compaction fixtures 404 forever on this fork and their tests skip on
+pointer detection), `npm run test:scripts`, and `npm run test:ci-contracts`.
 
 It also fetches the **inherited upstream tags** before running. `changelog.test.ts`
 compares each released changelog section against the git tag that released it,
@@ -96,8 +102,6 @@ missing file is countable.
 
 - **No Windows leg.** The inherited matrix had one; this fork does not.
   `prek.toml` records a Windows-only line-ending bug that reached main.
-- **No integration suite** (`npm run test:integration`) and no coding-agent
-  package suite. Both run locally.
 - **No Rust tests.** `cargo fmt` and `cargo clippy` exist only as prek hooks.
 
 `test/ci/orphus-gate-contracts.test.ts` pins each of the guarantees above, so

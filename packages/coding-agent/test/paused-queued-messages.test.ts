@@ -487,7 +487,7 @@ describe("regular chat paused queued messages", () => {
 		expect(harness.getPendingResponseCount()).toBe(2);
 	});
 
-	test("built-in atomic usage keeps late trigger and exact queued content held until ordinary resume", async () => {
+	test("built-in orphus usage keeps late trigger and exact queued content held until ordinary resume", async () => {
 		const harness = await createHarness();
 		harnesses.push(harness);
 		let providerCalls = 0;
@@ -520,7 +520,7 @@ describe("regular chat paused queued messages", () => {
 		const displayBeforeCommand = harness.session.getSteeringMessages();
 		const responsesBeforeCommand = harness.getPendingResponseCount();
 
-		await runUserPromptTurn.call(host, "/atomic usage");
+		await runUserPromptTurn.call(host, "/orphus usage");
 
 		expect(providerCalls).toBe(0);
 		expect(harness.getPendingResponseCount()).toBe(responsesBeforeCommand);

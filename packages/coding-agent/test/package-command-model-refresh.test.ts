@@ -6,7 +6,7 @@ import { ENV_AGENT_DIR, getAgentDir, getEnvNames, getLegacyAgentDir } from "../s
 import { handlePackageCommand, refreshModelCatalogs } from "../src/package-manager-cli.ts";
 import { parsePackageCommand } from "../src/package-manager-cli-parser.ts";
 
-describe("atomic update --models", () => {
+describe("orphus update --models", () => {
 	let agentDir: string;
 	let previousAgentDir: string | undefined;
 
@@ -54,7 +54,7 @@ describe("atomic update --models", () => {
 		expect(init?.signal?.aborted).toBe(false);
 	});
 
-	it("loads and force-refreshes Atomic extension providers", async () => {
+	it("loads and force-refreshes Orphus extension providers", async () => {
 		let factoryCalls = 0;
 		let refreshCalls = 0;
 		const observedOptions: Array<{ allowNetwork: boolean; force?: boolean }> = [];

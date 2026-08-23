@@ -22,7 +22,7 @@ On Windows, Orphus canonicalizes paths before starting native filesystem watcher
 
 ## Self-Update Behavior
 
-`atomic update --self` can update Windows installations that Orphus can identify as writable global package-manager installs. `atomic update` includes the same self-update step before updating packages unless you pass `--extensions`.
+`orphus update --self` can update Windows installations that Orphus can identify as writable global package-manager installs. `orphus update` includes the same self-update step before updating packages unless you pass `--extensions`.
 
 When self-update starts on Windows, Orphus first cleans any previous `.orphus-native-quarantine` directory under the global package root. If native add-ons from the current install are loaded by the running process, Orphus moves those files into a per-run quarantine directory and copies them back into place before invoking the package manager. This lets the package manager replace native dependency files that Windows would otherwise keep locked.
 

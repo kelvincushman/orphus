@@ -74,7 +74,7 @@ describe("remote catalog provider", () => {
 		expect((await store.read(provider.id))?.models.map((entry) => entry.id)).toEqual(["dynamic"]);
 		expect(fetchSpy).toHaveBeenCalledTimes(2);
 		expect(fetchSpy.mock.calls[0]?.[1]?.headers).toMatchObject({
-			"User-Agent": expect.stringContaining(`atomic/${VERSION}`),
+			"User-Agent": expect.stringContaining(`orphus/${VERSION}`),
 		});
 	});
 

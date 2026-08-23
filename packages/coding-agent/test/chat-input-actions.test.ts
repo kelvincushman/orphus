@@ -19,8 +19,8 @@ afterEach(() => {
 const describeExternalEditor = process.platform === "win32" ? describe.skip : describe;
 
 describeExternalEditor("openExternalEditorForText", () => {
-	it("uses an unpredictable Atomic-branded private temp directory", async () => {
-		const testDir = fs.mkdtempSync(path.join(os.tmpdir(), "atomic-editor-test-"));
+	it("uses an unpredictable Orphus-branded private temp directory", async () => {
+		const testDir = fs.mkdtempSync(path.join(os.tmpdir(), "orphus-editor-test-"));
 		createdDirs.push(testDir);
 		const capturedPathFile = path.join(testDir, "captured-path.txt");
 		const editorScript = path.join(testDir, "editor.sh");
@@ -43,7 +43,7 @@ describeExternalEditor("openExternalEditorForText", () => {
 		expect(updated).toBe("initial\nupdated");
 		const tmpFile = fs.readFileSync(capturedPathFile, "utf-8");
 		expect(path.basename(tmpFile)).toBe("prompt.md");
-		expect(path.basename(path.dirname(tmpFile))).toMatch(/^atomic-editor-.+$/);
+		expect(path.basename(path.dirname(tmpFile))).toMatch(/^orphus-editor-.+$/);
 		expect(fs.existsSync(tmpFile)).toBe(false);
 	});
 
@@ -75,11 +75,11 @@ describeExternalEditor("openExternalEditorForText", () => {
 });
 
 describe("cleanupStaleClipboardFiles", () => {
-	it("removes only stale atomic clipboard files", () => {
+	it("removes only stale orphus clipboard files", () => {
 		const now = Date.now();
-		const oldFile = path.join(os.tmpdir(), "atomic-clipboard-old-test.png");
-		const freshFile = path.join(os.tmpdir(), "atomic-clipboard-fresh-test.png");
-		const oldDir = path.join(os.tmpdir(), "atomic-clipboard-old-test-dir");
+		const oldFile = path.join(os.tmpdir(), "orphus-clipboard-old-test.png");
+		const freshFile = path.join(os.tmpdir(), "orphus-clipboard-fresh-test.png");
+		const oldDir = path.join(os.tmpdir(), "orphus-clipboard-old-test-dir");
 		createdPaths.push(oldFile, freshFile, oldDir);
 
 		fs.writeFileSync(oldFile, "old");
