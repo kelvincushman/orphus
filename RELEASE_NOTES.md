@@ -34,8 +34,11 @@ merged code against live `python3` and `node` kernels.
 orphus update
 ```
 
-Or fresh: `curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.sh | sh`
-(pin with `install.sh --ref v2.0.1`).
+Or fresh, pinned to this release:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.sh | sh -s -- --ref v2.0.1
+```
 
 ## Full changelog
 
