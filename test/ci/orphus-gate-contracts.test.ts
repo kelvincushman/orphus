@@ -117,6 +117,23 @@ test("the Orphus gate runs the inherited unit suite and the CI contracts", async
 	assert.match(suites, /path: \.ci-diagnostics\/\n(?:\s+#[^\n]*\n)*\s+include-hidden-files: true/u);
 });
 
+test("the review gate passes only on a completed review, and skip notices still fail it", async () => {
+	const gate = jobBlock(await readText(ciPath), "review-gate");
+	// Positive evidence required. Under the old any-comment pass rule, a
+	// rate-limited reviewer's apology comment satisfied the gate on a PR nothing
+	// had reviewed (observed on #107, 2026-08-23); making apologies FAIL instead
+	// poisoned the PR permanently, because the comment outlives the rate limit
+	// (observed on #116, the PR that shipped that version). A transient state
+	// neither passes nor fails — the gate keeps polling for a completed review.
+	assert.match(gate, /'actionable comments posted:\|no actionable comments\|## walkthrough'/u);
+	assert.match(gate, /'review \(was \)\?skipped'/u);
+	// grep -q exits at the first match and closes the pipe; under pipefail the
+	// writer's SIGPIPE (141) then turns a TRUE condition false, so early
+	// evidence — a skip notice included — could read as absent. The gate drains
+	// grep (matches to /dev/null) instead of using quiet mode.
+	assert.doesNotMatch(gate, /grep -q/u);
+});
+
 test("the demo runs as an assertion, not as a smoke test", async () => {
 	const ci = await readText(ciPath);
 	assert.match(ci, /run: bun packages\/roundtable\/demo\/run-demo\.ts/u);

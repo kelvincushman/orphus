@@ -172,7 +172,8 @@ describe a nine-context matrix with full Windows coverage on Blacksmith runners,
 `test/ci/test-workflow-topology.test.ts` still asserts that shape. **None of them run.**
 Blacksmith runners are registered to the upstream organization and never pick up jobs on
 this repository, so those workflows are disabled at the repository level rather than
-rewritten. `publish.yml` and `warm-toolchain-cache.yml` are kept byte-identical to upstream.
+rewritten. `publish.yml` and `warm-toolchain-cache.yml` are kept byte-identical to upstream,
+except that Dependabot moves their action SHA pins (the repo opted into that in `dependabot.yml`).
 `test.yml` cannot be: it carries the rebrand's `ORPHUS_REQUIRE_*` env-var names, and it has
 also fallen behind upstream's own later edits to it. Read them as a record of upstream's
 topology, not as this repository's gate, and do not optimize for check contexts that will
