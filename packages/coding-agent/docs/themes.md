@@ -21,7 +21,7 @@ Orphus loads themes from:
 - Built-in: `dark`, `light`, `catppuccin-frappe`, `catppuccin-latte`, `catppuccin-macchiato`, `catppuccin-mocha`
 - Global: `~/.orphus/agent/themes/*.json` (legacy `~/.atomic/agent/themes/*.json` and `~/.pi/agent/themes/*.json`)
 - Project: `.orphus/themes/*.json` (legacy `.atomic/themes/*.json` and `.pi/themes/*.json`, only after the project is trusted)
-- Packages: `themes/` directories, `atomic.themes`, or legacy `pi.themes` entries in `package.json`
+- Packages: `themes/` directories, `orphus.themes`, or legacy `pi.themes` entries in `package.json`
 - Settings: `themes` array with files or directories
 - CLI: `--theme <path>` (repeatable)
 
@@ -150,7 +150,7 @@ vim ~/.orphus/agent/themes/my-theme.json
 - `name` is required, must be unique, and must not contain `/`.
 - `vars` is optional. Define reusable colors here, then reference them in `colors` or `workingIndicator`.
 - `colors` must define all 51 required tokens.
-- `workingIndicator` is optional and may override any subset of the six tones in the outward half of the ordinary `∀` ramp; Orphus derives omitted tones from selected background, accent, and text roles, then mirrors the palette back after `peak`. Explicit numeric values from 0 through 255 remain exact terminal palette indices. When a numeric index from 0 through 15 seeds an omitted tone, Orphus mixes from its built-in approximation of the common ANSI RGB value; the terminal still controls the actual appearance of the explicit index. Both explicit and derived tones update on theme hot reload.
+- `workingIndicator` is optional and may override any subset of the six tones in the outward half of the ordinary `⊙` ramp; Orphus derives omitted tones from selected background, accent, and text roles, then mirrors the palette back after `peak`. Explicit numeric values from 0 through 255 remain exact terminal palette indices. When a numeric index from 0 through 15 seeds an omitted tone, Orphus mixes from its built-in approximation of the common ANSI RGB value; the terminal still controls the actual appearance of the explicit index. Both explicit and derived tones update on theme hot reload.
 
 The `$schema` field enables editor auto-completion and validation.
 
@@ -302,9 +302,9 @@ echo $COLORTERM  # Should output "truecolor" or "24bit"
 ## Examples
 
 See the built-in themes:
-- [dark.json](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/modes/interactive/theme/dark.json)
-- [light.json](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/modes/interactive/theme/light.json)
-- [catppuccin-frappe.json](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/modes/interactive/theme/catppuccin-frappe.json)
-- [catppuccin-latte.json](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/modes/interactive/theme/catppuccin-latte.json)
-- [catppuccin-macchiato.json](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/modes/interactive/theme/catppuccin-macchiato.json)
-- [catppuccin-mocha.json](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/modes/interactive/theme/catppuccin-mocha.json)
+- [dark.json](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/modes/interactive/theme/dark.json)
+- [light.json](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/modes/interactive/theme/light.json)
+- [catppuccin-frappe.json](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/modes/interactive/theme/catppuccin-frappe.json)
+- [catppuccin-latte.json](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/modes/interactive/theme/catppuccin-latte.json)
+- [catppuccin-macchiato.json](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/modes/interactive/theme/catppuccin-macchiato.json)
+- [catppuccin-mocha.json](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/modes/interactive/theme/catppuccin-mocha.json)

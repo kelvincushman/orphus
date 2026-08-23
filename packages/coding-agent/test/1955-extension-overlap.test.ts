@@ -335,11 +335,11 @@ describe("inherited Pi resource overlap compatibility", () => {
 				.some((overlap) => overlap.resourceType === "prompt" && overlap.name === "discovered-shared-prompt"),
 		).toBe(true);
 	});
-	it("preserves an explicitly configured Atomic extension override", async () => {
-		const atomicExtensionDir = join(home, ".atomic", "agent", "extensions");
-		mkdirSync(atomicExtensionDir, { recursive: true });
+	it("preserves an explicitly configured Orphus extension override", async () => {
+		const orphusExtensionDir = join(home, ".orphus", "agent", "extensions");
+		mkdirSync(orphusExtensionDir, { recursive: true });
 		writeFileSync(
-			join(atomicExtensionDir, "override.ts"),
+			join(orphusExtensionDir, "override.ts"),
 			`
 import { Type } from "typebox";
 export default function(pi) {
@@ -365,20 +365,20 @@ export default function(pi) {
 		expect(result.runtime.flagValues.get("late-shared-flag")).toBe("same");
 		expect(result.runtime.flagValues.has("late-no-default-flag")).toBe(false);
 		expect(collectFlags(result.extensions).get("late-shared-flag")?.extensionPath).toBe(
-			join(atomicExtensionDir, "override.ts"),
+			join(orphusExtensionDir, "override.ts"),
 		);
 		expect(collectFlags(result.extensions).get("late-no-default-flag")?.extensionPath).toBe(
-			join(atomicExtensionDir, "override.ts"),
+			join(orphusExtensionDir, "override.ts"),
 		);
 		expect(loader.getOverlaps().some((overlap) => overlap.name === "late-shared-flag")).toBe(true);
 		expect(loader.getOverlaps().some((overlap) => overlap.name === "late-no-default-flag")).toBe(true);
 	});
-	it("preserves immediate non-conflicting dynamic registrations from an explicit Atomic extension", async () => {
-		const atomicExtensionDir = join(home, ".atomic", "agent", "extensions");
-		mkdirSync(atomicExtensionDir, { recursive: true });
+	it("preserves immediate non-conflicting dynamic registrations from an explicit Orphus extension", async () => {
+		const orphusExtensionDir = join(home, ".orphus", "agent", "extensions");
+		mkdirSync(orphusExtensionDir, { recursive: true });
 		writeFileSync(legacySettingsPath, "{}\n");
 		writeFileSync(
-			join(atomicExtensionDir, "dynamic-explicit.ts"),
+			join(orphusExtensionDir, "dynamic-explicit.ts"),
 			`
 import { Type } from "typebox";
 export default function(pi) {
@@ -411,10 +411,10 @@ export default function(pi) {
 		expect(commandPresentAtRefresh[0]).toBe(false);
 		expect(loader.getOverlaps()).toEqual([]);
 	});
-	it("keeps a relative package explicitly listed by Atomic explicit when compatibility lookup finds it under Pi", async () => {
-		const atomicAgentDir = join(home, ".atomic", "agent");
+	it("keeps a relative package explicitly listed by Orphus explicit when compatibility lookup finds it under Pi", async () => {
+		const orphusAgentDir = join(home, ".orphus", "agent");
 		const compatibilityPackage = join(home, ".pi", "agent", "compat-package");
-		mkdirSync(atomicAgentDir, { recursive: true });
+		mkdirSync(orphusAgentDir, { recursive: true });
 		mkdirSync(join(compatibilityPackage, "extensions"), { recursive: true });
 		writeFileSync(
 			join(compatibilityPackage, "package.json"),
@@ -438,7 +438,7 @@ export default function(pi) {
 `,
 		);
 		writeFileSync(
-			join(atomicAgentDir, "settings.json"),
+			join(orphusAgentDir, "settings.json"),
 			`${JSON.stringify({ packages: ["./compat-package"] }, null, 2)}\n`,
 		);
 		const loader = createLoader();
@@ -453,10 +453,10 @@ export default function(pi) {
 		);
 		expect(tools.some((tool) => tool.definition.name === "atomic-package-only")).toBe(true);
 	});
-	it("keeps same-relative Atomic extensions explicit when inherited settings also resolve under Pi", async () => {
-		const atomicExtensionDir = join(home, ".atomic", "agent", "extensions");
+	it("keeps same-relative Orphus extensions explicit when inherited settings also resolve under Pi", async () => {
+		const orphusExtensionDir = join(home, ".orphus", "agent", "extensions");
 		const piExtensionDir = join(home, ".pi", "agent", "extensions");
-		mkdirSync(atomicExtensionDir, { recursive: true });
+		mkdirSync(orphusExtensionDir, { recursive: true });
 		mkdirSync(piExtensionDir, { recursive: true });
 		const extensionSource = (description: string) => `
 import { Type } from "typebox";
@@ -464,7 +464,7 @@ export default function(pi) {
   pi.registerTool({ name: "shared-tool", description: "${description}", parameters: Type.Object({}), execute: async () => ({ content: [] }) });
 }
 `;
-		writeFileSync(join(atomicExtensionDir, "relative.ts"), extensionSource("explicit atomic relative tool"));
+		writeFileSync(join(orphusExtensionDir, "relative.ts"), extensionSource("explicit atomic relative tool"));
 		writeFileSync(join(piExtensionDir, "relative.ts"), extensionSource("inherited pi relative tool"));
 		writeFileSync(
 			legacySettingsPath,
@@ -493,11 +493,11 @@ export default function(pi) {
 		expect(winner?.definition.description).toBe("explicit atomic relative tool");
 	});
 
-	it("keeps a relative extension explicitly listed by Atomic explicit when compatibility lookup finds it under Pi", async () => {
+	it("keeps a relative extension explicitly listed by Orphus explicit when compatibility lookup finds it under Pi", async () => {
 		const piExtensionDir = join(home, ".pi", "agent", "extensions");
-		const atomicAgentDir = join(home, ".atomic", "agent");
+		const orphusAgentDir = join(home, ".orphus", "agent");
 		mkdirSync(piExtensionDir, { recursive: true });
-		mkdirSync(atomicAgentDir, { recursive: true });
+		mkdirSync(orphusAgentDir, { recursive: true });
 		writeFileSync(
 			join(piExtensionDir, "atomic-listed.ts"),
 			`
@@ -509,7 +509,7 @@ export default function(pi) {
 `,
 		);
 		writeFileSync(
-			join(atomicAgentDir, "settings.json"),
+			join(orphusAgentDir, "settings.json"),
 			`${JSON.stringify(
 				{
 					extensions: ["extensions/atomic-listed.ts"],

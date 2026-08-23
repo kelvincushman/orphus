@@ -1,5 +1,5 @@
 /**
- * `atomic auth print-api-key` / `print-bearer-token` — the credential-export door.
+ * `orphus auth print-api-key` / `print-bearer-token` — the credential-export door.
  *
  * Upstream 99e34013, tightened by this repository's design: a typed Secret, one
  * exit code per failure, `--min-expiry` rejected for API keys, and stdout that
@@ -639,8 +639,8 @@ describe("auth command parsing", () => {
 			expect(error).toBeInstanceOf(CredentialPrintError);
 			const failure = error as CredentialPrintError;
 			expect(failure.exitCode).toBe(1);
-			expect(failure.message).toContain("atomic auth print-api-key");
-			expect(failure.message).toContain("atomic auth print-bearer-token");
+			expect(failure.message).toContain("orphus auth print-api-key");
+			expect(failure.message).toContain("orphus auth print-bearer-token");
 			// Branding seam: upstream's help says `pi`.
 			expect(failure.message).not.toContain("pi auth");
 		}
@@ -1144,7 +1144,7 @@ describe("bearer token minimum validity", () => {
 	});
 });
 
-describe("atomic auth on the wire", () => {
+describe("orphus auth on the wire", () => {
 	it(
 		"writes the API key alone on stdout with one trailing newline",
 		async () => {
@@ -1261,7 +1261,7 @@ describe("atomic auth on the wire", () => {
 	);
 
 	it(
-		"renders help under the atomic name and keeps it off the credential stream",
+		"renders help under the orphus name and keeps it off the credential stream",
 		async () => {
 			const agentDir = agentDirWith({});
 
@@ -1269,8 +1269,8 @@ describe("atomic auth on the wire", () => {
 				const result = await runCliProcess(argv, { cwd: agentDir, env: cliEnv(agentDir) });
 
 				expect(result.code).toBe(0);
-				expect(result.stderr).toContain("atomic auth print-api-key");
-				expect(result.stderr).toContain("atomic auth print-bearer-token");
+				expect(result.stderr).toContain("orphus auth print-api-key");
+				expect(result.stderr).toContain("orphus auth print-bearer-token");
 				expect(result.stderr).not.toContain("pi auth");
 				// stdout for this command family is a credential or nothing.
 				expect(result.stdout).toBe("");
@@ -1513,6 +1513,8 @@ describe("credential egress chokepoint", () => {
 	 */
 	const RAW_STDOUT_EGRESS = [
 		`cli/credential-print.ts: writeRawStdoutOnce(payload)`,
+		`cli/inspect-runtime.ts: process.stdout.write(formatRuntimeInspection(report))`,
+		`core/capabilities/default-capabilities.ts: process.stdout.write(data)`,
 		`modes/interactive-engine/engine-child-liveness.ts: writeRawStdoutControl(serializeInteractiveEngineMessage({ type: "engine_activity_started", activity }))`,
 		`modes/interactive/external-editor.ts: process.stdout.write( \`Launching external editor: \${request.command}\\n\${APP_NAME} will resume when the editor exits.\\n\`, )`,
 		`modes/interactive/interactive-process-lifecycle.ts: process.stdout.write(\`\${chalk.dim("To resume this session:")} \${resumeCommand}\\n\`)`,

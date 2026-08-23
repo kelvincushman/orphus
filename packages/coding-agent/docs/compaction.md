@@ -350,7 +350,7 @@ This means file tracking accumulates across nested branch summaries, preserving 
 
 ### BranchSummaryEntry Structure
 
-Defined in [`session-manager.ts`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/session-manager.ts):
+Defined in [`session-manager.ts`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/session-manager.ts):
 
 ```typescript
 interface BranchSummaryEntry<T = unknown> {
@@ -373,7 +373,7 @@ interface BranchSummaryDetails {
 
 Extensions can store custom data in `details`.
 
-See [`collectEntriesForBranchSummary()`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/compaction/branch-summarization.ts), [`prepareBranchEntries()`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/compaction/branch-summarization.ts), and [`generateBranchSummary()`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/compaction/branch-summarization.ts) for the implementation.
+See [`collectEntriesForBranchSummary()`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/compaction/branch-summarization.ts), [`prepareBranchEntries()`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/compaction/branch-summarization.ts), and [`generateBranchSummary()`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/compaction/branch-summarization.ts) for the implementation.
 
 ## Branch Summary Format
 
@@ -417,7 +417,7 @@ path/to/changed.ts
 
 ### Message Serialization for Branch Summaries
 
-Before branch summarization, messages are serialized to text via [`serializeConversation()`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/compaction/utils.ts):
+Before branch summarization, messages are serialized to text via [`serializeConversation()`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/compaction/utils.ts):
 
 ```text
 [User]: What they said

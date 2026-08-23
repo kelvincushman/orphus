@@ -280,6 +280,14 @@ jobs:
         run: |
           set -euo pipefail
           cd binaries
-          gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes \
-            'Linux x64 and macOS arm64 builds. Linux requires glibc 2.27 or newer; the archive verifies this exact floor before staging.' \
-            orphus-darwin-arm64.tar.gz orphus-linux-x64.tar.gz SHA256SUMS
+          # The tag tree carries the release announcement (RELEASE_NOTES.md at
+          # the repo root); the platform line is the fallback so a tag without
+          # notes still stages a usable draft.
+          if [ -f ../RELEASE_NOTES.md ]; then
+            gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes-file ../RELEASE_NOTES.md \
+              orphus-darwin-arm64.tar.gz orphus-linux-x64.tar.gz SHA256SUMS
+          else
+            gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes \
+              'Linux x64 and macOS arm64 builds. Linux requires glibc 2.27 or newer; the archive verifies this exact floor before staging.' \
+              orphus-darwin-arm64.tar.gz orphus-linux-x64.tar.gz SHA256SUMS
+          fi

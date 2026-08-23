@@ -54,7 +54,14 @@ interface FleetModelContext {
 
 const THINKING_SUFFIXES = new Set(["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
 
-function baseModelReference(reference: string): string {
+/** The `:level` a model reference carries, when it is one the runtime accepts. */
+export function thinkingSuffix(reference: string): string | undefined {
+  const colon = reference.lastIndexOf(":");
+  const suffix = colon >= 0 ? reference.slice(colon + 1) : "";
+  return THINKING_SUFFIXES.has(suffix) ? suffix : undefined;
+}
+
+export function baseModelReference(reference: string): string {
   const colon = reference.lastIndexOf(":");
   return colon >= 0 && THINKING_SUFFIXES.has(reference.slice(colon + 1)) ? reference.slice(0, colon) : reference;
 }
@@ -113,6 +120,24 @@ export function validateFleetModelPins(blueprint: FleetBlueprint, ctx: FleetMode
       return `${blueprint.path}: ${keyPath} — "${member.model}" has no configured credentials; run ${providers
         .map((provider) => `/login ${provider}`)
         .join(" or ")} first`;
+    }
+  }
+  // The gate model fails at the most expensive possible moment — after the
+  // whole pipeline has run — so it preflights with everything else. Its most
+  // likely author is /fleetsetup asking a model to name it, which is exactly
+  // how an unregistered id gets written.
+  if (blueprint.gate?.model) {
+    const keyPath = "gate.model";
+    const base = baseModelReference(blueprint.gate.model);
+    const slash = base.indexOf("/");
+    if (slash <= 0 || slash === base.length - 1) {
+      return `${blueprint.path}: ${keyPath} — expected provider/model, got "${blueprint.gate.model}"`;
+    }
+    if (matchingModels(blueprint.gate.model, available).length === 0) {
+      if (matchingModels(blueprint.gate.model, all).length === 0) {
+        return `${blueprint.path}: ${keyPath} — "${blueprint.gate.model}" is not in the model registry`;
+      }
+      return `${blueprint.path}: ${keyPath} — "${blueprint.gate.model}" has no configured credentials; run /login ${base.slice(0, slash)} first`;
     }
   }
   return undefined;

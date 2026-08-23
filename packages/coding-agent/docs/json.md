@@ -1,7 +1,7 @@
 # JSON Event Stream Mode
 
 ```bash
-atomic --mode json "Your prompt"
+orphus --mode json "Your prompt"
 ```
 
 Outputs all session events as JSON lines to stdout. Useful for integrating Orphus into other tools or custom UIs.
@@ -10,7 +10,7 @@ If a complete saved provider/model default names a provider that remains unsuppo
 
 ## Event Types
 
-Events are defined in [`AgentSessionEvent`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/agent-session.ts#L152):
+Events are defined in [`AgentSessionEvent`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/agent-session.ts#L152):
 
 ```typescript
 type AgentSessionEvent =
@@ -62,7 +62,7 @@ Base messages come from `@earendil-works/pi-ai` (installed as an Orphus dependen
 - `AssistantMessage`
 - `ToolResultMessage`
 
-Extended messages from [`packages/coding-agent/src/core/messages.ts`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/messages.ts#L29):
+Extended messages from [`packages/coding-agent/src/core/messages.ts`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/messages.ts#L29):
 - `BashExecutionMessage`
 - `CustomMessage`
 - `BranchSummaryMessage`
@@ -90,5 +90,5 @@ Followed by events as they occur:
 ## Example
 
 ```bash
-atomic --mode json "List files" 2>/dev/null | jq -c 'select(.type == "message_end")'
+orphus --mode json "List files" 2>/dev/null | jq -c 'select(.type == "message_end")'
 ```

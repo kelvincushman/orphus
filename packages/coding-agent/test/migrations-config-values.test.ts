@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { ENV_AGENT_DIR } from "../src/config.ts";
+import { CONFIG_DIR_NAME, ENV_AGENT_DIR } from "../src/config.ts";
 import { runMigrations } from "../src/migrations.ts";
 
 const tempDirs: string[] = [];
@@ -39,7 +39,7 @@ describe("project-trust gated migrations", () => {
 		const root = createTempDir();
 		const agentDir = join(root, "agent");
 		const projectDir = join(root, "project");
-		const projectConfigDir = join(projectDir, ".atomic");
+		const projectConfigDir = join(projectDir, CONFIG_DIR_NAME);
 		mkdirSync(join(projectConfigDir, "commands"), { recursive: true });
 		mkdirSync(agentDir, { recursive: true });
 
@@ -53,7 +53,7 @@ describe("project-trust gated migrations", () => {
 		const root = createTempDir();
 		const agentDir = join(root, "agent");
 		const projectDir = join(root, "project");
-		const projectConfigDir = join(projectDir, ".atomic");
+		const projectConfigDir = join(projectDir, CONFIG_DIR_NAME);
 		mkdirSync(join(projectConfigDir, "commands"), { recursive: true });
 		mkdirSync(agentDir, { recursive: true });
 

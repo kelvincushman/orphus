@@ -7,19 +7,19 @@ Orphus saves conversations as sessions so you can continue work, branch from ear
 Sessions auto-save to `~/.orphus/agent/sessions/`, organized by working directory. Each session is a JSONL file with a tree structure.
 
 ```bash
-atomic -c                  # Continue most recent session
-atomic -r                  # Browse and select from past sessions
-atomic --no-session        # Ephemeral mode; do not save
-atomic --name "my task"    # Set session display name at startup
-atomic --session <path|id> # Use a specific session file or partial session ID
-atomic --fork <path|id>    # Fork a session file or partial session ID into a new session
+orphus -c                  # Continue most recent session
+orphus -r                  # Browse and select from past sessions
+orphus --no-session        # Ephemeral mode; do not save
+orphus --name "my task"    # Set session display name at startup
+orphus --session <path|id> # Use a specific session file or partial session ID
+orphus --fork <path|id>    # Fork a session file or partial session ID into a new session
 ```
 
 Use `/session` in interactive mode to see the current session file, session ID, message count, tokens, and cost.
 
 ### Custom session directories
 
-Use `--session-dir <dir>`, `ORPHUS_CODING_AGENT_SESSION_DIR`, or the matching settings override to save the active chat session outside the default `~/.orphus/agent/sessions/` store. When a workflow runs from a session that uses one of these non-default directories, Orphus also writes workflow stage transcripts to that same directory so a headless command such as `atomic --mode json --session-dir <dir> -p '/workflow <name> ...'` captures the main transcript and all stage transcripts together. Workflow definitions can still set a per-stage `sessionDir`; that explicit stage directory wins over the inherited host directory. If the host session uses the default session store, workflow stages keep the previous default behavior and write to the global store unless a stage explicitly sets `sessionDir`.
+Use `--session-dir <dir>`, `ORPHUS_CODING_AGENT_SESSION_DIR`, or the matching settings override to save the active chat session outside the default `~/.orphus/agent/sessions/` store. When a workflow runs from a session that uses one of these non-default directories, Orphus also writes workflow stage transcripts to that same directory so a headless command such as `orphus --mode json --session-dir <dir> -p '/workflow <name> ...'` captures the main transcript and all stage transcripts together. Workflow definitions can still set a per-stage `sessionDir`; that explicit stage directory wins over the inherited host directory. If the host session uses the default session store, workflow stages keep the previous default behavior and write to the global store unless a stage explicitly sets `sessionDir`.
 
 For the JSONL file format and SessionManager API, see [Session Format](/session-format).
 
@@ -40,7 +40,7 @@ For the JSONL file format and SessionManager API, see [Session Format](/session-
 
 ## Resuming and Deleting Sessions
 
-`/resume` opens an interactive session picker for the current project. `atomic -r` opens the same picker at startup.
+`/resume` opens an interactive session picker for the current project. `orphus -r` opens the same picker at startup.
 
 When Orphus reconstructs a resumed session, the latest active verbatim `compaction` entry supplies one boundary text message: the durable compacted transcript string with the kept tail serialized and appended to its end rather than replayed as separate message blocks. A zero-retention boundary stores `firstKeptEntryId: null` and replays no pre-boundary ordinary message. Resume does not rerun a planner or re-derive omissions. Legacy logical-deletion `context_compaction` entries are inert archival records, so previously hidden content can re-enter context in sessions created by older versions.
 
@@ -59,7 +59,7 @@ The picker opens instantly: its header, search field, and loading indicator pain
 
 ### Internal (workflow) sessions
 
-Sessions created by workflow stage execution are marked as **internal** and are excluded from the standard `/resume`, `atomic -r`, and `--continue` history by default. This keeps the resume picker focused on your interactive coding sessions. Workflow stage sessions remain fully discoverable and resumable through the workflow-specific path: use `/workflow resume <runId>` (or the workflow tool's resume/status actions) to inspect and continue a workflow run and its stages. A workflow stage session can still be opened directly by passing its file path to `--session`.
+Sessions created by workflow stage execution are marked as **internal** and are excluded from the standard `/resume`, `orphus -r`, and `--continue` history by default. This keeps the resume picker focused on your interactive coding sessions. Workflow stage sessions remain fully discoverable and resumable through the workflow-specific path: use `/workflow resume <runId>` (or the workflow tool's resume/status actions) to inspect and continue a workflow run and its stages. A workflow stage session can still be opened directly by passing its file path to `--session`.
 
 Legacy workflow sessions created before this behavior lack the internal marker and will continue to appear in the standard history until they age out or are deleted.
 
@@ -74,11 +74,11 @@ Use `/name <name>` to set a human-readable session name:
 Set the name at startup with `--name` or `-n`:
 
 ```bash
-atomic --name "Refactor auth module"
-atomic --name "CI audit" -p "Review this build failure"
+orphus --name "Refactor auth module"
+orphus --name "CI audit" -p "Review this build failure"
 ```
 
-Named sessions are easier to find in `/resume` and `atomic -r`.
+Named sessions are easier to find in `/resume` and `orphus -r`.
 
 ## Branching with `/tree`
 

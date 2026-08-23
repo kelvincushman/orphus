@@ -369,10 +369,10 @@ export function getShareViewerUrl(gistId: string): string {
 }
 
 // =============================================================================
-// User Config Paths (~/.atomic/agent/*)
+// User Config Paths (~/.orphus/agent/*)
 // =============================================================================
 
-/** Get the agent config directory (e.g., ~/.atomic/agent/) */
+/** Get the agent config directory (e.g., ~/.orphus/agent/) */
 export function getAgentDir(): string {
 	const envDir = getEnvValue(ENV_AGENT_DIR);
 	if (envDir) {

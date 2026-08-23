@@ -16,6 +16,44 @@ export const ORPHUS_RELEASES_URL = "https://github.com/kelvincushman/orphus/rele
 export const ORPHUS_INSTALLER_ONE_LINER =
 	"curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.sh | sh";
 
+function shellSingleQuote(value: string): string {
+	return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+/**
+ * The installer invocation for an archive install, carrying everything the
+ * bare one-liner silently dropped:
+ *
+ * - `ORPHUS_INSTALL_DIR` pins the root this binary actually lives under.
+ *   Without it a custom install updated the DEFAULT location instead — a full
+ *   second copy, a success message, and the real install untouched, so the
+ *   version nag repeated forever.
+ * - `ORPHUS_VERSION` pins the release the update resolved. Without it the
+ *   installer resolved /releases/latest, which GitHub redirects to the newest
+ *   NON-prerelease — a silent downgrade for every beta runner.
+ * - The script itself is fetched from the resolved tag, not main HEAD, so the
+ *   installer that runs is the one that release shipped.
+ */
+export function archiveInstallerCommand(root: string | undefined, version: string | undefined): string {
+	const ref = version ? `v${version}` : "main";
+	const url = `https://raw.githubusercontent.com/kelvincushman/orphus/${ref}/install.sh`;
+	const env = [
+		...(root ? [`ORPHUS_INSTALL_DIR=${shellSingleQuote(root)}`] : []),
+		...(version ? [`ORPHUS_VERSION=${shellSingleQuote(`v${version}`)}`] : []),
+	];
+	// Env assignments prefix `sh`, not `curl`: the pipeline's reader is the one
+	// that needs them.
+	return `curl -fsSL ${url} | ${env.length > 0 ? `${env.join(" ")} ` : ""}sh`;
+}
+
+/** The version an installSpec pins, when it pins one (`@scope/name@1.2.3`). */
+export function versionFromInstallSpec(spec: string): string | undefined {
+	const at = spec.lastIndexOf("@");
+	if (at <= 0) return undefined;
+	const version = spec.slice(at + 1);
+	return /^\d+\.\d+\.\d+/.test(version) ? version : undefined;
+}
+
 /**
  * Detect the install.sh layout — `<root>/versions/<tag>/orphus` with a
  * `<root>/current` pointer — from the REAL executable path. When the binary
@@ -23,18 +61,19 @@ export const ORPHUS_INSTALLER_ONE_LINER =
  * transactional, checksum-verified, keeps prior versions, and flips `current`
  * without touching the running process.
  */
-function isArchiveInstall(runtime: SelfUpdateRuntime): boolean {
-	if (process.platform === "win32") return false;
+function archiveInstallRoot(runtime: SelfUpdateRuntime): string | undefined {
+	if (process.platform === "win32") return undefined;
 	const executable = runtime.getExecutablePath?.() ?? process.execPath;
 	let resolved: string;
 	try {
 		resolved = realpathSync(executable);
 	} catch {
-		return false;
+		return undefined;
 	}
 	const versionsDir = dirname(dirname(resolved));
-	if (basename(versionsDir) !== "versions") return false;
-	return existsSync(join(dirname(versionsDir), "current"));
+	if (basename(versionsDir) !== "versions") return undefined;
+	const root = dirname(versionsDir);
+	return existsSync(join(root, "current")) ? root : undefined;
 }
 
 export type InstallMethod = "bun-binary" | "npm" | "pnpm" | "yarn" | "bun" | "unknown";
@@ -336,14 +375,17 @@ export function getSelfUpdateCommandForRuntime(
 	updateTarget: SelfUpdateTarget = packageName,
 ): SelfUpdateCommand | undefined {
 	const method = detectInstallMethodForRuntime(runtime);
+	const target = normalizeSelfUpdateTarget(updateTarget);
 	if (method === "bun-binary") {
 		// The package-manager gates below do not apply: the installer manages
 		// its own layout, verifies checksums, and fails cleanly on permissions.
-		return isArchiveInstall(runtime)
-			? makeSelfUpdateCommandStep("sh", ["-c", ORPHUS_INSTALLER_ONE_LINER])
-			: undefined;
+		const root = archiveInstallRoot(runtime);
+		if (root === undefined) return undefined;
+		return makeSelfUpdateCommandStep("sh", [
+			"-c",
+			archiveInstallerCommand(root, versionFromInstallSpec(target.installSpec)),
+		]);
 	}
-	const target = normalizeSelfUpdateTarget(updateTarget);
 	const command = getSelfUpdateCommandForMethod(
 		runtime,
 		method,
@@ -395,8 +437,11 @@ export function getSelfUpdateUnavailableInstructionForRuntime(
 
 export function getUpdateInstructionForRuntime(runtime: SelfUpdateRuntime, packageName: string): string {
 	const method = detectInstallMethodForRuntime(runtime);
-	if (method === "bun-binary" && isArchiveInstall(runtime)) {
-		return `Run: ${ORPHUS_INSTALLER_ONE_LINER}`;
+	if (method === "bun-binary") {
+		const root = archiveInstallRoot(runtime);
+		// The manual guidance carries the root for the same reason the command
+		// does: a bare one-liner updates the DEFAULT location, not this install.
+		if (root !== undefined) return `Run: ${archiveInstallerCommand(root, undefined)}`;
 	}
 	const command = getSelfUpdateCommandForMethod(runtime, method, packageName);
 	if (command) {

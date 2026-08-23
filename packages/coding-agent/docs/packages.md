@@ -2,7 +2,7 @@
 
 # Orphus Packages
 
-Orphus packages bundle extensions, skills, prompt templates, themes, and workflow definitions so you can share them through npm or git. Declare resources in `package.json` under the `atomic` key, or use conventional directories.
+Orphus packages bundle extensions, skills, prompt templates, themes, and workflow definitions so you can share them through npm or git. Declare resources in `package.json` under the `orphus` key, or use conventional directories.
 
 ## Table of Contents
 
@@ -27,25 +27,25 @@ Orphus packages bundle extensions, skills, prompt templates, themes, and workflo
 > **Security:** Orphus packages run with full system access. Extensions execute arbitrary code, and skills can instruct the model to perform any action including running executables. Review source code before installing third-party packages.
 
 ```bash
-atomic install npm:@foo/bar@1.0.0
-atomic install git:github.com/user/repo@v1
-atomic install https://github.com/user/repo  # raw URLs work too
-atomic install /absolute/path/to/package
-atomic install ./relative/path/to/package
+orphus install npm:@foo/bar@1.0.0
+orphus install git:github.com/user/repo@v1
+orphus install https://github.com/user/repo  # raw URLs work too
+orphus install /absolute/path/to/package
+orphus install ./relative/path/to/package
 
-atomic remove npm:@foo/bar
-atomic list                     # show installed packages from settings
-atomic update                   # update Orphus only
-atomic update --all             # update Orphus, update packages, and reconcile pinned git refs
-atomic update --extensions      # update packages and reconcile pinned git refs only
-atomic update --models          # force-refresh authenticated provider model catalogs
-atomic update --self            # update Orphus only
-atomic update --self --force    # reinstall Orphus even if current
-atomic update npm:@foo/bar      # update one package
-atomic update --extension npm:@foo/bar
+orphus remove npm:@foo/bar
+orphus list                     # show installed packages from settings
+orphus update                   # update Orphus only
+orphus update --all             # update Orphus, update packages, and reconcile pinned git refs
+orphus update --extensions      # update packages and reconcile pinned git refs only
+orphus update --models          # force-refresh authenticated provider model catalogs
+orphus update --self            # update Orphus only
+orphus update --self --force    # reinstall Orphus even if current
+orphus update npm:@foo/bar      # update one package
+orphus update --extension npm:@foo/bar
 ```
 
-These commands manage Orphus packages and `atomic update` can update the Orphus CLI installation. To uninstall Orphus itself, see [Quickstart](/quickstart#uninstall).
+These commands manage Orphus packages and `orphus update` can update the Orphus CLI installation. To uninstall Orphus itself, see [Quickstart](/quickstart#uninstall).
 
 Self-update resolves an exact advertised package/version target and installs that pinned spec, so the update cannot drift to a newer registry release during installation. Any release note supplied by the update service is shown before installation. Orphus only updates installations it can verify are writable and managed by the detected global package manager; otherwise it prints a manual command. On Windows, loaded native dependencies are temporarily quarantined during replacement and stale quarantine directories are cleaned on later update attempts.
 
@@ -54,8 +54,8 @@ By default, `install` and `remove` write to user settings (`~/.orphus/agent/sett
 To try a package without installing it, use `--extension` or `-e`. This installs to a temporary directory for the current run only:
 
 ```bash
-atomic -e npm:@foo/bar
-atomic -e git:github.com/user/repo
+orphus -e npm:@foo/bar
+orphus -e git:github.com/user/repo
 ```
 
 For local directories, `-e <dir>` also borrows project-local Orphus resources under `<dir>/.orphus`, legacy `<dir>/.atomic` and `<dir>/.pi`, and `<dir>/.agents/skills` when present. Because borrowed extensions and workflows can execute code, Orphus resolves trust for that extension source before loading those borrowed project-local resources.
@@ -64,7 +64,7 @@ Workflows discovered through `-e` keep that same trusted resource set when they 
 
 ## Package Sources
 
-Orphus accepts three source types in settings and `atomic install`.
+Orphus accepts three source types in settings and `orphus install`.
 
 ### npm
 
@@ -73,7 +73,7 @@ npm:@scope/pkg@1.2.3
 npm:pkg
 ```
 
-- Versioned specs are pinned and skipped by package updates (`atomic update --extensions`, `atomic update --all`).
+- Versioned specs are pinned and skipped by package updates (`orphus update --extensions`, `orphus update --all`).
 - User installs use the configured npm-compatible package-manager command (npm by default) and resolve from the managed Orphus npm area.
 - Project installs go under `.orphus/npm/` (legacy `.atomic/npm/` and `.pi/npm/` remain compatibility fallbacks).
 - Set `npmCommand` in `settings.json` to pin npm package lookup and install operations to a specific wrapper command such as `mise` or `asdf`.
@@ -100,21 +100,21 @@ ssh://git@github.com/user/repo@v1
 - HTTPS and SSH URLs are both supported.
 - SSH URLs use your configured SSH keys automatically (respects `~/.ssh/config`).
 - For non-interactive runs (for example CI), you can set `GIT_TERMINAL_PROMPT=0` to disable credential prompts and set `GIT_SSH_COMMAND` (for example `ssh -o BatchMode=yes -o ConnectTimeout=5`) to fail fast.
-- Refs are pinned tags or commits. `atomic update --extensions` and `atomic update --all` do not move them to newer refs, but they do reconcile an existing clone to the configured ref.
-- Use `atomic install git:host/user/repo@new-ref` to update settings and move an existing package to a new pinned ref.
+- Refs are pinned tags or commits. `orphus update --extensions` and `orphus update --all` do not move them to newer refs, but they do reconcile an existing clone to the configured ref.
+- Use `orphus install git:host/user/repo@new-ref` to update settings and move an existing package to a new pinned ref.
 - Cloned to `~/.orphus/agent/git/<host>/<path>` (global) or `.orphus/git/<host>/<path>` (project; legacy `.atomic/git/` and `.pi/git/` remain compatibility fallbacks).
 - When reconciliation changes the checkout, Orphus resets and cleans the clone, then runs the configured npm-compatible install command if `package.json` exists.
 
 **SSH examples:**
 ```bash
 # git@host:path shorthand (requires git: prefix)
-atomic install git:git@github.com:user/repo
+orphus install git:git@github.com:user/repo
 
 # ssh:// protocol format
-atomic install ssh://git@github.com/user/repo
+orphus install ssh://git@github.com/user/repo
 
 # With version ref
-atomic install git:git@github.com:user/repo@v1.0.0
+orphus install git:git@github.com:user/repo@v1.0.0
 ```
 
 ### Local Paths
@@ -128,13 +128,13 @@ Local paths point to files or directories on disk and are added to settings with
 
 ## Creating an Orphus Package
 
-Add an app manifest to `package.json` or use conventional directories. The manifest key is the configured app name (`atomic` here, from `atomicConfig.name`; legacy `piConfig.name` is also read). The legacy `pi` key remains supported as a backwards-compatible shim. Include the `atomic-package` keyword for discoverability.
+Add an app manifest to `package.json` or use conventional directories. The manifest key is the configured app name (`orphus` here, from `orphusConfig.name`; legacy `piConfig.name` is also read). The legacy `pi` key remains supported as a backwards-compatible shim. Include the `atomic-package` keyword for discoverability.
 
 ```json
 {
   "name": "my-package",
   "keywords": ["atomic-package"],
-  "atomic": {
+  "orphus": {
     "extensions": ["./extensions"],
     "skills": ["./skills"],
     "prompts": ["./prompts"],
@@ -154,7 +154,7 @@ The package gallery currently recognizes legacy `pi-package` metadata, while new
 {
   "name": "my-package",
   "keywords": ["atomic-package", "pi-package"],
-  "atomic": {
+  "orphus": {
     "extensions": ["./extensions"],
     "video": "https://example.com/demo.mp4",
     "image": "https://example.com/screenshot.png"
@@ -171,7 +171,7 @@ If both are set, video takes precedence.
 
 ### Convention Directories
 
-If no app manifest (`atomic`, or legacy `pi`) is present, Orphus auto-discovers resources from these directories:
+If no app manifest (`orphus`, or legacy `pi`) is present, Orphus auto-discovers resources from these directories:
 
 - `extensions/` loads `.ts` and `.js` files
 - `skills/` recursively finds `SKILL.md` folders and loads top-level `.md` files as skills
@@ -179,7 +179,7 @@ If no app manifest (`atomic`, or legacy `pi`) is present, Orphus auto-discovers 
 - `themes/` loads `.json` files
 - `workflows/` loads workflow SDK files (`.ts`, `.js`, `.mjs`, `.cjs`); `workflow/` is also accepted as a singular alias. Workflow files should `import { workflow } from "@orphus/workflows"`, import `Type` from `typebox`, and export the `workflow({ ... })` result. TypeScript package authors do not need a hand-authored `.d.ts`, a `declare module` shim, or a `tsconfig` `paths` alias for the SDK import — the SDK types ship with `@orphus/coding-agent`. A package that also imports `@orphus/coding-agent` picks them up automatically; a pure workflow-only package adds one opt-in line (`compilerOptions.types: ["@orphus/coding-agent/workflows/ambient"]` or a `/// <reference types="@orphus/coding-agent/workflows/ambient" />` directive). See the workflow SDK typing guidance under Programmatic Usage in the workflows guide.
 
-When a package manifest exists, declared resource arrays normally define what loads. Workflows are the exception: if `atomic.workflows` / legacy `pi.workflows` is omitted, Orphus still checks conventional `workflows/` and `workflow/` directories.
+When a package manifest exists, declared resource arrays normally define what loads. Workflows are the exception: if `orphus.workflows` / legacy `pi.workflows` is omitted, Orphus still checks conventional `workflows/` and `workflow/` directories.
 
 ## Dependencies
 
@@ -201,7 +201,7 @@ Example:
     "shitty-extensions": "^1.0.1"
   },
   "bundledDependencies": ["shitty-extensions"],
-  "atomic": {
+  "orphus": {
     "extensions": ["extensions", "node_modules/shitty-extensions/extensions"],
     "skills": ["skills", "node_modules/shitty-extensions/skills"]
   }
@@ -239,7 +239,7 @@ Filter what a package loads using the object form in settings:
 
 ## Enable and Disable Resources
 
-Use `atomic config` to enable or disable extensions, skills, prompt templates, and themes. It starts in global settings (`~/.orphus/agent/settings.json`); press Tab to switch global/project scope. Use `atomic config -l` to start in project overrides (`.orphus/settings.json`) with inherited global resources dimmed. Workflow package filters can be configured with `workflows` patterns.
+Use `orphus config` to enable or disable extensions, skills, prompt templates, and themes. It starts in global settings (`~/.orphus/agent/settings.json`); press Tab to switch global/project scope. Use `orphus config -l` to start in project overrides (`.orphus/settings.json`) with inherited global resources dimmed. Workflow package filters can be configured with `workflows` patterns.
 
 ## Scope and Deduplication
 

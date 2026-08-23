@@ -488,7 +488,18 @@ describe("buildSessionContext", () => {
 // Integration tests with real session data
 // ============================================================================
 
-describe("Large session fixture", () => {
+// The fixture ships via git LFS, and this fork's LFS store does not hold
+// upstream's objects — a fresh clone gets a 131-byte pointer that 404s on
+// fetch. "We could not check this here" and "this is broken" are different
+// statements (the pi-artifacts suite draws the same line for a missing
+// dist/), so this block skips with the reason when the fixture is a pointer
+// and runs wherever the real object exists.
+const largeSessionIsLfsPointer = readFileSync(join(__dirname, "fixtures/large-session.jsonl"), "utf-8").startsWith(
+	"version https://git-lfs",
+);
+const describeWithFixture = largeSessionIsLfsPointer ? describe.skip : describe;
+
+describeWithFixture("Large session fixture", () => {
 	it("should parse the large session", () => {
 		const entries = loadLargeSessionEntries();
 		expect(entries.length).toBeGreaterThan(100);

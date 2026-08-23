@@ -927,6 +927,17 @@ VERSION_INSTALLED=1
 mv "$VERSION_STAGE" "$VERSION_PATH"
 VERSION_STAGE=
 
+# What current points at NOW is the version "kept for rollback" after this
+# install commits. canonicalize_existing_prefix resolves the symlink with the
+# same builtins the rest of the script trusts; readlink and ls are not
+# guaranteed on a minimal PATH.
+PREVIOUS_TAG=
+if [ -d "$CURRENT_PATH" ]; then
+    PREVIOUS_TAG=$(canonicalize_existing_prefix "$CURRENT_PATH" 2>/dev/null && printf '_') || PREVIOUS_TAG=_
+    PREVIOUS_TAG=${PREVIOUS_TAG%_}
+    PREVIOUS_TAG=${PREVIOUS_TAG##*/}
+fi
+
 ln -s "versions/$RELEASE_TAG_ENCODED" "$CURRENT_NEXT"
 if path_exists "$CURRENT_PATH"; then
     CURRENT_BACKED_UP=1
@@ -962,6 +973,28 @@ if [ "$VERSION_BACKED_UP" -eq 1 ]; then
     rm -rf "$VERSION_BACKUP" || :
     VERSION_BACKED_UP=0
 fi
+
+# Retention: the just-installed version plus the one current pointed at before
+# this install — which is literally what "kept for rollback" means. Without a
+# cap every update added a full release to the install root forever, and
+# nothing consumed the older copies. Best-effort: a prune failure must not
+# fail an install that has already committed.
+# The script runs under set -f; the glob below is the one place that needs
+# pathname expansion, so switch it on for exactly that loop.
+set +f
+for pruned_version in "$VERSIONS_DIR"/*; do
+    [ -e "$pruned_version" ] || continue
+    pruned_tag=${pruned_version##*/}
+    case $pruned_tag in
+        .*) continue ;;
+        "$RELEASE_TAG_ENCODED") continue ;;
+    esac
+    if [ -n "$PREVIOUS_TAG" ] && [ "$pruned_tag" = "$PREVIOUS_TAG" ]; then
+        continue
+    fi
+    rm -rf "$pruned_version" || :
+done
+set -f
 
 shell_quote() {
     shell_quote_input=$1

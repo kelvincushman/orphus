@@ -220,13 +220,19 @@ Most of this repository is vendored upstream. What Orphus authors:
 | --- | --- |
 | `packages/roundtable/` | Rooms, digest, broker, roles, memory adapter — everything above |
 | `packages/fleet/` | Fleet blueprints, `/fleet` + `/fleetsetup`, the orchestration and kie-ai-media skills |
-| `test/unit/roundtable-*`, `test/unit/fleet-*` | Their tests |
+| `packages/transcribe/` | Local dictation, derived from pi-transcribe. Not bundled; fails closed until its natives are built |
+| `packages/coding-agent/src/core/{capabilities,replay}/`, `.../core/provider-audit.ts`, `.../cli/inspect-runtime.ts`, `.../extensions/browser/`, `.../core/terminal/termdom-*` | The capability boundary, the provider/tool session records and replay harness, `orphus inspect runtime`, browser operation, and the termDOM backend — first-party, inside an otherwise vendored package |
+| `test/unit/roundtable-*`, `test/unit/fleet-*`, `test/unit/{harness,browser,terminal,transcribe}-*` | Their tests |
 | `docs/`, `roles/`, `orphus.roles.yaml` | This documentation and the example manifest |
 | `.github/workflows/ci.yml` | The gate that actually runs |
 
 Everything else — the agent loop, providers, tools, MCP, subagents, workflows,
 the TUI — comes from [Atomic](https://github.com/bastani-inc/atomic) and behaves
 as it does upstream. A bug there is usually worth reporting upstream too.
+
+Note that `packages/coding-agent/` is no longer wholly vendored: the rows above
+name first-party subsystems living inside it. Check the row before assuming a
+file there is upstream's.
 
 The inherited `test.yml`, `publish.yml`, and `warm-toolchain-cache.yml` are all
 **disabled**: they target Blacksmith runners registered to the upstream

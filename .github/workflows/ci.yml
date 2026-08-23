@@ -11,9 +11,11 @@ name: Orphus
 #
 # Their suites used to be described as "running locally via the prek hooks in
 # prek.toml". That was honour-system: scripts/install-hooks.mjs exits early
-# whenever CI, GITHUB_ACTIONS, or PREK_DISABLE_INSTALL is set, and `npm ci` does
-# not run the `prepare` script that installs them at all — so a contributor who
-# clones and runs `npm ci` has no hooks and runs none of the 5.8k unit tests.
+# whenever CI, GITHUB_ACTIONS, or PREK_DISABLE_INSTALL is set, and the
+# documented install — `npm ci --ignore-scripts` — skips the `prepare` script
+# that installs them (bare `npm ci` would run it; the --ignore-scripts flow is
+# what AGENTS.md mandates). So a contributor who clones and installs as
+# documented has no hooks and runs none of the 5.8k unit tests.
 # The `suites` job below is what actually enforces them, on a standard runner.
 
 on:
@@ -144,12 +146,45 @@ jobs:
         working-directory: packages/coding-agent
         run: npm run build
 
-      # One file in this suite was already red on main when this job was added.
-      # It is quarantined by name in vitest.config.ts, with the reason beside it,
-      # so the exclusion is visible rather than buried in a workflow argument.
-      # The changelog suite still runs after the inherited tags are fetched.
-      - name: Unit tests
-        run: npm run test:unit
+      # Nothing is quarantined today: QUARANTINED_TESTS in vitest.config.ts is
+      # pinned empty by a contract test. The mechanism stays so any future
+      # exclusion is visible there with its reason, rather than buried in a
+      # workflow argument. The changelog suite still runs after the inherited
+      # tags are fetched.
+      #
+      # The wrapper is what makes the diagnostics upload below real: it writes
+      # the per-test duration table to .ci-diagnostics/ on green runs too, and
+      # enforces the duration budgets AGENTS.md and docs/ci.md describe.
+      - name: Unit tests (one bounded flake retry)
+        run: >-
+          bun run scripts/run-flaky-test-suite.ts --label "unit tests"
+          --no-retry-file flaky-test-suite-runner.test.ts
+          -- npm run test:unit
+
+      # Green on this fork and cheap (~3 min): enforcing them here closes most
+      # of the audit's "three of five suites enforced by nothing".
+      - name: Integration tests (one bounded flake retry)
+        run: >-
+          bun run scripts/run-flaky-test-suite.ts --label "integration tests"
+          -- npm run test:integration
+        env:
+          # Hard-require the installed-package Node smoke: the coding-agent
+          # build above guarantees dist/ exists in this job.
+          ORPHUS_REQUIRE_INSTALLED_NODE_SMOKE: "1"
+
+      # The fork's largest suite, green again after the rebrand-stale
+      # assertions were fixed. It must stay green WITHOUT LFS objects: the two
+      # inherited compaction fixtures 404 forever on this fork's LFS server, so
+      # their tests skip on pointer detection and this job's checkout keeps
+      # LFS off. Same wrapper, so its duration budgets and diagnostics are
+      # enforced here too.
+      - name: Coding-agent workspace suite (one bounded flake retry)
+        run: >-
+          bun run scripts/run-flaky-test-suite.ts --label "coding-agent workspace suite"
+          -- npm run test --workspace=@orphus/coding-agent
+
+      - name: Script tests
+        run: npm run test:scripts
 
       # These pin the workflows in .github/workflows, including this file.
       - name: CI contract tests
@@ -161,6 +196,10 @@ jobs:
         with:
           name: test-diagnostics
           path: .ci-diagnostics/
+          # The diagnostics directory is dot-hidden, and upload-artifact skips
+          # hidden paths by default — without this the upload silently found
+          # nothing on every run, green and red alike.
+          include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 14
 

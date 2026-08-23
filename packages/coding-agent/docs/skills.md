@@ -29,7 +29,7 @@ Orphus loads skills from:
 - Project (only after the project is trusted):
   - `.orphus/skills/` (legacy `.atomic/skills/` and `.pi/skills/`)
   - `.agents/skills/` in `cwd` and ancestor directories (up to git repo root, or filesystem root when not in a repo)
-- Packages: `skills/` directories, `atomic.skills`, or legacy `pi.skills` entries in `package.json`
+- Packages: `skills/` directories, `orphus.skills`, or legacy `pi.skills` entries in `package.json`
 - Settings: `skills` array with files or directories
 - CLI: `--skill <path>` (repeatable, additive even with `--no-skills`)
 
