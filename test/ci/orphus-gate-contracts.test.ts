@@ -127,6 +127,11 @@ test("the review gate passes only on a completed review, and skip notices still 
 	// neither passes nor fails — the gate keeps polling for a completed review.
 	assert.match(gate, /'actionable comments posted:\|no actionable comments\|## walkthrough'/u);
 	assert.match(gate, /'review \(was \)\?skipped'/u);
+	// grep -q exits at the first match and closes the pipe; under pipefail the
+	// writer's SIGPIPE (141) then turns a TRUE condition false, so early
+	// evidence — a skip notice included — could read as absent. The gate drains
+	// grep (matches to /dev/null) instead of using quiet mode.
+	assert.doesNotMatch(gate, /grep -q/u);
 });
 
 test("the demo runs as an assertion, not as a smoke test", async () => {
