@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-08-22
+
+### Added
+
+- **The `ponytail` skill is bundled.** Every session now carries [ponytail](skills/ponytail/SKILL.md) — the laziest-solution-that-works discipline (YAGNI, reuse before writing, stdlib before custom code, one line before fifty), with `lite`/`full`/`ultra` intensity via `/ponytail`. Vendored from [dietrichgebert/ponytail](https://github.com/dietrichgebert/ponytail) (MIT); it is also the named default discipline for agents working on this repository (see the root `AGENTS.md`).
+
 ### Changed
 
 - **Async runs accept a `deadlineMs`.** An async run previously had no wall-clock ceiling: a child that never converges leaves the caller waiting on a completion notification that is not coming. On expiry the run is now interrupted — through the existing interrupt path, not a second way to stop a run — and finalized with whatever its children produced. A partial result beats an indefinite wait, and the run's own output names every task, so the ones still running when time ran out are visible rather than merely absent. The interrupt message distinguishes a deadline from a person: a deadline names the unfinished tasks, because those are what the caller is deciding about. Blocking calls are unaffected; they are bounded by the turn.

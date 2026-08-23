@@ -6,15 +6,35 @@ Orphus accepts environment variables for configuration, provider credentials, an
 
 | Orphus variable | Legacy alias | Purpose |
 |---|---|---|
-| `ORPHUS_CODING_AGENT_DIR` | `PI_CODING_AGENT_DIR` | Agent/config directory; default `~/.atomic/agent` |
+| `ORPHUS_CODING_AGENT_DIR` | `PI_CODING_AGENT_DIR` | Agent/config directory; default `~/.orphus/agent` |
 | `ORPHUS_CODING_AGENT_SESSION_DIR` | `PI_CODING_AGENT_SESSION_DIR` | Session directory; `--session-dir` takes precedence |
 | `ORPHUS_PACKAGE_DIR` | `PI_PACKAGE_DIR` | Package directory override |
 | `ORPHUS_OFFLINE` | `PI_OFFLINE` | Disable startup network operations |
 | `ORPHUS_SKIP_VERSION_CHECK` | `PI_SKIP_VERSION_CHECK` | Skip automatic startup version checks; explicit self-update still checks |
 | `ORPHUS_TELEMETRY` | `PI_TELEMETRY` | Enable/disable install/update telemetry |
 | `ORPHUS_REDUCED_MOTION` | `PI_REDUCED_MOTION` | Use static reduced-motion presentation |
+| `ORPHUS_PROVIDER_AUDIT` | — | Set to `0`/`false`/`off` to stop recording exact provider request bodies into the session. On by default; see [Harness](/harness) |
 
 `PI_CACHE_RETENTION=long` is a provider/upstream prompt-cache option and intentionally has no Orphus-prefixed alias. `VISUAL` and `EDITOR` select the Ctrl+G external editor when `externalEditor` is unset.
+
+### Browser operation
+
+Off by default. Nothing is registered without `ORPHUS_ENABLE_BROWSER`; see [Browser operation](/browser).
+
+| Variable | Purpose |
+|---|---|
+| `ORPHUS_ENABLE_BROWSER` | Master switch for the `browser` tool |
+| `ORPHUS_ENABLE_BROWSER_LOGIN` | Allow credential injection. Requires the switch above |
+| `ORPHUS_BROWSER_LOGIN_ORIGINS` | Space- or comma-separated origins credentials may be used on, e.g. `https://app.example.com` |
+| `ORPHUS_BROWSER_EXECUTABLE` | Explicit Chrome/Chromium path |
+| `ORPHUS_BROWSER_HEADLESS` | `0` runs Chrome with a visible window |
+| `ORPHUS_BROWSER_NO_SANDBOX` | Pass `--no-sandbox`. Disables Chrome's sandbox — only for a container running as root. Takes an explicit `1`/`true`/`on`/`yes`; anything else, including `no`, leaves the sandbox on |
+
+### Terminal renderer
+
+| Variable | Purpose |
+|---|---|
+| `ORPHUS_TUI_BACKEND` | `pi` (default) or `termdom` for the startup selection and session picker. Overrides the `tui.backend` setting; see [Terminal backend](/tui-backend) |
 
 ### Roundtable memory
 

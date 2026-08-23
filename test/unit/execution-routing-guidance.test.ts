@@ -297,7 +297,7 @@ describe("workflow-first execution routing", () => {
 				),
 			].map((match) => match[1]),
 		).toEqual(["<run-id-for-#2101>", "<run-id-for-#2102>"]);
-		const definitionMatch = documentation.match(/```ts\n\/\/ \.atomic\/workflows\/issue-to-pr\.ts\n([\s\S]*?)\n```/);
+		const definitionMatch = documentation.match(/```ts\n\/\/ \.orphus\/workflows\/issue-to-pr\.ts\n([\s\S]*?)\n```/);
 		expect(definitionMatch).not.toBeNull();
 		const definitionSource = definitionMatch?.[1];
 		if (definitionSource === undefined) throw new Error("issue-to-pr example definition is missing");

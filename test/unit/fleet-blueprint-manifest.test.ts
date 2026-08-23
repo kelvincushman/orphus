@@ -237,6 +237,38 @@ describe("fleet blueprint parsing", () => {
 		);
 	});
 
+	test("a deliberating member whose tools omit roundtable draws a warning; dispatch does not", () => {
+		// Render tells every deliberate member its first call must be
+		// roundtable({action:"join"}) — a member whose explicit tools list lacks
+		// the tool cannot comply, and tools: [] is the same trap at its sharpest.
+		const deliberate = parseFleetBlueprint(
+			MINIMAL.replace("mode: dispatch", "mode: deliberate").replace(
+				"- agent: worker",
+				"- agent: worker\n        tools: [read]",
+			),
+			blueprintPath(),
+		);
+		assert.ok(
+			deliberate.warnings.some((warning) => warning.includes('omits "roundtable"')),
+			`expected a roundtable warning, got: ${deliberate.warnings.join(" | ")}`,
+		);
+
+		const emptied = parseFleetBlueprint(
+			MINIMAL.replace("mode: dispatch", "mode: deliberate").replace(
+				"- agent: worker",
+				"- agent: worker\n        tools: []",
+			),
+			blueprintPath(),
+		);
+		assert.ok(emptied.warnings.some((warning) => warning.includes('omits "roundtable"')));
+
+		const dispatch = parseFleetBlueprint(
+			MINIMAL.replace("- agent: worker", "- agent: worker\n        tools: [read]"),
+			blueprintPath(),
+		);
+		assert.ok(!dispatch.warnings.some((warning) => warning.includes("roundtable")));
+	});
+
 	test("applies the documented default concurrency warning and hard ceiling", () => {
 		const warned = parseFleetBlueprint(
 			MINIMAL.replace(

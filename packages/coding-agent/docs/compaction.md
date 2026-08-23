@@ -1,6 +1,6 @@
 # Compaction & Branch Summarization
 
-LLMs have finite context windows. Orphus reduces transcript context with **verbatim line compaction** while preserving an exact count of recent context-visible messages as ordinary messages. Branch summarization is a separate, intentionally lossy feature used only when navigating away from a branch.
+LLMs have finite context windows. Orphus reduces transcript context with **verbatim line compaction** while preserving an exact count of recent context-visible messages losslessly. Those preserved messages are carried inside the compaction boundary message rather than replayed as separate messages — see [`preserve_recent`](#parameters) for what that means for the tail. Branch summarization is a separate, intentionally lossy feature used only when navigating away from a branch.
 
 Compaction runs entirely locally; no external compaction service is involved. It normally uses the active session model. If that model cannot rank the lines — a rate limit, a quota exhaustion, a provider error, a context overflow, or an empty plan — Orphus *borrows* the next model from your configured `fallbackModels` for that one planner request. **A configured fallback model may therefore receive the compaction transcript**, and it is sent with that provider's own credentials. Borrowing never changes the session's model or thinking level. The model only selects which lines to delete — Orphus reconstructs the retained text mechanically, so surviving lines are never rewritten.
 
@@ -90,7 +90,7 @@ The effective parameters appear in extension events and successful results:
 
 The query is used whole and is never truncated. This matters for structured prompts: a truncated query would make section order the retention policy, because only the leading section could influence what the planner kept, and a constraint stated later in the prompt could not. Long queries are safe — an oversized planner request surfaces as an explicit provider-overflow failure rather than silent truncation — but `keepContext` tags, not query length, are the way to guarantee a span survives.
 
-Configure defaults in `~/.atomic/agent/settings.json` or `.atomic/settings.json`:
+Configure defaults in `~/.orphus/agent/settings.json` or `.orphus/settings.json`:
 
 ```json
 {
@@ -350,7 +350,7 @@ This means file tracking accumulates across nested branch summaries, preserving 
 
 ### BranchSummaryEntry Structure
 
-Defined in [`session-manager.ts`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/session-manager.ts):
+Defined in [`session-manager.ts`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/session-manager.ts):
 
 ```typescript
 interface BranchSummaryEntry<T = unknown> {
@@ -373,7 +373,7 @@ interface BranchSummaryDetails {
 
 Extensions can store custom data in `details`.
 
-See [`collectEntriesForBranchSummary()`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/compaction/branch-summarization.ts), [`prepareBranchEntries()`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/compaction/branch-summarization.ts), and [`generateBranchSummary()`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/compaction/branch-summarization.ts) for the implementation.
+See [`collectEntriesForBranchSummary()`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/compaction/branch-summarization.ts), [`prepareBranchEntries()`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/compaction/branch-summarization.ts), and [`generateBranchSummary()`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/compaction/branch-summarization.ts) for the implementation.
 
 ## Branch Summary Format
 
@@ -417,7 +417,7 @@ path/to/changed.ts
 
 ### Message Serialization for Branch Summaries
 
-Before branch summarization, messages are serialized to text via [`serializeConversation()`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/compaction/utils.ts):
+Before branch summarization, messages are serialized to text via [`serializeConversation()`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/compaction/utils.ts):
 
 ```text
 [User]: What they said
@@ -472,7 +472,7 @@ Verbatim planning and branch summarization are standalone provider requests. Eac
 
 ## Settings
 
-Configure compaction in `~/.atomic/agent/settings.json` or `<project-dir>/.atomic/settings.json` (legacy `.pi` paths are also supported):
+Configure compaction in `~/.orphus/agent/settings.json` or `<project-dir>/.orphus/settings.json` (legacy `.atomic` and `.pi` paths are also supported):
 
 ```json
 {

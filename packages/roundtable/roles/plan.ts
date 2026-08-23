@@ -58,6 +58,7 @@ export function buildLaunchPlan(manifest: RoleManifest, options: PlanOptions = {
       model: role.model,
       ...(role.briefPath !== undefined ? { briefPath: role.briefPath } : {}),
       cwd: role.cwd,
+      cwdExplicit: role.cwdExplicit,
       worktree: role.worktree,
       command,
       args: buildArgs(role, footer),

@@ -97,6 +97,10 @@ messages intact verbatim and only early exploration collapsed.
 | **[Getting started](docs/getting-started.md)** | Clone to working fleet, in five tiers. The first needs no model and no API key. |
 | **[The `roundtable` tool](docs/roundtable-tool.md)** | Every action, parameter, and default, with the reasoning. |
 | **[Architecture](docs/architecture.md)** | What runs where, and what the bound actually guarantees. |
+| **[Harness](packages/coding-agent/docs/harness.md)** | The capability boundary, the provider/tool session records, and `orphus inspect runtime`. |
+| **[Browser operation](packages/coding-agent/docs/browser.md)** | Driving an isolated browser, and the four gates a credential passes first. Off by default. |
+| **[Transcription](packages/coding-agent/docs/transcribe.md)** | Local dictation: the protocol, the model catalog, and why it is not enabled yet. |
+| **[Terminal backend](packages/coding-agent/docs/tui-backend.md)** | The termDOM pilot for startup selection and the session picker. Opt-in; pi stays the default. |
 | **[Troubleshooting](docs/troubleshooting.md)** | The three failures that look like success. |
 | **[All documentation](docs/README.md)** | Roles, memory, Orca, CI, design decisions. |
 
@@ -147,13 +151,13 @@ curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.s
 orphus
 ```
 
-`install.sh --help` documents pinning a version (`--ref v0.1.0`) and the
+`install.sh --help` documents pinning a version (`--ref v2.0.0`) and the
 `ORPHUS_INSTALL_DIR` / `ORPHUS_BIN_DIR` overrides. Add an **API key** for whichever provider
 you use, or log in from inside a session with `/login`.
 
 From then on, `orphus update` upgrades in place: it checks this repository's releases,
-re-runs the installer, and flips the `current` pointer — prior versions stay on disk for
-rollback. Nobody reinstalls by hand. Updates follow your channel: a stable install tracks
+re-runs the installer, and flips the `current` pointer — the previous version stays on
+disk for rollback (older ones are pruned). Nobody reinstalls by hand. Updates follow your channel: a stable install tracks
 stable releases only, so it is never dragged onto a beta; a prerelease install tracks the
 newest release of any kind.
 
@@ -180,6 +184,19 @@ supported key is listed in
 
 Rooms and memory arrive automatically — `packages/roundtable` is a builtin package, so every
 session gets the `roundtable` and `memory` tools with no extra install.
+
+To see what a session actually resolved to — the model, the tools and their schema hashes,
+the extensions and the order their hooks run in, flag and settings provenance, and the
+system-prompt section hashes — ask the binary rather than reading the wiring:
+
+```bash
+orphus inspect runtime --json
+```
+
+It dispatches nothing, its output is deterministic (so a diff between two runs is a real
+difference), and secrets are redacted. Sessions also record the exact body of every provider
+request and what came back — see
+[harness.md](packages/coding-agent/docs/harness.md).
 
 Skills extend from there: `orphus install <git-url>` consumes community skill packs
 ([mattpocock/skills](https://github.com/mattpocock/skills) for engineering workflow,
@@ -243,7 +260,10 @@ packages/roundtable/          The Orphus contribution — rooms and the context-
   skills/                       Discussion etiquette, shipped as an agent skill
 packages/fleet/               Fleet blueprints: /fleet, /fleetsetup, the fleet tool, SCHEMA.md,
                                 six examples, and the orchestration + kie-ai-media skills
-packages/coding-agent/        The `orphus` binary (Atomic-derived)
+packages/coding-agent/        The `orphus` binary (Atomic-derived, plus the first-party
+                                harness boundary, browser operation, and termDOM backend)
+packages/transcribe/          Local dictation, derived from pi-transcribe — protocol, model
+                                catalog, ABI pin. Not bundled: fails closed until natives exist
 packages/{workflows,subagents,intercom,mcp,web-access,natives}
 orphus.roles.yaml · roles/    Example role manifest and briefs — copy-me templates
 test/unit/roundtable-*        Rooms, memory, socket, digest, broker lifecycle, and role-launcher tests
@@ -356,8 +376,10 @@ git fetch upstream && git merge upstream/main
   late-joiner ratio against a 40% ceiling, and `evals:baseline -- --check` diffs the measured
   cost of an oversized tool result against the committed scorecard. Both fail the build
   rather than reporting a worse number.
-- **`suites`** — native bindings, the package build, then the full inherited unit suite and
-  the CI contract tests.
+- **`suites`** — native bindings, the package build, then every inherited suite: unit and
+  integration through the flake wrapper (one bounded retry, per-test duration budgets,
+  diagnostics uploaded), the full coding-agent workspace suite through the same wrapper,
+  the script tests, and the CI contract tests.
 - **`review-gate`** — fails a pull request whose automated review reported passing but was
   actually skipped. Large diffs silently exceed CodeRabbit's file limit, so without this a
   PR could show a green review that never happened.

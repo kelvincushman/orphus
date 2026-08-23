@@ -5,14 +5,14 @@ Sessions are stored as JSONL (JSON Lines) files. Each line is a JSON object with
 ## File Location
 
 ```
-~/.atomic/agent/sessions/--<path>--/<timestamp>_<uuid>.jsonl
+~/.orphus/agent/sessions/--<path>--/<timestamp>_<uuid>.jsonl
 ```
 
 Where `<path>` is the working directory with `/` replaced by `-`.
 
 ## Deleting Sessions
 
-Sessions can be removed by deleting their `.jsonl` files under `~/.atomic/agent/sessions/` (legacy `~/.pi/agent/sessions/` may exist from older Pi installs).
+Sessions can be removed by deleting their `.jsonl` files under `~/.orphus/agent/sessions/` (legacy `~/.atomic/agent/sessions/` and `~/.pi/agent/sessions/` may exist from older Pi installs).
 
 Orphus also supports deleting sessions interactively from `/resume` (select a session and press `CTRL+D`, then confirm). When available, Orphus uses the `trash` CLI to avoid permanent deletion.
 
@@ -28,9 +28,9 @@ Existing sessions are automatically migrated to the current version (v3) when lo
 
 ## Source Files
 
-Source on GitHub ([atomic](https://github.com/bastani-inc/atomic)):
-- [`packages/coding-agent/src/core/session-manager.ts`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/session-manager.ts) - Session entry types and SessionManager
-- [`packages/coding-agent/src/core/messages.ts`](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/messages.ts) - Extended message types (BashExecutionMessage, CustomMessage, etc.)
+Source on GitHub ([kelvincushman/orphus](https://github.com/kelvincushman/orphus)):
+- [`packages/coding-agent/src/core/session-manager.ts`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/session-manager.ts) - Session entry types and SessionManager
+- [`packages/coding-agent/src/core/messages.ts`](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/messages.ts) - Extended message types (BashExecutionMessage, CustomMessage, etc.)
 
 Base message and agent event types are provided by Orphus's installed runtime dependencies (`@earendil-works/pi-ai` and `@earendil-works/pi-agent-core`), not by separate `packages/ai` or `packages/agent` directories in this monorepo. For TypeScript definitions in your project, inspect `node_modules/@orphus/coding-agent/dist/`, `node_modules/@earendil-works/pi-ai/dist/`, and `node_modules/@earendil-works/pi-agent-core/dist/`.
 
@@ -274,6 +274,19 @@ Extension state persistence. Does NOT participate in LLM context.
 
 Use `customType` to identify your extension's entries on reload.
 
+Orphus writes four of its own custom entries, all excluded from LLM context:
+
+| `customType` | Written when | Holds |
+| --- | --- | --- |
+| `context_accounting` | Session dispose | What tool results cost the context window |
+| `orphus.provider.request.v1` | Immediately before each provider dispatch | The exact request body, its SHA-256 and byte length, and request/attempt/turn identity |
+| `orphus.provider.response.v1` | When the assistant message settles | Status, finish reason, usage, duration, and normalized error |
+| `orphus.tool.audit.v1` | A tool call ran with something other than what the model asked for, or did not run | The post-hook arguments, what a hook changed, and whether the call ran |
+
+A provider request body over 1 MiB spills to `<session dir>/provider-requests/<request id>.json`
+(mode `0600`) and the record carries `bodyPath` instead of `body`. See
+[Harness](/harness) for the full record shapes.
+
 ### CustomMessageEntry
 
 Extension-injected messages that DO participate in LLM context.
@@ -396,7 +409,7 @@ Key methods for working with sessions programmatically.
 - `SessionManager.list(cwd, sessionDir?, onProgress?, options?)` - List project sessions. Internal workflow sessions are excluded by default; pass `{ includeInternal: true }` to include them and expose their `SessionInfo.workflow` linkage.
 - `SessionManager.listAll(sessionDir?, onProgress?, options?)` - List sessions across projects, or from a custom session directory. The same `includeInternal` default and opt-in apply.
 
-Normal `/resume`, `atomic -r`, and `--continue` callers use the default filtering. Workflow-specific code can opt in without changing user-facing history:
+Normal `/resume`, `orphus -r`, and `--continue` callers use the default filtering. Workflow-specific code can opt in without changing user-facing history:
 
 ```typescript
 const stages = await SessionManager.list(cwd, sessionDir, undefined, { includeInternal: true });

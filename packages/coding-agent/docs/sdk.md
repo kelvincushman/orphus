@@ -2,7 +2,7 @@
 
 # SDK
 
-The SDK provides programmatic access to atomic's agent capabilities. Use it to embed atomic in other applications, build custom interfaces, or integrate with automated workflows.
+The SDK provides programmatic access to Orphus's agent capabilities. Use it to embed Orphus in other applications, build custom interfaces, or integrate with automated workflows.
 
 **Example use cases:**
 - Build a custom UI (web, desktop, mobile)
@@ -11,7 +11,7 @@ The SDK provides programmatic access to atomic's agent capabilities. Use it to e
 - Build custom tools that spawn sub-agents
 - Test agent behavior programmatically
 
-See [examples/sdk/](https://github.com/bastani-inc/atomic/tree/main/packages/coding-agent/examples/sdk) for working examples from minimal to full control.
+See [examples/sdk/](https://github.com/kelvincushman/orphus/tree/main/packages/coding-agent/examples/sdk) for working examples from minimal to full control.
 
 ## Quick Start
 
@@ -387,25 +387,25 @@ const { session } = await createAgentSession({
   cwd: process.cwd(), // default
   
   // Global config directory
-  agentDir: "~/.atomic/agent", // default (expands ~)
+  agentDir: "~/.orphus/agent", // default (expands ~)
 });
 ```
 
-Orphus reads primary `.atomic` locations first and legacy `.pi` locations for compatibility when multiple config directories are supported. Passing an explicit `agentDir` makes that directory the user override.
+Orphus reads primary `.orphus` locations first and legacy `.atomic` and `.pi` locations for compatibility when multiple config directories are supported. Passing an explicit `agentDir` makes that directory the user override.
 
 `cwd` is used by `DefaultResourceLoader` for:
-- Project extensions (`.atomic/extensions/`, then legacy `.pi/extensions/`)
+- Project extensions (`.orphus/extensions/`, then legacy `.atomic/extensions/` and `.pi/extensions/`)
 - Project skills:
-  - `.atomic/skills/`, then legacy `.pi/skills/`
+  - `.orphus/skills/`, then legacy `.atomic/skills/` and `.pi/skills/`
   - `.agents/skills/` in `cwd` and ancestor directories (up to git repo root, or filesystem root when not in a repo)
-- Project prompts (`.atomic/prompts/`, then legacy `.pi/prompts/`)
+- Project prompts (`.orphus/prompts/`, then legacy `.atomic/prompts/` and `.pi/prompts/`)
 - Context files (`AGENTS.md` walking up from cwd)
 - Session directory naming
 
 `agentDir` is used by `DefaultResourceLoader` for:
 - Global extensions (`extensions/`)
 - Global skills:
-  - `skills/` under `agentDir` (for example `~/.atomic/agent/skills/`; legacy `~/.pi/agent/skills/` is also considered by default)
+  - `skills/` under `agentDir` (for example `~/.orphus/agent/skills/`; legacy `~/.atomic/agent/skills/` and `~/.pi/agent/skills/` are also considered by default)
   - `~/.agents/skills/`
 - Global prompts (`prompts/`)
 - Global context file (`AGENTS.md`)
@@ -455,7 +455,7 @@ If no model is provided:
 2. Uses default from settings
 3. Falls back to first available model
 
-> See [examples/sdk/02-custom-model.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/sdk/02-custom-model.ts)
+> See [examples/sdk/02-custom-model.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/sdk/02-custom-model.ts)
 
 ### API Keys and OAuth
 
@@ -492,7 +492,7 @@ const customSession = await createAgentSession({
 const builtinsOnly = await ModelRuntime.create({ modelsPath: null });
 ```
 
-> See the complete [`ModelRuntime` credential and model configuration example](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/sdk/09-api-keys-and-oauth.ts).
+> See the complete [`ModelRuntime` credential and model configuration example](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/sdk/09-api-keys-and-oauth.ts).
 
 ### System Prompt
 
@@ -509,7 +509,7 @@ await loader.reload();
 const { session } = await createAgentSession({ resourceLoader: loader });
 ```
 
-> See [examples/sdk/03-custom-prompt.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/sdk/03-custom-prompt.ts)
+> See [examples/sdk/03-custom-prompt.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/sdk/03-custom-prompt.ts)
 
 ### Tools
 
@@ -574,7 +574,7 @@ const { session } = await createAgentSession({
 });
 ```
 
-> See [examples/sdk/05-tools.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/sdk/05-tools.ts)
+> See [examples/sdk/05-tools.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/sdk/05-tools.ts)
 
 ### Custom Tools
 
@@ -668,11 +668,11 @@ await createAgentSession({
 });
 ```
 
-> See [examples/sdk/05-tools.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/sdk/05-tools.ts)
+> See [examples/sdk/05-tools.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/sdk/05-tools.ts)
 
 ### Extensions
 
-Extensions are loaded by the `ResourceLoader`. `DefaultResourceLoader` discovers extensions from `~/.atomic/agent/extensions/` and `.atomic/extensions/` first, then legacy `~/.pi/agent/extensions/` and `.pi/extensions/`, plus settings.json extension sources.
+Extensions are loaded by the `ResourceLoader`. `DefaultResourceLoader` discovers extensions from `~/.orphus/agent/extensions/` and `.orphus/extensions/` first, then the legacy `.atomic` and `.pi` extension directories, plus settings.json extension sources.
 
 ```typescript
 import { createAgentSession, DefaultResourceLoader } from "@orphus/coding-agent";
@@ -708,7 +708,7 @@ await loader.reload();
 eventBus.on("my-extension:status", (data) => console.log(data));
 ```
 
-> See [examples/sdk/06-extensions.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/sdk/06-extensions.ts) and [Extensions](/extensions)
+> See [examples/sdk/06-extensions.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/sdk/06-extensions.ts) and [Extensions](/extensions)
 
 ### Skills
 
@@ -738,7 +738,7 @@ await loader.reload();
 const { session } = await createAgentSession({ resourceLoader: loader });
 ```
 
-> See [examples/sdk/04-skills.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/sdk/04-skills.ts)
+> See [examples/sdk/04-skills.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/sdk/04-skills.ts)
 
 ### Context Files
 
@@ -758,7 +758,7 @@ await loader.reload();
 const { session } = await createAgentSession({ resourceLoader: loader });
 ```
 
-> See [examples/sdk/07-context-files.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/sdk/07-context-files.ts)
+> See [examples/sdk/07-context-files.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/sdk/07-context-files.ts)
 
 ### Slash Commands
 
@@ -787,7 +787,7 @@ await loader.reload();
 const { session } = await createAgentSession({ resourceLoader: loader });
 ```
 
-> See [examples/sdk/08-prompt-templates.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/sdk/08-prompt-templates.ts)
+> See [examples/sdk/08-prompt-templates.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/sdk/08-prompt-templates.ts)
 
 ### Session Management
 
@@ -891,7 +891,7 @@ sm.branchWithSummary(id, "Summary...");  // Branch with context summary
 sm.createBranchedSession(leafId);       // Extract path to new file
 ```
 
-> See [examples/sdk/11-sessions.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/sdk/11-sessions.ts) and [Session Format](/session-format)
+> See [examples/sdk/11-sessions.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/sdk/11-sessions.ts) and [Session Format](/session-format)
 
 ### Settings Management
 
@@ -930,8 +930,8 @@ const { session } = await createAgentSession({
 **Project-specific settings:**
 
 Settings load from Orphus-first locations and merge:
-1. Global: `~/.atomic/agent/settings.json`, then legacy `~/.pi/agent/settings.json`
-2. Project: `<cwd>/.atomic/settings.json`, then legacy `<cwd>/.pi/settings.json`
+1. Global: `~/.orphus/agent/settings.json`, then legacy `~/.atomic/agent/settings.json` and `~/.pi/agent/settings.json`
+2. Project: `<cwd>/.orphus/settings.json`, then legacy `<cwd>/.atomic/settings.json` and `<cwd>/.pi/settings.json`
 
 Project overrides global. Nested objects merge keys. Setters modify global settings by default.
 
@@ -942,7 +942,7 @@ Project overrides global. Nested objects merge keys. Setters modify global setti
 - Call `await settingsManager.flush()` when you need a durability boundary (for example, before process exit or before asserting file contents in tests).
 - `SettingsManager` does not print settings I/O errors. Use `settingsManager.drainErrors()` and report them in your app layer.
 
-> See [examples/sdk/10-settings.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/sdk/10-settings.ts)
+> See [examples/sdk/10-settings.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/sdk/10-settings.ts)
 
 ## ResourceLoader
 
@@ -1188,7 +1188,7 @@ See [RPC documentation](/rpc) for the JSON protocol.
 For subprocess-based integration without building with the SDK, use the CLI directly:
 
 ```bash
-atomic --mode rpc --no-session
+orphus --mode rpc --no-session
 ```
 
 See [RPC documentation](/rpc) for the JSON protocol.

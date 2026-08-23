@@ -33,11 +33,26 @@ interface CommandContextLike {
 
 const PACKAGE_DIR = dirname(fileURLToPath(import.meta.url));
 
-/** First remote URL from .git/config, if the cwd is a git repo. No exec: a config read suffices for a proposal hint. */
+/**
+ * First remote URL from .git/config, if the cwd is a git repo. No exec: a
+ * config read suffices for a proposal hint.
+ *
+ * Credentials embedded in the URL are stripped before it can reach the
+ * briefing: the briefing is sent as a user message, so anything in it lands in
+ * model context and the session transcript, and `https://user:token@host/…` is
+ * a real shape CI writes into .git/config. `git@host:path` keeps its plain
+ * user — scp form carries no password, and `git@` is the address, not a secret.
+ */
 function readGitRemote(cwd: string): string | undefined {
   try {
     const config = readFileSync(join(cwd, ".git", "config"), "utf8");
-    return /\n\s*url\s*=\s*(\S+)/.exec(config)?.[1];
+    const url = /\n\s*url\s*=\s*(\S+)/.exec(config)?.[1];
+    // Greedy to the LAST @ before the path: RFC 3986 ends userinfo at the
+    // final @ in the authority, and a password may itself contain @ — stopping
+    // at the first one leaked the password's tail.
+    return url
+      ?.replace(/^([a-z][\w+.-]*:\/\/)[^/?#]*@/iu, "$1")
+      .replace(/^[^@/:]+:[^/]*@/u, "");
   } catch {
     return undefined;
   }

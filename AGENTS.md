@@ -8,6 +8,7 @@ The packages this project exists for:
 
 - `@orphus/roundtable` in `packages/roundtable` — **the Orphus contribution.** Rooms and the context-window contract: the budgeted digest algorithm (`digest.ts`), the local-socket broker and its client (`broker/`), the `roundtable` and `memory` tools, the declarative role manifest and launcher (`roles/`, `bin/orphus-roles.ts`), the discussion-etiquette skill, and the no-model demos. When a change here is not obviously about rooms, digests, roles, or memory, it probably belongs in the vendored tree instead.
 - `@orphus/fleet` in `packages/fleet` — **Orphus-authored orchestration on top of rooms and subagents.** Shareable fleet blueprints (`*.fleet.yaml`: teams of agent definitions with pre-assigned skills and a delegation mode each), the `/fleet` and `/fleetsetup` commands, the `fleet` introspection tool, and the `fleet-orchestration` and `kie-ai-media` skills. It executes nothing itself — members run via the `subagent` tool and deliberate in roundtable rooms. When a change is about *how members run* rather than *how a fleet is described and briefed*, it belongs in `packages/subagents` or the vendored tree.
+- `@orphus/transcribe` in `packages/transcribe` — **Orphus-authored**, derived from pi-transcribe (MIT, with attribution and a pinned upstream-sync record in `UPSTREAM.md`). Local dictation: the versioned six-request JSON-Lines worker/helper protocol, ABI and build-hash verification, and the consent-then-checksum model catalog. **It is not bundled and not registered as a builtin** — the native miniaudio/transcribe.cpp artifacts for the eight release targets are not built in this repository, so both channels fail closed. That is the intended state, not a bug to fix: the ABI is pinned in `native/ABI.md`, and wiring it up means building those artifacts, not removing the guard.
 
 Inherited from Atomic, and mostly left alone:
 
@@ -21,6 +22,14 @@ Inherited from Atomic, and mostly left alone:
 Companion packages under `packages/*` ship as **raw TypeScript** (no compile step) and are bundled into `@orphus/coding-agent` at build time rather than published independently. The coding-agent package follows upstream pi's compiled-package layout.
 
 ## Minimal-change principle (KISS) — read this first
+
+**Default discipline: [ponytail](packages/subagents/skills/ponytail/SKILL.md)** — the
+bundled skill that enforces everything in this section as a ladder (YAGNI → reuse →
+stdlib → native platform → installed dependency → one line → minimum code). It ships
+with every Orphus session via `@orphus/subagents`; agents working on this repository
+load it at `full` intensity for any coding task, and `/ponytail lite|full|ultra`
+switches level. Vendored from
+[dietrichgebert/ponytail](https://github.com/dietrichgebert/ponytail) (MIT).
 
 Fix the actual problem with the **smallest correct change**. Do not rewrite files, and do not add speculative hardening for issues that cannot occur in this codebase. Don't reinvent the wheel or burn tokens rewriting file after file when the fix is usually a few lines.
 
@@ -305,6 +314,21 @@ work headroom and derive the assertion from a named constant (see `STALLED_ATTEM
 `test/unit/subagents-attempt-watchdog-helpers.ts`). Do not skip it, do not serialize the
 suite, and do not shard — `test/ci/test-workflow-topology.test.ts` forbids
 `--parallel|--shard|--concurrent|--max-concurrency` for exactly this reason.
+
+### Ambient provider credentials
+
+A test that only passes on a machine *without* provider credentials is a bug in
+that test, exactly like load sensitivity. Model-world fixtures build a real
+`ModelRuntime` over pi-ai's full builtin provider list, and some providers
+authenticate from the environment alone (amazon-bedrock via the AWS default
+chain, google-vertex via ADC) — so a developer's configured AWS CLI, or a
+sandbox proxy injecting dummy AWS keys, silently makes "no models available"
+fixtures see a 114-model catalog and spawned CLI children dispatch real
+provider requests. `packages/coding-agent/test/provider-env-scrub.ts` (wired as
+that project's vitest `setupFiles`) deletes the ambient credential variables
+before any test module loads; fixtures that need a credential set their own
+afterwards. When adding a suite outside that project that touches model
+availability, scrub the same list rather than assuming a bare environment.
 
 ### Hook name compatibility
 

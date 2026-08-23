@@ -521,9 +521,9 @@ describe("InteractiveMode.showLoadedResources", () => {
 		const output = normalizeRenderedOutput(fakeThis.chatContainer);
 		const noticePrefix = "Extension overlap detected:";
 		expect(output.split(noticePrefix)).toHaveLength(2);
-		expect(output).toContain("`pi-subagents` provides resources already bundled with Atomic.");
+		expect(output).toContain("`pi-subagents` provides resources already bundled with Orphus.");
 		expect(output).toContain(
-			"Atomic kept its bundled versions; non-conflicting extension features remain available.",
+			"Orphus kept its bundled versions; non-conflicting extension features remain available.",
 		);
 		expect(output).not.toContain("[Prompt conflicts]");
 		expect(output).not.toContain("[Extension issues]");

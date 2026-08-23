@@ -311,3 +311,7 @@ evals/jobs/
 # the index it builds is a local derivative of the working tree, regenerated with
 # `npx gitnexus analyze .`, and must never be tracked.
 .gitnexus/
+
+# Fleet-member progress scratch (subagents write theirs under isolated artifact storage;
+# this one only appears when a member is pointed at the repo root).
+/progress.md

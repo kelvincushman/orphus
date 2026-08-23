@@ -103,6 +103,7 @@ function parseRole(name: string, raw: unknown, manifestPath: string, dir: string
     model: requireString(raw.model, manifestPath, `${keyPath}.model`),
     room: raw.room === undefined ? defaultRoom : requireName(raw.room, manifestPath, `${keyPath}.room`, KEYS_CURSORS),
     cwd: raw.cwd === undefined ? dir : resolveFrom(dir, requireString(raw.cwd, manifestPath, `${keyPath}.cwd`)),
+    cwdExplicit: raw.cwd !== undefined,
     worktree:
       raw.worktree === undefined ? DEFAULT_WORKTREE : requireString(raw.worktree, manifestPath, `${keyPath}.worktree`),
   };

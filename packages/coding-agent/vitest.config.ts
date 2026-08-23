@@ -50,6 +50,10 @@ const project = (name: string, include: string[], exclude: string[]) => ({
 		testTimeout: defaultTestTimeoutMs,
 		include,
 		exclude: ["**/node_modules/**", ...exclude],
+		// Ambient provider credentials (a configured AWS CLI, proxy-injected dummy
+		// keys) would authenticate real providers inside model fixtures and leak
+		// into spawned CLI children; see the setup file.
+		setupFiles: ["test/provider-env-scrub.ts"],
 		server: { deps: { external: [/@silvia-odwyer\/photon-node/] } },
 	},
 });

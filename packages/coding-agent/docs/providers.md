@@ -1,6 +1,6 @@
 # Providers
 
-Orphus supports subscription-based providers via OAuth and API-key providers via environment variables or the auth file. Built-in catalogs ship with Orphus; configured and native providers may refresh newer catalogs independently and cache them in `~/.atomic/agent/models-store.json` for offline use.
+Orphus supports subscription-based providers via OAuth and API-key providers via environment variables or the auth file. Built-in catalogs ship with Orphus; configured and native providers may refresh newer catalogs independently and cache them in `~/.orphus/agent/models-store.json` for offline use.
 
 ## Table of Contents
 
@@ -29,7 +29,7 @@ Use `/login <provider>` (for example `/login openrouter` or `/login kimi-coding`
 
 Escape or Ctrl+C quietly cancels the matching login, including immediate/pre-device native aborts, and leaves the previously committed credential and catalog unchanged. Provider denial, device expiry, timeout, browser/network/protocol failure, malformed responses, token exchange, and persistence failures remain visible. Orphus claims success when the provider flow and credential persistence complete; it does not wait for model-catalog or ambient-availability refresh work.
 
-Use `/logout` to clear credentials. Logout immediately invalidates authentication in the active interactive engine and removes the selected provider from both `~/.atomic/agent/auth.json` and any effective legacy `~/.pi/agent/auth.json`, so the provider remains logged out after restart. Environment variables, command-line credentials, and `models.json` configuration cannot be cleared by Orphus; when one of those sources still authenticates the provider, the logout status names the remaining source.
+Use `/logout` to clear credentials. Logout immediately invalidates authentication in the active interactive engine and removes the selected provider from both `~/.orphus/agent/auth.json` and any effective legacy `~/.atomic/agent/auth.json` and `~/.pi/agent/auth.json`, so the provider remains logged out after restart. Environment variables, command-line credentials, and `models.json` configuration cannot be cleared by Orphus; when one of those sources still authenticates the provider, the logout status names the remaining source.
 
 ### Token Refresh
 
@@ -93,14 +93,14 @@ Use `/login` in interactive mode and select a provider to store an API key in `a
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
-atomic
+orphus
 ```
 
 After a successful API-key or OAuth login, Orphus persists the credential and immediately marks that provider available against the model snapshot already loaded in the active session. It does not make login wait for cache restoration, ambient-availability checks, or another model-catalog request. Open `/model` to use that authenticated snapshot immediately; the selector restores and refreshes dynamic catalogs in the background with a 15-second deadline and keeps selection responsive if a provider is slow or unavailable.
 
 `/logout` follows the same transaction boundary in reverse: once the stored credential is deleted, Orphus immediately removes that stored-auth projection and returns to the editor without refreshing model catalogs. A short, bounded local probe preserves models when authentication still exists through an environment variable or runtime key. Refresh work that began before either login or logout cannot later overwrite the newer credential snapshot.
 
-On a remote or headless machine, paste the authorization code or final redirect URL into the login prompt when the provider offers manual entry. A completed exchange must either return to the editor or show an error; it does not require deleting `~/.atomic`. Existing OAuth credentials use the same `auth.json` schema after the pi-ai model-runtime migration and are loaded in place.
+On a remote or headless machine, paste the authorization code or final redirect URL into the login prompt when the provider offers manual entry. A completed exchange must either return to the editor or show an error; it does not require deleting `~/.orphus`. Existing OAuth credentials use the same `auth.json` schema after the pi-ai model-runtime migration and are loaded in place.
 
 Remote pi.dev catalogs persist their ETag and are revalidated with `If-None-Match`; an empty `304` keeps the cached models and counts as a successful check. Orphus renders the cached snapshot immediately, preserves each provider's last usable catalog on refresh failure, and prefers newer bundled data over stale remote overlays. See [Custom Models](/models#catalog-freshness-and-precedence).
 
@@ -146,7 +146,7 @@ Reference for environment variables and `auth.json` keys: `findEnvKeys()` / `get
 
 #### Auth File
 
-Store credentials in `~/.atomic/agent/auth.json`:
+Store credentials in `~/.orphus/agent/auth.json`:
 
 ```json
 {
@@ -254,14 +254,14 @@ export AWS_REGION=us-west-2
 Also supports ECS task roles (`AWS_CONTAINER_CREDENTIALS_*`) and IRSA (`AWS_WEB_IDENTITY_TOKEN_FILE`).
 
 ```bash
-atomic --provider amazon-bedrock --model us.anthropic.claude-sonnet-4-20250514-v1:0
+orphus --provider amazon-bedrock --model us.anthropic.claude-sonnet-4-20250514-v1:0
 ```
 
 Prompt caching is enabled automatically for Claude models whose ID contains a recognizable model name (base models and system-defined inference profiles). For application inference profiles (whose ARNs don't contain the model name), set `AWS_BEDROCK_FORCE_CACHE=1` to enable cache points:
 
 ```bash
 export AWS_BEDROCK_FORCE_CACHE=1
-atomic --provider amazon-bedrock --model arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/abc123
+orphus --provider amazon-bedrock --model arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/abc123
 ```
 
 If you are connecting to a Bedrock API proxy, the following environment variables can be used:
@@ -285,7 +285,7 @@ export AWS_BEDROCK_FORCE_HTTP1=1
 export CLOUDFLARE_API_KEY=...           # or use /login
 export CLOUDFLARE_ACCOUNT_ID=...
 export CLOUDFLARE_GATEWAY_ID=...        # create at dash.cloudflare.com → AI → AI Gateway
-atomic --provider cloudflare-ai-gateway --model "claude-sonnet-4-5"
+orphus --provider cloudflare-ai-gateway --model "claude-sonnet-4-5"
 ```
 
 Routes to OpenAI, Anthropic, and Workers AI through Cloudflare AI Gateway. Workers AI uses the Unified API (`/compat`) and prefixed model IDs (`workers-ai/@cf/...`). OpenAI uses the OpenAI passthrough route (`/openai`) with native OpenAI model IDs such as `gpt-5.1`. Anthropic uses the Anthropic passthrough route (`/anthropic`) with native Anthropic model IDs such as `claude-sonnet-4-5`.
@@ -308,7 +308,7 @@ For normal Orphus usage, prefer unified billing or stored BYOK. Inline BYOK requ
 ```bash
 export CLOUDFLARE_API_KEY=...           # or use /login
 export CLOUDFLARE_ACCOUNT_ID=...
-atomic --provider cloudflare-workers-ai --model "@cf/moonshotai/kimi-k2.6"
+orphus --provider cloudflare-workers-ai --model "@cf/moonshotai/kimi-k2.6"
 ```
 
 Orphus automatically sets `x-session-affinity` for [prefix caching](https://developers.cloudflare.com/workers-ai/features/prompt-caching/) discounts.
@@ -333,7 +333,7 @@ For router-mode discovery, load/unload management, and Hugging Face downloads wi
 
 **Via models.json:** Add Ollama, LM Studio, vLLM, or any provider that speaks a supported API (OpenAI Completions, OpenAI Responses, Anthropic Messages, Google Generative AI). See [Custom models](/models).
 
-**Via extensions:** For providers that need custom API implementations or OAuth flows, create an extension. See [Custom providers](/custom-provider) and [examples/extensions/custom-provider-gitlab-duo](https://github.com/bastani-inc/atomic/tree/main/packages/coding-agent/examples/extensions/custom-provider-gitlab-duo).
+**Via extensions:** For providers that need custom API implementations or OAuth flows, create an extension. See [Custom providers](/custom-provider) and [examples/extensions/custom-provider-gitlab-duo](https://github.com/kelvincushman/orphus/tree/main/packages/coding-agent/examples/extensions/custom-provider-gitlab-duo).
 
 ## Stop Reasons
 

@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { CONFIG_DIR_NAME } from "../src/config.ts";
 import { SettingsManager } from "../src/core/settings-manager.ts";
 
 describe("SettingsManager", () => {
@@ -339,7 +340,7 @@ describe("SettingsManager", () => {
 			expect(manager.getTheme()).toBe("dark");
 		});
 
-		it("should create .atomic folder when writing project settings", async () => {
+		it("should create the project config folder when writing project settings", async () => {
 			// Create agent dir with global settings, but NO project config folder
 			const settingsPath = join(agentDir, "settings.json");
 			writeFileSync(settingsPath, JSON.stringify({ theme: "dark" }));
@@ -349,18 +350,18 @@ describe("SettingsManager", () => {
 
 			const manager = SettingsManager.create(projectDir, agentDir);
 
-			// .atomic folder should NOT exist yet
-			expect(existsSync(join(projectDir, ".atomic"))).toBe(false);
+			// project config folder should NOT exist yet
+			expect(existsSync(join(projectDir, CONFIG_DIR_NAME))).toBe(false);
 
 			// Write a project-specific setting
 			manager.setProjectPackages([{ source: "npm:test-pkg" }]);
 			await manager.flush();
 
-			// Now .atomic folder should exist
-			expect(existsSync(join(projectDir, ".atomic"))).toBe(true);
+			// Now the project config folder should exist
+			expect(existsSync(join(projectDir, CONFIG_DIR_NAME))).toBe(true);
 
 			// And settings file should be created
-			expect(existsSync(join(projectDir, ".atomic", "settings.json"))).toBe(true);
+			expect(existsSync(join(projectDir, CONFIG_DIR_NAME, "settings.json"))).toBe(true);
 		});
 	});
 

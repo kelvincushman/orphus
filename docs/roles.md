@@ -116,7 +116,7 @@ orphus --name planner --provider anthropic --model claude-opus \
 | `roles.<name>.provider` / `.model` | yes | The model behind the role |
 | `roles.<name>.brief` | no | Path to the brief, relative to the manifest |
 | `roles.<name>.room` | no | Join a different room than the default |
-| `roles.<name>.cwd` | no | Working directory (default: manifest directory) |
+| `roles.<name>.cwd` | no | Working directory (default: manifest directory). Under `--format orca` the worktree decides the directory unless `cwd` is set explicitly |
 | `roles.<name>.worktree` | no | Orca selector for `--format orca` (default: `active`) |
 | `budgets.digest` / `.perMessage` | no | Defaults 2000 / 600 |
 

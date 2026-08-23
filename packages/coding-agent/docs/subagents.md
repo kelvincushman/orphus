@@ -213,8 +213,8 @@ Custom agents are Markdown files with YAML frontmatter and a system prompt body.
 
 | Scope | Path |
 |---|---|
-| User | `~/.atomic/agent/agents/**/*.md` |
-| Project | `.atomic/agents/**/*.md` |
+| User | `~/.orphus/agent/agents/**/*.md` |
+| Project | `.orphus/agents/**/*.md` |
 
 A small custom read-only inspection agent:
 
@@ -273,7 +273,7 @@ Each candidate can also carry its own reasoning effort — see [Reasoning levels
 
 ## Reasoning levels
 
-Set the reasoning (thinking) effort for each model candidate with a `model_name:thinking_effort` suffix on `model` and on every `fallbackModels` entry. Valid efforts are `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max` — the same shorthand used by `atomic --model sonnet:high`. `xhigh` and `max` are used only when the selected model's capability map supports them.
+Set the reasoning (thinking) effort for each model candidate with a `model_name:thinking_effort` suffix on `model` and on every `fallbackModels` entry. Valid efforts are `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max` — the same shorthand used by `orphus --model sonnet:high`. `xhigh` and `max` are used only when the selected model's capability map supports them.
 
 ```markdown
 ---

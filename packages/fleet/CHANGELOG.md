@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-08-22
+
 ### Changed
 
 - **Teams accept `deadlineMs` for asynchronous deliberations.** Without one, a deliberation waits on a completion notification a stalled member may never trigger — the observed failure being a panelist that never joins the room at all, leaving the orchestrator idle indefinitely. With one, the run is finalized on expiry and the result names the members still running. It is emitted only on the async call: a `blocking: true` team is bounded by the turn, so pairing the two now warns rather than describing a ceiling nothing enforces.

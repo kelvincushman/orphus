@@ -200,7 +200,9 @@ const curlWrapper = [
 	"        ;;",
 	"    https://api.github.com/repos/kelvincushman/orphus/releases/latest)",
 	`        [ "${shellExpansion("ORPHUS_FIXTURE_FAIL_API:-0")}" = 1 ] && exit 22`,
-	`        [ "${shellExpansion("ORPHUS_FIXTURE_FAIL_LATEST_API:-0")}" = 1 ] && exit 22`,
+	// Real curl reports the expected prerelease 404 on stderr, which is the
+	// noise the installer has to keep off the user's terminal.
+	`        if [ "${shellExpansion("ORPHUS_FIXTURE_FAIL_LATEST_API:-0")}" = 1 ]; then printf 'curl: (22) The requested URL returned error: 404\\n' >&2; exit 22; fi`,
 	`        printf '{"tag_name":"%s"}\\n' "$ORPHUS_FIXTURE_LATEST_TAG"`,
 	"        ;;",
 	'    "https://api.github.com/repos/kelvincushman/orphus/releases?per_page=1")',
@@ -217,6 +219,11 @@ const curlWrapper = [
 	`        rest=${shellExpansion("url%/*")}`,
 	`        tag=${shellExpansion("rest##*/")}`,
 	`        [ "${shellExpansion("ORPHUS_FIXTURE_FAIL_FILE:-")}" = "$name" ] && exit 22`,
+	// A full volume: curl received the bytes and could not write them out.
+	`        if [ "${shellExpansion("ORPHUS_FIXTURE_WRITE_FAIL:-")}" = "$name" ]; then printf 'curl: (23) Failure writing output to destination\\n' >&2; exit 23; fi`,
+	// The same condition reported as 56: curl returns CURLE_RECV_ERROR for a
+	// short write to a full destination as well as for a dropped connection.
+	`        if [ "${shellExpansion("ORPHUS_FIXTURE_RECV_FAIL:-")}" = "$name" ]; then printf 'curl: (56) Failure writing output to destination\\n' >&2; exit 56; fi`,
 	`        /bin/cp "$ORPHUS_FIXTURE_RELEASES/$tag/$name" "$output"`,
 	"        ;;",
 	"    *) exit 22 ;;",
@@ -276,6 +283,8 @@ const wgetWrapper = [
 	`        rest=${shellExpansion("url%/*")}`,
 	`        tag=${shellExpansion("rest##*/")}`,
 	`        [ "${shellExpansion("ORPHUS_FIXTURE_FAIL_FILE:-")}" = "$name" ] && exit 1`,
+	// wget reports a full volume as exit 3, its file I/O status.
+	`        if [ "${shellExpansion("ORPHUS_FIXTURE_WRITE_FAIL:-")}" = "$name" ]; then printf 'wget: cannot write to %s: No space left on device\\n' "$output" >&2; exit 3; fi`,
 	`        /bin/cp "$ORPHUS_FIXTURE_RELEASES/$tag/$name" "$output"`,
 	"        ;;",
 	"    *) exit 1 ;;",
@@ -967,6 +976,107 @@ unixTest("shell installer falls back to the release list when latest excludes pr
 		assert.equal(currentVersion(fixture), "v1.0.0-alpha.1");
 		const requests = readFileSync(fixture.requestLog, "utf8");
 		assert.match(requests, /GET https:\/\/api\.github\.com\/repos\/kelvincushman\/orphus\/releases\?per_page=1/u);
+		// The 404 is how that probe answers while only prereleases exist, and
+		// an install that worked must not look like it failed on the way.
+		assert.doesNotMatch(result.stderr.toString(), /curl: \(22\)|404/u);
+	} finally {
+		fixture.cleanup();
+	}
+});
+
+unixTest("a release the installer cannot resolve still reports why", () => {
+	const fixture = createFixture();
+	try {
+		// Silencing the probe with a fallback must not silence the one without
+		// it: a pinned --ref that cannot be resolved has nothing to fall back to.
+		const result = fixture.run({
+			args: ["--ref", "v1.0.0"],
+			environment: { ORPHUS_FIXTURE_FAIL_API: "1" },
+		});
+		assert.notEqual(result.exitCode, 0);
+		assert.match(result.stderr.toString(), /failed to resolve the GitHub release/u);
+	} finally {
+		fixture.cleanup();
+	}
+});
+
+unixTest("a download that fills the volume is reported as a write failure, not a download failure", () => {
+	const fixture = createFixture();
+	try {
+		// curl exit 23 means the bytes arrived and the disk refused them.
+		// Reporting that as a failed download sends the user after a network
+		// problem that is not there.
+		const result = fixture.run({
+			args: ["--ref", "v1.0.0"],
+			environment: { ORPHUS_FIXTURE_WRITE_FAIL: "orphus-linux-x64.tar.gz" },
+		});
+		assert.notEqual(result.exitCode, 0);
+		const stderr = result.stderr.toString();
+		assert.match(stderr, /out of space/u);
+		assert.doesNotMatch(stderr, /failed to download release asset/u);
+	} finally {
+		fixture.cleanup();
+	}
+});
+
+unixTest("wget's file I/O status is reported as a write failure too", () => {
+	const fixture = createFixture();
+	try {
+		// wget exit 3 is its file I/O status, the same condition curl reports as
+		// 23. Both downloaders must name the volume rather than the network.
+		const result = fixture.run({
+			downloader: "wget",
+			args: ["--ref", "v1.0.0"],
+			environment: { ORPHUS_FIXTURE_WRITE_FAIL: "orphus-linux-x64.tar.gz" },
+		});
+		assert.notEqual(result.exitCode, 0);
+		const stderr = result.stderr.toString();
+		assert.match(stderr, /out of space/u);
+		assert.doesNotMatch(stderr, /failed to download release asset/u);
+	} finally {
+		fixture.cleanup();
+	}
+});
+
+unixTest("updates retain the previous version for rollback and prune the rest", () => {
+	// Without a cap every update added a full compressed release to $HOME
+	// forever, and nothing consumed the older copies — the README's "kept for
+	// rollback" needs exactly one previous version, not an unbounded museum.
+	const fixture = createFixture();
+	try {
+		addRelease(fixture, "v1.1.0");
+		addRelease(fixture, "v1.2.0");
+		assertSuccess(fixture.run({ args: ["--ref", "v1.0.0"] }));
+		assertSuccess(fixture.run({ args: ["--ref", "v1.1.0"] }));
+		assertSuccess(fixture.run({ args: ["--ref", "v1.2.0"] }));
+		const versions = readdirSync(join(fixture.installRoot, "versions"))
+			.filter((entry) => !entry.startsWith("."))
+			.sort();
+		assert.deepEqual(versions, ["v1.1.0", "v1.2.0"], "current plus one previous, nothing older");
+		assert.equal(currentVersion(fixture), "v1.2.0");
+	} finally {
+		fixture.cleanup();
+	}
+});
+
+unixTest("curl's ambiguous exit 56 names both causes and ranks neither", () => {
+	const fixture = createFixture();
+	try {
+		// 56 is CURLE_RECV_ERROR, which curl returns for a dropped connection
+		// and for a short write to a full destination alike — issue #70 was
+		// reported with exactly this status on a volume that was 99% full.
+		// curl cannot separate the two, so the message names both and ranks
+		// neither; the generic download error would name only the wrong one.
+		const result = fixture.run({
+			args: ["--ref", "v1.0.0"],
+			environment: { ORPHUS_FIXTURE_RECV_FAIL: "orphus-linux-x64.tar.gz" },
+		});
+		assert.notEqual(result.exitCode, 0);
+		const stderr = result.stderr.toString();
+		assert.match(stderr, /ended early/u);
+		assert.match(stderr, /connection dropped/u);
+		assert.match(stderr, /volume is full/u);
+		assert.doesNotMatch(stderr, /failed to download release asset/u);
 	} finally {
 		fixture.cleanup();
 	}

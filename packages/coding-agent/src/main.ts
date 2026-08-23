@@ -11,6 +11,7 @@ import {
 	toCredentialPrintError,
 	validateCredentialPrintArgs,
 } from "./cli/credential-print.ts";
+import { handleInspectCommand } from "./cli/inspect-runtime.ts";
 import { listModels } from "./cli/list-models.ts";
 import { createProjectTrustContext } from "./cli/project-trust.ts";
 import {
@@ -190,6 +191,12 @@ export async function main(argv: string[], options?: MainOptions) {
 		return;
 	}
 	if (await handleConfigCommand(args, { extensionFactories })) {
+		return;
+	}
+	if (await handleInspectCommand(args, { extensionFactories })) {
+		const exitCode = process.exitCode ?? 0;
+		await drainProcessStdio();
+		process.exit(exitCode);
 		return;
 	}
 	if (await runCredentialPrintCommand(args)) {

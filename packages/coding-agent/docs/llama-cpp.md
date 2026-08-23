@@ -40,7 +40,7 @@ Enter the router URL and optional API key. The default URL is `http://127.0.0.1:
 ```bash
 export LLAMA_BASE_URL=http://127.0.0.1:8080
 export LLAMA_API_KEY=optional-secret
-atomic
+orphus
 ```
 
 If the server requires a key, start `llama-server` with the matching `--api-key`. Keep `--host 127.0.0.1` for local-only access.
@@ -55,7 +55,7 @@ Run `/llama` in interactive mode:
 
 Hugging Face search uses `HF_TOKEN` when set, then checks `$HF_TOKEN_PATH`, `$HF_HOME/token`, `$XDG_CACHE_HOME/huggingface/token`, and `~/.cache/huggingface/token`. Unauthenticated search has lower rate limits. Orphus warns before gated downloads and links to the access page. Because llama.cpp performs the download, its process must also have `HF_TOKEN` for gated repositories.
 
-Orphus asks before unloading other models, never silently unloads models, and never deletes model files. `/llama` always displays the router's current state because other clients may share it. Only loaded models appear in `/model`; load one first, then select it there. Orphus persists the last successful loaded-model catalog in `~/.atomic/agent/models-store.json` (or the active custom agent directory), so those entries remain selectable after restart and before the first successful refresh. If that first online refresh fails, Orphus reports the original router error while continuing to expose the validated persisted catalog; a later successful refresh replaces those stale loaded-state entries without duplicates. If the router disconnects, choose **Retry** to reconnect and refresh state without replaying the interrupted operation.
+Orphus asks before unloading other models, never silently unloads models, and never deletes model files. `/llama` always displays the router's current state because other clients may share it. Only loaded models appear in `/model`; load one first, then select it there. Orphus persists the last successful loaded-model catalog in `~/.orphus/agent/models-store.json` (or the active custom agent directory), so those entries remain selectable after restart and before the first successful refresh. If that first online refresh fails, Orphus reports the original router error while continuing to expose the validated persisted catalog; a later successful refresh replaces those stale loaded-state entries without duplicates. If the router disconnects, choose **Retry** to reconnect and refresh state without replaying the interrupted operation.
 
 Each llama model uses the router-reported loaded context (`meta.n_ctx`, then training context, otherwise Orphus's fallback) for both `contextWindow` and `maxTokens`; Orphus no longer applies a separate 16K output cap. The server remains authoritative and may impose a smaller practical generation limit.
 
