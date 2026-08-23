@@ -253,9 +253,13 @@ jobs:
           # just the newest one: any later comment (a chat auto-reply is enough)
           # would otherwise displace it and turn the gate green on a PR that was
           # never reviewed — the precise failure this job exists to prevent.
-          # A rate-limited reviewer's apology comment is a busy signal, not a
-          # review, so those phrasings fail the gate the same way (observed
-          # live: #107's summons was answered only by "Review rate limited").
+          # Passing needs POSITIVE evidence of a completed review (a walkthrough
+          # or an actionable-comments verdict): under the old any-comment rule a
+          # rate-limited reviewer's apology satisfied the gate (observed on
+          # #107), and making apologies fail instead poisoned the PR forever,
+          # since the comment outlives the limit (observed on #116, the PR that
+          # shipped that version). An apology is transient — it neither passes
+          # nor fails; the poll just continues.
           # --paginate applies --jq per page, so filter after collecting.
           #
           # The reviewer posts asynchronously on the same webhook that starts
@@ -267,18 +271,22 @@ jobs:
             count=$(printf '%s' "$comments" | jq 'length')
 
             if [ "$count" -gt 0 ]; then
-              if printf '%s' "$comments" | jq -r '.[]' | grep -qiE 'review (was )?skipped|review rate limited|review limit reached'; then
-                echo "::error::The automated review reported its check as PASSING but SKIPPED or never started the review."
-                printf '%s' "$comments" | jq -r '.[]' | grep -iE 'skipped|exceed|filter|rate limited|limit reached' | head -5 || true
+              if printf '%s' "$comments" | jq -r '.[]' | grep -qiE 'review (was )?skipped'; then
+                echo "::error::The automated review reported its check as PASSING but SKIPPED the review."
+                printf '%s' "$comments" | jq -r '.[]' | grep -iE 'skipped|exceed|filter' | head -5 || true
                 echo "::error::Fix the cause, split the PR, or declare a substitute: add a 'Substitute-review: <what reviewed this>' line to the PR body, or the review-exempt label."
                 exit 1
               fi
-              echo "Automated review completed with no skip notice."
-              exit 0
+              if printf '%s' "$comments" | jq -r '.[]' | grep -qiE 'actionable comments posted:|no actionable comments|## walkthrough'; then
+                echo "Automated review completed, with no skip notice."
+                exit 0
+              fi
+              # Comments exist but none shows a completed review — a rate-limit
+              # apology or an in-progress status. Transient: keep polling.
             fi
 
             if [ "$(date +%s)" -ge "$deadline" ]; then
-              echo "::error::No automated-review comment appeared within 12 minutes. This gate needs a completed review, the review-exempt label, or a 'Substitute-review:' line in the PR body."
+              echo "::error::No completed automated review appeared within 12 minutes (a rate-limited reviewer is the common cause). This gate needs a completed review, the review-exempt label, or a 'Substitute-review:' line in the PR body."
               exit 1
             fi
             sleep 30

@@ -117,14 +117,16 @@ test("the Orphus gate runs the inherited unit suite and the CI contracts", async
 	assert.match(suites, /path: \.ci-diagnostics\/\n(?:\s+#[^\n]*\n)*\s+include-hidden-files: true/u);
 });
 
-test("the review gate refuses rate-limited non-reviews, not only explicit skips", async () => {
+test("the review gate passes only on a completed review, and skip notices still fail it", async () => {
 	const gate = jobBlock(await readText(ciPath), "review-gate");
-	// A rate-limited reviewer answers a summons with an apology comment that
-	// contains no "skipped" — and any reviewer comment used to turn the gate
-	// green. That let a PR nothing had reviewed pass on the reviewer's own busy
-	// signal (observed live on #107, 2026-08-23). The fail pattern must name the
-	// rate-limit phrasings alongside the skip notice.
-	assert.match(gate, /'review \(was \)\?skipped\|review rate limited\|review limit reached'/u);
+	// Positive evidence required. Under the old any-comment pass rule, a
+	// rate-limited reviewer's apology comment satisfied the gate on a PR nothing
+	// had reviewed (observed on #107, 2026-08-23); making apologies FAIL instead
+	// poisoned the PR permanently, because the comment outlives the rate limit
+	// (observed on #116, the PR that shipped that version). A transient state
+	// neither passes nor fails — the gate keeps polling for a completed review.
+	assert.match(gate, /'actionable comments posted:\|no actionable comments\|## walkthrough'/u);
+	assert.match(gate, /'review \(was \)\?skipped'/u);
 });
 
 test("the demo runs as an assertion, not as a smoke test", async () => {
