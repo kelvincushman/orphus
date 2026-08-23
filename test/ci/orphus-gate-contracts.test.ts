@@ -117,6 +117,16 @@ test("the Orphus gate runs the inherited unit suite and the CI contracts", async
 	assert.match(suites, /path: \.ci-diagnostics\/\n(?:\s+#[^\n]*\n)*\s+include-hidden-files: true/u);
 });
 
+test("the review gate refuses rate-limited non-reviews, not only explicit skips", async () => {
+	const gate = jobBlock(await readText(ciPath), "review-gate");
+	// A rate-limited reviewer answers a summons with an apology comment that
+	// contains no "skipped" — and any reviewer comment used to turn the gate
+	// green. That let a PR nothing had reviewed pass on the reviewer's own busy
+	// signal (observed live on #107, 2026-08-23). The fail pattern must name the
+	// rate-limit phrasings alongside the skip notice.
+	assert.match(gate, /'review \(was \)\?skipped\|review rate limited\|review limit reached'/u);
+});
+
 test("the demo runs as an assertion, not as a smoke test", async () => {
 	const ci = await readText(ciPath);
 	assert.match(ci, /run: bun packages\/roundtable\/demo\/run-demo\.ts/u);
