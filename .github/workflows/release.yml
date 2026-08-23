@@ -77,7 +77,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
         with:
           # Required once pinned by SHA: the version otherwise comes from the ref.
           toolchain: stable
@@ -105,7 +105,7 @@ jobs:
       # build toolchain of a published artifact with no diff to show for it.
       - name: Install cargo-zigbuild
         timeout-minutes: 3
-        uses: taiki-e/install-action@7f4eb899022d8fe70b20c4f3de697aa85c309026 # v2.85.11
+        uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
         with:
           tool: cargo-zigbuild@0.23.0
 
@@ -194,7 +194,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
         with:
           toolchain: stable
           targets: aarch64-apple-darwin
@@ -280,6 +280,14 @@ jobs:
         run: |
           set -euo pipefail
           cd binaries
-          gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes \
-            'Linux x64 and macOS arm64 builds. Linux requires glibc 2.27 or newer; the archive verifies this exact floor before staging.' \
-            orphus-darwin-arm64.tar.gz orphus-linux-x64.tar.gz SHA256SUMS
+          # The tag tree carries the release announcement (RELEASE_NOTES.md at
+          # the repo root); the platform line is the fallback so a tag without
+          # notes still stages a usable draft.
+          if [ -f ../RELEASE_NOTES.md ]; then
+            gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes-file ../RELEASE_NOTES.md \
+              orphus-darwin-arm64.tar.gz orphus-linux-x64.tar.gz SHA256SUMS
+          else
+            gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes \
+              'Linux x64 and macOS arm64 builds. Linux requires glibc 2.27 or newer; the archive verifies this exact floor before staging.' \
+              orphus-darwin-arm64.tar.gz orphus-linux-x64.tar.gz SHA256SUMS
+          fi

@@ -9,44 +9,23 @@ Orphus is the loop engine for all engineering work: a terminal coding-agent runt
 
 ## Quick start
 
-Install Orphus globally with npm, pnpm, or Bun:
-
-With npm:
-
-```bash
-npm install -g @orphus/coding-agent
-```
-
-With pnpm:
+Orphus is not published to npm — install with the release installer, which detects
+your platform, verifies the archive checksum, and links `orphus` into `~/.local/bin`:
 
 ```bash
-pnpm add -g @orphus/coding-agent
+curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.sh | sh
 ```
 
-With Bun:
-
-```bash
-bun add -g @orphus/coding-agent
-```
-
-Orphus does not require package install scripts. If you want to disable dependency lifecycle scripts during the Orphus install, you can add `--ignore-scripts` to the install command.
-
-Or download an `atomic-*` archive from the Orphus GitHub Release for your platform.
-
-### Alpine and musl Linux archives
-
-Alpine Linux x64 and arm64 users can download `atomic-linux-x64-musl.tar.gz` or `atomic-linux-arm64-musl.tar.gz`. These archives include native search and PTY bindings. Install the required runtime libraries before running an archive:
-
-```bash
-apk add --no-cache libgcc libstdc++
-```
-
-The musl archives deliberately omit a clipboard native binding because `@mariozechner/clipboard` 0.3.9 publishes metadata-only musl stubs without a `.node` payload; Orphus uses Linux clipboard commands and OSC52 fallback instead. They also omit `@embedded-postgres/*` binary packages because those packages are glibc-linked. Durable workflows on Alpine therefore require external Postgres via `DBOS_SYSTEM_DATABASE_URL` or Docker; without a durable backend, Orphus uses a loud non-durable in-memory fallback.
+Upgrades are `orphus update`, following your release channel (a stable install tracks
+stable releases only; a prerelease install tracks the newest release of any kind).
+macOS arm64 and Linux x64 (glibc) archives are built today; on other platforms run
+from a clone — see the
+[repository README](https://github.com/kelvincushman/orphus#tier-2--use-orphus-as-your-agent).
 
 Then run it in a project directory:
 
 ```bash
-atomic
+orphus
 ```
 
 Authenticate with `/login` for subscription providers, or set an API key such as `ANTHROPIC_API_KEY` before starting Orphus.

@@ -117,6 +117,36 @@ describe("fleet tool", () => {
 		assert.match(result.content[0]!.text, /orchestrator\.model.*not in the model registry/su);
 	});
 
+	test("validate preflights gate.model with the rest of the pins", async () => {
+		// The gate model otherwise fails at the most expensive possible moment —
+		// after the entire pipeline has spent. Its most likely author is
+		// /fleetsetup asking a model to name it, which is how an unregistered id
+		// gets written in the first place.
+		writeFileSync(
+			join(cwd, ".orphus", "fleets", "coding-team.fleet.yaml"),
+			`${VALID}gate:\n  reviewers: [coderabbitai]\n  model: totally/not-a-real-model\n`,
+		);
+		const result = await run({ action: "validate", name: "coding-team" });
+		assert.equal(result.isError, true);
+		assert.match(result.content[0]!.text, /gate\.model.*not in the model registry/su);
+	});
+
+	test("validate of a non-YAML file does not echo its contents back", async () => {
+		// A .env or a private key parses as one giant scalar, and describe() used
+		// to splice the whole JSON.stringify of it into the error — turning a
+		// validation failure into disclosure of the file it was pointed at.
+		// The first 80 characters may appear (they identify the file); everything
+		// past the cap must not, so the secret sits beyond it.
+		const body = `${"HEADER=padding-padding\\n".repeat(10)}DB_PASSWORD=ghp_SECRET_BEYOND_THE_CAP`;
+		const envPath = join(root, "not-a-blueprint.env");
+		writeFileSync(envPath, body);
+		const result = await run({ action: "validate", path: envPath });
+		assert.equal(result.isError, true);
+		const text = result.content[0]!.text;
+		assert.doesNotMatch(text, /ghp_SECRET_BEYOND_THE_CAP/u, "content past the cap must not be echoed");
+		assert.ok(text.length < 600, `error must stay bounded, got ${text.length} chars`);
+	});
+
 	test("validate accepts an explicit path outside the discovery roots", async () => {
 		const loose = join(root, "anywhere.fleet.yaml");
 		writeFileSync(loose, VALID);

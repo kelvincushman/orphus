@@ -25,6 +25,12 @@ export interface BrowserSessionOptions {
 	removeProfileDir?: (path: string) => Promise<void>;
 	/** How long to wait after each kill signal before escalating or reporting. */
 	killGraceMs?: number;
+	/**
+	 * How long Chrome gets to expose its DevTools endpoint. Defaults to the
+	 * launcher's own budget, which is sized for a person waiting on a browser.
+	 * A loaded CI runner is not that, so the real-Chrome smoke test raises it.
+	 */
+	startupTimeoutMs?: number;
 }
 
 /**
@@ -82,6 +88,7 @@ export class BrowserSession {
 			executablePath,
 			headless: this.options.headless,
 			noSandbox: this.options.noSandbox,
+			startupTimeoutMs: this.options.startupTimeoutMs,
 			signal,
 		});
 		this.launched = launched;

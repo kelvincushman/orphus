@@ -8,20 +8,20 @@ Project trust controls whether Orphus loads project-local settings, resources, p
 
 Orphus considers a project to have trust inputs when it finds any of these from the current working directory:
 
-- `.atomic/` (or legacy `.pi/`) in the current directory
+- `.orphus/` (or legacy `.atomic/` and `.pi/`) in the current directory
 - `AGENTS.md` or `CLAUDE.md` in the current directory or an ancestor directory
 - `.agents/skills` in the current directory or an ancestor directory
 
-When an interactive session starts in a project with configs in `.atomic`/`.pi`, project-local context files, or `.agents/skills` and no saved decision for the current directory or a parent directory, Orphus follows `defaultProjectTrust` from global settings. The default value is `"ask"`, which asks whether to trust the project when UI is available. Saved decisions are stored by canonical directory in `~/.atomic/agent/trust.json`, and the closest saved decision on the current or parent path applies before the global default.
+When an interactive session starts in a project with configs in `.orphus`/`.atomic`/`.pi`, project-local context files, or `.agents/skills` and no saved decision for the current directory or a parent directory, Orphus follows `defaultProjectTrust` from global settings. The default value is `"ask"`, which asks whether to trust the project when UI is available. Saved decisions are stored by canonical directory in `~/.orphus/agent/trust.json`, and the closest saved decision on the current or parent path applies before the global default.
 
 Trusting a project allows Orphus to load trust-gated project inputs, including:
 
-- `.atomic/settings.json` (or legacy `.pi/settings.json`)
-- `.atomic`/`.pi` resources such as extensions, skills, prompt templates, themes, and system prompt files
+- `.orphus/settings.json` (or legacy `.atomic/settings.json` and `.pi/settings.json`)
+- `.orphus`/`.atomic`/`.pi` resources such as extensions, skills, prompt templates, themes, and system prompt files
 - missing project packages configured through project settings
 - project-local extensions and project package-managed extensions
 
-Declining trust skips protected resources. Orphus also skips project-local `AGENTS.md` and `CLAUDE.md` context-file discovery while the project is untrusted; global context and explicitly supplied CLI resources remain available. Before trust is resolved, Orphus only loads user/global extensions and explicit CLI `-e` package-level extensions so those trusted extensions can handle the `project_trust` event; the first extension that returns a yes/no decision owns the decision. When `-e <dir>` discovers project-local resources borrowed from that directory's `.atomic` or legacy `.pi` config, or from `.agents/skills`, Orphus resolves trust for that extension source before loading those borrowed resources, because borrowed extensions and workflows can execute code with the Orphus process permissions.
+Declining trust skips protected resources. Orphus also skips project-local `AGENTS.md` and `CLAUDE.md` context-file discovery while the project is untrusted; global context and explicitly supplied CLI resources remain available. Before trust is resolved, Orphus only loads user/global extensions and explicit CLI `-e` package-level extensions so those trusted extensions can handle the `project_trust` event; the first extension that returns a yes/no decision owns the decision. When `-e <dir>` discovers project-local resources borrowed from that directory's `.orphus` or legacy `.atomic` and `.pi` config, or from `.agents/skills`, Orphus resolves trust for that extension source before loading those borrowed resources, because borrowed extensions and workflows can execute code with the Orphus process permissions.
 
 Non-interactive modes (`-p`, `--mode json`, and `--mode rpc`) do not show a trust prompt. Without an applicable saved trust decision, `defaultProjectTrust: "ask"` and `"never"` ignore such resources, while `"always"` trusts them. Use `--approve`/`-a` or `--no-approve`/`-na` to override project trust for one run.
 
@@ -41,10 +41,10 @@ For untrusted repositories, generated code you do not intend to monitor closely,
 
 Common patterns are documented in [Containerization](/containerization):
 
-- run the whole `atomic` process inside OpenShell or Docker
+- run the whole `orphus` process inside OpenShell or Docker
 - run host Orphus while routing built-in tool execution into a Gondolin micro-VM
 - mount only the workspace paths the agent should access
-- avoid mounting host `~/.atomic/agent` unless the container should access host sessions, settings, and credentials
+- avoid mounting host `~/.orphus/agent` unless the container should access host sessions, settings, and credentials
 - pass the minimum required API keys or use short-lived credentials
 - restrict network access when the task does not need it
 - review diffs and outputs before copying results back to trusted systems
@@ -53,11 +53,11 @@ If you bind-mount a host workspace read/write, writes from inside the container 
 
 ## Credential Export
 
-`atomic auth print-api-key` and `atomic auth print-bearer-token` are the only commands that emit a stored credential. They exist so an external client can reuse the credential you already configured, rather than making you copy it out of `auth.json` by hand.
+`orphus auth print-api-key` and `orphus auth print-bearer-token` are the only commands that emit a stored credential. They exist so an external client can reuse the credential you already configured, rather than making you copy it out of `auth.json` by hand.
 
 What the commands guarantee:
 
-- **stdout carries the credential or nothing.** Warnings, provider selection, refresh notices, and even `atomic auth --help` go to stderr, and stdout is empty on every non-zero exit but one. `KEY=$(atomic auth print-api-key --model gpt-5.5)` cannot capture a diagnostic instead of a key. The rule runs both ways: once the credential is on stdout the command has succeeded, so a stream that then fails to drain is reported on stderr and the exit code stays `0`. The single exception is exit `9`: if the stream failed part-way through the payload, those bytes are already gone and stdout cannot be made empty, so the command says so rather than reporting a truncated secret as a whole one. Every other non-zero exit leaves stdout empty, which is what makes the exit code safe to branch on.
+- **stdout carries the credential or nothing.** Warnings, provider selection, refresh notices, and even `orphus auth --help` go to stderr, and stdout is empty on every non-zero exit but one. `KEY=$(orphus auth print-api-key --model gpt-5.5)` cannot capture a diagnostic instead of a key. The rule runs both ways: once the credential is on stdout the command has succeeded, so a stream that then fails to drain is reported on stderr and the exit code stays `0`. The single exception is exit `9`: if the stream failed part-way through the payload, those bytes are already gone and stdout cannot be made empty, so the command says so rather than reporting a truncated secret as a whole one. Every other non-zero exit leaves stdout empty, which is what makes the exit code safe to branch on.
 - **No file or clipboard sink.** There is no `--output` flag. `--provider` and `--model` are the only options either subcommand accepts, checked as an allowlist: any other parsed flag, including `--export <path>` and `--session-dir <path>`, is a usage error. If you want the value in a file, you redirect it yourself and own that decision.
 - **No ambient model.** `--model` is required, so the command cannot emit a credential for a model you did not name.
 - **A failed refresh never strands you.** If the OAuth refresh itself fails, the command exits `5` and leaves the stored credential exactly as it was. Other OAuth failures — a token that still expires too soon after a successful refresh, or an auth derivation failure that may follow a rotation — exit `6` and `7` and make no claim about the stored credential, rather than asserting a rollback nothing verified.
@@ -68,6 +68,6 @@ What they do **not** do: once the credential is on stdout it is ordinary text in
 
 ## Reporting Security Issues
 
-To report a security issue, follow the repository [Security Policy](https://github.com/bastani-inc/atomic/blob/main/SECURITY.md). Do not open a public issue for security-sensitive reports.
+To report a security issue, follow the repository [Security Policy](https://github.com/kelvincushman/orphus/blob/main/SECURITY.md). Do not open a public issue for security-sensitive reports.
 
 Expected local-agent behavior, lack of a built-in sandbox, prompt injection from untrusted content, and behavior of user-installed extensions or skills are generally outside the security boundary unless the report demonstrates a real privilege-boundary bypass or shows how Orphus grants access that the local user did not already have.

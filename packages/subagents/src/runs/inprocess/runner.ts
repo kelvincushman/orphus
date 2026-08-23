@@ -9,6 +9,7 @@ import {
 	type CreateAgentSessionOptions,
 	createAgentSession,
 	DefaultResourceLoader,
+	emitSessionShutdownEvent,
 	getAgentDir,
 	getBuiltinPackagePaths,
 	SessionManager,
@@ -60,6 +61,8 @@ export interface TestSessionOptions {
 	readonly output?: string;
 	readonly structuredOutputAfterPrompt?: number;
 	readonly promptLogPath?: string;
+	/** Record `session_shutdown` reaching the stub's extension runner at teardown. */
+	readonly shutdownLogPath?: string;
 	/** Hold a test prompt open until the caller releases the supplied promise. */
 	readonly promptGate?: Promise<void>;
 	/** Match AgentSession.abort() settling an active prompt without throwing. */
@@ -331,6 +334,17 @@ function createTestSession(sessionManager: SessionManager, spec: ChildSpec): Age
 			cost: 0,
 		}),
 		dispose: () => {},
+		// The stub carries an extension runner solely so teardown's shutdown emit
+		// runs against something real. Production sessions get theirs from
+		// createAgentSession; without one here the emit would be a silent no-op and
+		// the regression it guards would be untestable.
+		extensionRunner: {
+			hasHandlers: () => testOptions.shutdownLogPath !== undefined,
+			emit: async (event: { type: string; reason?: string }) => {
+				if (testOptions.shutdownLogPath)
+					appendFileSync(testOptions.shutdownLogPath, `${event.type}:${event.reason ?? ""}\n`, "utf8");
+			},
+		},
 	} as unknown as AgentSession;
 }
 
@@ -874,6 +888,19 @@ export class SubagentControlRuntime {
 				activeSessionManager?.flush();
 			} catch {
 				// Persistence teardown must not replace the attempt result.
+			}
+			// Announce the shutdown before disposing. dispose() invalidates every
+			// captured extension ctx but emits nothing, and `session_shutdown` is
+			// the only signal an extension gets to release what it holds — for
+			// roundtable that is a ref'd broker socket, which keeps the event loop
+			// alive and hangs `orphus -p` after the answer is already printed.
+			// Every extension with a shutdown handler leaks here, not just that one.
+			try {
+				if (session?.extensionRunner)
+					await emitSessionShutdownEvent(session.extensionRunner, { type: "session_shutdown", reason: "quit" });
+			} catch {
+				// A handler that throws must not replace the attempt result, and must
+				// not skip the dispose below.
 			}
 			try {
 				session?.dispose();

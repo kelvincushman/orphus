@@ -259,8 +259,36 @@ test("a scoped explicit budget stays in its own scope and never leaks to a same 
 	}
 });
 
+test("a justification comment before the budget argument does not hide it", () => {
+	// The exact shape AGENTS.md prescribes for structural budgets — a named
+	// constant at the call site with the justification written above it — and
+	// the shape CI scored against the default instead: the comment lines sat
+	// between the callback's closing line and the budget argument.
+	const source = [
+		"const REAL_CHROME_SMOKE_TIMEOUT_MS = 60_000;",
+		"const smokeTest = chromePath ? test : test.skip;",
+		"smokeTest(",
+		'\t"a real browser launches",',
+		"\tasync () => {",
+		"\t},",
+		"\t// Structural: launching a real browser is process-startup cost,",
+		"\t// not a slow test.",
+		"\tREAL_CHROME_SMOKE_TIMEOUT_MS,",
+		"\t// A trailing note must not detach the value from the closer either.",
+		");",
+	].join("\n");
+	const declared = declaredTimeouts(source);
+	assert.equal(declared.get("a real browser launches"), 60_000);
+});
+
 test("repository declarations resolve to their real budgets", async () => {
 	const builtins = declaredTimeouts(await readText(join(root, "test/unit/coding-agent-builtin-workflows.test.ts")));
+	// The Chrome smoke test's structural budget carries its justification as
+	// comment lines between the callback and the argument; CI once scored it
+	// against the 30 s default because the scan treated those comments as the
+	// declaration body.
+	const browser = declaredTimeouts(await readText(join(root, "test/unit/browser-tool.test.ts")));
+	assert.equal(browser.get("a real isolated Chrome launches, navigates, reads back, and tears down"), 60_000);
 	// Keyed by the qualified name the reporter emits, never by the bare terminal name.
 	assert.equal(builtins.get("coding-agent builtin resources > loads builtin pi package resources"), 60_000);
 	assert.equal(builtins.get("loads builtin pi package resources"), undefined);

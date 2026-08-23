@@ -96,11 +96,11 @@ Return structured output with `consolidated_review` and `decision` fields.
 Orphus will:
 
 - ask clarifying questions when stage purpose, inputs, models, or handoffs are ambiguous,
-- write a `.atomic/workflows/<name>.ts` file using `workflow({...})`,
+- write a `.orphus/workflows/<name>.ts` file using `workflow({...})`,
 - pick `ctx.task` / `ctx.chain` / `ctx.parallel` / `ctx.ui` per the [WorkflowContext primitives](#workflowcontext) and [task options](#task-and-stage-options) reference,
 - use `ctx.tool(name, args, fn)` for workflow-owned side effects so completed operations are durably checkpointed and do not run again after resume (see [`ctx.tool`](#ctxtool--durable-cached-tool-execution)),
 - run `/workflow reload` so Orphus rediscovers the workflow resource and you can launch it immediately,
-- then report the generated workflow folder so you can inspect the code it wrote, using `Custom workflow created. You can inspect its code at: <workflow-folder-path>` (for example, `.atomic/workflows/`); Orphus does this only for newly created custom workflows, never builtin or pre-existing workflows.
+- then report the generated workflow folder so you can inspect the code it wrote, using `Custom workflow created. You can inspect its code at: <workflow-folder-path>` (for example, `.orphus/workflows/`); Orphus does this only for newly created custom workflows, never builtin or pre-existing workflows.
 
 
 You can also edit or harden an existing workflow in plain chat — ask Orphus to add a stage, switch a model, save artifacts, or wire in a human approval gate.
@@ -145,7 +145,7 @@ Below the breakpoint the same run set is represented by the collapsed count line
 
 ### Or hand-write the TypeScript
 
-Workflow files are plain TypeScript modules. Create `.atomic/workflows/explain-file.ts`:
+Workflow files are plain TypeScript modules. Create `.orphus/workflows/explain-file.ts`:
 
 ```ts
 import { workflow } from "@orphus/workflows";
@@ -363,10 +363,10 @@ Some requests are not one task but a queue of them: "address all open issues", "
 
 A natural-language request for a worktree does not configure runner isolation. Inspect the named workflow's inputs first. Each per-item definition must declare and implement its reusable-worktree and branch inputs, and the dispatcher must pass distinct values explicitly. With `worktreeFromInputs`, a missing target is created as a detached checkout from `baseBranch`, while an existing same-repository worktree is reused as-is. Neither case checks out the feature branch named by a separate `branch` input, so the item workflow must enforce that branch step itself.
 
-**Supported example: two independent top-level issue runs with a bound of 2.** First save this complete project workflow as `.atomic/workflows/issue-to-pr.ts`, then run `/workflow reload`. It is a user-defined workflow built only from supported authoring APIs, not a bundled workflow name that Orphus installs by default.
+**Supported example: two independent top-level issue runs with a bound of 2.** First save this complete project workflow as `.orphus/workflows/issue-to-pr.ts`, then run `/workflow reload`. It is a user-defined workflow built only from supported authoring APIs, not a bundled workflow name that Orphus installs by default.
 
 ```ts
-// .atomic/workflows/issue-to-pr.ts
+// .orphus/workflows/issue-to-pr.ts
 import { workflow } from "@orphus/workflows";
 import { Type, type Static } from "typebox";
 
@@ -500,7 +500,7 @@ workflow({
   workflow: "issue-to-pr",
   inputs: {
     issue: "#2101 fix cache-key normalization",
-    git_worktree_dir: "../atomic-issue-2101",
+    git_worktree_dir: "../orphus-issue-2101",
     base_ref: "origin/main",
     pr_base: "main",
     branch: "fix/2101-cache-key",
@@ -513,7 +513,7 @@ workflow({
   workflow: "issue-to-pr",
   inputs: {
     issue: "#2102 correct CLI help output",
-    git_worktree_dir: "../atomic-issue-2102",
+    git_worktree_dir: "../orphus-issue-2102",
     base_ref: "origin/main",
     pr_base: "main",
     branch: "fix/2102-cli-help",
@@ -537,8 +537,8 @@ For a failed run, record `detail.error` and leave the PR field as `no PR` when t
 
 | Item | Run ID | Worktree | Branch | Result / PR |
 |---|---|---|---|---|
-| `#2101` | `7f31a2c0-...` | `../atomic-issue-2101` | `fix/2101-cache-key` | `completed` / `<PR-2101-URL>` |
-| `#2102` | `b84d090e-...` | `../atomic-issue-2102` | `fix/2102-cli-help` | `failed: review/repair bound exhausted` / no PR |
+| `#2101` | `7f31a2c0-...` | `../orphus-issue-2101` | `fix/2101-cache-key` | `completed` / `<PR-2101-URL>` |
+| `#2102` | `b84d090e-...` | `../orphus-issue-2102` | `fix/2102-cli-help` | `failed: review/repair bound exhausted` / no PR |
 
 The second failure does not cancel, pause, or roll back the first run, and it does not block unrelated later items from using an open dispatcher slot. A first item's review, repair, or check failure must not block unrelated items; if it would, reconsider whether the queue was placed in one root workflow by mistake.
 
@@ -850,10 +850,10 @@ export default workflow({
   run: async (ctx) => {
     const prompt = String(ctx.inputs.prompt);
 
-    const scoutPath = ".atomic/workflows/runs/my-workflow/scout.md";
+    const scoutPath = ".orphus/workflows/runs/my-workflow/scout.md";
     const reviewPaths = {
-      quality: ".atomic/workflows/runs/my-workflow/quality.md",
-      runtime: ".atomic/workflows/runs/my-workflow/runtime.md",
+      quality: ".orphus/workflows/runs/my-workflow/quality.md",
+      runtime: ".orphus/workflows/runs/my-workflow/runtime.md",
     } as const;
 
     await ctx.task("scout", {
@@ -968,7 +968,7 @@ Runtime and replayed topology checks are the authoritative cycle boundary. If co
 - **Clear vocabulary** - Use clear software engineering terminology in self-described prompts.
 - **No regex gates** - Avoid hard-coded regular expressions that gate reviews or model outputs.
 - **Schema-backed gates** - Prefer schema-backed workflow stages (`ctx.stage(..., { schema })`, `ctx.chain` items, or `ctx.parallel` items) for review/gate decisions whenever the workflow must evaluate model output; a schema-enabled item receives the structured-output tool automatically. See [Evaluation and Quality Gates](#evaluation-and-quality-gates).
-- **Stages are model stages** - Treat atomic workflow units as language model stages, not deterministic tools.
+- **Stages are model stages** - Treat orphus workflow units as language model stages, not deterministic tools.
 - **Small deterministic-gate stages** - When deterministic gates are needed, create small dedicated stages that instruct a model to run a specific tool or perform a specific check. This keeps gates adaptive to the current codebase while preserving explicit workflow structure.
 - **Checkpoint workflow-owned side effects** - Prefer `ctx.tool(name, args, fn)` for filesystem writes, network mutations, external API actions, and other side effects orchestrated directly by the workflow definition. Orphus durably caches a completed call's serializable result, so resume returns that result without rerunning `fn`. Keep pure computation and side-effect-free transformations as ordinary TypeScript. Do not wrap agent-stage internals or every function call indiscriminately. Do not retain `ctx.tool` for detached work after the workflow executor returns: terminal admission is closed first, and a later call rejects before its callback, retries, graph node, or checkpoint can begin.
 
@@ -1006,7 +1006,7 @@ In TypeScript workflow files, entries in `inputs` also narrow `ctx.inputs` for b
 
 Workflow outputs are runtime contracts for completed workflow runs and for parent workflows that call a child with `ctx.workflow(childWorkflow, ...)`. A workflow normally returns a JSON-serializable object from `run`, and entries in the `outputs` object document, validate, and expose keys from that returned object. `ctx.exit({ outputs })` can expose a partial subset of the same declared output contract when the run intentionally stops early. Primitives, arrays, `null`, functions, symbols, `undefined` properties, `NaN`, and infinite numbers fail validation.
 
-**Return convention:** outputs are return-object keys. Orphus never infers child workflow outputs from stage names, stage order, or the final assistant message. If a parent should read `child.outputs.foo`, the child workflow's `run` must both declare `outputs: { foo: schema }` and return `{ foo: value }`. `result` is not special, and Orphus never adds it: to expose `result`, declare it in `outputs` and return `{ result }` exactly like any other output. Returning a key that is not declared in `outputs` fails the run with `atomic-workflows: workflow "<name>" returned undeclared output "<key>"; declare it in outputs or remove it from the run return`.
+**Return convention:** outputs are return-object keys. Orphus never infers child workflow outputs from stage names, stage order, or the final assistant message. If a parent should read `child.outputs.foo`, the child workflow's `run` must both declare `outputs: { foo: schema }` and return `{ foo: value }`. `result` is not special, and Orphus never adds it: to expose `result`, declare it in `outputs` and return `{ result }` exactly like any other output. Returning a key that is not declared in `outputs` fails the run with `orphus-workflows: workflow "<name>" returned undeclared output "<key>"; declare it in outputs or remove it from the run return`.
 
 **Reserved `status` output convention and structured failures:** if a workflow declares and returns a top-level `status` output with the string value `"failed"`, Orphus treats the run as failed instead of recording a successful completion. Returned `"blocked"`, `"needs_human"`, `"incomplete"`, `"active"`, and `"auth_blocked"` statuses are treated as blocked/incomplete terminal states rather than successful completions.
 
@@ -1028,7 +1028,7 @@ export default workflow({
     review: Type.String(),
   },
   run: async (ctx) => {
-    const researchPath = ".atomic/workflows/runs/review-with-summary/research.md";
+    const researchPath = ".orphus/workflows/runs/review-with-summary/research.md";
     await ctx.task("research", {
       prompt: "Research the target.",
       output: researchPath,
@@ -1255,7 +1255,7 @@ For workflows intended to be called by parent workflows, declare every field a p
 User-defined workflows are ordinary TypeScript modules. Import the workflow definition with a relative module specifier and call it directly from the parent workflow:
 
 ```ts
-// .atomic/workflows/shared-research.ts
+// .orphus/workflows/shared-research.ts
 import { workflow } from "@orphus/workflows";
 import { Type } from "typebox";
 
@@ -1275,7 +1275,7 @@ export default workflow({
   },
 });
 
-// .atomic/workflows/research-and-synthesize.ts
+// .orphus/workflows/research-and-synthesize.ts
 import { workflow } from "@orphus/workflows";
 import { Type } from "typebox";
 import sharedResearch from "./shared-research.js";
@@ -1407,7 +1407,7 @@ if (child.exited === true) {
 }
 ```
 
-A child exposes only outputs declared in `outputs` and returned from `run` or supplied to `ctx.exit({ outputs })`. There are no implicit outputs and no raw return-object passthrough. If `run` returns a key that was not declared in `outputs`, the child run fails with `atomic-workflows: workflow "<childName>" returned undeclared output "<key>"; declare it in outputs or remove it from the run return`, and the parent surfaces that failure through the wrapper `atomic-workflows: child workflow "<childName>" (<displayName>) failed with status failed: ...`. A child with no declared outputs therefore exposes no outputs.
+A child exposes only outputs declared in `outputs` and returned from `run` or supplied to `ctx.exit({ outputs })`. There are no implicit outputs and no raw return-object passthrough. If `run` returns a key that was not declared in `outputs`, the child run fails with `orphus-workflows: workflow "<childName>" returned undeclared output "<key>"; declare it in outputs or remove it from the run return`, and the parent surfaces that failure through the wrapper `orphus-workflows: child workflow "<childName>" (<displayName>) failed with status failed: ...`. A child with no declared outputs therefore exposes no outputs.
 
 Missing required outputs, schema type mismatches, and non-JSON-serializable returned values fail normal child completion before the parent continues; child `ctx.exit({ outputs })` allows missing required outputs but still validates every provided key and sets `child.exited === true` so parent code must handle the partial shape.
 
@@ -1496,7 +1496,7 @@ Expected lifecycle state is not a defect. If the contract says `candidate → va
 Use a fresh task when one check at a material boundary is enough. This complete project workflow keeps the worker lineage coherent, saves a structured decision log, and sends ambiguity to `ctx.ui` before the continuation:
 
 ```ts
-// .atomic/workflows/scope-guard-boundary.ts
+// .orphus/workflows/scope-guard-boundary.ts
 import { workflow } from "@orphus/workflows";
 import { Type, type Static } from "typebox";
 
@@ -1536,7 +1536,7 @@ export default workflow({
   description: "Check scope at an implementation boundary.",
   inputs: {
     scope_contract: Type.String(),
-    artifact_dir: Type.String({ default: ".atomic/workflows/runs/scope-guard-boundary" }),
+    artifact_dir: Type.String({ default: ".orphus/workflows/runs/scope-guard-boundary" }),
   },
   outputs: {
     decision_log: Type.String(),
@@ -1606,7 +1606,7 @@ The materialized order is `prepare candidate → scope boundary → optional hum
 Use `ctx.stage(...)` when one independent checker needs a retained conversation. Run its tracked `prompt()` once, then use `sendUserMessage(...)` for a bounded post-prompt turn on that same session; a second tracked `prompt()` on the finalized stage is invalid.
 
 ```ts
-// .atomic/workflows/scope-guard-retained.ts
+// .orphus/workflows/scope-guard-retained.ts
 import { workflow } from "@orphus/workflows";
 import { Type } from "typebox";
 
@@ -1621,7 +1621,7 @@ export default workflow({
   description: "Retain one independent checker for a bounded multi-turn review.",
   inputs: {
     scope_contract: Type.String(),
-    artifact_dir: Type.String({ default: ".atomic/workflows/runs/scope-guard-retained" }),
+    artifact_dir: Type.String({ default: ".orphus/workflows/runs/scope-guard-retained" }),
   },
   outputs: {
     decision_log: Type.String(),
@@ -1681,7 +1681,7 @@ The tracked prompt creates the guard node and decision artifact. `sendUserMessag
 Use a live peer only when steering during generation adds clear value. Both branches omit `group`, so Orphus places them in the workflow invocation's same Intercom group. The guard first performs a bounded Intercom status handshake and returns; later blocking `intercom.ask` calls can reopen its retained conversation for classification. After both parallel branches settle, a fresh task reads that transcript and persists the final deduplicated decision artifact. Normal late sends are not part of this handshake.
 
 ```ts
-// .atomic/workflows/scope-guard-live.ts
+// .orphus/workflows/scope-guard-live.ts
 import { workflow } from "@orphus/workflows";
 import { Type, type Static } from "typebox";
 
@@ -1718,7 +1718,7 @@ export default workflow({
       Type.Literal("block"),
       Type.Literal("off"),
     ], { default: "warn" }),
-    artifact_dir: Type.String({ default: ".atomic/workflows/runs/scope-guard-live" }),
+    artifact_dir: Type.String({ default: ".orphus/workflows/runs/scope-guard-live" }),
   },
   outputs: {
     decision_log: Type.String(),
@@ -2387,7 +2387,7 @@ The runner writes the stage's **final assistant message** to `output` after the 
 
 An admitted external turn (for example, an async subagent completion) can arrive while the stage is still running and remains visible both to the model and in the companion transcript. The runner does not try to work out which turn was "really" the deliverable: that is an inference about intent, and an earlier revision that scored candidates by byte size got it wrong in both directions. If a late turn displaces the intended content, the transcript still holds it.
 
-The companion transcript is written once under the durable Orphus config root at `~/.atomic/workflows/runs/<runId>/transcripts/` (or the equivalent configured agent root; `ORPHUS_WORKFLOW_ARTIFACT_DIR` overrides that root). It is never placed inside the repository tree or OS temporary storage: a home-scoped durable location survives both worktree deletion and OS temp purges, and staying outside the repo keeps full tool output — which may contain secrets — from being committed accidentally. Run-scoped artifact directories are pruned only when their durable/live run record is terminal (or the directory is an unowned orphan) and older than the exported `WORKFLOW_ARTIFACT_RETENTION_MS` policy. Running, paused, quit, blocked, and awaiting-input runs are exempt indefinitely because their artifacts are live resume dependencies. A **failed** run is terminal and does age out: it stays retryable, but the retention window is the grace period it gets, otherwise repeated recoverable failures would accumulate artifacts forever. When a terminal durable owner is aged out, the durable entry is deleted first; if authoritative deletion is unavailable or refuses, the artifact directory is preserved. Goal ledgers, Ralph implementation notes, and QA video paths share that same durable root and retention policy. The receipt names both absolute paths. Search the transcript with `rg`, then read only the narrow line ranges you need; do not read the whole transcript into a downstream prompt. The transcript is a secondary searchable record; the output artifact remains the curated handoff.
+The companion transcript is written once under the durable Orphus config root at `~/.orphus/workflows/runs/<runId>/transcripts/` (or the equivalent configured agent root; `ORPHUS_WORKFLOW_ARTIFACT_DIR` overrides that root). It is never placed inside the repository tree or OS temporary storage: a home-scoped durable location survives both worktree deletion and OS temp purges, and staying outside the repo keeps full tool output — which may contain secrets — from being committed accidentally. Run-scoped artifact directories are pruned only when their durable/live run record is terminal (or the directory is an unowned orphan) and older than the exported `WORKFLOW_ARTIFACT_RETENTION_MS` policy. Running, paused, quit, blocked, and awaiting-input runs are exempt indefinitely because their artifacts are live resume dependencies. A **failed** run is terminal and does age out: it stays retryable, but the retention window is the grace period it gets, otherwise repeated recoverable failures would accumulate artifacts forever. When a terminal durable owner is aged out, the durable entry is deleted first; if authoritative deletion is unavailable or refuses, the artifact directory is preserved. Goal ledgers, Ralph implementation notes, and QA video paths share that same durable root and retention policy. The receipt names both absolute paths. Search the transcript with `rg`, then read only the narrow line ranges you need; do not read the whole transcript into a downstream prompt. The transcript is a secondary searchable record; the output artifact remains the curated handoff.
 
 The receipt reports facts only. An empty artifact produces `WARNING: the stage artifact is empty; search the companion transcript for this stage's work.` A non-empty artifact is never classified, however short and even if it only names its own output path: deciding whether such text is a pointer or a deliverable requires knowing what the author meant, and the regex bank that previously attempted it produced false alarms on genuine short output. The transcript named in every receipt is the recovery path for anything that looks wrong to a reader.
 
@@ -2426,7 +2426,7 @@ Controls automatic session and worktree-diff artifact collection in task results
 readonly worktree?: boolean;
 ```
 
-Requests a runner-managed branch-backed temporary worktree for an authored `ctx.task(...)`. Orphus creates it at `<main-root>/.atomic/worktrees/<flattened-name>` on branch `worktree-<flattened-name>`, replacing `/` in generated names with `+`. Creation remains anchored at the canonical main root when invoked inside a linked worktree. The base ref resolves as explicit `baseBranch`, then `origin/<default-branch>` (fetched when absent), then `HEAD`. Orphus propagates local settings, configures the main repository's Husky or populated hooks directory through shared `core.hooksPath`, symlinks configured `worktree.symlinkDirectories`, and copies gitignored `.worktreeinclude` matches without overwriting tracked files. It is mutually exclusive with `gitWorktreeDir`; cleanup forcibly removes the worktree and deletes its branch even when startup fails before the callback.
+Requests a runner-managed branch-backed temporary worktree for an authored `ctx.task(...)`. Orphus creates it at `<main-root>/.orphus/worktrees/<flattened-name>` on branch `worktree-<flattened-name>`, replacing `/` in generated names with `+`. Creation remains anchored at the canonical main root when invoked inside a linked worktree. The base ref resolves as explicit `baseBranch`, then `origin/<default-branch>` (fetched when absent), then `HEAD`. Orphus propagates local settings, configures the main repository's Husky or populated hooks directory through shared `core.hooksPath`, symlinks configured `worktree.symlinkDirectories`, and copies gitignored `.worktreeinclude` matches without overwriting tracked files. It is mutually exclusive with `gitWorktreeDir`; cleanup forcibly removes the worktree and deletes its branch even when startup fails before the callback.
 
 ### `gitWorktreeDir` / `baseBranch`
 
@@ -2451,7 +2451,7 @@ For lower-level integrations, [`setupGitWorktree(options)`](#setupgitworktreeopt
 readonly sessionDir?: string;
 ```
 
-Overrides the stage transcript directory, including for forked stages. In a headless run launched with `atomic --mode json --session-dir <dir> -p '/workflow <name> ...'`, Orphus writes the main chat transcript and every stage transcript under `<dir>`; the same inheritance applies when the non-default directory comes from `ORPHUS_CODING_AGENT_SESSION_DIR` or settings. Without a non-default host directory, stages use Orphus's global session store.
+Overrides the stage transcript directory, including for forked stages. In a headless run launched with `orphus --mode json --session-dir <dir> -p '/workflow <name> ...'`, Orphus writes the main chat transcript and every stage transcript under `<dir>`; the same inheritance applies when the non-default directory comes from `ORPHUS_CODING_AGENT_SESSION_DIR` or settings. Without a non-default host directory, stages use Orphus's global session store.
 
 ### `cwd` / `agentDir`
 
@@ -2609,7 +2609,7 @@ Sends a normal follow-on user turn to the retained stage session. This method st
 
 Native sessions accept strings or text/image content blocks. Non-native fallback adapters accept only strings and reject block arrays; `deliverAs` affects streaming delivery only, and follow-on turns retain the stage MCP scope.
 
-Externally produced Intercom and async bash/subagent notices admitted before the generation closes drain through the same session. When a busy stage owns a foreground subagent, exact-owner detach gets first refusal before Intercom enters this boundary; unclaimed traffic then uses normal stage admission. Traffic arriving after the atomic close boundary cannot reopen the completed stage and is surfaced once through the main-chat path instead.
+Externally produced Intercom and async bash/subagent notices admitted before the generation closes drain through the same session. When a busy stage owns a foreground subagent, exact-owner detach gets first refusal before Intercom enters this boundary; unclaimed traffic then uses normal stage admission. Traffic arriving after the orphus close boundary cannot reopen the completed stage and is surfaced once through the main-chat path instead.
 
 See [Stage follow-on user messages](#stage-follow-on-user-messages) for the full lifecycle and schema-backed example.
 
@@ -2910,7 +2910,7 @@ In the TUI, `/workflow <name>` opens an inline input picker when the workflow de
 
 In non-interactive (`-p`, `--print`, or `--mode json`) sessions, named workflow dispatch waits for the terminal run snapshot and skips pickers. Because human input is runtime-only and workflows no longer carry a declaration-time HIL marker, headless dispatch does not reject a workflow because its source contains `ctx.ui.*`.
 
-If you copy a HIL workflow example into a headless session, it can pass dispatch and then fail when execution reaches the prompt with an error such as `atomic-workflows: interactive ctx.ui.confirm is unavailable in headless (non-interactive) mode; run the workflow in interactive mode or remove the interactive prompt from this stage` (the primitive name varies, including `ctx.ui.custom`). Run those workflows interactively, or guard/remove runtime `ctx.ui.*` calls before using headless mode.
+If you copy a HIL workflow example into a headless session, it can pass dispatch and then fail when execution reaches the prompt with an error such as `orphus-workflows: interactive ctx.ui.confirm is unavailable in headless (non-interactive) mode; run the workflow in interactive mode or remove the interactive prompt from this stage` (the primitive name varies, including `ctx.ui.custom`). Run those workflows interactively, or guard/remove runtime `ctx.ui.*` calls before using headless mode.
 
 <p align="center"><img src="images/workflow-input-picker.png" alt="Workflow Input Picker" width="600" /></p>
 
@@ -2955,7 +2955,7 @@ Surface behavior:
 - **Wheel and trackpad** - While the workflow graph is active, vertical wheel/trackpad gestures pan it up and down, and horizontal gestures pan wide graphs left and right when the terminal exposes horizontal wheel events; these gestures remain scoped to the graph instead of leaking into the main chat or terminal scrollback. Attached stage chats capture mouse/trackpad wheel events by default so scrolling stays inside the active stage transcript or prompt instead of falling through to terminal/main-chat scrollback.
 - **Tool and node detail** - Attached stage chats match main chat's tool-detail expansion behavior while keeping expansion state local to the workflow UI context. Press Ctrl+O (the configurable `app.tools.expand` binding) to expand every visible workflow node and tool card, including single, parallel, and chain subagent progress, current tool activity, and artifact paths; press it again to collapse them. The toggle works for active, completed, and archived stage views, including at the supported 40-column terminal minimum. A mounted prompt, custom question, or other input-owning overlay keeps the key instead of changing expansion.
 - **Footer context** - An attached live stage chat carries the main chat's current-folder and Git-branch identity into its themed footer and mirrors live extension status lines such as the MCP server indicator. Branch changes trigger a repaint through the host's cached footer provider, and extension status changes are read from that same provider rather than recomputed by the workflow UI.
-- **Working animation lifecycle** - Ordinary attached-stage work keeps the same exact one-cell `∀` visible while following the active workflow theme's dark → accent → bright/bold → accent → dark luminance ramp every 88ms. Every agent and SDK turn resets to the dark regular phase with a fresh lifecycle-relative cadence; turn, terminal, error, replacement, and disposal cleanup stop the active timer without stale repaint. In an eligible retained-stage chat, every accepted idle follow-up — including a workflow-authored `stage.sendUserMessage(...)` after a prior turn ended — shows Working on admission or attach, including while Orphus restores a saved retained conversation, and keeps it through prompt startup, pre-turn compaction, and agent handoff. Attaching or remounting mid-delivery paints immediately rather than waiting for the turn's first event. A message queued into a live turn with `followUp`/`steer` uses that turn's existing status instead of starting a new one. A no-turn result, prompt or restore error, or terminal completion removes it; once the last accepted post-terminal delivery settles, a leftover start cannot bring it back. An accepted manual retry clears stale status from the prior prompt before showing new pre-stream activity. `NO_COLOR` retains regular/bold activity without foreground-color escapes. Reduced motion uses a static regular accent `∀` without an animation timer; factual automatic retry, fallback, compaction, cancellation, and error copy retains precedence.
+- **Working animation lifecycle** - Ordinary attached-stage work keeps the same exact one-cell `⊙` visible while following the active workflow theme's dark → accent → bright/bold → accent → dark luminance ramp every 88ms. Every agent and SDK turn resets to the dark regular phase with a fresh lifecycle-relative cadence; turn, terminal, error, replacement, and disposal cleanup stop the active timer without stale repaint. In an eligible retained-stage chat, every accepted idle follow-up — including a workflow-authored `stage.sendUserMessage(...)` after a prior turn ended — shows Working on admission or attach, including while Orphus restores a saved retained conversation, and keeps it through prompt startup, pre-turn compaction, and agent handoff. Attaching or remounting mid-delivery paints immediately rather than waiting for the turn's first event. A message queued into a live turn with `followUp`/`steer` uses that turn's existing status instead of starting a new one. A no-turn result, prompt or restore error, or terminal completion removes it; once the last accepted post-terminal delivery settles, a leftover start cannot bring it back. An accepted manual retry clears stale status from the prior prompt before showing new pre-stream activity. `NO_COLOR` retains regular/bold activity without foreground-color escapes. Reduced motion uses a static regular accent `⊙` without an animation timer; factual automatic retry, fallback, compaction, cancellation, and error copy retains precedence.
 - **Async statusline** - If an async/background subagent is running while the fullscreen workflow graph is open, the graph statusline mirrors the async summary so the background run remains visible; hide the graph with `h`, leave it with `ctrl+x`, or reconnect later to return to the full below-editor async widget.
 - **Copy mode** - Press `ctrl+t` inside an attached stage chat to toggle **copy mode**: copy mode disables workflow-chat mouse reporting so normal terminal/tmux text selection can work; press `ctrl+t` again to leave copy mode and restore transcript or prompt scrolling. Archived read-only stage transcripts expose the same footer and copy-mode status, so their text can also be selected and copied; `esc` closes the transcript and `ctrl+x` returns to the graph. While copy mode is on, wheel/trackpad gestures are handled by the terminal/tmux and may scroll terminal scrollback, so leave copy mode before using the wheel again.
 - **Run control** - Use `interrupt`, `pause`, and `resume` for resumable live work. Pause/interrupt holds a stage's queued steering and follow-up items in place without dequeuing them or starting continuation; `resume` releases those items once in their existing per-queue order, but queue release alone does not start a model turn. `resume` on a non-paused run reopens the saved snapshot or overlay. Use `quit` to pause a live run gracefully while preserving it for `/workflow resume`.
@@ -3097,7 +3097,7 @@ The target sees the original ask, and its normal `intercom.reply` remains correl
 This reopens only the conversation. The workflow DAG and terminal stage snapshot remain completed and are never resumed or re-dispatched. If the target run or stage was deleted, lacks a valid retained conversation, is non-resumable, or fails to reopen, the caller receives a bounded actionable `intercom.ask` tool error instead of waiting indefinitely.
 
 
-Workflow stage sessions and first-party subagent transcripts created inside them are classified as **internal** at creation and excluded from the standard `/resume`, `atomic -r`, `--continue`, and global history surfaces. Fork-context stages and subagents inherit the owning run/stage marker in their initial JSONL header, avoiding a briefly visible ordinary session. They remain resumable and inspectable through the workflow-specific commands and tool actions shown here (`/workflow resume`, `/workflow attach`, `workflow({ action: "status" | "stages" | "stage" | "resume" })`), which read the run/stage store and its `sessionFile` links directly.
+Workflow stage sessions and first-party subagent transcripts created inside them are classified as **internal** at creation and excluded from the standard `/resume`, `orphus -r`, `--continue`, and global history surfaces. Fork-context stages and subagents inherit the owning run/stage marker in their initial JSONL header, avoiding a briefly visible ordinary session. They remain resumable and inspectable through the workflow-specific commands and tool actions shown here (`/workflow resume`, `/workflow attach`, `workflow({ action: "status" | "stages" | "stage" | "resume" })`), which read the run/stage store and its `sessionFile` links directly.
 
 Passing a stage session's file path to `--session` still opens it explicitly. Classification requires exact `internal: true` plus complete run/stage metadata; malformed legacy markers and ordinary user forks remain in standard history. Legacy workflow sessions created before this marker behavior lack provable ownership and continue to appear until they age out.
 
@@ -3164,9 +3164,9 @@ The readiness prompt can be answered in the attached stage UI or with `workflow(
 
 Orphus workflows use **DBOS/Postgres as their sole persistent workflow backend**. Orphus configures and launches DBOS lazily on the first workflow action, reuses that process-wide instance, and awaits readiness before workflow execution, resume, inspection, or deletion can access durable state. `DBOS_SYSTEM_DATABASE_URL` may select an existing database; DBOS query and write failures fail the workflow action and never select another backend.
 
-**Zero-configuration local database.** Without `DBOS_SYSTEM_DATABASE_URL`, Orphus runs DBOS against its own embedded Postgres built from npm-distributed binaries — no Docker daemon or system Postgres install. The cluster lives under `~/.atomic/postgres/v18` on dedicated port `5439`; the first workflow action initializes it once and starts it with `pg_ctl` as a detached daemon that survives Orphus exiting, is shared by every concurrent Orphus session, and is never stopped by Orphus.
+**Zero-configuration local database.** Without `DBOS_SYSTEM_DATABASE_URL`, Orphus runs DBOS against its own embedded Postgres built from npm-distributed binaries — no Docker daemon or system Postgres install. The cluster lives under `~/.orphus/postgres/v18` on dedicated port `5439`; the first workflow action initializes it once and starts it with `pg_ctl` as a detached daemon that survives Orphus exiting, is shared by every concurrent Orphus session, and is never stopped by Orphus.
 
-**Running as root (Linux).** PostgreSQL refuses to run as UID 0, so a root Orphus process (containers, CI sandboxes, eval harnesses) resolves an unprivileged system account (`postgres`, `nobody`, or `daemon`), keeps the cluster under `/var/lib/atomic-postgres` instead (a root home directory is untraversable for that account), and runs every Postgres command with dropped privileges. When the embedded binaries themselves sit under an untraversable prefix (for example a root-owned `~/.nvm` global install), Orphus copies the Postgres runtime into the cluster directory once and reuses it.
+**Running as root (Linux).** PostgreSQL refuses to run as UID 0, so a root Orphus process (containers, CI sandboxes, eval harnesses) resolves an unprivileged system account (`postgres`, `nobody`, or `daemon`), keeps the cluster under `/var/lib/orphus-postgres` instead (a root home directory is untraversable for that account), and runs every Postgres command with dropped privileges. When the embedded binaries themselves sit under an untraversable prefix (for example a root-owned `~/.nvm` global install), Orphus copies the Postgres runtime into the cluster directory once and reuses it.
 
 When the embedded binaries are unavailable for the platform, Orphus falls back to DBOS's reusable `dbos-db` Docker container. If no durable backend can be provisioned at all, workflows **degrade to a process-local in-memory backend with a loud warning** instead of refusing to run: the run executes normally, but its state does not survive the process and `/workflow resume` after exit has nothing to restore. Set `DBOS_SYSTEM_DATABASE_URL` to an existing Postgres to restore durability.
 
@@ -3296,7 +3296,7 @@ The non-interactive `workflow({ action: "resume", runId: "<full-run-uuid>" })` s
 
 A target that is not a full UUID is rejected before the combined catalog is consulted, so a truncated id never reaches durable lookup. Read-only inspection behavior is otherwise unchanged. A current completed or non-resumable failed backend row with valid graph checkpoints remains inspectable even if every retained stage conversation is unavailable. Missing, empty, directory, context-empty, or partially malformed transcript paths are stripped from chat attachment while the graph stays read-only and visible.
 
-Validation uses the final retained transcript for a repeated stage replay key, so an obsolete superseded checkpoint path does not hide an otherwise valid read-only graph. Reopening inspection refreshes a changed authoritative retained-chat handle. Session-cache-only rows are hidden because the backend is authoritative. Checkpointed non-resumable failed roots appear only in read-only history; cancelled, killed, blocked non-resumable, failed roots without saved progress, and other terminal non-success states are never added. Normal `/resume`, `atomic -r`, and `--continue` behavior for internal workflow stage sessions is unchanged.
+Validation uses the final retained transcript for a repeated stage replay key, so an obsolete superseded checkpoint path does not hide an otherwise valid read-only graph. Reopening inspection refreshes a changed authoritative retained-chat handle. Session-cache-only rows are hidden because the backend is authoritative. Checkpointed non-resumable failed roots appear only in read-only history; cancelled, killed, blocked non-resumable, failed roots without saved progress, and other terminal non-success states are never added. Normal `/resume`, `orphus -r`, and `--continue` behavior for internal workflow stage sessions is unchanged.
 
 ### Cancellation, failure, and retry semantics
 
@@ -3335,10 +3335,10 @@ Orphus discovers workflow definitions in this order:
 
 | Location | Scope | Notes |
 |----------|-------|-------|
-| `.atomic/extensions/workflow/config.json` | Project | `workflows.<name>.path`; project entries override global entries |
-| `.atomic/workflows/*.{ts,js,mjs,cjs}` | Project | Legacy `.pi/workflows/` is also checked |
-| `~/.atomic/agent/extensions/workflow/config.json` | Global | `workflows.<name>.path` for user-wide configured paths |
-| `~/.atomic/agent/workflows/*.{ts,js,mjs,cjs}` | Global | Legacy `~/.pi/agent/workflows/` is also checked |
+| `.orphus/extensions/workflow/config.json` | Project | `workflows.<name>.path`; project entries override global entries |
+| `.orphus/workflows/*.{ts,js,mjs,cjs}` | Project | Legacy `.atomic/workflows/` and `.pi/workflows/` are also checked |
+| `~/.orphus/agent/extensions/workflow/config.json` | Global | `workflows.<name>.path` for user-wide configured paths |
+| `~/.orphus/agent/workflows/*.{ts,js,mjs,cjs}` | Global | Legacy `~/.atomic/agent/workflows/` and `~/.pi/agent/workflows/` are also checked |
 | Installed Orphus packages | Package | Uses package metadata or conventional `workflows/` directories |
 | Bundled workflows | Built-in | Shipped with `@orphus/workflows` |
 
@@ -3346,24 +3346,24 @@ A workflow module may export one default workflow definition and/or named workfl
 
 Discovery validates every runtime export of a discovered workflow file as a workflow definition. Discovery rejects a named export that is not a workflow definition — a widget factory, shared constant, or utility function — with an `INVALID_DEFINITION` discovery diagnostic (`export is not an object`), even when the module also has a valid default export (the valid workflow still loads; the diagnostic flags the extra export as skipped). TypeScript erases type-only exports (`export type` / `export interface`) at runtime, so discovery never flags them.
 
-To co-locate reusable helpers with your workflows — for example a `ctx.ui.custom<T>` widget factory you want to import in tests without running the workflow — put them in a subdirectory and import them from the workflow file. Discovery scans only the top level of each workflow directory, so subdirectories such as `.atomic/workflows/lib/` are never treated as workflow modules:
+To co-locate reusable helpers with your workflows — for example a `ctx.ui.custom<T>` widget factory you want to import in tests without running the workflow — put them in a subdirectory and import them from the workflow file. Discovery scans only the top level of each workflow directory, so subdirectories such as `.orphus/workflows/lib/` are never treated as workflow modules:
 
 ```text
-.atomic/workflows/
+.orphus/workflows/
   release-picker.ts      # only runtime export: workflow({...})
   lib/
     table-selector.ts    # widget factory + helpers; not scanned by discovery
 ```
 
 ```ts
-// .atomic/workflows/release-picker.ts
+// .orphus/workflows/release-picker.ts
 import { workflow } from "@orphus/workflows";
 import { Type } from "typebox";
 import { tableSelectorFactory } from "./lib/table-selector.js";
 ```
 
 ```ts
-// .atomic/workflows/lib/table-selector.ts
+// .orphus/workflows/lib/table-selector.ts
 import type { WorkflowCustomUiFactory } from "@orphus/workflows";
 
 export const tableSelectorFactory: WorkflowCustomUiFactory<{ id: string; name: string }> = (
@@ -3384,7 +3384,7 @@ Orphus loads workflow files with [jiti](https://github.com/unjs/jiti), so TypeSc
 
 ## Reloading workflow resources
 
-Run `/workflow reload` after adding, editing, renaming, or deleting workflow modules or changing workflow config. Reload rescans project and user conventional directories, legacy `.pi` locations, configured file/directory paths, and package resources without restarting Orphus. The workflow tool's `reload` action uses the same in-process path.
+Run `/workflow reload` after adding, editing, renaming, or deleting workflow modules or changing workflow config. Reload rescans project and user conventional directories, legacy `.atomic` and `.pi` locations, configured file/directory paths, and package resources without restarting Orphus. The workflow tool's `reload` action uses the same in-process path.
 
 Reload builds a complete replacement registry before publishing it. Concurrent requests are serialized and coalesced, stale discovery from an earlier session cannot overwrite newer state, and a fatal refresh failure retains the previous registry. Reload is safe while workflows are running: existing runs keep the definition and runtime snapshot they started with, while subsequent list/get/inputs/help/completion/invocation calls use the newly published registry.
 
@@ -3394,18 +3394,18 @@ A successful rescan may still contain per-resource diagnostics. Both reload surf
 
 ## Workflow Configuration
 
-Configured workflow paths live in workflow extension config. Project config paths are relative to the project root. Global config paths are relative to `~/.atomic/agent`.
+Configured workflow paths live in workflow extension config. Project config paths are relative to the project root. Global config paths are relative to `~/.orphus/agent`.
 
 Project config:
 
 ```text
-.atomic/extensions/workflow/config.json
+.orphus/extensions/workflow/config.json
 ```
 
 Global config:
 
 ```text
-~/.atomic/agent/extensions/workflow/config.json
+~/.orphus/agent/extensions/workflow/config.json
 ```
 
 Example config:
@@ -3438,7 +3438,7 @@ Runtime config defaults:
 | `defaultConcurrency` | `4` | Default concurrency for authored `ctx.parallel(...)` execution |
 | `maxDepth` | `4` | Maximum workflow nesting depth |
 | `persistRuns` | `true` | Persist run metadata for status/resume/history |
-| `statusFile` | `false` | Write a derived status file; defaults under `.atomic/workflows/status.json` when enabled |
+| `statusFile` | `false` | Write a derived status file; defaults under `.orphus/workflows/status.json` when enabled |
 | `resumeInFlight` | `"ask"` | Behavior when discovering resumable in-flight work |
 | `workflowNotifications.enabled` | `true` | Emit workflow lifecycle notices into the active main chat |
 | `workflowNotifications.notifyOn` | `["started", "completed", "failed", "blocked", "awaiting_input", "paused", "quit", "resumed"]` | Lifecycle states to track; terminal `completed`/`failed`/`blocked` outcomes, active recoverable blocks, and the user-initiated `started`/`paused`/`quit`/`resumed` control actions on a top-level run create main-chat notices, while `awaiting_input` is tracked for dedupe/restore without waking the main agent |
@@ -3453,7 +3453,7 @@ Settings can list package sources directly:
 ```json
 {
   "packages": [
-    "npm:my-atomic-workflows@1.0.0",
+    "npm:my-orphus-workflows@1.0.0",
     "git:github.com/user/team-workflows@v2",
     "./tools/local-workflows"
   ]
@@ -3466,7 +3466,7 @@ Use object form to filter which workflows load from a package:
 {
   "packages": [
     {
-      "source": "npm:my-atomic-workflows",
+      "source": "npm:my-orphus-workflows",
       "workflows": ["workflows/*.ts", "!workflows/experimental/**"]
     }
   ]
@@ -3481,7 +3481,7 @@ Use object form to filter which workflows load from a package:
 - Use `+path` to force-include an exact path.
 - Use `-path` to force-exclude an exact path.
 
-Run `atomic config` to enable or disable package resources interactively. Orphus saves workflow package filters as `workflows` patterns in settings.
+Run `orphus config` to enable or disable package resources interactively. Orphus saves workflow package filters as `workflows` patterns in settings.
 
 ## Package Setup
 
@@ -3489,9 +3489,9 @@ Orphus packages can ship workflows through package metadata or conventional dire
 
 ```json
 {
-  "name": "my-atomic-workflows",
+  "name": "my-orphus-workflows",
   "keywords": ["atomic-package", "pi-package"],
-  "atomic": {
+  "orphus": {
     "extensions": ["./src/index.ts"],
     "workflows": ["./workflows"]
   }
@@ -3500,12 +3500,12 @@ Orphus packages can ship workflows through package metadata or conventional dire
 
 Paths are relative to the package root and may use glob patterns. Include `atomic-package` for Orphus package discovery and `pi-package` for compatibility with existing package-gallery tooling.
 
-For new Orphus package examples, prefer `atomic.workflows` and `atomic.extensions`. `pi.workflows` and `pi.extensions` remain supported for compatibility with existing packages. Workflows can be declared with `atomic.workflows` or discovered from conventional `workflows/` / `workflow/` directories. Unlike other resource types, package workflows still fall back to conventional directories when a package manifest exists but omits the workflow key. App-level config prefers `atomicConfig` where available; legacy `piConfig` is still read as a shim.
+For new Orphus package examples, prefer `orphus.workflows` and `orphus.extensions`. `pi.workflows` and `pi.extensions` remain supported for compatibility with existing packages. Workflows can be declared with `orphus.workflows` or discovered from conventional `workflows/` / `workflow/` directories. Unlike other resource types, package workflows still fall back to conventional directories when a package manifest exists but omits the workflow key. App-level config prefers `orphusConfig`; legacy `piConfig` is still read as a shim.
 
 Convention directory example:
 
 ```text
-my-atomic-workflows/
+my-orphus-workflows/
   package.json
   workflows/
     release-plan.ts
@@ -3517,18 +3517,18 @@ my-atomic-workflows/
 Install packages globally or locally:
 
 ```bash
-atomic install npm:my-atomic-workflows
-atomic install git:github.com/user/my-atomic-workflows
-atomic install ./local-workflow-package -l
+orphus install npm:my-orphus-workflows
+orphus install git:github.com/user/my-orphus-workflows
+orphus install ./local-workflow-package -l
 ```
 
-By default, `atomic install` writes to global settings (`~/.atomic/agent/settings.json`). Use `-l` to write to project settings (`.atomic/settings.json`). A team can commit project settings to share the same workflow package set.
+By default, `orphus install` writes to global settings (`~/.orphus/agent/settings.json`). Use `-l` to write to project settings (`.orphus/settings.json`). A team can commit project settings to share the same workflow package set.
 
 To try a package for one run, use `--extension` or `-e`:
 
 ```bash
-atomic -e npm:my-atomic-workflows
-atomic -e ./local-workflow-package
+orphus -e npm:my-orphus-workflows
+orphus -e ./local-workflow-package
 ```
 
 Workflow stage sessions inherit the same package and temporary `-e` resource discovery snapshot as the main chat. That means a workflow loaded from an external package or directory can start stages that see the package's extensions/tools, subagents and agent definitions, skills, prompt templates, themes, workflows, and trusted borrowed project-local resources without sharing the parent chat's resource-loader instance. Passing an explicit `resourceLoader` in stage options still opts that stage out of this inheritance.
@@ -3543,7 +3543,7 @@ Workflow stage sessions inherit the same package and temporary `-e` resource dis
 
 The signatures in this reference follow the externally shipped standalone authoring declaration in `packages/workflows/src/authoring.ts`. Orphus's internal runtime types may specialize opaque SDK values or add executor-only integration fields; those are not ordinary workflow-package authoring API.
 
-Workflow definition files must export definitions produced by `workflow({...})`. Keep non-workflow runtime helpers (widget factories, shared utilities) in a subdirectory the discovery scan ignores, such as `.atomic/workflows/lib/` — see [Workflow Locations](#workflow-locations). The former imperative object-form runner is not part of the public SDK, and authored workflow files cannot use `runWorkflow` as a runner from `@orphus/workflows`.
+Workflow definition files must export definitions produced by `workflow({...})`. Keep non-workflow runtime helpers (widget factories, shared utilities) in a subdirectory the discovery scan ignores, such as `.orphus/workflows/lib/` — see [Workflow Locations](#workflow-locations). The former imperative object-form runner is not part of the public SDK, and authored workflow files cannot use `runWorkflow` as a runner from `@orphus/workflows`.
 
 Standalone TypeScript workflow packages type-check the SDK import without a hand-authored `.d.ts`, `declare module` shim, or `tsconfig` `paths` alias. The SDK types ship with `@orphus/coding-agent`, so a workflow package depends only on `@orphus/coding-agent` (plus a `typebox` peer):
 
@@ -3587,7 +3587,7 @@ Workflow SDK type resolution depends on the package's other imports:
   ```
 
 Either form makes `import { workflow } from "@orphus/workflows"
-import { Type } from "typebox"` and the `@orphus/workflows/builtin/*` composition imports resolve under `tsc` (`moduleResolution: NodeNext`) with no hand-authored `.d.ts`, no `declare module` shim, and no `paths` alias. `@orphus/workflows` is not a separate npm package — its types ship with `@orphus/coding-agent` — so list both `@orphus/coding-agent` and `typebox` (workflow files import `Type` from `typebox`) in `peerDependencies`. Runtime discovery and loading via `atomic.workflows` are unchanged: Orphus's loader still supplies the SDK when workflow files execute.
+import { Type } from "typebox"` and the `@orphus/workflows/builtin/*` composition imports resolve under `tsc` (`moduleResolution: NodeNext`) with no hand-authored `.d.ts`, no `declare module` shim, and no `paths` alias. `@orphus/workflows` is not a separate npm package — its types ship with `@orphus/coding-agent` — so list both `@orphus/coding-agent` and `typebox` (workflow files import `Type` from `typebox`) in `peerDependencies`. Runtime discovery and loading via `orphus.workflows` are unchanged: Orphus's loader still supplies the SDK when workflow files execute.
 
 
 ### `workflow(spec)`
@@ -3970,7 +3970,7 @@ Three rules make that work in practice:
 Substantial handoffs should travel through files or durable artifacts instead of hidden transcript assumptions. This keeps stage prompts small, makes review/audit possible, and lets later stages reread the authoritative material without depending on what a previous model summarized. Remember that `reads` passes paths rather than content: a stage reads the file when it runs, so the artifact must hold the real report at that moment.
 
 ```ts
-const researchPath = ".atomic/workflows/runs/context-demo/research.md";
+const researchPath = ".orphus/workflows/runs/context-demo/research.md";
 await ctx.task("researcher", {
   task: "Map the subsystem and return the complete report as your final message.",
   output: researchPath,
@@ -4003,7 +4003,7 @@ Have the parent workflow synthesize results rather than letting branches silentl
 Use files when workflow context grows too large:
 
 ```text
-.atomic/workflows/runs/<run-name>/
+.orphus/workflows/runs/<run-name>/
   research.md
   reviews/
     correctness.md
@@ -4151,7 +4151,7 @@ export default workflow({
 
 ### Conversion checklist
 
-For each `.atomic/workflows/*.ts` (or workflow-package) file:
+For each `.orphus/workflows/*.ts` (or workflow-package) file:
 
 1. Swap the import to `import { workflow } from "@orphus/workflows"` and add `import { Type } from "typebox"`. Drop `defineWorkflow` from the `@orphus/workflows` import. `import type { Static, TSchema }` can stay on the `@orphus/workflows` import if you use those types.
 2. Replace `defineWorkflow("<name>")` with `workflow({`. You may keep `name: "<name>"` or drop the key entirely to derive the name from the filename.

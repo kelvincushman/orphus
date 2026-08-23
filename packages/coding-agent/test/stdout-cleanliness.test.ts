@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { ENV_AGENT_DIR, VERSION } from "../src/config.ts";
+import { CONFIG_DIR_NAME, ENV_AGENT_DIR, VERSION } from "../src/config.ts";
 import { removeTempDirs, runCliProcess } from "./cli-test-helpers.ts";
 
 const tempDirs: string[] = [];
@@ -90,7 +90,7 @@ describe("stdout cleanliness in non-interactive modes", () => {
 		const tempRoot = createTempDir();
 		const agentDir = join(tempRoot, "agent");
 		const projectDir = join(tempRoot, "project");
-		const commandsDir = join(projectDir, ".atomic", "commands");
+		const commandsDir = join(projectDir, CONFIG_DIR_NAME, "commands");
 		mkdirSync(agentDir, { recursive: true });
 		mkdirSync(commandsDir, { recursive: true });
 		writeFileSync(
@@ -103,7 +103,7 @@ describe("stdout cleanliness in non-interactive modes", () => {
 		const result = await runCliInProject(["--help"], { agentDir, projectDir });
 
 		expect(result.code).toBe(0);
-		expect(existsSync(join(projectDir, ".atomic", "prompts", "test.md"))).toBe(true);
+		expect(existsSync(join(projectDir, CONFIG_DIR_NAME, "prompts", "test.md"))).toBe(true);
 		expect(existsSync(commandsDir)).toBe(false);
 	});
 
@@ -111,7 +111,7 @@ describe("stdout cleanliness in non-interactive modes", () => {
 		const tempRoot = createTempDir();
 		const agentDir = join(tempRoot, "agent");
 		const projectDir = join(tempRoot, "project");
-		const commandsDir = join(projectDir, ".atomic", "commands");
+		const commandsDir = join(projectDir, CONFIG_DIR_NAME, "commands");
 		const extensionPath = join(tempRoot, "approve-project-trust.ts");
 		mkdirSync(agentDir, { recursive: true });
 		mkdirSync(commandsDir, { recursive: true });
@@ -125,7 +125,7 @@ describe("stdout cleanliness in non-interactive modes", () => {
 		const result = await runCliInProject(["--extension", extensionPath, "--help"], { agentDir, projectDir });
 
 		expect(result.code).toBe(0);
-		expect(existsSync(join(projectDir, ".atomic", "prompts", "test.md"))).toBe(true);
+		expect(existsSync(join(projectDir, CONFIG_DIR_NAME, "prompts", "test.md"))).toBe(true);
 		expect(existsSync(commandsDir)).toBe(false);
 	});
 

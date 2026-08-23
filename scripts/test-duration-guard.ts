@@ -154,8 +154,16 @@ function declarationPattern(lines: string[]): RegExp {
 	return new RegExp(`^(\\s*)(?:${alternation})${DECLARATION_HEAD}`, "u");
 }
 
+// A `//` line is skipped alongside blank ones: AGENTS.md tells authors to write
+// the justification for a structural budget as comments at the call site, and
+// treating those lines as the declaration body made the scan reject exactly the
+// budgets it exists to read. Line comments only — this scan is line-based and
+// does not model block comments, matching the repository's test style.
 function previousMeaningfulIndex(lines: string[], index: number): number {
-	for (let back = index - 1; back >= 0; back--) if ((lines[back] as string).trim() !== "") return back;
+	for (let back = index - 1; back >= 0; back--) {
+		const line = (lines[back] as string).trim();
+		if (line !== "" && !line.startsWith("//")) return back;
+	}
 	return -1;
 }
 

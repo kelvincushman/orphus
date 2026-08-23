@@ -34,7 +34,7 @@ That mapping sends a raw linefeed byte. Inside Orphus, that is indistinguishable
 
 If Claude Code 2.x or newer is the only reason you added that mapping, you can remove it, unless you want to use Claude Code in tmux, where it still requires that Ghostty mapping.
 
-If you want `SHIFT+Enter` to keep working in tmux via that remap, add `ctrl+j` to your Orphus `tui.input.newLine` keybinding in `~/.atomic/agent/keybindings.json`:
+If you want `SHIFT+Enter` to keep working in tmux via that remap, add `ctrl+j` to your Orphus `tui.input.newLine` keybinding in `~/.orphus/agent/keybindings.json`:
 
 ```json
 {

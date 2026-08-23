@@ -271,6 +271,11 @@ test("the extension registers the browser tool when the switch is on", () => {
  * broken" are different statements and only one of them should stop a build.
  */
 const REAL_CHROME_SMOKE_TIMEOUT_MS = 60_000;
+// The launcher's own 15s budget is sized for a person waiting on a browser. A
+// CI runner building 670 test files in parallel is not that, and Chrome missed
+// it there while the test still had 45s of its budget unspent. The launch gets
+// most of the test's budget; what remains covers navigate, evaluate, teardown.
+const REAL_CHROME_STARTUP_TIMEOUT_MS = 40_000;
 const chromePath = resolveChromeExecutable();
 const smokeTest = chromePath ? test : test.skip;
 
@@ -286,6 +291,7 @@ smokeTest(
 			// out where it must rather than the shipped launcher doing it for
 			// everyone.
 			noSandbox: process.getuid?.() === 0,
+			startupTimeoutMs: REAL_CHROME_STARTUP_TIMEOUT_MS,
 		});
 		try {
 			await session.start();

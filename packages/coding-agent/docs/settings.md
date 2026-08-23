@@ -4,24 +4,36 @@ Orphus uses JSON settings files with project settings overriding global settings
 
 | Location | Scope |
 |----------|-------|
-| `~/.atomic/agent/settings.json` | Global (all projects) |
-| `.atomic/settings.json` | Project (current directory) |
+| `~/.orphus/agent/settings.json` | Global (all projects) |
+| `.orphus/settings.json` | Project (current directory) |
 
-Edit directly or use `/settings` for common options. Orphus also reads legacy `~/.pi/agent/settings.json` and `.pi/settings.json` as compatibility fallbacks, with `.atomic` paths taking precedence.
+Edit directly or use `/settings` for common options.
+
+<a id="config-dir-precedence"></a>
+
+### Where Orphus looks
+
+`.orphus` is the config directory Orphus writes. It also **reads** two inherited ones so existing installs keep working, in this order:
+
+1. `.orphus` — primary, and the only one Orphus creates
+2. `.atomic` — the Atomic fork this project came from
+3. `.pi` — upstream pi
+
+That order applies to both the global (`~/<dir>/agent/`) and project (`<cwd>/<dir>/`) roots. Setting `ORPHUS_AGENT_DIR` pins the global agent directory to exactly that path and drops the fallbacks. Every other page states `.orphus` paths; if you are on an older layout, read them against this order.
 
 ## Project Trust
 
-On interactive startup, Orphus asks before trusting a project folder that contains trust-gated project inputs and has no saved decision for the folder or a parent folder in `~/.atomic/agent/trust.json`. Trusting a project allows Orphus to load project-local `.atomic/settings.json` and `.atomic` resources, legacy `.pi/settings.json` and `.pi` resources, project-local context files, install missing project packages, and execute project extensions.
+On interactive startup, Orphus asks before trusting a project folder that contains trust-gated project inputs and has no saved decision for the folder or a parent folder in `~/.orphus/agent/trust.json`. Trusting a project allows Orphus to load project-local `.orphus/settings.json` and `.orphus` resources, legacy `.atomic` and `.pi` settings and resources, project-local context files, install missing project packages, and execute project extensions.
 
 Non-interactive modes (`-p`, `--mode json`, and `--mode rpc`) do not show a trust prompt. Without an applicable saved trust decision, they use `defaultProjectTrust` from global settings: `ask` (default) and `never` ignore trust-gated project inputs, while `always` trusts them. Pass `--approve`/`-a` or `--no-approve`/`-na` to override project trust for one run.
 
-If no extension or saved decision applies, `defaultProjectTrust` controls the fallback behavior. Set it to `"ask"`, `"always"`, or `"never"` in `~/.atomic/agent/settings.json`, or change it with `/settings`.
+If no extension or saved decision applies, `defaultProjectTrust` controls the fallback behavior. Set it to `"ask"`, `"always"`, or `"never"` in `~/.orphus/agent/settings.json`, or change it with `/settings`.
 
-`atomic config` and package commands use the same project trust flow. Pass `--approve` to trust project-local settings for one command or `--no-approve` to ignore them.
+`orphus config` and package commands use the same project trust flow. Pass `--approve` to trust project-local settings for one command or `--no-approve` to ignore them.
 
-Use `/trust` in interactive mode to save a project trust decision for future sessions, including trust for the immediate parent folder. It writes `~/.atomic/agent/trust.json` only; the current session is not reloaded, so restart Orphus for changes to take effect.
+Use `/trust` in interactive mode to save a project trust decision for future sessions, including trust for the immediate parent folder. It writes `~/.orphus/agent/trust.json` only; the current session is not reloaded, so restart Orphus for changes to take effect.
 
-If a bare directory starts without trust-gated inputs, Orphus may run the interactive session as implicitly trusted. Inert state directories such as `.atomic/todos/` and `.atomic/sessions/` do not require trust and do not disable deferred resource startup. On the normal interactive TTY fast path, Orphus paints the shell and makes the input editor responsive before scanning bundled extension packages, skills, prompts, themes, context files, and system-prompt files. After the input handler is ready, Orphus starts extension/resource loading in the background. If the first submitted prompt arrives before that loading settles, Orphus keeps the prompt spinner visible and waits at the readiness gate before calling the model so extension tools, prompt templates, skills, resources, and extension-registered provider updates are available on that first turn. Deferred loading uses async discovery and cooperative yields around resource-loading work, so visible typing, Enter, Ctrl+C, rendering, and the normal prompt spinner remain responsive while the background work finishes. Startup does not show a resource-loading spinner before the user submits a prompt. Explicit provider/model selection, explicit resource flags, system-prompt inputs, metadata commands, non-TTY modes, and unresolved project-trust prompts stay on the synchronous path because those operations need complete resources before the session is created. When resources finish loading, Orphus shows the normal resources disclosure so newly added skills, prompts, themes, and extensions are visible. If trust-requiring config appears later, Orphus prompts again on the next launch until you explicitly save a persistent trust decision; the only automatic persistence of implicit startup trust is the existing `/reload` flow after reload discovers trust-requiring resources in an already-trusted session.
+If a bare directory starts without trust-gated inputs, Orphus may run the interactive session as implicitly trusted. Inert state directories such as `.orphus/todos/` and `.orphus/sessions/` do not require trust and do not disable deferred resource startup. On the normal interactive TTY fast path, Orphus paints the shell and makes the input editor responsive before scanning bundled extension packages, skills, prompts, themes, context files, and system-prompt files. After the input handler is ready, Orphus starts extension/resource loading in the background. If the first submitted prompt arrives before that loading settles, Orphus keeps the prompt spinner visible and waits at the readiness gate before calling the model so extension tools, prompt templates, skills, resources, and extension-registered provider updates are available on that first turn. Deferred loading uses async discovery and cooperative yields around resource-loading work, so visible typing, Enter, Ctrl+C, rendering, and the normal prompt spinner remain responsive while the background work finishes. Startup does not show a resource-loading spinner before the user submits a prompt. Explicit provider/model selection, explicit resource flags, system-prompt inputs, metadata commands, non-TTY modes, and unresolved project-trust prompts stay on the synchronous path because those operations need complete resources before the session is created. When resources finish loading, Orphus shows the normal resources disclosure so newly added skills, prompts, themes, and extensions are visible. If trust-requiring config appears later, Orphus prompts again on the next launch until you explicitly save a persistent trust decision; the only automatic persistence of implicit startup trust is the existing `/reload` flow after reload discovers trust-requiring resources in an already-trusted session.
 
 Settings and trust JSON files may start with a UTF-8 BOM, as commonly written by older Windows tools; Orphus strips that leading marker before parsing.
 
@@ -123,7 +135,7 @@ Use `/fast` in interactive mode to edit these settings. Orphus applies fast mode
 | `autocompleteMaxVisible` | number | `5` | Max visible items in autocomplete dropdown (3-20) |
 | `showHardwareCursor` | boolean | `false` | Show the terminal cursor while TUI positions it for IME support |
 
-Ctrl+G in main chat, embedded chat, and extension editor dialogs uses one shared asynchronous launcher. Orphus chooses `externalEditor`, then `$VISUAL`, then `$EDITOR`, then Notepad on Windows or `nano` elsewhere. Each edit uses a private `atomic-editor-*` directory containing only `prompt.md`, removes the directory recursively afterward, and never scans the system temporary directory. A successful empty edit is preserved; a failed editor leaves the original text unchanged, and the TUI always restarts and renders after the editor exits.
+Ctrl+G in main chat, embedded chat, and extension editor dialogs uses one shared asynchronous launcher. Orphus chooses `externalEditor`, then `$VISUAL`, then `$EDITOR`, then Notepad on Windows or `nano` elsewhere. Each edit uses a private `orphus-editor-*` directory containing only `prompt.md`, removes the directory recursively afterward, and never scans the system temporary directory. A successful empty edit is preserved; a failed editor leaves the original text unchanged, and the TUI always restarts and renders after the editor exits.
 
 ### Telemetry and update checks
 
@@ -294,7 +306,7 @@ Normally the package manager's global modules location is queried using `root -g
 | `sessionDir` | string | - | Directory where session files are stored. Accepts absolute or relative paths, plus `~`. |
 
 ```json
-{ "sessionDir": ".atomic/sessions" }
+{ "sessionDir": ".orphus/sessions" }
 ```
 
 When multiple sources specify a session directory, precedence is `--session-dir`, `ORPHUS_CODING_AGENT_SESSION_DIR`, then `sessionDir` in settings.json.
@@ -324,7 +336,7 @@ When multiple sources specify a session directory, precedence is `--session-dir`
 
 These settings define where to load extensions, skills, prompts, themes, and workflows from.
 
-Paths in `~/.atomic/agent/settings.json` resolve relative to `~/.atomic/agent`. Paths in `.atomic/settings.json` resolve relative to `.atomic`. Absolute paths and `~` are supported.
+Paths in `~/.orphus/agent/settings.json` resolve relative to `~/.orphus/agent`. Paths in `.orphus/settings.json` resolve relative to `.orphus`. Absolute paths and `~` are supported.
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
@@ -395,16 +407,16 @@ See [Orphus packages](/packages) for package management details.
 
 ## Project Overrides
 
-Project settings (`.atomic/settings.json`) override global settings. Nested objects are merged:
+Project settings (`.orphus/settings.json`) override global settings. Nested objects are merged:
 
 ```json
-// ~/.atomic/agent/settings.json (global)
+// ~/.orphus/agent/settings.json (global)
 {
   "theme": "dark",
   "compaction": { "enabled": true, "reserveTokens": 16384 }
 }
 
-// .atomic/settings.json (project)
+// .orphus/settings.json (project)
 {
   "compaction": { "reserveTokens": 8192 }
 }

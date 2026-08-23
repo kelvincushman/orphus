@@ -11,8 +11,8 @@ Extensions can register custom model providers via `pi.registerProvider()`. This
 
 See these complete provider examples:
 
-- [`examples/extensions/custom-provider-anthropic/`](https://github.com/bastani-inc/atomic/tree/main/packages/coding-agent/examples/extensions/custom-provider-anthropic)
-- [`examples/extensions/custom-provider-gitlab-duo/`](https://github.com/bastani-inc/atomic/tree/main/packages/coding-agent/examples/extensions/custom-provider-gitlab-duo)
+- [`examples/extensions/custom-provider-anthropic/`](https://github.com/kelvincushman/orphus/tree/main/packages/coding-agent/examples/extensions/custom-provider-anthropic)
+- [`examples/extensions/custom-provider-gitlab-duo/`](https://github.com/kelvincushman/orphus/tree/main/packages/coding-agent/examples/extensions/custom-provider-gitlab-duo)
 
 ## Table of Contents
 
@@ -59,7 +59,7 @@ export default function (pi: ExtensionAPI) {
 }
 ```
 
-The extension factory can also be `async`. For dynamic model discovery, fetch and register models in the factory instead of `session_start`. Orphus waits for the factory before startup continues, so the provider is available during interactive startup and to `atomic --list-models`.
+The extension factory can also be `async`. For dynamic model discovery, fetch and register models in the factory instead of `session_start`. Orphus waits for the factory before startup continues, so the provider is available during interactive startup and to `orphus --list-models`.
 
 ## Override Existing Provider
 
@@ -357,7 +357,7 @@ interface OAuthLoginCallbacks {
 
 ### OAuthCredentials
 
-Credentials are persisted in `~/.atomic/agent/auth.json` (legacy `~/.pi/agent/auth.json` may be read for compatibility):
+Credentials are persisted in `~/.orphus/agent/auth.json` (legacy `~/.atomic/agent/auth.json` and `~/.pi/agent/auth.json` may be read for compatibility):
 
 ```typescript
 interface OAuthCredentials {

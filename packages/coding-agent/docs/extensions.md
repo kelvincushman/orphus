@@ -4,7 +4,7 @@
 
 Extensions are TypeScript modules that extend Orphus's behavior. They can subscribe to lifecycle events, register custom tools callable by the LLM, add commands, and more.
 
-> **Placement for /reload:** Put extensions in `~/.atomic/agent/extensions/` (global) or `.atomic/extensions/` (project-local) for auto-discovery; legacy `.pi` paths remain supported. Use `atomic -e ./path.ts` only for quick tests. Extensions in auto-discovered locations can be hot-reloaded with `/reload`.
+> **Placement for /reload:** Put extensions in `~/.orphus/agent/extensions/` (global) or `.orphus/extensions/` (project-local) for auto-discovery; legacy `.atomic` and `.pi` paths remain supported. Use `orphus -e ./path.ts` only for quick tests. Extensions in auto-discovered locations can be hot-reloaded with `/reload`.
 
 **Key capabilities:**
 - **Custom tools** - Register tools the LLM can call via `pi.registerTool()`
@@ -26,7 +26,7 @@ Extensions are TypeScript modules that extend Orphus's behavior. They can subscr
 - External integrations (file watchers, webhooks, CI triggers)
 - Games while you wait (see `snake.ts` example)
 
-See [examples/extensions/](https://github.com/bastani-inc/atomic/tree/main/packages/coding-agent/examples/extensions) for working implementations.
+See [examples/extensions/](https://github.com/kelvincushman/orphus/tree/main/packages/coding-agent/examples/extensions) for working implementations.
 
 ## Table of Contents
 
@@ -110,7 +110,7 @@ For structured forms use `ctx.ui.hostInputForm(request)`. It accepts JSON-safe f
 
 ## Quick Start
 
-Create `~/.atomic/agent/extensions/my-extension.ts`:
+Create `~/.orphus/agent/extensions/my-extension.ts`:
 
 ```typescript
 import type { ExtensionAPI } from "@orphus/coding-agent";
@@ -158,7 +158,7 @@ export default function (pi: ExtensionAPI) {
 Test with `--extension` (or `-e`) flag:
 
 ```bash
-atomic -e ./my-extension.ts
+orphus -e ./my-extension.ts
 ```
 
 ## Extension Locations
@@ -169,14 +169,14 @@ Extensions are auto-discovered from:
 
 | Location | Scope |
 |----------|-------|
-| `~/.atomic/agent/extensions/*.ts` | Global (all projects) |
-| `~/.atomic/agent/extensions/*/index.ts` | Global (subdirectory) |
-| `.atomic/extensions/*.ts` | Project-local |
-| `.atomic/extensions/*/index.ts` | Project-local (subdirectory) |
+| `~/.orphus/agent/extensions/*.ts` | Global (all projects) |
+| `~/.orphus/agent/extensions/*/index.ts` | Global (subdirectory) |
+| `.orphus/extensions/*.ts` | Project-local |
+| `.orphus/extensions/*/index.ts` | Project-local (subdirectory) |
 
-Orphus also discovers extensions and package resources inherited from legacy `~/.pi/agent` and `.pi` configuration. When an inherited Pi extension uses the exact same tool, command, prompt, flag, or shortcut name as an extension bundled with Orphus, Orphus keeps the bundled registration and ignores only that conflicting inherited registration. Other resources from the inherited extension remain available. Interactive startup reports all such overlaps in one yellow summary; print and RPC modes apply the same winners without changing the Pi settings or package files.
+Orphus also discovers extensions and package resources inherited from the legacy global directories `~/.atomic/agent` and `~/.pi/agent`, and from project-local `.atomic` and `.pi` configuration. When an inherited Pi extension uses the exact same tool, command, prompt, flag, or shortcut name as an extension bundled with Orphus, Orphus keeps the bundled registration and ignores only that conflicting inherited registration. Other resources from the inherited extension remain available. Interactive startup reports all such overlaps in one yellow summary; print and RPC modes apply the same winners without changing the Pi settings or package files.
 
-This compatibility rule applies only to inherited Pi resources. Extensions configured through `.atomic` or passed explicitly with `--extension` retain the normal intentional override and load-order behavior described below.
+This compatibility rule applies only to inherited Pi resources. Extensions configured through `.orphus` or passed explicitly with `--extension` retain the normal intentional override and load-order behavior described below.
 
 Additional paths via `settings.json`:
 
@@ -212,7 +212,7 @@ bun install
 
 Imports from `node_modules/` are resolved automatically.
 
-For distributed Orphus packages installed with `atomic install` (npm or git), runtime deps must be in `dependencies`. Package installation uses production dependency installs by default, so `devDependencies` are not available at runtime; when `npmCommand` is configured, git packages use plain `install` for compatibility with wrappers.
+For distributed Orphus packages installed with `orphus install` (npm or git), runtime deps must be in `dependencies`. Package installation uses production dependency installs by default, so `devDependencies` are not available at runtime; when `npmCommand` is configured, git packages use plain `install` for compatibility with wrappers.
 
 Node.js built-ins (`node:fs`, `node:path`, etc.) are also available.
 
@@ -280,7 +280,7 @@ export default async function (pi: ExtensionAPI) {
 }
 ```
 
-This pattern makes the fetched models available during normal startup and to `atomic --list-models`.
+This pattern makes the fetched models available during normal startup and to `orphus --list-models`.
 
 ### Long-lived resources and shutdown
 
@@ -293,14 +293,14 @@ Defer background resource startup until `session_start` or the command/tool/even
 **Single file** - simplest, for small extensions:
 
 ```
-~/.atomic/agent/extensions/
+~/.orphus/agent/extensions/
 └── my-extension.ts
 ```
 
 **Directory with index.ts** - for multi-file extensions:
 
 ```
-~/.atomic/agent/extensions/
+~/.orphus/agent/extensions/
 └── my-extension/
     ├── index.ts        # Entry point (exports default function)
     ├── tools.ts        # Helper module
@@ -310,7 +310,7 @@ Defer background resource startup until `session_start` or the command/tool/even
 **Package with dependencies** - for extensions that need npm packages:
 
 ```
-~/.atomic/agent/extensions/
+~/.orphus/agent/extensions/
 └── my-extension/
     ├── package.json    # Declares dependencies and entry points
     ├── bun.lock
@@ -333,7 +333,7 @@ Defer background resource startup until `session_start` or the command/tool/even
 }
 ```
 
-The manifest key is the configured Orphus app name (`orphus` here, from the running Orphus package/config; the legacy `atomic` key is also accepted), not the extension package's own `"name"` field. The legacy `pi` key is still accepted as a compatibility shim. Run `bun install` in the extension directory, then imports from `node_modules/` work automatically.
+The manifest key is the configured Orphus app name (`orphus` here, from the running Orphus package/config; the legacy `orphus` key is also accepted), not the extension package's own `"name"` field. The legacy `pi` key is still accepted as a compatibility shim. Run `bun install` in the extension directory, then imports from `node_modules/` work automatically.
 
 ## Events
 
@@ -413,7 +413,7 @@ exit (CTRL+C, CTRL+D, SIGHUP, SIGTERM)
 
 #### project_trust
 
-Fired before Orphus decides whether to trust a project with dynamic configs (`.atomic`, legacy `.pi`, or `.agents/skills`). It runs during startup and when session replacement (for example `/resume`) enters a cwd whose trust has not been resolved in the current process. Only user/global extensions and CLI `-e` extensions participate; project-local extensions are not loaded until after trust is resolved.
+Fired before Orphus decides whether to trust a project with dynamic configs (`.orphus`, legacy `.atomic` and `.pi`, or `.agents/skills`). It runs during startup and when session replacement (for example `/resume`) enters a cwd whose trust has not been resolved in the current process. Only user/global extensions and CLI `-e` extensions participate; project-local extensions are not loaded until after trust is resolved.
 
 ```typescript
 pi.on("project_trust", async (event, ctx) => {
@@ -921,7 +921,7 @@ pi.on("user_bash", (event, ctx) => {
   // Option 1: Provide custom operations (e.g., SSH)
   return { operations: remoteBashOps };
 
-  // Option 2: Wrap atomic's built-in local bash backend
+  // Option 2: Wrap Orphus's built-in local bash backend
   const local = createLocalBashOperations();
   return {
     operations: {
@@ -982,7 +982,7 @@ pi.on("input", async (event, ctx) => {
 - `transform` - modify text/images, then continue to expansion
 - `handled` - skip agent entirely (first handler to return this wins)
 
-Transforms chain across handlers. See [input-transform.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/input-transform.ts) and [input-transform-streaming.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/input-transform-streaming.ts) for `streamingBehavior`-aware routing.
+Transforms chain across handlers. See [input-transform.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/input-transform.ts) and [input-transform-streaming.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/input-transform-streaming.ts) for `streamingBehavior`-aware routing.
 
 ## ExtensionContext
 
@@ -1000,7 +1000,7 @@ UI methods for user interaction. See [Custom UI](#custom-ui) for full details.
 
 Current working directory.
 
-Use `CONFIG_DIR_NAME` instead of hardcoding `.atomic` (or legacy `.pi`) when constructing project-local config paths. Rebranded distributions can use a different config directory name.
+Use `CONFIG_DIR_NAME` instead of hardcoding `.orphus` (or legacy `.atomic` and `.pi`) when constructing project-local config paths. Rebranded distributions can use a different config directory name.
 
 ```typescript
 import { CONFIG_DIR_NAME, type ExtensionAPI } from "@orphus/coding-agent";
@@ -1421,7 +1421,7 @@ Use `promptSnippet` to opt a custom tool into a one-line entry in `Available too
 
 **Important:** `promptGuidelines` bullets are appended flat to the `Guidelines` section with no tool name prefix. Each guideline must name the tool it refers to — avoid "Use this tool when..." because the LLM cannot tell which tool "this" means. Write "Use my_tool when..." instead.
 
-See [dynamic-tools.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/dynamic-tools.ts) for a full example.
+See [dynamic-tools.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/dynamic-tools.ts) for a full example.
 
 Use Orphus's export rather than importing `StringEnum` directly from Pi. It preserves Pi's Google-compatible runtime schema while keeping the schema typed against Orphus's direct TypeBox version.
 
@@ -1527,7 +1527,7 @@ pi.sendUserMessage("And then summarize", { deliverAs: "followUp" });
 
 When not streaming, the message is sent immediately and triggers a new turn. When streaming without `deliverAs`, throws an error.
 
-See [send-user-message.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/send-user-message.ts) for a complete example.
+See [send-user-message.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/send-user-message.ts) for a complete example.
 
 ### pi.appendEntry(customType, data?)
 
@@ -1777,7 +1777,7 @@ Register or override a model provider dynamically. Useful for proxies, custom en
 
 Calls made during the extension factory function are queued and applied once the runner initialises. Calls made after that — for example from a command handler following a user setup flow — take effect immediately without requiring a `/reload`.
 
-If you need to discover models from a remote endpoint, prefer an async extension factory over deferring the fetch to `session_start`. Orphus waits for the factory before startup continues, so the registered models are available immediately, including to `atomic --list-models`.
+If you need to discover models from a remote endpoint, prefer an async extension factory over deferring the fetch to `session_start`. Orphus waits for the factory before startup continues, so the registered models are available immediately, including to `orphus --list-models`.
 
 ```typescript
 // Register a new provider with custom models
@@ -2013,7 +2013,7 @@ pi.registerTool({
 
 **Signaling errors:** To mark a tool execution as failed (sets `isError: true` on the result and reports it to the LLM), throw an error from `execute`. Returning a value never sets the error flag regardless of what properties you include in the return object.
 
-**Early termination:** Return `terminate: true` from `execute()` to hint that the automatic follow-up LLM call should be skipped after the current tool batch. This only takes effect when every finalized tool result in that batch is terminating. Orphus does not register `structured_output` in normal agent sessions by default; use `createStructuredOutputTool({ schema, capture, output, name })` when an extension, SDK session, workflow stage, or subagent runtime needs a schema-backed final-answer tool. The factory uses the supplied schema as the tool parameters directly, captures the tool arguments as whatever JSON value matches the schema, emits the same pretty-printed JSON as the terminating tool-result text for `atomic -p`, optionally writes them to the configured `output.outputPath`, and terminates the turn. In text print mode, a terminating result from a factory-created structured-output tool is emitted to stdout as the final response. Custom factory names are opt-in tools: if you register `final_decision`, include `final_decision` in any explicit `tools` allowlist; if you register the default `structured_output` name, it is available only to that session/runtime.
+**Early termination:** Return `terminate: true` from `execute()` to hint that the automatic follow-up LLM call should be skipped after the current tool batch. This only takes effect when every finalized tool result in that batch is terminating. Orphus does not register `structured_output` in normal agent sessions by default; use `createStructuredOutputTool({ schema, capture, output, name })` when an extension, SDK session, workflow stage, or subagent runtime needs a schema-backed final-answer tool. The factory uses the supplied schema as the tool parameters directly, captures the tool arguments as whatever JSON value matches the schema, emits the same pretty-printed JSON as the terminating tool-result text for `orphus -p`, optionally writes them to the configured `output.outputPath`, and terminates the turn. In text print mode, a terminating result from a factory-created structured-output tool is emitted to stdout as the final response. Custom factory names are opt-in tools: if you register `final_decision`, include `final_decision` in any explicit `tools` allowlist; if you register the default `structured_output` name, it is available only to that session/runtime.
 
 ```typescript
 // Correct: throw to signal an error
@@ -2088,16 +2088,16 @@ Extensions can override built-in tools (`read`, `bash`, `edit`, `write`, `find`,
 
 ```bash
 # Extension's read tool replaces built-in read
-atomic -e ./tool-override.ts
+orphus -e ./tool-override.ts
 ```
 
 Alternatively, use `--no-builtin-tools` to start without any built-in tools while keeping extension tools enabled:
 ```bash
 # No built-in tools, only extension tools
-atomic --no-builtin-tools -e ./my-extension.ts
+orphus --no-builtin-tools -e ./my-extension.ts
 ```
 
-See [examples/extensions/tool-override.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/tool-override.ts) for a complete example that overrides `read` with logging and access control.
+See [examples/extensions/tool-override.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/tool-override.ts) for a complete example that overrides `read` with logging and access control.
 
 **Rendering:** Built-in renderer inheritance is resolved per slot. Execution override and rendering override are independent. If your override omits `renderCall`, the built-in `renderCall` is used. If your override omits `renderResult`, the built-in `renderResult` is used. If your override omits both, the built-in renderer is used automatically (syntax highlighting, diffs, etc.). This lets you wrap built-in tools for logging or access control without reimplementing the UI.
 
@@ -2106,13 +2106,13 @@ See [examples/extensions/tool-override.ts](https://github.com/bastani-inc/atomic
 **Your implementation must match the exact result shape**, including the `details` type. The UI and session logic depend on these shapes for rendering and state tracking.
 
 Built-in tool implementations:
-- [read.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/tools/read.ts) - `ReadToolDetails`
-- [bash.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/tools/bash.ts) - `BashToolDetails`
-- [edit.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/tools/edit.ts)
-- [write.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/tools/write.ts)
-- [grep.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/tools/grep.ts) - `GrepToolDetails`
-- [find.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/tools/find.ts) - `FindToolDetails`
-- [ls.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/core/tools/ls.ts) - `LsToolDetails`
+- [read.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/tools/read.ts) - `ReadToolDetails`
+- [bash.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/tools/bash.ts) - `BashToolDetails`
+- [edit.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/tools/edit.ts)
+- [write.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/tools/write.ts)
+- [grep.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/tools/grep.ts) - `GrepToolDetails`
+- [find.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/tools/find.ts) - `FindToolDetails`
+- [ls.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/core/tools/ls.ts) - `LsToolDetails`
 
 ### Remote Execution
 
@@ -2145,7 +2145,7 @@ pi.registerTool({
 
 **Operations interfaces:** `ReadOperations`, `WriteOperations`, `EditOperations`, `BashOperations`, `LsOperations`, `GrepOperations`, `FindOperations`
 
-For `user_bash`, extensions can reuse atomic's local shell backend via `createLocalBashOperations()` instead of reimplementing local process spawning, shell resolution, and process-tree termination.
+For `user_bash`, extensions can reuse Orphus's local shell backend via `createLocalBashOperations()` instead of reimplementing local process spawning, shell resolution, and process-tree termination.
 
 The bash tool also supports a spawn hook to adjust the command, cwd, or env before execution:
 
@@ -2161,7 +2161,7 @@ const bashTool = createBashTool(cwd, {
 });
 ```
 
-See [examples/extensions/ssh.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/ssh.ts) for a complete SSH example with `--ssh` flag.
+See [examples/extensions/ssh.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/ssh.ts) for a complete SSH example with `--ssh` flag.
 
 ### Output Truncation
 
@@ -2213,7 +2213,7 @@ async execute(toolCallId, params, signal, onUpdate, ctx) {
 - Always inform the LLM when output is truncated and where to find the full version
 - Document the truncation limits in your tool's description
 
-See [examples/extensions/truncated-tool.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/truncated-tool.ts) for a complete example wrapping `rg` (ripgrep) with proper truncation.
+See [examples/extensions/truncated-tool.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/truncated-tool.ts) for a complete example wrapping `rg` (ripgrep) with proper truncation.
 
 ### Multiple Tools
 
@@ -2235,7 +2235,7 @@ export default function (pi: ExtensionAPI) {
 
 ### Custom Rendering
 
-Tools can provide `renderCall` and `renderResult` for custom TUI display. See [TUI components](/tui) for the full component API and [tool-execution.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/src/modes/interactive/components/tool-execution.ts) for how tool rows are composed.
+Tools can provide `renderCall` and `renderResult` for custom TUI display. See [TUI components](/tui) for the full component API and [tool-execution.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/src/modes/interactive/components/tool-execution.ts) for how tool rows are composed.
 
 By default, tool output is wrapped in a `Box` that handles padding and background. A defined `renderCall` or `renderResult` must return a `Component`. If a slot renderer is not defined, `tool-execution.ts` uses fallback rendering for that slot.
 
@@ -2444,7 +2444,7 @@ if (confirmed) {
 }
 ```
 
-See [examples/extensions/timed-confirm.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/timed-confirm.ts) for complete examples.
+See [examples/extensions/timed-confirm.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/timed-confirm.ts) for complete examples.
 
 ### Widgets, Status, and Footer
 
@@ -2471,7 +2471,7 @@ ctx.ui.setWorkingIndicator({
   intervalMs: 120,
 });
 ctx.ui.setWorkingIndicator({ frames: [] });  // Hide indicator
-ctx.ui.setWorkingIndicator();  // Restore the default one-cell ∀ luminance ramp
+ctx.ui.setWorkingIndicator();  // Restore the default one-cell ⊙ luminance ramp
 
 // Widget above editor (default)
 ctx.ui.setWidget("my-widget", ["Line 1", "Line 2"]);
@@ -2488,7 +2488,7 @@ ctx.ui.setFooter((tui, theme) => ({
 ctx.ui.setFooter(undefined);  // Restore built-in footer
 
 // Terminal title
-ctx.ui.setTitle("atomic - my-project");
+ctx.ui.setTitle("orphus - my-project");
 
 // Editor text
 ctx.ui.setEditorText("Prefill text");
@@ -2543,7 +2543,7 @@ ctx.ui.setTheme(lightTheme!);  // Or switch by Theme object
 ctx.ui.theme.fg("accent", "styled text");  // Access current theme
 ```
 
-Orphus's default working indicator keeps the literal one-cell `∀` fixed while following the active theme's optional `workingIndicator` tone overrides through a dark → accent → bright/bold → accent → dark ramp every 88ms. Any omitted tones are derived from selected-surface, `accent`, and `text` roles. `NO_COLOR` keeps regular/bold activity without foreground-color escapes, and `ORPHUS_REDUCED_MOTION=1` uses a static regular accent `∀` without a timer. Custom working-indicator frames and intervals are rendered verbatim. If you want colors, add them to the frame strings yourself, for example with `ctx.ui.theme.fg(...)`.
+Orphus's default working indicator keeps the literal one-cell `⊙` fixed while following the active theme's optional `workingIndicator` tone overrides through a dark → accent → bright/bold → accent → dark ramp every 88ms. Any omitted tones are derived from selected-surface, `accent`, and `text` roles. `NO_COLOR` keeps regular/bold activity without foreground-color escapes, and `ORPHUS_REDUCED_MOTION=1` uses a static regular accent `⊙` without a timer. Custom working-indicator frames and intervals are rendered verbatim. If you want colors, add them to the frame strings yourself, for example with `ctx.ui.theme.fg(...)`.
 
 These APIs customize presentation only; they do not start work or emit an extension stream event before prompt startup. See [Working Indicator Customization](/tui#pattern-4b-working-indicator-customization) for accepted-prompt, pre-stream, and agent-turn handoff timing.
 
@@ -2589,7 +2589,7 @@ pi.on("session_start", (_event, ctx) => {
 });
 ```
 
-See [github-issue-autocomplete.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/github-issue-autocomplete.ts) for a complete example that preloads the latest open GitHub issues with `gh issue list` and filters them locally for fast `#...` completion. It requires GitHub CLI (`gh`) and a GitHub repository checkout.
+See [github-issue-autocomplete.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/github-issue-autocomplete.ts) for a complete example that preloads the latest open GitHub issues with `gh issue list` and filters them locally for fast `#...` completion. It requires GitHub CLI (`gh`) and a GitHub repository checkout.
 
 ### Custom Components
 
@@ -2658,7 +2658,7 @@ const result = await ctx.ui.custom<string | null>(
 );
 ```
 
-See [TUI components](/tui) for the full `OverlayOptions` API and [overlay-qa-tests.ts](https://github.com/bastani-inc/atomic/blob/main/packages/coding-agent/examples/extensions/overlay-qa-tests.ts) for examples.
+See [TUI components](/tui) for the full `OverlayOptions` API and [overlay-qa-tests.ts](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/examples/extensions/overlay-qa-tests.ts) for examples.
 
 ### Custom Editor
 
@@ -2794,7 +2794,7 @@ In non-interactive modes, check `ctx.hasUI` before using UI methods.
 
 ## Examples Reference
 
-All examples in [examples/extensions/](https://github.com/bastani-inc/atomic/tree/main/packages/coding-agent/examples/extensions).
+All examples in [examples/extensions/](https://github.com/kelvincushman/orphus/tree/main/packages/coding-agent/examples/extensions).
 
 | Example | Description | Key APIs |
 |---------|-------------|----------|

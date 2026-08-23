@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { spawnSync } from "child_process";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
@@ -36,6 +37,31 @@ function plan(): LaunchPlan {
 }
 
 describe("launch plan", () => {
+	it("--format orca honors an explicit cwd and leaves the defaulted one to the worktree", () => {
+		// sh and tmux always cd; orca dropped cwd entirely, so the three formats
+		// disagreed silently. The default (manifest dir) must STAY out of the orca
+		// command — the worktree decides where that terminal opens — but an
+		// explicit cwd is the author overriding the worktree, and must survive.
+		const explicit = buildLaunchPlan(
+			parseRoleManifest(
+				SOURCE.replace("model: grok }", "model: grok, cwd: sub/dir }"),
+				join(dir, "orphus.roles.yaml"),
+			),
+		);
+		// The path arrives shell-quoted inside the --command string, so match
+		// through the quoting rather than asserting the bare concatenation.
+		assert.match(formatPlan(explicit, "orca"), /cd .*sub\/dir/u);
+
+		// Explicitness, not path equality: `cwd: .` resolves to the manifest dir
+		// yet is still the author's choice, and must cd under orca too.
+		const explicitDot = buildLaunchPlan(
+			parseRoleManifest(SOURCE.replace("model: grok }", 'model: grok, cwd: "." }'), join(dir, "orphus.roles.yaml")),
+		);
+		assert.match(formatPlan(explicitDot, "orca"), /cd /u);
+
+		assert.doesNotMatch(formatPlan(plan(), "orca"), /cd /u);
+	});
+
 	it("emits one launch per role, in manifest order", () => {
 		expect(plan().launches.map((launch) => launch.role)).toEqual(["planner", "critic"]);
 	});

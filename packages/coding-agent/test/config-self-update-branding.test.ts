@@ -3,11 +3,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+	archiveInstallerCommand,
 	getSelfUpdateCommandForRuntime,
 	getSelfUpdateUnavailableInstructionForRuntime,
 	getUpdateInstructionForRuntime,
 	ORPHUS_INSTALLER_ONE_LINER,
 	type SelfUpdateRuntime,
+	versionFromInstallSpec,
 } from "../src/config-self-update.ts";
 
 function binaryRuntime(executablePath?: string): SelfUpdateRuntime {
@@ -50,17 +52,48 @@ unixOnly("archive-install self-update", () => {
 		rmSync(root, { recursive: true, force: true });
 	});
 
-	it("re-runs the canonical installer for install.sh layouts", () => {
+	it("re-runs the canonical installer pinned to this install's root", () => {
+		// The bare one-liner updated the DEFAULT location: a custom-root install
+		// got a full second copy at the default paths, a success message, and its
+		// real install untouched — so the version nag repeated forever.
 		const command = getSelfUpdateCommandForRuntime(binaryRuntime(executable), "@orphus/coding-agent");
 		expect(command).toBeDefined();
 		expect(command?.command).toBe("sh");
-		expect(command?.args).toEqual(["-c", ORPHUS_INSTALLER_ONE_LINER]);
+		expect(command?.args[1]).toContain(`ORPHUS_INSTALL_DIR='${root}'`);
+		expect(command?.args[1]).toContain("| ORPHUS_INSTALL_DIR=");
 	});
 
-	it("tells install.sh layouts that self-update runs the installer", () => {
+	it("pins the resolved release: version env and the tag's own install.sh", () => {
+		// Without ORPHUS_VERSION the installer resolves /releases/latest, which
+		// GitHub redirects to the newest NON-prerelease — a silent downgrade for
+		// every beta runner. And the script itself comes from the resolved tag,
+		// not main HEAD, so the installer that runs is the one that release
+		// shipped.
+		const command = getSelfUpdateCommandForRuntime(binaryRuntime(executable), "@orphus/coding-agent", undefined, {
+			packageName: "@orphus/coding-agent",
+			installSpec: "@orphus/coding-agent@0.2.0",
+		});
+		expect(command?.args[1]).toContain("ORPHUS_VERSION='v0.2.0'");
+		expect(command?.args[1]).toContain("/v0.2.0/install.sh");
+		expect(command?.args[1]).not.toContain("/main/install.sh");
+	});
+
+	it("tells install.sh layouts to run the installer against their own root", () => {
 		const instruction = getUpdateInstructionForRuntime(binaryRuntime(executable), "@orphus/coding-agent");
-		expect(instruction).toContain(ORPHUS_INSTALLER_ONE_LINER);
+		expect(instruction).toContain(`ORPHUS_INSTALL_DIR='${root}'`);
 		expect(instruction).not.toContain("releases/latest");
+	});
+
+	it("reads a version only from a spec that pins one", () => {
+		expect(versionFromInstallSpec("@orphus/coding-agent@0.2.0")).toBe("0.2.0");
+		expect(versionFromInstallSpec("@orphus/coding-agent@0.2.0-alpha.1")).toBe("0.2.0-alpha.1");
+		expect(versionFromInstallSpec("@orphus/coding-agent")).toBeUndefined();
+		expect(versionFromInstallSpec("@orphus/coding-agent@next")).toBeUndefined();
+	});
+
+	it("quotes a hostile root rather than letting it into the shell", () => {
+		const command = archiveInstallerCommand("/tmp/it's here", "0.2.0");
+		expect(command).toContain(`ORPHUS_INSTALL_DIR='/tmp/it'\\''s here'`);
 	});
 
 	it("does not treat a bare binary outside the layout as an archive install", () => {

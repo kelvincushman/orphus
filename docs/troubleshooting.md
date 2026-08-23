@@ -94,8 +94,11 @@ will read past each other. One name per running session.
 
 ## `Roundtable broker did not start in time`
 
-The spawn waited and nothing answered. Usually the agent directory is not
-writable, or a stale socket is being held by something unexpected.
+The spawn waited and nothing answered. When the cause is a stale startup lock —
+a previous broker died without cleaning up — the error now says so itself: it
+names the lock file, the dead owner pid it probed, and the removal command, so
+start with what the message tells you. The manual checks below cover the other
+causes (an unwritable agent directory, a socket held by something unexpected):
 
 ```bash
 ls -la ~/.orphus/agent/roundtable/
@@ -121,10 +124,14 @@ npm ≥ 11.6, where npm implements it.
 
 ## Tests pass locally and fail in CI, or vice versa
 
-**One test file is quarantined** —
-`test/unit/interactive-engine-cycle-fallback.test.ts`, a pre-existing timeout in
-vendored code. It is listed by name in `vitest.config.ts` with its reason. If
-your change makes it pass, delete the entry; that is the goal.
+**The quarantine list is empty.** Every file that ever passed through
+`QUARANTINED_TESTS` in `vitest.config.ts` left by fixing the cause (the last
+one: provider credentials leaking from the developer's environment into test
+fixtures — see [docs/ci.md](ci.md#quarantined-tests)). If a test only fails on
+your machine, suspect your environment before the test: ambient provider
+credentials (a configured AWS CLI makes amazon-bedrock genuinely authenticated
+inside model fixtures) and load sensitivity are the two known classes, and both
+are documented in [`AGENTS.md`](../AGENTS.md).
 
 **The changelog test needs upstream tags.** It compares released sections against
 the tag that released them, and this fork has no tags of its own. CI fetches the
