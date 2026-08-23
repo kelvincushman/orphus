@@ -19,8 +19,23 @@
 import { KernelBuffer, type KernelView } from "./kernel-output.js";
 
 /** Emitted after each exec so completion is detectable rather than guessed. */
+/**
+ * The literal that identifies anything sentinel-related, in either form.
+ *
+ * The sentinel is emitted as two concatenated halves so that echoing the print
+ * statement cannot satisfy the completion check. That means the echoed line
+ * does **not** contain the joined sentinel — so filtering on the joined form
+ * leaves `print("__ORPHUS_KERNEL_" + "DONE_x__")` in every result, and any test
+ * asserting `doesNotMatch(/ORPHUS_KERNEL_DONE/)` passes while the echo leaks.
+ *
+ * The split is therefore pinned to exactly this prefix rather than the
+ * midpoint, so this literal survives intact in both forms and one check catches
+ * both.
+ */
+export const SENTINEL_MARKER = "__ORPHUS_KERNEL_";
+
 export function sentinelFor(token: string): string {
-	return `__ORPHUS_KERNEL_DONE_${token}__`;
+	return `${SENTINEL_MARKER}DONE_${token}__`;
 }
 
 export type KernelLanguage = "python" | "node";
@@ -39,8 +54,9 @@ export type KernelLanguage = "python" | "node";
  */
 export function execScript(language: KernelLanguage, code: string, token: string): string {
 	const sentinel = sentinelFor(token);
-	const split = Math.floor(sentinel.length / 2);
-	const halves = `${JSON.stringify(sentinel.slice(0, split))} + ${JSON.stringify(sentinel.slice(split))}`;
+	// Split exactly after the marker, not at the midpoint: a midpoint moves with
+	// the token length, so nothing stable is left for the echo filter to match.
+	const halves = `${JSON.stringify(SENTINEL_MARKER)} + ${JSON.stringify(sentinel.slice(SENTINEL_MARKER.length))}`;
 	switch (language) {
 		case "python":
 			return `${code}\nprint(${halves})\n`;
@@ -204,15 +220,56 @@ function stripEcho(text: string, script: string, sentinel: string): string {
 	// trailing prompt arrives as its own fragment often enough that requiring the
 	// echo at position zero worked standalone and failed under load — a timing
 	// dependency, which is the worst kind of correctness.
+	// Consume the echoed block as many times as it appears. On a kernel's first
+	// exec the write lands before the interpreter is reading, so the PTY line
+	// discipline echoes the whole script AND the interpreter echoes it again with
+	// prompts. Measured against a real python kernel:
+	//
+	//   import json                                  <- PTY echo, line 1
+	//   print("__ORPHUS_KERNEL_" + "DONE_x__")       <- PTY echo, line 2
+	//   >>> import json                              <- interpreter echo, line 1
+	//   >>> print("__ORPHUS_KERNEL_" + "DONE_x__")   <- interpreter echo, line 2
+	//   __ORPHUS_KERNEL_DONE_x__                     <- the sentinel
+	//
+	// Matching the block once left the second copy of the code in the answer.
+	// Two shapes occur, both measured against a real python kernel, and a fix for
+	// either alone breaks the other.
+	//
+	// FIRST exec — the write lands before the interpreter is reading, so the PTY
+	// line discipline echoes the whole script and the interpreter echoes it again
+	// with prompts. The block appears TWICE, back to back.
+	//
+	// LATER execs — one echo, but an expression's result is printed BETWEEN the
+	// two echoed lines:
+	//   sum(...)            <- echo, line 1
+	//   7485000             <- the answer
+	//   >>> print(...)      <- echo, line 2
+	//
+	// So: consume in order and tolerate output interleaved between echoed lines
+	// (never skipping forward over it), then consume any further whole copies of
+	// the block that follow immediately.
+	// Three shapes occur, all measured against a live python kernel, and a fix for
+	// any one alone breaks another:
+	//
+	//   A. FIRST exec, clean       code, print, >>> code, >>> print, sentinel
+	//   B. LATER exec, interleaved code, 43, >>> print, sentinel
+	//   C. FIRST exec, interleaved code, print, >>> code, 43, >>> print, sentinel
+	//
+	// An all-or-nothing block match handles A and consumes nothing in B or C,
+	// leaving the source in the answer. A single in-order pass handles B and
+	// leaves half of A. Repeating the in-order pass while it makes progress
+	// handles all three: it never skips forward over output, so an answer sitting
+	// between two echoed lines simply stops that pass.
 	let cursor = 0;
-	for (const line of echoed) {
-		while (cursor < lines.length && lines[cursor]?.trim() === "") cursor += 1;
-		if (cursor < lines.length && lines[cursor]?.trim() === line.trim()) cursor += 1;
+	for (;;) {
+		const next = consumeEchoedLines(lines, echoed, cursor);
+		if (next === cursor) break;
+		cursor = next;
 	}
 
 	return lines
 		.slice(cursor)
-		.filter((line) => !line.includes(sentinel) && !isSentinelEcho(line))
+		.filter((line) => !line.includes(sentinel) && !isSentinelEcho(line, echoed))
 		.join("\n")
 		.replace(/\n+$/, "\n")
 		.replace(/^\n+/, "");
@@ -226,6 +283,23 @@ function stripEcho(text: string, script: string, sentinel: string): string {
  * terminal furniture. Stripping it is what makes an answer read as `42` rather
  * than as a transcript of the conversation that produced it.
  */
+/**
+ * Consume echoed lines in order from `cursor`, stopping at the first mismatch.
+ *
+ * Deliberately never skips forward over a non-matching line: that line is the
+ * program's own output, and stepping past it to find a later echo would delete
+ * the answer.
+ */
+function consumeEchoedLines(lines: readonly string[], echoed: readonly string[], cursor: number): number {
+	let probe = cursor;
+	for (const line of echoed) {
+		while (probe < lines.length && lines[probe]?.trim() === "") probe += 1;
+		if (probe >= lines.length || lines[probe]?.trim() !== line.trim()) break;
+		probe += 1;
+	}
+	return probe;
+}
+
 function stripPrompt(line: string): string {
 	return line.replace(/^(?:>>>|\.\.\.|>) ?/, "");
 }
@@ -233,7 +307,13 @@ function stripPrompt(line: string): string {
 /**
  * The echoed sentinel line, which arrives in halves and so does not contain the
  * assembled sentinel to match against.
+ *
+ * Provenance, not content: a line qualifies only if it IS the script's own
+ * sentinel-print line (prompts are already stripped, so an echo differs from
+ * its source by surrounding whitespace at most). Matching on content alone
+ * deleted genuine program output that merely mentioned the marker.
  */
-function isSentinelEcho(line: string): boolean {
-	return /__ORPHUS_KER["' +]*NEL_DONE_/.test(line);
+function isSentinelEcho(line: string, echoed: readonly string[]): boolean {
+	const trimmed = line.trim();
+	return echoed.some((echoedLine) => echoedLine.includes(SENTINEL_MARKER) && trimmed === echoedLine.trim());
 }

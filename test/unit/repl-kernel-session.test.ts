@@ -5,6 +5,7 @@ import {
 	KernelBusy,
 	KernelExecTimeout,
 	KernelSession,
+	SENTINEL_MARKER,
 	sentinelFor,
 } from "../../packages/coding-agent/src/core/repl/kernel-session.js";
 
@@ -66,8 +67,12 @@ test("the sentinel and the line that printed it never reach the model", () => {
 	const { session } = fakeKernel({ respond: pythonLike("hello\n") });
 
 	return session.exec("print('hello')", { token: "b2" }).then((result) => {
-		assert.doesNotMatch(result.view.text, /ORPHUS_KERNEL_DONE/);
-		assert.doesNotMatch(result.raw, /ORPHUS_KERNEL_DONE/);
+		// Assert on the MARKER, not the joined sentinel. The echoed print statement
+		// carries the sentinel in split halves, so it never contains the joined
+		// form — an assertion on /ORPHUS_KERNEL_DONE/ passes while the echo leaks,
+		// which is exactly what happened until a real kernel showed it.
+		assert.doesNotMatch(result.view.text, /__ORPHUS_KERNEL_/);
+		assert.doesNotMatch(result.raw, /__ORPHUS_KERNEL_/);
 		assert.match(result.view.text, /hello/);
 	});
 });
@@ -123,7 +128,9 @@ test("the written script never contains the whole sentinel", () => {
 		const script = execScript(language, "1+1", "t");
 		assert.ok(!script.includes(sentinelFor("t")), `${language} script leaked the whole sentinel`);
 		assert.match(script, /^1\+1\n/);
-		assert.match(script, /"__ORPHUS_KER" \+ "NEL_DONE_t__"/);
+		// The split is pinned after the marker so the echo filter has something
+		// stable to match for every token length.
+		assert.match(script, /"__ORPHUS_KERNEL_" \+ "DONE_t__"/);
 	}
 	assert.match(execScript("python", "1+1", "t"), /print\(/);
 	assert.match(execScript("node", "1+1", "t"), /console\.log\(/);
@@ -236,5 +243,111 @@ test("a leftover prompt fragment before the echo does not defeat stripping", () 
 
 	return session.exec("print(value + 1)", { token: "f1", timeoutMs: 500 }).then((result) => {
 		assert.equal(result.view.text.trim(), "43");
+	});
+});
+
+test("the echoed sentinel print is stripped, whatever the token length", () => {
+	// The split is pinned to the marker so this holds for every token; a midpoint
+	// split moved with the token and left nothing stable to match.
+	for (const token of ["a", "abc", "msuhf8b73", "x".repeat(40)]) {
+		const script = execScript("python", "len(rows)", token);
+		const echoedPrint = script.split("\n")[1] ?? "";
+
+		assert.ok(echoedPrint.includes(SENTINEL_MARKER), `token ${token}: marker missing from the echo`);
+		// And the echo must NOT contain the joined sentinel, or echoing it would
+		// satisfy the completion check before the code had run.
+		assert.ok(!echoedPrint.includes(sentinelFor(token)), `token ${token}: echo would complete the exec early`);
+	}
+});
+
+test("the doubled echo a real kernel produces on its first exec is stripped", () => {
+	// Not invented: this is the exact stream captured from a live python kernel.
+	// The PTY line discipline echoes the whole script, THEN the interpreter echoes
+	// it again with prompts. Matching the block once left the second copy of the
+	// code in the answer — which is what shipped until a real kernel showed it.
+	let session: KernelSession | undefined;
+	session = new KernelSession({
+		name: "doubled",
+		language: "python",
+		process: {
+			write: (data: string) => {
+				const [code = "", printLine = ""] = data.split("\n");
+				queueMicrotask(() => {
+					session?.receive(
+						`${code}\r\n${printLine}\r\n>>> ${code}\r\n>>> ${printLine}\r\n${evaluateSentinel(data)}\r\n>>> `,
+					);
+				});
+			},
+			kill: () => {},
+		},
+	});
+
+	return session.exec("import json", { token: "aa1", timeoutMs: 500 }).then((result) => {
+		assert.equal(result.raw.trim(), "");
+		assert.equal(result.view.text.trim(), "");
+	});
+});
+
+test("an expression's answer printed between the echoed lines survives", () => {
+	// The other real shape, and the one a block-only fix destroys: python prints
+	// the expression result after reading line 1, BEFORE echoing line 2.
+	let session: KernelSession | undefined;
+	session = new KernelSession({
+		name: "interleaved",
+		language: "python",
+		process: {
+			write: (data: string) => {
+				const [code = "", printLine = ""] = data.split("\n");
+				queueMicrotask(() => {
+					session?.receive(`${code}\r\n7485000\r\n>>> ${printLine}\r\n${evaluateSentinel(data)}\r\n>>> `);
+				});
+			},
+			kill: () => {},
+		},
+	});
+
+	return session.exec("sum(x for x in rows)", { token: "int1", timeoutMs: 500 }).then((result) => {
+		assert.equal(result.view.text.trim(), "7485000");
+	});
+});
+
+test("the doubled AND interleaved shape is stripped too", () => {
+	// Shape C, captured from a live kernel: the block echoes twice AND the answer
+	// lands inside the second copy. An all-or-nothing block match consumed nothing
+	// here and returned the source with the answer.
+	let session: KernelSession | undefined;
+	session = new KernelSession({
+		name: "shape-c",
+		language: "python",
+		process: {
+			write: (data: string) => {
+				const [code = "", printLine = ""] = data.split("\n");
+				queueMicrotask(() => {
+					session?.receive(
+						`${code}\r\n${printLine}\r\n>>> ${code}\r\n43\r\n>>> ${printLine}\r\n${evaluateSentinel(data)}\r\n>>> `,
+					);
+				});
+			},
+			kill: () => {},
+		},
+	});
+
+	return session.exec("print(value + 1)", { token: "c1", timeoutMs: 500 }).then((result) => {
+		assert.equal(result.view.text.trim(), "43");
+	});
+});
+
+test("program output that merely contains the marker is not deleted", () => {
+	// The marker identifies OUR protocol lines: the echoed print statement and
+	// the joined sentinel. A program that prints text CONTAINING the marker — an
+	// agent grepping this very file from inside a kernel, say — is producing an
+	// answer, and deleting it because of its content is data loss. Only lines
+	// that are the script's own sentinel-print echo may be stripped.
+	const found = `kernel-session.ts:export const SENTINEL_MARKER = "${SENTINEL_MARKER}";`;
+	const { session } = fakeKernel({ respond: pythonLike(`${found}\n`) });
+
+	return session.exec("show_match()", { token: "m1" }).then((result) => {
+		assert.equal(result.view.text.trim(), found);
+		assert.equal(result.raw.trim(), found);
 	});
 });

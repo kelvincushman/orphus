@@ -128,7 +128,17 @@ export function createPtyKernel(options: PtyKernelOptions): PtyKernel {
 		{
 			command: shellJoin(jail.command, jail.args),
 			cwd: options.cwd,
-			env: { ...definedEnv(options.env), TERM: "dumb" },
+			env: {
+				...definedEnv(options.env),
+				// TERM=dumb keeps ANSI escapes out of the output we parse.
+				TERM: "dumb",
+				// ...but Python 3.13+ then warns that pyrepl lacks a clear capability, on
+				// every kernel's first exec — and that warning arrives BEFORE the echo,
+				// which stops the echo being stripped too. PYTHON_BASIC_REPL is the
+				// documented way to ask for the basic REPL, removing the cause rather than
+				// filtering it out of genuine stderr.
+				PYTHON_BASIC_REPL: "1",
+			},
 			cols: 120,
 			rows: 40,
 			// A REPL reads until stdin closes. Closing it after the launch command
