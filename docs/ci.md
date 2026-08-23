@@ -56,7 +56,10 @@ Atomic's tags lets it do real work rather than being excluded.
 
 ### `review-gate` — a green review that never happened
 
-Fails a pull request whose automated review **reported passing but was skipped**.
+Fails a pull request whose automated review **reported passing but was skipped —
+or never started**: a rate-limited reviewer answers with an apology comment
+("Review rate limited", "Review limit reached"), which is a busy signal, not a
+review, and fails the gate the same way a skip notice does.
 
 CodeRabbit stops reviewing above a file-count limit and reports that outcome as a
 pass. A large diff therefore arrives with a green review check and no review — the
