@@ -1,6 +1,6 @@
 {
   "name": "@orphus/coding-agent",
-  "version": "0.0.0",
+  "version": "2.0.1",
   "description": "Orphus coding agent CLI with read, bash, edit, write tools, session management, and roundtable multi-agent rooms",
   "type": "module",
   "orphusConfig": {
@@ -87,7 +87,7 @@
     "@modelcontextprotocol/ext-apps": "^1.7.5",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@mozilla/readability": "^0.6.0",
-    "@orphus/natives": "0.0.0",
+    "@orphus/natives": "2.0.1",
     "@silvia-odwyer/photon-node": "0.3.4",
     "chalk": "5.6.2",
     "cross-spawn": "7.0.6",
