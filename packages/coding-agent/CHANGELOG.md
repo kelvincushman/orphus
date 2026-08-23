@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- REPL kernel results no longer carry the sentinel echo, and no longer lose output that mentions it. The completion sentinel is printed in two halves so its echo cannot end an exec early, but the halves were split at the token-dependent midpoint — so the echo filter matched nothing and `print("__ORPHUS_KERNEL_" + "DONE_…")` rode along in every result. The split is now pinned after a stable marker, and the three echo shapes a live kernel actually produces (doubled first-exec echo, an answer interleaved between the echoed lines, and both at once) are consumed in order. Python kernels start with `PYTHON_BASIC_REPL=1`, removing the pyrepl capability warning Python 3.13+ printed before the first echo. Stripping is by provenance rather than content: only the script's own echoed sentinel line is removed, so a program whose genuine output mentions the marker — an agent grepping this repository from inside a kernel, say — keeps that output.
+
 ## [2.0.0] - 2026-08-22
 
 ### Added

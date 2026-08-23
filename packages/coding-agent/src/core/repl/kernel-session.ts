@@ -269,7 +269,7 @@ function stripEcho(text: string, script: string, sentinel: string): string {
 
 	return lines
 		.slice(cursor)
-		.filter((line) => !line.includes(sentinel) && !isSentinelEcho(line))
+		.filter((line) => !line.includes(sentinel) && !isSentinelEcho(line, echoed))
 		.join("\n")
 		.replace(/\n+$/, "\n")
 		.replace(/^\n+/, "");
@@ -307,7 +307,13 @@ function stripPrompt(line: string): string {
 /**
  * The echoed sentinel line, which arrives in halves and so does not contain the
  * assembled sentinel to match against.
+ *
+ * Provenance, not content: a line qualifies only if it IS the script's own
+ * sentinel-print line (prompts are already stripped, so an echo differs from
+ * its source by surrounding whitespace at most). Matching on content alone
+ * deleted genuine program output that merely mentioned the marker.
  */
-function isSentinelEcho(line: string): boolean {
-	return line.includes(SENTINEL_MARKER);
+function isSentinelEcho(line: string, echoed: readonly string[]): boolean {
+	const trimmed = line.trim();
+	return echoed.some((echoedLine) => echoedLine.includes(SENTINEL_MARKER) && trimmed === echoedLine.trim());
 }

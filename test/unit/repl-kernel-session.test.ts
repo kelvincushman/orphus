@@ -336,3 +336,18 @@ test("the doubled AND interleaved shape is stripped too", () => {
 		assert.equal(result.view.text.trim(), "43");
 	});
 });
+
+test("program output that merely contains the marker is not deleted", () => {
+	// The marker identifies OUR protocol lines: the echoed print statement and
+	// the joined sentinel. A program that prints text CONTAINING the marker — an
+	// agent grepping this very file from inside a kernel, say — is producing an
+	// answer, and deleting it because of its content is data loss. Only lines
+	// that are the script's own sentinel-print echo may be stripped.
+	const found = `kernel-session.ts:export const SENTINEL_MARKER = "${SENTINEL_MARKER}";`;
+	const { session } = fakeKernel({ respond: pythonLike(`${found}\n`) });
+
+	return session.exec("show_match()", { token: "m1" }).then((result) => {
+		assert.equal(result.view.text.trim(), found);
+		assert.equal(result.raw.trim(), found);
+	});
+});
