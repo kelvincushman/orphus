@@ -290,7 +290,7 @@ test("repository declarations resolve to their real budgets", async () => {
 	const browser = declaredTimeouts(await readText(join(root, "test/unit/browser-tool.test.ts")));
 	assert.equal(browser.get("a real isolated Chrome launches, navigates, reads back, and tears down"), 60_000);
 	// Keyed by the qualified name the reporter emits, never by the bare terminal name.
-	assert.equal(builtins.get("coding-agent builtin resources > loads builtin pi package resources"), 60_000);
+	assert.equal(builtins.get("coding-agent builtin resources > loads builtin pi package resources"), 120_000);
 	assert.equal(builtins.get("loads builtin pi package resources"), undefined);
 	const installed = declaredTimeouts(
 		await readText(join(root, "test/integration/installed-package-node-extensions.test.ts")),

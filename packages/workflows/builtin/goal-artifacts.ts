@@ -23,13 +23,14 @@ function withoutTurn<T extends { readonly turn: number }>(value: T): Omit<T, "tu
 export async function writeReviewArtifact(
   artifactDir: string,
   reviewer: string,
+  turn: number,
   decision: ReviewDecision,
   rawText: string,
   convergenceDecision: ReviewConvergenceSummary,
 ): Promise<string> {
   const artifactPath = join(
     artifactDir,
-    `review-${artifactSafeName(reviewer)}.json`,
+    `turn-${turn}-review-${artifactSafeName(reviewer)}.json`,
   );
   await writeFile(
     artifactPath,
@@ -41,9 +42,10 @@ export async function writeReviewArtifact(
 
 export async function writeReviewRoundArtifact(
   artifactDir: string,
+  turn: number,
   reviews: readonly ReviewRecord[],
 ): Promise<string> {
-  const artifactPath = join(artifactDir, "review-round-latest.json");
+  const artifactPath = join(artifactDir, `turn-${turn}-review-round.json`);
   const visibleReviews = reviews.map(withoutTurn);
   // Deduplicated cross-reviewer findings batch so the next orchestrator turn can
   // plan and repair the round's findings together instead of one at a time.
@@ -60,4 +62,3 @@ export async function writeReviewRoundArtifact(
   );
   return artifactPath;
 }
-

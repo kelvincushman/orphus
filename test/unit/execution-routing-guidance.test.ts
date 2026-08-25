@@ -30,12 +30,12 @@ const workflowDocumentationPaths = [
 ];
 
 describe("workflow-first execution routing", () => {
-	test("restores workflows as the default for non-trivial verifiable work", () => {
+	test("uses native Goal as the default for substantial verifiable work", () => {
 		for (const phrase of [
-			"default execution path for any non-trivial task",
-			"inherent structure plus an objective you can make verifiable",
+			"native default path for substantial verifiable build/change/fix/refactor tasks",
+			"This is core Orphus runtime behavior, not an optional skill",
 			"implementation, build, debug/diagnosis, bug-fix, migration, new-feature",
-			"multiple steps, dependencies, handoffs, uncertainty",
+			"frozen depth-tree plan, exact file ownership, independent worker verification",
 			"Only skip workflows for tiny, deterministic, low-risk",
 		]) {
 			expect(modelVisibleRouting).toContain(phrase);
@@ -94,7 +94,7 @@ describe("workflow-first execution routing", () => {
 	test("supports named and rich inline TypeScript workflows", () => {
 		for (const phrase of [
 			"builtin, project, user, or package",
-			"custom TypeScript `workflow({...})` inline",
+			"custom TypeScript workflow({...}) inline",
 			"reload workflow resources",
 			"Do not force-fit",
 			"deterministic branching",

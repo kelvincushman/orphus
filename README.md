@@ -76,6 +76,17 @@ Two loops built on this contract have their own pages:
 [`docs/repl.md`](docs/repl.md) for kernels — which are **not a security
 sandbox**, and say so at the top.
 
+For substantial verifiable build/change/fix/refactor work, Orphus routes
+through native Goal rather than treating completion discipline as an optional
+skill. Goal freezes a
+depth-tree plan before implementation, validates disjoint `OWNS`/`Needs` scopes,
+runs 3..24 leaves with up to 10 ready leaves in flight, verifies every leaf with
+exact per-check evidence, and uses three decorrelated final reviewers plus a
+reducer before it calls the work complete. Tiny deterministic answers,
+read-only checks, handoff tasks, and direct low-risk edits can still stay
+inline; the core promise is fewer false finishes, not literal infallibility when
+tools, providers, checks, or external authority are missing.
+
 ```
 ┌──────────┐   post / digest   ┌─────────────────────┐
 │ planner  │◄─────────────────►│    Orphus broker     │
@@ -99,6 +110,7 @@ messages intact verbatim and only early exploration collapsed.
 | **[Architecture](docs/architecture.md)** | What runs where, and what the bound actually guarantees. |
 | **[Harness](packages/coding-agent/docs/harness.md)** | The capability boundary, the provider/tool session records, and `orphus inspect runtime`. |
 | **[Browser operation](packages/coding-agent/docs/browser.md)** | Driving an isolated browser, and the four gates a credential passes first. Off by default. |
+| **[Goal workflows](packages/coding-agent/docs/workflows.md#goal-as-the-core-completion-loop)** | The native plan/fan-out/verify/review loop Orphus uses for substantial coding tasks. |
 | **[Transcription](packages/coding-agent/docs/transcribe.md)** | Local dictation: the protocol, the model catalog, and why it is not enabled yet. |
 | **[Terminal backend](packages/coding-agent/docs/tui-backend.md)** | The termDOM pilot for startup selection and the session picker. Opt-in; pi stays the default. |
 | **[Troubleshooting](docs/troubleshooting.md)** | The three failures that look like success. |

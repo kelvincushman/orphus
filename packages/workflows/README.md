@@ -5,7 +5,20 @@
   An open-source Atomic workflow extension: install it, author workflows in TypeScript, run them from chat.
 </p>
 
-Default to workflows for non-trivial work and requests with inherent structure plus a verifiable objective; reserve direct chat for tiny deterministic low-risk work. Workflow-first is not builtin-only or monolithic: Atomic can author custom TypeScript `workflow({...})` definitions inline, import reusable project/package workflows or builtins from `@orphus/workflows/builtin`, and nest them with `ctx.workflow(...)`. Imported children may nest further workflows within `maxDepth`, so compose proven research, implementation, design, verification, and approval graphs rather than copying them. Custom parents can also use runtime classification, dynamic fan-out and synthesis, adversarial verification, candidate tournaments, HIL gates, and bounded convergence.
+Default to the builtin `goal` workflow for substantial verifiable
+build/change/fix/refactor work: implementation, build, debug/diagnosis,
+bug-fix, migration, new-feature, scoped multi-file refactor, and docs/code
+changes where validation matters. Reserve direct chat for tiny deterministic
+read-only or handoff work where a tracked team adds no proof. Goal-first is not
+builtin-only or monolithic: Atomic can author
+custom TypeScript `workflow({...})` definitions inline, import reusable
+project/package workflows or builtins from `@orphus/workflows/builtin`, and
+nest them with `ctx.workflow(...)` when a domain-specific graph fits better.
+Imported children may nest further workflows within `maxDepth`, so compose
+proven research, implementation, design, verification, and approval graphs
+rather than copying them. Custom parents can also use runtime classification,
+dynamic fan-out and synthesis, adversarial verification, candidate tournaments,
+HIL gates, and bounded convergence.
 
 Workflow stage sessions are created in process and receive a typed stage policy rather than inheriting subagent environment flags. Resource reload never mutates `process.env`; stage options carry the subagent management/fanout policy directly, so concurrent stage creation is race-free while existing tool allowlists and orchestration depth limits remain authoritative. Legacy child environment keys are only a compatibility path for older hosts.
 
@@ -745,17 +758,48 @@ For broad repository uncertainty, compose `fan-out-and-synthesize` with a partit
 
 ### Task-specific implementation and review
 
-Domain-specific implementation should use a custom worker → fresh verifier → reducer graph when no installed pattern covers the complete contract. Keep literal acceptance criteria visible to each reviewer, execute deterministic checks through workflow-owned tools, consolidate evidence-backed findings into bounded repair rounds, and stop on explicit approval, blocked evidence, or iteration exhaustion. Keep PR/MR creation, release, deployment, and publication as separately authorized post-approval actions.
+Use `goal` by default for substantial implementation and review. Domain-specific
+implementation should use a custom worker -> fresh verifier -> reducer graph
+only when Goal or another installed pattern does not cover the complete
+contract. Keep literal acceptance criteria visible to each reviewer, execute
+deterministic checks through workflow-owned tools, consolidate evidence-backed
+findings into bounded repair rounds, and stop on explicit approval, blocked
+evidence, or iteration exhaustion. Keep PR/MR creation, release, deployment,
+and publication as separately authorized post-approval actions.
 
 ### `goal`
 
-Goal runs a bounded autonomous implementation loop with a durable objective ledger, immutable acceptance criteria, sub-agent orchestration receipts, parallel reviewers, and a deterministic reducer. It returns `complete`, `blocked`, or `needs_human`; set `create_pr=true` only to authorize the final PR/MR/review stage after approval.
+Goal is the native Orphus completion loop for substantial verifiable build/change/fix/refactor
+work, not an optional skill. It persists the literal objective and immutable
+acceptance criteria in a durable ledger, asks a Fable-5-preferred
+planner/orchestrator to freeze a validated depth-tree plan, then runs a rolling
+multi-agent team. Plans contain 3..24 total leaves by default, each with exact
+`OWNS`, `Needs`, tier, and checks. Up to 10 ready leaves dispatch concurrently
+by default (`max_parallel_agents=10`); dependants unlock as soon as their own needs verify,
+so there is no static wave barrier. Each leaf records exact per-check evidence,
+then three decorrelated final reviewers feed a deterministic reducer. Goal
+returns `complete`, `blocked`, or `needs_human`; set `create_pr=true` only to
+authorize the final PR/MR/review stage after approval.
+
+Goal reduces false completion; it cannot promise literal infallibility. Model
+judgment, configured provider/model availability, missing tools, unsafe or
+unavailable checks, and external blockers remain honest limits and can force a
+bounded repair turn or `needs_human`.
 
 ```text
 /workflow goal objective="Update CLI docs, add one example, and validate the docs build"
 ```
 
-Inputs: required `objective`; optional `acceptance_criteria`, `max_turns=10`, `base_branch=origin/main`, `git_worktree_dir=""`, and `create_pr=false`.
+Inputs: required `objective`; optional `acceptance_criteria`, `max_turns=10`,
+`min_team_size=3`, `max_team_size=24`, `max_parallel_agents=10`,
+`legacy_orchestrator=false`, `base_branch=origin/main`,
+`git_worktree_dir=""`, and `create_pr=false`.
+Outputs include `ledger_path`, `review_report_path`, `execution_plan_path`,
+`execution_report_path`, receipts, turn counts, status, approval, remaining
+work, and optional `pr_report`. Every Goal invocation defaults to the native
+plan/fan-out/verify/review loop, including direct programmatic calls that omit
+the team inputs. The deprecated single-orchestrator path is available only via
+explicit `legacy_orchestrator=true`.
 
 ### `ralph`
 

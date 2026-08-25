@@ -54,6 +54,8 @@ collect.sh
 
 .atomic/todos
 .orphus/todos
+.unlazy/
+.scratch/
 .atomic/workflows/runs/
 .orphus/workflows/runs/
 # deep-research workflow artifacts written into <cwd>/research during tests and E2E runs

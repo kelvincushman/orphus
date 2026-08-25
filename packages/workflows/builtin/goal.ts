@@ -10,17 +10,59 @@ import { Type } from "typebox";
 import { workflow } from "../src/authoring/workflow.js";
 import { withSteeringPropagationContext } from "./steering-context.js";
 import { runGoalWorkflow } from "./goal-runner.js";
-import { DEFAULT_MAX_TURNS } from "./goal-types.js";
+import {
+  DEFAULT_MAX_PARALLEL_AGENTS,
+  DEFAULT_MAX_TEAM_SIZE,
+  DEFAULT_MAX_TURNS,
+  DEFAULT_MIN_TEAM_SIZE,
+} from "./goal-types.js";
 
 export default workflow({
   name: "goal",
-  description: "Goal Runner workflow with bounded sub-agent orchestration turns, immutable acceptance criteria, ledger artifacts, parallel reviewers, and reducer-gated completion. When launching follow-up goal runs from review findings, pass the ORIGINAL task text as acceptance_criteria so deltas cannot drift from the literal contract. If the task includes submitting a pull request (or MR/review), remove that final action from the objective text and set create_pr=true instead when preparing the workflow inputs.",
+  description:
+    "Goal Runner workflow with bounded sub-agent orchestration turns, immutable acceptance criteria, ledger artifacts, parallel reviewers, and reducer-gated completion. When launching follow-up goal runs from review findings, pass the ORIGINAL task text as acceptance_criteria so deltas cannot drift from the literal contract. If the task includes submitting a pull request (or MR/review), remove that final action from the objective text and set create_pr=true instead when preparing the workflow inputs.",
   inputs: {
-    objective: Type.String({ description: "The objective or delta for this Goal Runner workflow run. Do not include PR/MR submission instructions here; strip them from the task text and request them via create_pr=true instead." }),
-    acceptance_criteria: Type.Optional(Type.String({ description: "Original immutable task contract this run must remain consistent with. Defaults to objective. Orchestrators launching follow-up runs from reviewer findings should pass the ORIGINAL task text here." })),
+    objective: Type.String({
+      description:
+        "The objective or delta for this Goal Runner workflow run. Do not include PR/MR submission instructions here; strip them from the task text and request them via create_pr=true instead.",
+    }),
+    acceptance_criteria: Type.Optional(
+      Type.String({
+        description:
+          "Original immutable task contract this run must remain consistent with. Defaults to objective. Orchestrators launching follow-up runs from reviewer findings should pass the ORIGINAL task text here.",
+      }),
+    ),
     max_turns: Type.Number({
       default: DEFAULT_MAX_TURNS,
       description: "Maximum orchestrator/review turns before Goal Runner stops as needs_human.",
+    }),
+    min_team_size: Type.Number({
+      default: DEFAULT_MIN_TEAM_SIZE,
+      minimum: 3,
+      maximum: DEFAULT_MAX_TEAM_SIZE,
+      multipleOf: 1,
+      description:
+        "Minimum number of execution leaves Goal Runner asks the planner to create for non-trivial work before rolling fan-out.",
+    }),
+    max_team_size: Type.Number({
+      default: DEFAULT_MAX_TEAM_SIZE,
+      minimum: 3,
+      maximum: DEFAULT_MAX_TEAM_SIZE,
+      multipleOf: 1,
+      description:
+        "Maximum number of execution leaves Goal Runner allows in a turn plan. This caps team size separately from concurrent dispatch.",
+    }),
+    max_parallel_agents: Type.Number({
+      default: DEFAULT_MAX_PARALLEL_AGENTS,
+      minimum: 1,
+      maximum: DEFAULT_MAX_PARALLEL_AGENTS,
+      multipleOf: 1,
+      description: "Maximum number of ready execution leaves Goal Runner may run concurrently during rolling fan-out.",
+    }),
+    legacy_orchestrator: Type.Boolean({
+      default: false,
+      description:
+        "Explicit legacy compatibility escape for the deprecated single-orchestrator Goal loop. Leave false so Goal uses the native plan, rolling team, independent leaf verification, and final reviewer path.",
     }),
     base_branch: Type.String({
       default: "origin/main",
@@ -34,32 +76,65 @@ export default workflow({
     create_pr: Type.Boolean({
       default: false,
       description:
-        "Whether to run the final pull-request creation stage after reviewer/reducer approval. Defaults to false; prompt text alone does not opt in. If the task asks to submit a PR/MR/review, remove that from the objective text and set this to true — only the final stage then attempts provider-appropriate PR/MR/review creation after Goal completes."
+        "Whether to run the final pull-request creation stage after reviewer/reducer approval. Defaults to false; prompt text alone does not opt in. If the task asks to submit a PR/MR/review, remove that from the objective text and set this to true — only the final stage then attempts provider-appropriate PR/MR/review creation after Goal completes.",
     }),
   },
   outputs: {
-    result: Type.Optional(Type.String({ description: "Final report with objective, status, receipts, turns, and remaining work." })),
-    status: Type.Optional(Type.Union(
-      [Type.Literal("complete"), Type.Literal("blocked"), Type.Literal("needs_human"), Type.Literal("active")],
-      { description: "Final reducer status: complete, blocked, needs_human, or active if externally interrupted." },
-    )),
+    result: Type.Optional(
+      Type.String({ description: "Final report with objective, status, receipts, turns, and remaining work." }),
+    ),
+    status: Type.Optional(
+      Type.Union(
+        [Type.Literal("complete"), Type.Literal("blocked"), Type.Literal("needs_human"), Type.Literal("active")],
+        { description: "Final reducer status: complete, blocked, needs_human, or active if externally interrupted." },
+      ),
+    ),
     approved: Type.Optional(Type.Boolean({ description: "Whether the reducer reached complete." })),
     goal_id: Type.Optional(Type.String({ description: "Per-run goal identifier stored in the ledger." })),
     objective: Type.Optional(Type.String({ description: "Raw goal objective used by the run." })),
     acceptance_criteria: Type.Optional(Type.String({ description: "Immutable acceptance criteria used by the run." })),
-    ledger_path: Type.Optional(Type.String({ description: "Durable run-scoped path to goal-ledger.json with receipts, reviewer decisions, blockers, and lifecycle events." })),
+    ledger_path: Type.Optional(
+      Type.String({
+        description:
+          "Durable run-scoped path to goal-ledger.json with receipts, reviewer decisions, blockers, and lifecycle events.",
+      }),
+    ),
     turns_completed: Type.Optional(Type.Number({ description: "Orchestrator/review turns completed." })),
-    iterations_completed: Type.Optional(Type.Number({ description: "Orchestrator/review turns completed, retained for status summaries." })),
-    receipts: Type.Optional(Type.Array(Type.Object({
-      turn: Type.Number(),
-      stage: Type.String(),
-      artifact_path: Type.String(),
-      summary: Type.String(),
-    }), { description: "Ledger receipt summaries and orchestrator artifact paths." })),
+    iterations_completed: Type.Optional(
+      Type.Number({ description: "Orchestrator/review turns completed, retained for status summaries." }),
+    ),
+    receipts: Type.Optional(
+      Type.Array(
+        Type.Object({
+          turn: Type.Number(),
+          stage: Type.String(),
+          artifact_path: Type.String(),
+          summary: Type.String(),
+        }),
+        { description: "Ledger receipt summaries and orchestrator artifact paths." },
+      ),
+    ),
     remaining_work: Type.Optional(Type.String({ description: "Remaining gaps or blockers when incomplete, or none." })),
-    review_report: Type.Optional(Type.String({ description: "Compact report pointing to the latest reviewer decision artifacts used by the reducer." })),
-    review_report_path: Type.Optional(Type.String({ description: "JSON artifact path for the latest reviewer decision round." })),
-    pr_report: Type.Optional(Type.String({ description: "Pull-request report emitted only when create_pr=true, Goal reaches complete, and the final pull-request stage runs." })),
+    review_report: Type.Optional(
+      Type.String({
+        description: "Compact report pointing to the latest reviewer decision artifacts used by the reducer.",
+      }),
+    ),
+    review_report_path: Type.Optional(
+      Type.String({ description: "JSON artifact path for the latest reviewer decision round." }),
+    ),
+    execution_plan_path: Type.Optional(
+      Type.String({ description: "JSON artifact path for the latest depth-tree execution plan." }),
+    ),
+    execution_report_path: Type.Optional(
+      Type.String({ description: "JSON artifact path for the latest rolling execution report." }),
+    ),
+    pr_report: Type.Optional(
+      Type.String({
+        description:
+          "Pull-request report emitted only when create_pr=true, Goal reaches complete, and the final pull-request stage runs.",
+      }),
+    ),
   },
   worktreeFromInputs: {
     gitWorktreeDir: "git_worktree_dir",

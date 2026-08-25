@@ -2,6 +2,8 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, test } from "vitest";
+import { buildSystemPrompt } from "../../packages/coding-agent/src/core/system-prompt.js";
+import { DEFAULT_PROMPT_GUIDANCE } from "../../packages/workflows/src/extension/workflow-prompts.js";
 import { fileExists, moduleDir, readText } from "../helpers/runtime.js";
 import {
 	type CreateAgentSessionOptions,
@@ -15,6 +17,8 @@ import {
 
 const repositoryRoot = resolve(moduleDir(import.meta.url), "../..");
 const documentationPath = resolve(repositoryRoot, "packages/coding-agent/docs/workflows.md");
+const quickstartPath = resolve(repositoryRoot, "packages/coding-agent/docs/quickstart.md");
+const packageReadmePath = resolve(repositoryRoot, "packages/workflows/README.md");
 
 async function readDocumentation(): Promise<string> {
 	return (await readText(documentationPath)).replaceAll("\r\n", "\n");
@@ -77,6 +81,51 @@ function testUi(onEditor: () => void = () => {}): {
 }
 
 describe("workflow scope-guard guidance", () => {
+	test("locks Goal as native default completion guidance", async () => {
+		const documentation = await readDocumentation();
+		const quickstart = await readText(quickstartPath);
+		const packageReadme = await readText(packageReadmePath);
+		const promptGuidance = DEFAULT_PROMPT_GUIDANCE.join("\n");
+		const systemPrompt = buildSystemPrompt({
+			cwd: repositoryRoot,
+			toolSnippets: {
+				read: "Read files",
+				bash: "Run commands",
+			},
+		});
+
+		for (const text of [documentation, quickstart, packageReadme, promptGuidance]) {
+			expect(text).toContain("Goal");
+			expect(text).toContain("3..24");
+			expect(text).toContain("10 ready leaves");
+			expect(text).toContain("Fable");
+			expect(text).toContain("build/change/fix/refactor");
+			expect(text).toContain("per-check evidence");
+			expect(text).toContain("needs_human");
+			expect(text).toContain("not an optional skill");
+			expect(text).toContain("literal infallibility");
+		}
+
+		for (const phrase of [
+			"built-in Goal workflow for substantial verifiable coding work",
+			"tiny deterministic low-risk work",
+			"read-only checks, handoff tasks",
+			"execution_plan_path",
+			"execution_report_path",
+			"min_team_size=3",
+			"max_team_size=24",
+			"max_parallel_agents=10",
+			"legacy_orchestrator=true",
+		]) {
+			expect(documentation).toContain(phrase);
+		}
+
+		expect(promptGuidance).toContain("This is core Orphus runtime behavior, not an optional skill.");
+		expect(systemPrompt).toContain(
+			"Use the builtin Goal workflow as Orphus's default core path for substantial verifiable build/change/fix/refactor tasks",
+		);
+	});
+
 	test("locks the scope contract, decision actions, fallback, and lifecycle rules", async () => {
 		const documentation = await readDocumentation();
 

@@ -97,7 +97,7 @@ describe("goal", () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		const d = mod.default as unknown as WorkflowDefinition;
 		const ctx = makeMockCtx(
-			{ objective: "Deploy the app", max_turns: 3 },
+			{ objective: "Deploy the app", max_turns: 3, legacy_orchestrator: true },
 			{
 				task: (name) => {
 					if (
@@ -135,7 +135,7 @@ describe("goal", () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		const d = mod.default as unknown as WorkflowDefinition;
 		const ctx = makeMockCtx(
-			{ objective: "Deploy the app", max_turns: 2 },
+			{ objective: "Deploy the app", max_turns: 2, legacy_orchestrator: true },
 			{
 				task: (name) => {
 					if (
@@ -171,7 +171,7 @@ describe("goal", () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		const d = mod.default as unknown as WorkflowDefinition;
 		const ctx = makeMockCtx(
-			{ objective: "Deploy the app" },
+			{ objective: "Deploy the app", legacy_orchestrator: true },
 			{
 				task: (name) => {
 					if (
@@ -208,7 +208,7 @@ describe("goal", () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		const d = mod.default as unknown as WorkflowDefinition;
 		const ctx = makeMockCtx(
-			{ objective: "Finish documentation" },
+			{ objective: "Finish documentation", legacy_orchestrator: true },
 			{
 				task: (name) => {
 					if (name.startsWith("completion-reviewer-")) {
@@ -238,7 +238,7 @@ describe("goal", () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		const d = mod.default as unknown as WorkflowDefinition;
 		const ctx = makeMockCtx(
-			{ objective: "Finish documentation", max_turns: 2 },
+			{ objective: "Finish documentation", max_turns: 2, legacy_orchestrator: true },
 			{
 				task: (name) => {
 					if (name.startsWith("completion-reviewer-")) {
@@ -270,7 +270,7 @@ describe("goal", () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		const d = mod.default as unknown as WorkflowDefinition;
 		const ctx = makeMockCtx(
-			{ objective: "Finish documentation" },
+			{ objective: "Finish documentation", legacy_orchestrator: true },
 			{
 				task: (name) => {
 					if (name === "orchestrator-1") {
@@ -320,7 +320,7 @@ describe("goal", () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		const d = mod.default as unknown as WorkflowDefinition;
 		const ctx = makeMockCtx(
-			{ objective: "Finish documentation", max_turns: 1 },
+			{ objective: "Finish documentation", max_turns: 1, legacy_orchestrator: true },
 			{
 				parallel: () => {
 					throw new Error("parallel transport failed");
@@ -358,7 +358,7 @@ describe("goal", () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		const d = mod.default as unknown as WorkflowDefinition;
 		const ctx = makeMockCtx(
-			{ objective: "Finish documentation" },
+			{ objective: "Finish documentation", legacy_orchestrator: true },
 			{
 				task: (name) => {
 					if (name === "orchestrator-2") {

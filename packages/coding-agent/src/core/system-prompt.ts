@@ -169,6 +169,9 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 
 	addGuideline("Be concise in your responses");
 	addGuideline("Show file paths clearly when working with files");
+	addGuideline(
+		"Use the builtin Goal workflow as Orphus's default core path for substantial verifiable build/change/fix/refactor tasks; reserve inline work for tiny deterministic read-only or handoff tasks, low-risk answers, or direct edits.",
+	);
 
 	const guidelines = guidelinesList.map((g) => `- ${g}`).join("\n");
 

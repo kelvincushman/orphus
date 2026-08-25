@@ -1,6 +1,9 @@
 import type { ReviewConvergenceSummary } from "./review-convergence.js";
 
 export const DEFAULT_MAX_TURNS = 10;
+export const DEFAULT_MIN_TEAM_SIZE = 3;
+export const DEFAULT_MAX_TEAM_SIZE = 24;
+export const DEFAULT_MAX_PARALLEL_AGENTS = 10;
 // Goal Runner runs three independent reviewer personas; two approvals form a majority.
 export const DEFAULT_REVIEW_QUORUM = 2;
 export const DEFAULT_BLOCKER_THRESHOLD = 3;
@@ -44,11 +47,7 @@ export type ReviewFinding = {
 };
 
 export type ReviewerError = {
-  readonly kind:
-    | "validation_unavailable"
-    | "dependency_unavailable"
-    | "tool_failure"
-    | "reviewer_failure";
+  readonly kind: "validation_unavailable" | "dependency_unavailable" | "tool_failure" | "reviewer_failure";
   readonly message: string;
   readonly attempted_recovery: string;
 };
@@ -99,12 +98,7 @@ export type ReducerDecision = ReviewConvergenceSummary & {
 
 export type GoalLifecycleEvent = {
   readonly turn: number;
-  readonly event:
-    | "created"
-    | "work_turn_started"
-    | "receipt_recorded"
-    | "reviews_recorded"
-    | "status_decided";
+  readonly event: "created" | "work_turn_started" | "receipt_recorded" | "reviews_recorded" | "status_decided";
   readonly status: GoalStatus;
   readonly at: string;
   readonly summary: string;
@@ -135,6 +129,10 @@ export type GoalWorkflowInputs = {
   readonly objective: string;
   readonly acceptance_criteria?: string;
   readonly max_turns: number;
+  readonly min_team_size?: number;
+  readonly max_team_size?: number;
+  readonly max_parallel_agents?: number;
+  readonly legacy_orchestrator?: boolean;
   readonly base_branch: string;
   readonly git_worktree_dir: string;
   readonly create_pr: boolean;
@@ -154,5 +152,7 @@ export type GoalWorkflowOutputs = {
   readonly remaining_work?: string;
   readonly review_report?: string;
   readonly review_report_path?: string;
+  readonly execution_plan_path?: string;
+  readonly execution_report_path?: string;
   readonly pr_report?: string;
 };

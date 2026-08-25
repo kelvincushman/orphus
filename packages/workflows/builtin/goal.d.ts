@@ -13,6 +13,10 @@ export type GoalWorkflowInputs = WorkflowInputValues & {
   readonly objective: string;
   readonly acceptance_criteria?: string;
   readonly max_turns: number;
+  readonly min_team_size: number;
+  readonly max_team_size: number;
+  readonly max_parallel_agents: number;
+  readonly legacy_orchestrator: boolean;
   readonly base_branch: string;
   readonly git_worktree_dir: string;
   readonly create_pr: boolean;
@@ -22,6 +26,10 @@ export type GoalWorkflowRunInputs = WorkflowInputValues & {
   readonly objective: string;
   readonly acceptance_criteria?: string;
   readonly max_turns?: number;
+  readonly min_team_size?: number;
+  readonly max_team_size?: number;
+  readonly max_parallel_agents?: number;
+  readonly legacy_orchestrator?: boolean;
   readonly base_branch?: string;
   readonly git_worktree_dir?: string;
   readonly create_pr?: boolean;
@@ -41,14 +49,12 @@ export type GoalWorkflowOutputs = WorkflowOutputValues & {
   readonly remaining_work?: string;
   readonly review_report?: string;
   readonly review_report_path?: string;
+  readonly execution_plan_path?: string;
+  readonly execution_report_path?: string;
   readonly pr_report?: string;
 };
 
-export type GoalWorkflowDefinition = WorkflowDefinition<
-  GoalWorkflowInputs,
-  GoalWorkflowOutputs,
-  GoalWorkflowRunInputs
->;
+export type GoalWorkflowDefinition = WorkflowDefinition<GoalWorkflowInputs, GoalWorkflowOutputs, GoalWorkflowRunInputs>;
 
 declare const workflow: GoalWorkflowDefinition;
 export default workflow;

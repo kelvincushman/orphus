@@ -99,7 +99,7 @@ describe("goal", () => {
 		const d = mod.default as unknown as WorkflowDefinition;
 		const verboseExplanation = "Inspected the entire repository state and found no objective-relevant defects.";
 		const ctx = makeMockCtx(
-			{ objective: "Refactor tests", max_turns: 1 },
+			{ objective: "Refactor tests", max_turns: 1, legacy_orchestrator: true },
 			{
 				task: (name) => {
 					if (name.startsWith("completion-reviewer-")) {
@@ -128,7 +128,7 @@ describe("goal", () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		const d = mod.default as unknown as WorkflowDefinition;
 		const ctx = makeMockCtx(
-			{ objective: "Finish the migration" },
+			{ objective: "Finish the migration", legacy_orchestrator: true },
 			{
 				task: (name, _options, calls) => {
 					if (name.startsWith("completion-reviewer-") || name.startsWith("evidence-reviewer-")) {
@@ -172,7 +172,7 @@ describe("goal", () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		const d = mod.default as unknown as WorkflowDefinition;
 		const ctx = makeMockCtx(
-			{ objective: "Finish the migration" },
+			{ objective: "Finish the migration", legacy_orchestrator: true },
 			{
 				sessionFile: (name) => `/tmp/goal-${name}.jsonl`,
 				task: (name, _options, calls) => {
@@ -220,7 +220,7 @@ describe("goal", () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		const d = mod.default as unknown as WorkflowDefinition;
 		const ctx = makeMockCtx(
-			{ objective: "Finish the migration" },
+			{ objective: "Finish the migration", legacy_orchestrator: true },
 			{
 				task: (name, _options, calls) => {
 					if (
@@ -257,7 +257,7 @@ describe("goal", () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		const d = mod.default as unknown as WorkflowDefinition;
 		const ctx = makeMockCtx(
-			{ objective: "Keep working" },
+			{ objective: "Keep working", legacy_orchestrator: true },
 			{
 				task: (name) => {
 					if (
@@ -285,7 +285,7 @@ describe("goal", () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		const d = mod.default as unknown as WorkflowDefinition;
 		const ctx = makeMockCtx(
-			{ objective: "Keep working", max_turns: 0.5 },
+			{ objective: "Keep working", max_turns: 0.5, legacy_orchestrator: true },
 			{
 				task: (name) => {
 					if (
@@ -313,7 +313,7 @@ describe("goal", () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		const d = mod.default as unknown as WorkflowDefinition;
 		const ctx = makeMockCtx(
-			{ objective: "Refactor tests" },
+			{ objective: "Refactor tests", legacy_orchestrator: true },
 			{
 				task: (name) => {
 					if (name.startsWith("completion-reviewer-") || name.startsWith("evidence-reviewer-")) {
@@ -350,7 +350,7 @@ describe("goal", () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		const d = mod.default as unknown as WorkflowDefinition;
 		const ctx = makeMockCtx(
-			{ objective: "Deploy the app" },
+			{ objective: "Deploy the app", legacy_orchestrator: true },
 			{
 				task: (name) => {
 					if (

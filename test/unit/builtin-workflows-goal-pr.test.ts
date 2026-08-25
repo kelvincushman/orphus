@@ -29,24 +29,30 @@ describe("goal create_pr", () => {
 	}
 
 	function makeGoalCtx(inputs: Record<string, unknown>, decision: "complete" | "continue") {
-		return makeMockCtx(inputs, {
-			task: (name) => {
-				if (name.includes("reviewer-")) return reviewJson(decision);
-				return undefined;
+		return makeMockCtx(
+			{ ...inputs, legacy_orchestrator: true },
+			{
+				task: (name) => {
+					if (name.includes("reviewer-")) return reviewJson(decision);
+					return undefined;
+				},
 			},
-		});
+		);
 	}
 
 	function makeApprovingGoalCtx(inputs: Record<string, unknown>) {
-		return makeMockCtx(inputs, {
-			task: (name) => {
-				if (name.startsWith("completion-reviewer-") || name.startsWith("evidence-reviewer-")) {
-					return reviewJson("complete");
-				}
-				if (name.startsWith("risk-reviewer-")) return reviewJson("continue");
-				return undefined;
+		return makeMockCtx(
+			{ ...inputs, legacy_orchestrator: true },
+			{
+				task: (name) => {
+					if (name.startsWith("completion-reviewer-") || name.startsWith("evidence-reviewer-")) {
+						return reviewJson("complete");
+					}
+					if (name.startsWith("risk-reviewer-")) return reviewJson("continue");
+					return undefined;
+				},
 			},
-		});
+		);
 	}
 
 	test("skips pull-request stage when create_pr is omitted", async () => {
