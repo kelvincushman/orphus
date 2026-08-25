@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { createJiti } from "jiti/static";
-import { getExtensionTranspileCacheDir, isBunBinary, isBundledBuild } from "../../config.ts";
+import { getExtensionTranspileCacheDir, getPackageDir, isBunBinary, isBundledBuild } from "../../config.ts";
 import { resolutionBaseUrl } from "../../utils/module-require.ts";
 import { resolvePath } from "../../utils/paths.ts";
 import { moduleDirFromMetaUrl } from "../../utils/split-launcher.ts";
@@ -15,23 +15,33 @@ let _virtualModules: Record<string, object> | null = null;
 let _virtualModulesPromise: Promise<Record<string, object>> | null = null;
 
 async function loadVirtualModules(): Promise<Record<string, object>> {
-	const [typebox, typeboxCompile, typeboxValue, piAgentCore, piTui, piAi, piAiOauth, piCodingAgent] =
-		await Promise.all([
-			import("typebox"),
-			import("typebox/compile"),
-			import("typebox/value"),
-			import("@earendil-works/pi-agent-core"),
-			import("@earendil-works/pi-tui"),
-			// pi 0.80.2: the old global pi-ai API moved off the root entrypoint onto
-			// `/compat` (a strict superset). Extensions still `import ... from
-			// "@earendil-works/pi-ai"`, so we load the compat module here and key it
-			// under the root specifier below to keep every extension working unchanged.
-			import("@earendil-works/pi-ai/compat"),
-			import("@earendil-works/pi-ai/oauth"),
-			// NOTE: This import works because loader.ts exports are NOT re-exported from index.ts,
-			// avoiding a circular dependency while preserving the package-name extension import path.
-			import("../../index.ts"),
-		]);
+	const [
+		typebox,
+		typeboxCompile,
+		typeboxValue,
+		piAgentCore,
+		piTui,
+		piAi,
+		piAiOauth,
+		piCodingAgent,
+		roundtableBoundedRender,
+	] = await Promise.all([
+		import("typebox"),
+		import("typebox/compile"),
+		import("typebox/value"),
+		import("@earendil-works/pi-agent-core"),
+		import("@earendil-works/pi-tui"),
+		// pi 0.80.2: the old global pi-ai API moved off the root entrypoint onto
+		// `/compat` (a strict superset). Extensions still `import ... from
+		// "@earendil-works/pi-ai"`, so we load the compat module here and key it
+		// under the root specifier below to keep every extension working unchanged.
+		import("@earendil-works/pi-ai/compat"),
+		import("@earendil-works/pi-ai/oauth"),
+		// NOTE: This import works because loader.ts exports are NOT re-exported from index.ts,
+		// avoiding a circular dependency while preserving the package-name extension import path.
+		import("../../index.ts"),
+		import(pathToFileURL(resolveRoundtableBoundedRenderEntry(currentModuleDir())).href),
+	]);
 
 	return {
 		typebox,
@@ -46,6 +56,7 @@ async function loadVirtualModules(): Promise<Record<string, object>> {
 		"@earendil-works/pi-ai/compat": piAi,
 		"@earendil-works/pi-ai/oauth": piAiOauth,
 		"@orphus/coding-agent": piCodingAgent,
+		"@orphus/roundtable/bounded-render.ts": roundtableBoundedRender,
 		"@mariozechner/pi-agent-core": piAgentCore,
 		"@mariozechner/pi-tui": piTui,
 		"@mariozechner/pi-ai": piAi,
@@ -380,8 +391,48 @@ function findPackageRoot(packageName: string, searchPaths?: string[]): string {
 	}
 	throw new Error(`Cannot locate package directory for "${packageName}"`);
 }
+
+function firstExistingFile(candidates: (() => string | undefined)[], label: string): string {
+	for (const candidate of candidates) {
+		const filePath = candidate();
+		if (filePath && fs.existsSync(filePath)) return filePath;
+	}
+	throw new Error(`Cannot locate ${label}`);
+}
+
 function currentModuleDir(): string {
 	return moduleDirFromMetaUrl(import.meta.url, "dist", "core", "extensions");
+}
+
+function resolveRoundtableBoundedRenderEntry(moduleDir: string): string {
+	const packagesRoot = path.resolve(moduleDir, "../../../../");
+	const preferInstalled = isBunBinary || Boolean(process.env.ORPHUS_PACKAGE_DIR || process.env.PI_PACKAGE_DIR);
+	const installedCandidates = [
+		() => path.join(getPackageDir(), "builtin", "roundtable", "bounded-render.ts"),
+		() => path.join(getPackageDir(), "dist", "builtin", "roundtable", "bounded-render.ts"),
+		() => path.resolve(moduleDir, "..", "..", "builtin", "roundtable", "bounded-render.ts"),
+		() => path.resolve(moduleDir, "..", "..", "..", "builtin", "roundtable", "bounded-render.ts"),
+	];
+	const developmentCandidates = [
+		() => path.join(packagesRoot, "roundtable", "bounded-render.ts"),
+		() => {
+			try {
+				return path.join(findPackageRoot("@orphus/roundtable"), "bounded-render.ts");
+			} catch {
+				return undefined;
+			}
+		},
+	];
+	return firstExistingFile(
+		// Installed split launchers and explicit package-dir layouts must remain
+		// hermetic even when the build machine's source path (baked into
+		// import.meta.url) also exists locally. Ordinary development/Node runs
+		// prefer the workspace/package resolution surface.
+		preferInstalled
+			? [...installedCandidates, ...developmentCandidates]
+			: [...developmentCandidates, ...installedCandidates],
+		"@orphus/roundtable/bounded-render.ts",
+	);
 }
 
 /**
@@ -418,9 +469,11 @@ function getAliases(): Record<string, string> {
 	const piAiEntry = resolveWorkspaceOrImport("ai/dist/compat.js", "@earendil-works/pi-ai");
 	const piAiOauthEntry = resolveWorkspaceOrImport("ai/dist/oauth.js", "@earendil-works/pi-ai");
 	const piAiProvidersEntry = resolveWorkspaceOrImport("ai/dist/providers/all.js", "@earendil-works/pi-ai");
+	const roundtableBoundedRenderEntry = resolveRoundtableBoundedRenderEntry(__dirname);
 
 	_aliases = {
 		"@orphus/coding-agent": piCodingAgentEntry,
+		"@orphus/roundtable/bounded-render.ts": roundtableBoundedRenderEntry,
 		"@earendil-works/pi-coding-agent": piCodingAgentEntry,
 		"@earendil-works/pi-agent-core": piAgentCoreEntry,
 		"@earendil-works/pi-tui": piTuiEntry,
@@ -449,6 +502,7 @@ export const extensionLoaderTestHooks = {
 	loadVirtualModules,
 	getAliases,
 	findPackageRoot,
+	resolveRoundtableBoundedRenderEntry,
 	getTranspileCacheDir,
 	graphManifestPath,
 	readExtensionGraphManifest,

@@ -10,6 +10,10 @@ type PiAiExports = {
 	StringEnum?: object;
 };
 
+type RoundtableBoundedRenderExports = {
+	boundedRender?: unknown;
+};
+
 // Provider-owned OAuth is exposed through provider metadata; the removed global
 // OAuth registration bridge is intentionally not part of extension aliases.
 
@@ -27,12 +31,49 @@ describe("extension loader pi-ai compat aliases", () => {
 		expect(typeof compat.StringEnum).toBe("function");
 	});
 
+	it("exposes roundtable bounded rendering to installed extension imports", async () => {
+		const modules = await extensionLoaderTestHooks.loadVirtualModules();
+		const roundtable = modules["@orphus/roundtable/bounded-render.ts"] as RoundtableBoundedRenderExports | undefined;
+
+		expect(typeof roundtable?.boundedRender).toBe("function");
+	});
+
 	it("maps root and compat specifiers to the same jiti alias path", () => {
 		const aliases = extensionLoaderTestHooks.getAliases();
 
 		expect(aliases["@earendil-works/pi-ai"]).toBe(aliases["@earendil-works/pi-ai/compat"]);
 		expect(aliases["@mariozechner/pi-ai"]).toBe(aliases["@mariozechner/pi-ai/compat"]);
 		expect(aliases["@mariozechner/pi-ai"]).toBe(aliases["@earendil-works/pi-ai/compat"]);
+	});
+
+	it("maps roundtable bounded rendering to an existing jiti alias path", () => {
+		const aliases = extensionLoaderTestHooks.getAliases();
+		const target = aliases["@orphus/roundtable/bounded-render.ts"];
+
+		expect(target).toBeDefined();
+		expect(fs.existsSync(target!)).toBe(true);
+	});
+
+	it("resolves roundtable bounded rendering from a split-launcher builtin tree", () => {
+		const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "orphus-builtin-alias-"));
+		const originalPackageDir = process.env.ORPHUS_PACKAGE_DIR;
+		try {
+			process.env.ORPHUS_PACKAGE_DIR = tmp;
+			const moduleDir = path.join(tmp, "dist", "core", "extensions");
+			const boundedRender = path.join(tmp, "builtin", "roundtable", "bounded-render.ts");
+			fs.mkdirSync(path.dirname(boundedRender), { recursive: true });
+			fs.mkdirSync(moduleDir, { recursive: true });
+			fs.writeFileSync(boundedRender, "export function boundedRender() {}\n");
+
+			expect(extensionLoaderTestHooks.resolveRoundtableBoundedRenderEntry(moduleDir)).toBe(boundedRender);
+		} finally {
+			if (originalPackageDir === undefined) {
+				delete process.env.ORPHUS_PACKAGE_DIR;
+			} else {
+				process.env.ORPHUS_PACKAGE_DIR = originalPackageDir;
+			}
+			fs.rmSync(tmp, { recursive: true, force: true });
+		}
 	});
 
 	it("confirms compat is the legacy API surface while root stays core-only", async () => {
