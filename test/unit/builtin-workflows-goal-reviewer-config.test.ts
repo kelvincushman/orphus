@@ -9,7 +9,7 @@ import {
 	reviewerModelConfigs as goalReviewerModelConfigs,
 } from "../../packages/workflows/builtin/goal-models.js";
 import { reviewDecisionSchema } from "../../packages/workflows/builtin/goal-schemas.js";
-import type { WorkflowDefinition } from "../../packages/workflows/src/types.js";
+import type { WorkflowDefinition } from "../../packages/workflows/src/shared/types.js";
 import { makeMockCtx } from "./builtin-workflows-helpers.js";
 
 const nativeInputs = {

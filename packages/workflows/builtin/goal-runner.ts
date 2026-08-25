@@ -19,7 +19,7 @@ import {
   type ReviewRecord,
   type ReducerDecision,
 } from "./goal-types.js";
-import { artifactSafeName, writeReviewArtifact, writeReviewRoundArtifact } from "./goal-artifacts.js";
+import { reviewArtifactPathFor, writeReviewArtifact, writeReviewRoundArtifact } from "./goal-artifacts.js";
 import { appendLifecycleEvent, createGoalLedger, writeGoalLedger } from "./goal-ledger.js";
 import { collectRemainingWork, reduceGoalDecision } from "./goal-reducer.js";
 import { formatReviewReport, renderFinalReport } from "./goal-reports.js";
@@ -39,7 +39,13 @@ function positiveInteger(value: number | undefined, fallback: number): number {
   return floored >= 1 ? floored : fallback;
 }
 
-function boundedInteger(value: unknown, fallback: number, min: number, max: number, inputName: string): number {
+function boundedInteger(
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+  inputName: string,
+): number {
   const normalized = value === undefined ? fallback : value;
   if (
     typeof normalized !== "number" ||
@@ -433,7 +439,6 @@ export async function runGoalWorkflow(
           .filter((record) => record.status !== "verified")
           .map((record) => `${record.leaf_id}: ${record.remaining_work}`)
           .join("; ");
-        ledger.status = "needs_human";
         const reachedMaxTurn = turn >= maxTurns;
         latestReviews = [];
         latestReviewArtifactPaths = [];
@@ -487,7 +492,6 @@ export async function runGoalWorkflow(
         createPr,
       }),
       reads: reviewerReads,
-      ...reviewerModelConfigs[0],
     });
 
     const reviewerSteps = [
@@ -541,10 +545,7 @@ export async function runGoalWorkflow(
         const reviewerName = result.name ?? result.stageName;
         const normalizedReviewerName = reviewerName.replace(/-\d+$/u, "");
         const parsed = parsedReviewDecisionFromResult(result, reviewerName);
-        const reviewArtifactPath = join(
-          artifactDir,
-          `turn-${turn}-review-${artifactSafeName(normalizedReviewerName)}.json`,
-        );
+        const reviewArtifactPath = reviewArtifactPathFor(artifactDir, normalizedReviewerName, turn);
         const record = reviewDecisionToRecord({
           turn,
           reviewer: normalizedReviewerName,

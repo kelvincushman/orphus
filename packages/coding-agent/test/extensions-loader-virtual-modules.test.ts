@@ -11,7 +11,7 @@ type PiAiExports = {
 };
 
 type RoundtableBoundedRenderExports = {
-	boundedRender?: unknown;
+	boundedRender?: typeof import("../../roundtable/bounded-render.js").boundedRender;
 };
 
 // Provider-owned OAuth is exposed through provider metadata; the removed global
