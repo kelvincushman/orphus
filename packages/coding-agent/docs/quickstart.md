@@ -17,7 +17,7 @@ the newest GitHub Release archive, verifies its checksum, and links `orphus` int
 curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.sh | sh
 ```
 
-`install.sh --help` documents pinning an exact release (`--ref v2.0.0`) and the
+`install.sh --help` documents pinning an exact release (`--ref v2.1.0`) and the
 `ORPHUS_INSTALL_DIR` / `ORPHUS_BIN_DIR` overrides. Later upgrades are `orphus update`,
 which follows your channel: a stable install only moves to newer stable releases, a
 prerelease install tracks the newest release of any kind.
