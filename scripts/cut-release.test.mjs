@@ -73,6 +73,7 @@ test("cut-release is fail-closed in a disposable Git remote", { timeout: 300_000
 
 		mkdirSync(remote);
 		git(remote, "init", "--bare");
+		git(remote, "config", "receive.shallowUpdate", "true");
 		git(fixture, "remote", "set-url", "origin", remote);
 		git(fixture, "push", "-u", "origin", "main");
 
