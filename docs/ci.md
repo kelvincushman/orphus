@@ -145,7 +145,10 @@ Manual dispatch on `main`
    └─ msvc-crt: fetch the MSVC CRT and Windows SDK for each Windows arch
 ```
 
-This release graph follows pi's draft-first publication shape. Public GitHub Release publication remains last so users never see a release whose npm publication failed.
+This inherited graph documents the disabled Atomic npm publisher only. It is
+retained for upstream compatibility and contract tests; it does not publish a
+normal Orphus release. The active Orphus archive path is documented under
+"Direct release triggers and recovery" below.
 
 ## Tests (`test.yml`)
 
@@ -238,39 +241,51 @@ Every job that runs a suite through `scripts/run-flaky-test-suite.ts` uploads `.
 
 Archive smoke tests verify bundled builtins, native modules, runtime dependencies, `--version`, and startup far enough to reject extension-load failures.
 
-## Direct release trigger and recovery
+## Direct release triggers and recovery
 
-`.github/workflows/publish.yml` starts directly when an Atomic release tag is pushed. Atomic tags have no `v` prefix:
+This fork has one active user-facing release path: `.github/workflows/release.yml`
+runs when a public `v*` tag is pushed and stages downloadable Orphus archives.
+The inherited Atomic npm publisher in `.github/workflows/publish.yml` is kept as
+upstream topology documentation and contract coverage, but it is disabled at the
+repository level and is not the normal Orphus release path.
 
-| Tag | npm dist-tag | GitHub Release |
-| --- | --- | --- |
-| `0.9.10` | `latest` | stable, marked latest |
-| `0.9.10-alpha.1` | `next` | prerelease, not latest |
+The active Orphus release tag is `v`-prefixed:
 
-A manual dispatch is available only for release recovery. It requires `tag` and accepts optional `source_ref`; when omitted, `source_ref` defaults to the tag. The integrity job always verifies the release tag itself. Native, smoke, and payload builds consume `source_ref`, matching pi's recovery model; payload metadata validation still requires the recovery source's package version to equal the release tag.
+| Tag | GitHub Release |
+| --- | --- |
+| `v2.1.0` | stable draft release with Linux x64 and macOS arm64 archives |
+| `v2.1.0-alpha.1` | prerelease draft release with Linux x64 and macOS arm64 archives |
+
+For inherited publisher recovery only, a manual dispatch is available in `publish.yml`. It requires `tag` and accepts optional `source_ref`; when omitted, `source_ref` defaults to the tag. The inherited publisher integrity job always verifies the release tag itself. Native, smoke, and payload builds consume `source_ref`, matching pi's recovery model; payload metadata validation still requires the recovery source's package version to equal the release tag.
 
 Concurrency is scoped per release tag and does not cancel an in-progress publication.
 
-## Lightweight integrity gate
+## Active archive-release integrity gate
 
-The integrity job checks out the release tag and performs only these release identity checks:
+The active `release.yml` workflow checks out the public `v<version>` tag, strips
+only the leading `v`, and verifies the archive identity against `<version>`:
 
-1. The tag has the supported stable or `-alpha.N` format.
-2. `packages/coding-agent/package.json` at the tag has a version exactly equal to the tag.
-3. The tag commit subject is exactly `Release <tag>`.
+1. The public tag has the supported `vMAJOR.MINOR.PATCH` or prerelease format.
+2. The staged binary reports `<version>` from `--version`.
+3. Linux x64 and macOS arm64 archives are built with one `SHA256SUMS` file.
+4. A draft GitHub Release is staged for the unchanged `v<version>` tag.
 
-The publisher intentionally does not reconstruct the release tree, validate release-base trailers, inspect protected workflow ancestry, maintain a release-base allowlist, or bind a separate create event. `scripts/cut-release.ts` still records release-base trailers because they are useful release provenance, but they are not a publisher gate.
+The disabled inherited publisher has its own lightweight tag/manifest checks,
+but those are not the operator contract for an Orphus archive release.
+`scripts/cut-release.ts` records release-base trailers as provenance; the live
+archive gate additionally depends on green CI for the exact merged `main` base
+before the tags are cut.
 
 ## Versionless release bases
 
-`main` and supported workstream bases keep all versioned manifests at `0.0.0`. `scripts/cut-release.ts` resolves the selected remote branch SHA, creates a detached worktree, stamps the requested version, regenerates `packages/coding-agent/npm-shrinkwrap.json`, commits with subject `Release <version>`, tags that commit, removes the worktree, and pushes only the tag. The selected base never receives the version stamp.
+`main` and supported workstream bases keep all versioned manifests at `0.0.0`. `scripts/cut-release.ts` resolves the selected remote branch SHA, creates a detached worktree, stamps the requested version, regenerates `packages/coding-agent/npm-shrinkwrap.json`, commits with subject `Release <version>`, tags that commit as both `<version>` and `v<version>`, removes the worktree, and pushes both tags atomically when `--push` is used. The selected base never receives the version stamp.
 
 ```sh
-bun run scripts/cut-release.ts 0.9.10 --base main --push
-bun run scripts/cut-release.ts 0.9.10-alpha.1 --base main --push
+bun run scripts/cut-release.ts 2.1.0 --base main --push
+bun run scripts/cut-release.ts 2.1.0-alpha.1 --base main --push
 ```
 
-The tag push is the publication signal. Do not bump package versions directly on a release base.
+The public `v<version>` tag push is the archive-build signal. Do not bump package versions directly on a release base.
 
 ## Build and validation jobs
 
@@ -480,7 +495,7 @@ Repository-wide workflow permissions are read-only. Only draft staging, undrafti
 | File | Trigger | Purpose |
 | --- | --- | --- |
 | `.github/workflows/test.yml` | selected pushes and every pull request | workspace tests and cross-platform release smoke |
-| `.github/workflows/publish.yml` | release tag push; manual recovery dispatch | verify, build, stage draft, publish npm, undraft, clean failed drafts |
+| `.github/workflows/publish.yml` | disabled inherited release tag push; manual recovery dispatch | upstream npm publisher topology and contract coverage |
 | `.github/workflows/warm-toolchain-cache.yml` | manual dispatch (see gate above) | write the Zig and MSVC CRT cache keys into the default-branch scope |
 
 ## Release checklist
@@ -488,6 +503,5 @@ Repository-wide workflow permissions are read-only. Only draft staging, undrafti
 1. Move relevant package changelog entries out of `[Unreleased]` and land the changelog-only PR on the selected versionless base. Do not bump package manifests.
 2. Require the selected base's normal CI to pass.
 3. From a clean checkout, run `bun run scripts/cut-release.ts <version> --base <base> --push`.
-4. Inspect the single `Publish <version>` push run. Do not start a duplicate manual run during normal publication.
-5. If recovery is required, manually dispatch `publish.yml` with the original `tag`; set `source_ref` to the exact recovery ref whose package version still matches that tag.
-6. Confirm all ten npm packages and the public GitHub Release exist with the expected dist-tag and assets.
+4. Inspect the single `.github/workflows/release.yml` run for `v<version>`. Do not start a duplicate manual run during normal publication.
+5. Confirm the public GitHub draft release exists for `v<version>` with `orphus-darwin-arm64.tar.gz`, `orphus-linux-x64.tar.gz`, and `SHA256SUMS`.

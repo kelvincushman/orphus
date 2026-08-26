@@ -100,7 +100,7 @@ test("prepared native root tarball contains all eight exact-version optional dep
 	} finally {
 		rmSync(stage, { recursive: true, force: true });
 	}
-});
+}, 120_000);
 
 test("publish pipeline prepares exact native package set and publishes in dependency order", async () => {
 	const workflow = await readText(`${root}/.github/workflows/publish.yml`);

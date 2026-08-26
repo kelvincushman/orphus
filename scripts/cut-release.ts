@@ -6,9 +6,10 @@
  * Atomic keeps `main` versionless: every package manifest (plus the
  * lockfile, the native binding checks, and README badges) sits at the `0.0.0`
  * placeholder. The real version is materialized **only** on a throwaway
- * `Release <version>` commit that is created off the chosen base, tagged, and
- * then abandoned. The commit is reachable solely through the tag — it is never
- * merged back into `main`. This mirrors how openai/codex tags releases.
+ * `Release <version>` commit that is created off the chosen base, tagged as
+ * both `<version>` and `v<version>`, and then abandoned. The commit is
+ * reachable solely through those tags — it is never merged back into `main`.
+ * This mirrors how openai/codex tags releases.
  *
  * Mechanically:
  *   1. validate the version + a clean working tree
@@ -18,11 +19,11 @@
  *      install when the lockfile and a package.json disagree)
  *   4. regenerate release artifacts that must carry the stamped version, including
  *      packages/coding-agent/npm-shrinkwrap.json
- *   5. commit `Release <version>` and tag `<version>` inside the worktree
+ *   5. commit `Release <version>` and tag `<version>` plus `v<version>` inside the worktree
  *   6. remove the worktree — the tag (and its commit) persist in the repo
  *
- * Pushing the version tag directly starts publish.yml, which verifies the tag
- * commit identity before building and publishing the release.
+ * Pushing the public `v<version>` tag starts release.yml, which verifies and
+ * stamps the version before building downloadable archives.
  *
  * Usage:
  *   bun run scripts/cut-release.ts <version> [--base <ref>] [--push] [--yes]
@@ -115,10 +116,18 @@ async function main(): Promise<void> {
 		fail("Working tree is not clean. Commit or stash changes before cutting a release.");
 	}
 
-	// The tag is the release. Never clobber an existing one.
-	const existingTag = await $`git -C ${ROOT} tag --list ${version}`.text();
-	if (existingTag.trim()) {
-		fail(`Tag ${version} already exists.`);
+	const publicTag = `v${version}`;
+	const releaseTags = [version, publicTag];
+
+	// The tags are the release. Never clobber either local or remote state.
+	for (const tag of releaseTags) {
+		const existingTag = await $`git -C ${ROOT} tag --list ${tag}`.text();
+		if (existingTag.trim()) fail(`Tag ${tag} already exists.`);
+		const remoteTag = await $`git -C ${ROOT} ls-remote --exit-code --refs origin ${`refs/tags/${tag}`}`
+			.nothrow()
+			.quiet();
+		if (remoteTag.exitCode === 0) fail(`Tag ${tag} already exists on origin.`);
+		if (remoteTag.exitCode !== 2) fail(`Could not verify whether tag ${tag} exists on origin.`);
 	}
 
 	await $`git -C ${ROOT} worktree prune`.quiet();
@@ -175,8 +184,10 @@ async function main(): Promise<void> {
 		await $`git -C ${worktreeDir} add -A`;
 		const commitMessage = `Release ${version}\n\nRelease-base-ref: ${baseRef}\nRelease-base-sha: ${baseSha}`;
 		await $`git -C ${worktreeDir} -c user.name=${name} -c user.email=${email} commit --no-verify -m ${commitMessage}`.quiet();
-		// Lightweight tag, matching the repo's publish trigger + verification convention.
+		// Lightweight tags: the bare tag preserves inherited version lookup; the
+		// v-prefixed public tag is what this fork's active release workflow consumes.
 		await $`git -C ${worktreeDir} -c user.name=${name} -c user.email=${email} tag ${version}`.quiet();
+		await $`git -C ${worktreeDir} -c user.name=${name} -c user.email=${email} tag ${publicTag}`.quiet();
 	} finally {
 		if (worktreeAdded) {
 			await $`git -C ${ROOT} worktree remove --force ${worktreeDir}`.nothrow().quiet();
@@ -193,16 +204,20 @@ async function main(): Promise<void> {
 	}
 
 	const tagSha = await gitText(["rev-list", "-n", "1", version]);
-	console.log(`\nCreated tag ${version} -> ${tagSha.slice(0, 9)} (Release ${version})`);
-	console.log(`${branch} stays versionless; the release commit lives only on the tag.\n`);
+	const publicTagSha = await gitText(["rev-list", "-n", "1", publicTag]);
+	if (publicTagSha !== tagSha) {
+		fail(`Tags ${version} and ${publicTag} do not point to the same release commit — aborting.`);
+	}
+	console.log(`\nCreated tags ${version} and ${publicTag} -> ${tagSha.slice(0, 9)} (Release ${version})`);
+	console.log(`${branch} stays versionless; the release commit lives only on those tags.\n`);
 
 	if (push) {
-		console.log(`Pushing tag ${version}...`);
-		await $`git -C ${ROOT} push origin ${version}`;
-		console.log("Tag pushed. GitHub Actions will run the inert tag signal, then the protected-main publisher.");
+		console.log(`Pushing tags ${version} and ${publicTag}...`);
+		await $`git -C ${ROOT} push origin ${version} ${publicTag} --atomic`;
+		console.log(`Tags pushed. GitHub Actions will build the Orphus archives from ${publicTag}.`);
 	} else {
-		console.log("Next: push the tag to trigger the signal and protected publisher:");
-		console.log(`  git push origin ${version}`);
+		console.log("Next: push both tags atomically to publish the public release:");
+		console.log(`  git push origin ${version} ${publicTag} --atomic`);
 	}
 }
 

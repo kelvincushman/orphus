@@ -1,34 +1,62 @@
-# Orphus 2.0.1
+# Orphus 2.1.0
 
-A patch release: the REPL kernel's results are now clean *and* complete.
+This release makes Orphus feel much less hidden while it works. Substantial
+coding tasks now route through native Goal by default, Goal opens its live graph
+automatically, and background workers are visible in the terminal instead of
+only running out of sight.
 
-## Fixed
+## What changed
 
-### The sentinel echo no longer leaks — and honest output no longer disappears
+### Goal is now the normal path for serious work
 
-Every `exec` against a live kernel ends with a printed sentinel so completion is
-detected rather than guessed. Two defects around it are fixed together:
+For bigger build, fix, refactor, or release tasks, Orphus now uses native Goal
+as its core completion loop. Goal plans first, splits the job into owned leaves,
+runs a rolling team of workers, verifies each leaf with recorded evidence, then
+uses reviewers and a reducer before calling the work complete.
 
-- **The echo leaked.** The sentinel was printed in two halves (so its own echo
-  cannot end an exec early), but the halves were split at a token-dependent
-  midpoint — the echo filter matched nothing, and the
-  `print("__ORPHUS_KERNEL_" + "DONE_…")` line rode along in every result. The
-  split is now pinned after a stable marker, and the three echo shapes a live
-  kernel actually produces (doubled first-exec echo, an answer interleaved
-  between the echoed lines, and both at once) are consumed in order. Python
-  kernels also start with `PYTHON_BASIC_REPL=1`, removing the pyrepl capability
-  warning Python 3.13+ printed before the first echo.
-- **The fix's first cut over-stripped.** Filtering by marker *content* deleted
-  genuine program output that merely mentioned the marker — an agent grepping
-  this very repository from inside a kernel would silently lose those lines.
-  Stripping is now by *provenance*: only the script's own echoed sentinel-print
-  line is removed.
+Small direct answers and low-risk edits can still stay inline. The point is not
+magic infallibility; it is fewer false finishes because the plan, workers,
+checks, and final review are part of the runtime path.
 
-Every fix carries a regression test proven to fail without it, and the change
-is verified against real interpreters: the real-PTY integration suite runs the
-merged code against live `python3` and `node` kernels.
+### You can see the workers now
+
+Interactive Goal runs now open the existing workflow graph automatically, so you
+can see the stages, workers, status, model, elapsed time, and dependencies
+without first discovering a hidden keybinding.
+
+Background subagents also show in the terminal as:
+
+```text
+ORPHUS HARNESS · workers live
+Worker 1/3
+Worker 2/3
+Worker 3/3
+```
+
+That borrows the useful visibility idea from Fusion Harness-style terminals:
+clear live lanes that show work is moving. Fusion Harness is not a dependency,
+and Orphus's own workflow runtime stays in charge.
+
+### Startup fix for installed v2.0.0 users
+
+The installed v2.0.0 build could fail at startup with:
+
+```text
+Cannot find module '@orphus/roundtable/bounded-render.ts'
+```
+
+v2.1.0 includes the installed-runtime alias for that shared roundtable renderer,
+so bundled subagents can load again.
+
+### REPL correction carried forward
+
+The unreleased REPL fix is included too: live kernel results no longer leak the
+completion sentinel echo, and genuine output that merely mentions the sentinel
+is no longer stripped by mistake.
 
 ## Install / upgrade
+
+If Orphus is already installed:
 
 ```bash
 orphus update
@@ -37,12 +65,16 @@ orphus update
 Or fresh, pinned to this release:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.sh | sh -s -- --ref v2.0.1
+curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.sh | sh -s -- --ref v2.1.0
 ```
 
 ## Full changelog
 
-`packages/coding-agent/CHANGELOG.md`, under `2.0.1`. Also since 2.0.0, under
-the hood: the CI review gate now requires positive evidence of a completed
-automated review and is safe against reviewer rate limits and shell-pipeline
-edge cases — infrastructure, but it guards everything above.
+See:
+
+- `packages/coding-agent/CHANGELOG.md` for the REPL correction and installed
+  runtime alias fix.
+- `packages/workflows/CHANGELOG.md` for native Goal routing and automatic graph
+  attachment.
+- `packages/subagents/CHANGELOG.md` for the visible `ORPHUS HARNESS · workers
+  live` panel and `Worker N/M` lane labels.
