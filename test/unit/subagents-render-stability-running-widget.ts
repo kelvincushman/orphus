@@ -38,6 +38,31 @@ describe("subagent running pulse animation (issue #1084)", () => {
 		assert.equal(firstSpinnerChar(advanced), undefined, "async widget must not render spinner-style glyphs");
 		assert.equal(firstSpinnerChar(first), undefined, "async widget must not render spinner-style glyphs");
 		assert.equal(firstSpinnerChar(sameFrameLater), undefined, "async widget must not render spinner-style glyphs");
+		assert.match(first, /ORPHUS HARNESS · worker · workers live/);
+	});
+
+	test("async widget names live parallel rows as workers", () => {
+		const job: AsyncJobState = {
+			asyncId: "abc123",
+			asyncDir: "/tmp/abc123",
+			status: "running",
+			mode: "parallel",
+			agents: ["architect", "builder"],
+			updatedAt: 10_000,
+			lastActivityAt: 10_000,
+			stepsTotal: 2,
+			steps: [
+				{ index: 0, agent: "architect", status: "running", toolCount: 1 },
+				{ index: 1, agent: "builder", status: "pending" },
+			],
+		};
+
+		const text = buildWidgetLines([job], theme, 120, false, 10_000, 1).join("\n");
+
+		assert.match(text, /ORPHUS HARNESS · parallel \(2\) · workers live/);
+		assert.match(text, /Worker 1\/2: architect/);
+		assert.match(text, /Worker 2\/2: builder/);
+		assert.doesNotMatch(text, /Agent 1\/2/);
 	});
 
 	test("async widget honours captured now for job, step, and nested running pulse glyphs", () => {
@@ -140,6 +165,7 @@ describe("subagent running pulse animation (issue #1084)", () => {
 		assert.notEqual(second, first, "progress/status-update pulse frames should advance multi-job widget glyphs");
 		assert.equal(firstSpinnerChar(first), undefined, "multi-job widget rows must not render spinner-style glyphs");
 		assert.equal(firstSpinnerChar(second), undefined, "multi-job widget rows must not render spinner-style glyphs");
+		assert.match(first, /ORPHUS HARNESS · workers live/);
 
 		const stableA = withMockedNow(20_000, () => buildWidgetLines(jobs, theme, 120, false, 10_000, 1).join("\n"));
 		const stableB = withMockedNow(30_000, () => buildWidgetLines(jobs, theme, 120, false, 10_000, 1).join("\n"));
