@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The startup ORPHUS wordmark is now plain ASCII, readable at terminal size, and pinned to the Orphus Matrix-green brand color instead of inheriting theme success colors that could render olive. The default dark theme now uses the same black, Matrix green, dim green, off-white, and grey tokens as the Orphus site.
+
 ## [2.1.0] - 2026-08-26
 
 ### Changed

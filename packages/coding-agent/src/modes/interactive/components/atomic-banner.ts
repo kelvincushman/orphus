@@ -1,22 +1,22 @@
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import { visibleWidth } from "@earendil-works/pi-tui";
+import { fgAnsi } from "../theme/color-utils.ts";
 import type { Theme } from "../theme/theme.ts";
 import { theme } from "../theme/theme.ts";
 
+const BANNER_WIDTH = 40;
+const ORPHUS_MATRIX_GREEN = "#00ff41";
 const ORPHUS_FORALL_BANNER_LINES: readonly string[] = [
-	" ██████╗ ██████╗ ██████╗ ██╗  ██╗██╗   ██╗███████╗",
-	"██╔═══██╗██╔══██╗██╔══██╗██║  ██║██║   ██║██╔════╝",
-	"██║   ██║██████╔╝██████╔╝███████║██║   ██║███████╗",
-	"██║   ██║██╔══██╗██╔═══╝ ██╔══██║██║   ██║╚════██║",
-	"╚██████╔╝██║  ██║██║     ██║  ██║╚██████╔╝███████║",
-	" ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚══════╝",
-];
+	"  ####  #####  #####  #   # #   #  ####",
+	" #    # #    # #    # #   # #   # #",
+	" #    # #####  #####  ##### #   #  ####",
+	" #    # #   #  #      #   # #   #      #",
+	"  ####  #    # #      #   #  ###   ####",
+	"",
+].map((line) => line.padEnd(BANNER_WIDTH));
 
 /** Column where the two banner halves meet during the assembly animation. */
-const BANNER_SPLIT_COLUMN = 25;
-
-/** Box-drawing outline glyphs get the dim 'digital rain' treatment; solid blocks stay bright. */
-const OUTLINE_CHARS = new Set(["╔", "╗", "╚", "╝", "═", "║"]);
+const BANNER_SPLIT_COLUMN = BANNER_WIDTH / 2;
 
 export const STARTUP_ASSEMBLY_GAPS = [10, 8, 6, 4, 3, 2, 1, 1, 0] as const;
 export const STARTUP_FRAME_MS = 80;
@@ -25,38 +25,20 @@ export const STARTUP_MANIFESTO = [
 	"argue at one table.",
 	"The best path leaves the room.",
 ] as const;
-const SHADOW_CHAR = "░";
-
-function shadowGrid(): string[] {
-	const blankLine = " ".repeat(ORPHUS_FORALL_BANNER_LINES[0]?.length ?? 0);
-	return [...ORPHUS_FORALL_BANNER_LINES, blankLine].map((line, row) => {
-		const chars = [...line];
-		const previousLine = ORPHUS_FORALL_BANNER_LINES[row - 1];
-		if (previousLine !== undefined) {
-			for (const [column, char] of [...previousLine].entries()) {
-				const shadowColumn = column + 1;
-				if (char !== " " && chars[shadowColumn] === " ") chars[shadowColumn] = SHADOW_CHAR;
-			}
-		}
-		return chars.join("");
-	});
-}
 
 function noColorRequested(): boolean {
 	return process.env.NO_COLOR !== undefined;
 }
 
 export function renderAtomicAssemblyBanner(gap: number, activeTheme: Theme, _thinkingLevel: ThinkingLevel): string[] {
-	const solid = (text: string) => activeTheme.bold(noColorRequested() ? text : activeTheme.fg("success", text));
+	const matrixGreen = fgAnsi(ORPHUS_MATRIX_GREEN, activeTheme.getColorMode());
+	const solid = (text: string) => activeTheme.bold(noColorRequested() ? text : `${matrixGreen}${text}\u001b[39m`);
 	const paint = (char: string) => {
 		if (char === " ") return char;
-		if (char === SHADOW_CHAR || OUTLINE_CHARS.has(char)) {
-			return noColorRequested() ? char : activeTheme.fg("dim", char);
-		}
 		return solid(char);
 	};
 	if (gap <= 0) {
-		return shadowGrid().map((line) => [...line].map(paint).join(""));
+		return [...ORPHUS_FORALL_BANNER_LINES, " ".repeat(BANNER_WIDTH)].map((line) => [...line].map(paint).join(""));
 	}
 	const width = ORPHUS_FORALL_BANNER_LINES[0]!.length;
 	return [
