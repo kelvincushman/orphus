@@ -264,7 +264,7 @@ describe("Atomic working status", () => {
 		const dark = components.map((component) => rgb(component.render(64)[1]!));
 		setThemeInstance(loadTheme("light", "truecolor"));
 		const light = components.map((component) => rgb(component.render(64)[1]!));
-		expect(dark).toEqual(["#666666", "#8abeb7"]);
+		expect(dark).toEqual(["#3a3a4a", "#00ff41"]);
 		expect(light).toEqual(["#767676", "#5a8080"]);
 		expect(light).not.toEqual(dark);
 	});
