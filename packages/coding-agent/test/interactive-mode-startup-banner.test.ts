@@ -23,6 +23,17 @@ function plain(text: string): string {
 	return text.replace(/\u001b\[[0-9;]*m/g, "");
 }
 
+function withColor<T>(run: () => T): T {
+	const previous = process.env.NO_COLOR;
+	delete process.env.NO_COLOR;
+	try {
+		return run();
+	} finally {
+		if (previous === undefined) delete process.env.NO_COLOR;
+		else process.env.NO_COLOR = previous;
+	}
+}
+
 interface StartupIdentityAccess {
 	getStartupIdentityText(maxWidth?: number, gap?: number, manifestoPhase?: number): string;
 }
@@ -115,7 +126,7 @@ describe("InteractiveMode startup banner", () => {
 		});
 
 		const lines = rendered.split("\n");
-		expect(lines[0]).toContain("██████");
+		expect(lines[0]).toContain("####");
 		expect(lines[0]).toContain("Orphus v0.0.0");
 	});
 
@@ -132,13 +143,13 @@ describe("InteractiveMode startup banner", () => {
 		// No line mixes logo art with identity text (which is what wrapped
 		// and shredded the logo on narrow terminals).
 		for (const line of lines) {
-			if (line.includes("██████")) {
+			if (line.includes("####")) {
 				expect(line.trimEnd().length).toBeLessThanOrEqual(64);
 				expect(line).not.toContain("Orphus");
 				expect(line).not.toContain("openai");
 			}
 		}
-		expect(lines.some((line) => line.includes("██████"))).toBe(true);
+		expect(lines.some((line) => line.includes("####"))).toBe(true);
 		expect(rendered).toContain("Orphus v0.0.0");
 		expect(rendered).toContain("(openai) gpt-5.1-codex");
 		expect(rendered).toContain("/tmp/project");
@@ -153,7 +164,7 @@ describe("InteractiveMode startup banner", () => {
 			maxWidth: 20,
 		});
 
-		expect(rendered).not.toContain("█");
+		expect(rendered).not.toContain("#");
 		expect(rendered).toContain("Orphus v0.0.0");
 		expect(rendered).toContain("(openai) gpt-5.1-codex");
 		expect(rendered).toContain("/tmp/project");
@@ -171,7 +182,7 @@ describe("InteractiveMode startup banner", () => {
 			});
 			expect(rendered, `gap ${gap}`).not.toBe("");
 			expect(rendered).toContain("Orphus v0.0.0");
-			expect(rendered).not.toContain("█");
+			expect(rendered).not.toContain("#");
 		}
 	});
 
@@ -202,38 +213,50 @@ describe("InteractiveMode startup banner", () => {
 		}
 	});
 
-	it("uses the default dark success ANSI color for solid block-logo cells", () => {
-		initTheme("dark");
-		const rendered = renderAtomicAssemblyBanner(0, theme, "high").join("\n");
+	it("uses the Matrix green fallback in 256-color terminals", () => {
+		withColor(() => {
+			const limitedTheme = new Theme(
+				{
+					success: "#123456",
+					thinkingHigh: "#654321",
+				} as Record<ThemeColor, string>,
+				{} as Record<ThemeBg, string>,
+				"256color",
+			);
+			const rendered = renderAtomicAssemblyBanner(0, limitedTheme, "high").join("\n");
 
-		expect(rendered).toContain(`${theme.getFgAnsi("success")}█`);
-		expect(rendered).not.toContain(`${theme.getFgAnsi("thinkingHigh")}█`);
+			expect(rendered).toContain("\u001b[38;5;47m#");
+			expect(rendered).not.toContain(`${limitedTheme.getFgAnsi("success")}#`);
+			expect(rendered).not.toContain(`${limitedTheme.getFgAnsi("thinkingHigh")}#`);
+		});
 	});
 
-	it("uses a custom success-role ANSI override for solid block-logo cells", () => {
-		const customTheme = new Theme(
-			{
-				success: "#123456",
-				dim: "#303030",
-				thinkingHigh: "#654321",
-			} as Record<ThemeColor, string>,
-			{} as Record<ThemeBg, string>,
-			"truecolor",
-		);
-		const rendered = renderAtomicAssemblyBanner(0, customTheme, "high").join("\n");
+	it("keeps Matrix green independent of custom theme colors", () => {
+		withColor(() => {
+			const customTheme = new Theme(
+				{
+					success: "#123456",
+					dim: "#303030",
+					thinkingHigh: "#654321",
+				} as Record<ThemeColor, string>,
+				{} as Record<ThemeBg, string>,
+				"truecolor",
+			);
+			const rendered = renderAtomicAssemblyBanner(0, customTheme, "high").join("\n");
 
-		expect(rendered).toContain("\u001b[38;2;18;52;86m█");
-		expect(rendered).not.toContain("\u001b[38;2;101;67;33m█");
+			expect(rendered).toContain("\u001b[38;2;0;255;65m#");
+			expect(rendered).not.toContain("\u001b[38;2;18;52;86m#");
+			expect(rendered).not.toContain("\u001b[38;2;101;67;33m#");
+		});
 	});
 
-	it("keeps foreground ANSI out of solid block-logo cells when NO_COLOR is set", () => {
+	it("keeps foreground ANSI out of ASCII wordmark cells when NO_COLOR is set", () => {
 		const previous = process.env.NO_COLOR;
 		process.env.NO_COLOR = "";
 		try {
 			initTheme("dark");
 			const rendered = renderAtomicAssemblyBanner(0, theme, "high").join("\n");
 
-			expect(rendered).not.toContain(theme.getFgAnsi("success"));
 			expect(rendered).not.toMatch(/\u001b\[(?:38;|39m)/);
 		} finally {
 			if (previous === undefined) delete process.env.NO_COLOR;
@@ -241,16 +264,14 @@ describe("InteractiveMode startup banner", () => {
 		}
 	});
 
-	it("assembles in exact whole-column steps before landing shadow", () => {
+	it("assembles in exact whole-column steps before settling", () => {
 		initTheme("dark");
 		expect(STARTUP_ASSEMBLY_GAPS).toEqual([10, 8, 6, 4, 3, 2, 1, 1, 0]);
-		for (const gap of STARTUP_ASSEMBLY_GAPS.slice(0, -1)) {
+		for (const gap of STARTUP_ASSEMBLY_GAPS) {
 			const frame = renderAtomicAssemblyBanner(gap, theme, "off").map(plain);
 			expect(frame).toHaveLength(7);
-			expect(frame.every((line) => line.length === 50)).toBe(true);
-			expect(frame.join(""), `gap ${gap}`).not.toContain("░");
+			expect(frame.every((line) => line.length === 40)).toBe(true);
 		}
-		expect(renderAtomicAssemblyBanner(0, theme, "off").map(plain).join("")).toContain("░");
 	});
 
 	it("holds the landed identity before three 80ms manifesto phrases", () => {

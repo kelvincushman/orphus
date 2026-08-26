@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="240" viewBox="0 0 900 240" role="img" aria-labelledby="title desc">
   <title id="title">ORPHUS terminal wordmark</title>
-  <desc id="desc">Green terminal-style ORPHUS wordmark on a near-black background.</desc>
+  <desc id="desc">Green terminal-style ORPHUS wordmark on a black background.</desc>
   <defs>
     <filter id="glow" x="-20%" y="-40%" width="140%" height="180%">
-      <feGaussianBlur stdDeviation="3" result="blur" />
-      <feFlood flood-color="#00ff41" flood-opacity="0.55" result="glowColor" />
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feFlood flood-color="#00ff41" flood-opacity="0.4" result="glowColor" />
       <feComposite in="glowColor" in2="blur" operator="in" result="softGlow" />
       <feMerge>
         <feMergeNode in="softGlow" />
@@ -12,13 +12,12 @@
       </feMerge>
     </filter>
   </defs>
-  <rect width="900" height="240" rx="18" fill="#050705" />
-  <g filter="url(#glow)" fill="#00ff41" font-family="SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="26" font-weight="800" xml:space="preserve">
-    <text x="450" y="58" text-anchor="middle"> ██████╗ ██████╗ ██████╗ ██╗  ██╗██╗   ██╗███████╗</text>
-    <text x="450" y="86" text-anchor="middle">██╔═══██╗██╔══██╗██╔══██╗██║  ██║██║   ██║██╔════╝</text>
-    <text x="450" y="114" text-anchor="middle">██║   ██║██████╔╝██████╔╝███████║██║   ██║███████╗</text>
-    <text x="450" y="142" text-anchor="middle">██║   ██║██╔══██╗██╔═══╝ ██╔══██║██║   ██║╚════██║</text>
-    <text x="450" y="170" text-anchor="middle">╚██████╔╝██║  ██║██║     ██║  ██║╚██████╔╝███████║</text>
-    <text x="450" y="198" text-anchor="middle"> ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚══════╝</text>
+  <rect width="900" height="240" rx="18" fill="#000000" />
+  <g filter="url(#glow)" fill="#00ff41" font-family="SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="32" font-weight="800" xml:space="preserve">
+    <text x="450" y="58" text-anchor="middle">  ####  #####  #####  #   # #   #  ####</text>
+    <text x="450" y="92" text-anchor="middle"> #    # #    # #    # #   # #   # #</text>
+    <text x="450" y="126" text-anchor="middle"> #    # #####  #####  ##### #   #  ####</text>
+    <text x="450" y="160" text-anchor="middle"> #    # #   #  #      #   # #   #      #</text>
+    <text x="450" y="194" text-anchor="middle">  ####  #    # #      #   #  ###   ####</text>
   </g>
 </svg>

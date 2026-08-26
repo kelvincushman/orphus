@@ -9,6 +9,7 @@ import {
 	getThemeByName,
 	isLightTheme,
 	loadThemeFromContent,
+	loadThemeFromPath,
 } from "../src/modes/interactive/theme/theme.ts";
 import { validateThemeJson } from "../src/modes/interactive/theme/theme-schema.ts";
 
@@ -75,6 +76,19 @@ describe("built-in themes", () => {
 			);
 			expect(validateThemeJson.Check(content), name).toBe(true);
 		}
+	});
+
+	it("keeps the default dark theme aligned to the Orphus Matrix palette", () => {
+		const darkThemePath = join(getThemesDir(), "dark.json");
+		const trueColorTheme = loadThemeFromPath(darkThemePath, "truecolor");
+		const limitedTheme = loadThemeFromPath(darkThemePath, "256color");
+
+		expect(trueColorTheme.getFgAnsi("accent")).toBe("\u001b[38;2;0;255;65m");
+		expect(trueColorTheme.getFgAnsi("success")).toBe("\u001b[38;2;0;255;65m");
+		expect(trueColorTheme.getFgAnsi("dim")).toBe("\u001b[38;2;26;153;72m");
+		expect(trueColorTheme.getFgAnsi("muted")).toBe("\u001b[38;2;138;151;141m");
+		expect(trueColorTheme.getFgAnsi("text")).toBe("\u001b[38;2;232;239;233m");
+		expect(limitedTheme.getFgAnsi("accent")).toBe("\u001b[38;5;47m");
 	});
 
 	it("keeps the schema declaration optional for valid custom themes", () => {
