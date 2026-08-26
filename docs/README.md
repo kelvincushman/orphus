@@ -18,6 +18,7 @@ any of their context windows. Start with the first link; the rest are reference.
 | **[Roles and the manifest](roles.md)** | Declaring a fleet in `orphus.roles.yaml` and turning it into launch commands. |
 | **[Memory](memory.md)** | The durable layer: the librarian convention, the export → ingest → query flow, and its contract. |
 | **[Fleets](../packages/coding-agent/docs/fleet.md)** | Blueprint-driven orchestration: teams with pre-assigned skills, run by `/fleet`, authored by `/fleetsetup`. |
+| **[Live worker visibility](../README.md#live-worker-visibility)** | The automatic Goal graph overlay and `ORPHUS HARNESS · workers live` panel for background subagents. |
 | **[Orca integration](orca-integration.md)** | Running a fleet across parallel git worktrees. |
 | **[Workflow playbook](workflow-playbook.md)** | Multi-stage workflow execution, inherited from Atomic. |
 | **[The refine loop](refine.md)** | `/refine` — gated, reversible self-modification: what the gate refuses, and what it does not claim. |

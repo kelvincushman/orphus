@@ -242,7 +242,7 @@ export function buildWidgetLines(
 	const headerGlyph = running.length > 0 ? runningPulseGlyph(pulseFrame) : hasActive ? "●" : "○";
 	lines.push(
 		truncLine(
-			`${theme.fg(hasActive ? "accent" : "dim", headerGlyph)} ${theme.fg(hasActive ? "accent" : "dim", "Async agents")} ${theme.fg("dim", "· background")}`,
+			`${theme.fg(hasActive ? "accent" : "dim", headerGlyph)} ${theme.fg(hasActive ? "accent" : "dim", "ORPHUS HARNESS")} ${theme.fg("dim", "· workers live")}`,
 			width,
 		),
 	);

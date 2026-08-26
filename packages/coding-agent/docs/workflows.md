@@ -794,6 +794,11 @@ reviewers to inspect the current delta. A TypeScript reducer returns
 `complete`, `blocked`, or `needs_human` rather than trusting free-form
 completion claims.
 
+Interactive Goal launches automatically open the live workflow graph so the
+operator can see the rolling team rather than a detached background run. Use the
+arrow keys to select a stage, Enter to attach to its live session, and F2 to hide
+or return to the graph. Headless and nested Goal runs remain detached.
+
 Goal reviewers derive checks from the literal objective before consulting implementation receipts, inspect the actual checkout delta, and report commands, observed output, and file:line evidence rather than internal reasoning. Shared contracts cover acceptance-matrix traceability, contract-fidelity risks, end-to-end and QA-video evidence, and independent verification. `stop_review_loop` is the authoritative convergence signal: it remains `false` for P0–P2 findings, any `required_by_objective` finding, or unproven implementation/validation requirements; it becomes `true` only when independent evidence proves the objective and only non-blocking or authorized post-approval work remains. The deterministic reducer consumes that signal without reinterpreting free-form prose.
 
 | Input | Type | Required | Default | Description |

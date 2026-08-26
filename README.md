@@ -1,4 +1,8 @@
 <div align="center">
+<img src="docs/assets/orphus-wordmark.svg" alt="ORPHUS" width="720">
+
+<details>
+<summary>Plain-text wordmark fallback</summary>
 <pre>
  ██████╗ ██████╗ ██████╗ ██╗  ██╗██╗   ██╗███████╗
 ██╔═══██╗██╔══██╗██╔══██╗██║  ██║██║   ██║██╔════╝
@@ -7,6 +11,7 @@
 ╚██████╔╝██║  ██║██║     ██║  ██║╚██████╔╝███████║
  ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
 </pre>
+</details>
 </div>
 
 <h1 align="center">Orphus</h1>
@@ -251,6 +256,24 @@ tools, prompts, checks, artifacts, gates, and approvals. Skills supply reusable 
 instructions. Specialized subagents handle focused work while a parent agent or workflow
 controls the larger task. Rooms — the part that is ours — hold the discussion *between*
 those agents, outside their context windows.
+
+## Live worker visibility
+
+Orphus now treats visible orchestration as part of the product, not a hidden debug
+feature. Interactive Goal runs automatically open the existing workflow graph, where
+you can see every stage and worker, its status, model, elapsed time, and dependencies.
+Use the arrow keys to select a worker, press Enter to attach to its live session, and
+press F2 to hide or return to the graph.
+
+Background subagents also appear in a below-editor panel branded as
+`ORPHUS HARNESS · workers live`. Parallel lanes are shown as `Worker N/M` with status,
+model/thinking labels, and current activity; expanded views add recent tools, output,
+and available counters. Press `Ctrl+O` (or your configured `app.tools.expand` binding)
+to expand the panel while work is still in flight.
+
+The shape is deliberately small: it borrows the useful part of Fusion Harness-style
+operator visibility — clear live lanes and evidence that every worker is moving —
+without importing a separate footer, process runner, or second orchestration framework.
 
 <!-- Kept on one line: test/unit/execution-routing-guidance.test.ts asserts these phrases
      verbatim against this file, and a wrapped line breaks the literal match. -->

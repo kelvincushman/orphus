@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Interactive top-level Goal runs now open the existing workflow graph automatically so operators can see the rolling team and attach to live worker sessions without first discovering F2 or `/workflow connect`.
 - Made Goal the native default workflow route for substantial verifiable coding work, documenting its frozen depth-tree plan, 3..24 leaf team bounds, rolling `max_parallel_agents=10` dispatch, exact per-leaf ownership/check evidence, Fable-5-preferred planning, heterogeneous worker/reviewer routing, bounded repair turns, and honest `needs_human` limits.
 
 ## [2.0.0] - 2026-08-22

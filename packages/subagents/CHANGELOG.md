@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed the below-editor async/background panel to `ORPHUS HARNESS · workers live` and labelled parallel lanes as `Worker N/M`, making live orchestration status visible to non-coders without adding another TUI framework.
+
 ## [2.0.0] - 2026-08-22
 
 ### Added

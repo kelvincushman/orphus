@@ -91,7 +91,7 @@ describe("async widget animation ticker lifecycle", () => {
 		assert.match(updated, /reviewer/, "existing mounted component should read the latest job snapshot");
 		assert.doesNotMatch(
 			updated,
-			/worker/,
+			/• worker ·/,
 			"existing mounted component must not be stuck on constructor-captured jobs",
 		);
 	});

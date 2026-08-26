@@ -106,6 +106,7 @@ describe("goal", () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		assertWorkflowDefinition(mod.default);
 		assert.equal(mod.default.name, "goal");
+		assert.equal(mod.default.autoAttach, true, "interactive Goal runs should open the live workflow graph");
 	});
 
 	test("declares objective, acceptance_criteria, fan-out controls, base_branch, git_worktree_dir, create_pr, and legacy_orchestrator inputs", async () => {

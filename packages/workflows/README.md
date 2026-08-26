@@ -786,6 +786,11 @@ judgment, configured provider/model availability, missing tools, unsafe or
 unavailable checks, and external blockers remain honest limits and can force a
 bounded repair turn or `needs_human`.
 
+Interactive top-level Goal launches automatically open the live workflow graph,
+showing the rolling team, stage status, models, elapsed time, and dependencies.
+Use the arrow keys to select a stage, Enter to attach, and F2 to hide or return
+to the graph. Headless and nested Goal runs remain detached.
+
 ```text
 /workflow goal objective="Update CLI docs, add one example, and validate the docs build"
 ```
