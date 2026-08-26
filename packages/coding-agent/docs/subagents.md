@@ -132,7 +132,7 @@ Status, interrupt, list, and resume use the Rust registry and status watch for l
 
 Inside workflow stages, completion delivery observes the stage generation boundary. A completion received before the boundary closes is queued through the stage AgentSession and processed before the stage publishes its terminal snapshot. A completion that arrives after close is routed once to the parent/main chat and cannot reopen or append to the completed stage transcript. Producers that are still running do not hold the stage open, so background work remains non-blocking; explicit post-mortem stage chat is still available separately.
 
-When a workflow graph overlay is open, Orphus also publishes the live async subagent summary into the shared status surface. The below-editor `ORPHUS HARNESS · workers live` widget remains available when the workflow overlay is hidden, and the overlay statusline keeps the run count/state visible while the graph fills the terminal. Parallel background rows are labelled as `Worker N/M` so the operator can see who is currently moving, which model/thinking profile it is using, and which tool or activity is live.
+The below-editor `ORPHUS HARNESS · workers live` widget is the live summary for async subagents. It is visible in the normal chat view; when a fullscreen workflow graph is open, hide or leave the graph to return to that widget. Parallel background rows are labelled as `Worker N/M` so the operator can see who is currently moving, which model/thinking profile it is using, and which tool or activity is live.
 
 ## Orchestrator model and group policy
 

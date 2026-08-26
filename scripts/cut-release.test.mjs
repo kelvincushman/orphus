@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -42,12 +42,18 @@ function run(command, args, cwd, env = process.env) {
 	});
 	return {
 		...result,
-		output: `${result.stdout ?? ""}${result.stderr ?? ""}`,
+		output: [
+			result.stdout ?? "",
+			result.stderr ?? "",
+			result.error ? `\n${result.error.stack ?? result.error.message}` : "",
+			result.signal ? `\nsignal: ${result.signal}` : "",
+		].join(""),
 	};
 }
 
 function git(cwd, ...args) {
-	const result = run("git", args, cwd);
+	// The release fixture exercises Git refs and package metadata, not binary LFS payloads.
+	const result = run("git", args, cwd, { ...process.env, GIT_LFS_SKIP_SMUDGE: "1" });
 	assert.equal(result.status, 0, `git ${args.join(" ")} failed:\n${result.output}`);
 	return result.stdout.trim();
 }
@@ -63,16 +69,15 @@ test("cut-release is fail-closed in a disposable Git remote", { timeout: 300_000
 		git(fixture, "checkout", "-B", "main");
 		git(fixture, "config", "user.name", "Orphus release test");
 		git(fixture, "config", "user.email", "release-test@localhost");
-		copyFileSync(join(root, "scripts/cut-release.ts"), join(fixture, "scripts/cut-release.ts"));
-		git(fixture, "add", "scripts/cut-release.ts");
-		git(fixture, "commit", "-m", "Use release cutter under test");
+		git(fixture, "config", "lfs.allowincompletepush", "true");
 
 		mkdirSync(remote);
 		git(remote, "init", "--bare");
+		git(remote, "config", "receive.shallowUpdate", "true");
 		git(fixture, "remote", "set-url", "origin", remote);
 		git(fixture, "push", "-u", "origin", "main");
 
-		const releaseEnv = { ...process.env, TMPDIR: tempRoot };
+		const releaseEnv = { ...process.env, GIT_LFS_SKIP_SMUDGE: "1", TMPDIR: tempRoot };
 		const first = run(
 			bun,
 			["run", "scripts/cut-release.ts", "9.8.7", "--base", "main", "--yes"],
