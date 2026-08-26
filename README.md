@@ -11,6 +11,7 @@
 ╚██████╔╝██║  ██║██║     ██║  ██║╚██████╔╝███████║
  ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
 </pre>
+</details>
 </div>
 
 <h1 align="center">Orphus</h1>
@@ -255,6 +256,20 @@ tools, prompts, checks, artifacts, gates, and approvals. Skills supply reusable 
 instructions. Specialized subagents handle focused work while a parent agent or workflow
 controls the larger task. Rooms — the part that is ours — hold the discussion *between*
 those agents, outside their context windows.
+
+## Live worker visibility
+
+Orphus now treats visible orchestration as part of the product, not a hidden debug
+feature. When background subagents or workflow-owned workers are running, the
+below-editor panel is branded as `ORPHUS HARNESS · workers live` and each active lane is
+shown as `Worker N/M` with status, model/thinking labels, current activity, tool counts,
+token totals, and the live-detail shortcut. Press `Ctrl+O` (or your configured
+`app.tools.expand` binding) to expand the panel and see recent tools and output while
+the work is still in flight.
+
+The shape is deliberately small: it borrows the useful part of Fusion Harness-style
+operator visibility — clear live lanes and evidence that every worker is moving —
+without importing a separate footer, process runner, or second orchestration framework.
 
 <!-- Kept on one line: test/unit/execution-routing-guidance.test.ts asserts these phrases
      verbatim against this file, and a wrapped line breaks the literal match. -->
