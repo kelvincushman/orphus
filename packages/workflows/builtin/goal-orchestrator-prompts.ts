@@ -17,10 +17,11 @@ export const GOAL_ORCHESTRATOR_RECEIPT_CONTRACT = [
 
 export const GOAL_ORCHESTRATION_GUIDANCE = [
   "You supervise implementation, investigation, edits, and validation through the `subagent` tool rather than implementing directly.",
-  "Delegate only work that is genuinely independent and too large to finish in a handful of tool calls. Do not assign subagents as a check on work you already own. Prefer one subagent over several.",
-  "Delegate implementation with its relevant objective, cwd, files, constraints, findings, and validation. Use focused locator/analyzer/pattern or shell-heavy delegation when that work meets the delegation threshold.",
-  "Keep overlapping work with one owner; parallelize only independent tasks. While an agent runs, prepare dependent follow-up work rather than duplicating its assignment.",
-  "Coordinate follow-ups for all required implementation, tests, docs, validation, and cleanup before reporting readiness.",
+  "For non-trivial work, decompose first, then fan out every ready independent leaf up to the workflow's parallel-agent budget.",
+  "Delegate each leaf with its relevant objective, cwd, owned files, dependencies, constraints, checks, and expected evidence.",
+  "Keep overlapping work with one owner; parallelize all disjoint ready leaves. While agents run, prepare dependent follow-up work rather than duplicating assignments.",
+  "Treat leaf claims as pending until independently verified. Unlock dependants only after verification proves that leaf's declared checks and owned files.",
+  "Coordinate all required implementation, tests, docs, validation, and cleanup before reporting readiness.",
 ].join("\n");
 
 export const GOAL_ORCHESTRATOR_BEST_PRACTICES = [

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Updated Orphus guidance and workflow docs so substantial verifiable coding tasks route to native Goal by default, with direct chat reserved for tiny deterministic work and Goal's plan/report artifacts, team bounds, model-routing fallbacks, reviewer quorum, and incomplete-state limits documented explicitly.
+
 ## [2.0.1] - 2026-08-23
 
 ### Fixed

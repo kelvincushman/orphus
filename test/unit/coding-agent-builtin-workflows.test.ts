@@ -34,7 +34,11 @@ const builtinPackageFixtures = [
 	{ packageName: "@orphus/fleet", dirname: "fleet", requiredEntry: "index.ts" },
 ] as const;
 
-const fullBuiltinPackageLoadTimeoutMs = 60_000;
+// Cold-loading every bundled TypeScript package can legitimately exceed one
+// minute when the checkout lives on an external volume. Keep these integration-
+// shaped resource-loader assertions bounded without making filesystem speed the
+// behavior under test.
+const fullBuiltinPackageLoadTimeoutMs = 120_000;
 
 describe("coding-agent builtin resources", () => {
 	test("discovers bundled companion packages in development without the removed Cursor package", () => {

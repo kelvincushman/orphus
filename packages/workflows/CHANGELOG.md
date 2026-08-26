@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Made Goal the native default workflow route for substantial verifiable coding work, documenting its frozen depth-tree plan, 3..24 leaf team bounds, rolling `max_parallel_agents=10` dispatch, exact per-leaf ownership/check evidence, Fable-5-preferred planning, heterogeneous worker/reviewer routing, bounded repair turns, and honest `needs_human` limits.
+
 ## [2.0.0] - 2026-08-22
 
 ### Added

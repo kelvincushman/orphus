@@ -26,6 +26,7 @@ import {
 	INTERNAL_INTERCOM_BROKER_ARG as SPAWN_INTERNAL_INTERCOM_BROKER_ARG,
 } from "../../packages/intercom/broker/spawn.js";
 import intercom from "../../packages/intercom/index.js";
+import { bunExecutable } from "../helpers/runtime.js";
 
 function tempDir(prefix: string): string {
 	return mkdtempSync(join(tmpdir(), prefix));
@@ -114,7 +115,7 @@ function runLoadConfig(home: string): { status?: string; brokerCommand: string; 
 	delete env.HOMEPATH;
 	delete env.ORPHUS_CODING_AGENT_DIR;
 	delete env.PI_CODING_AGENT_DIR;
-	const result = spawnSync("bun", ["--eval", script], {
+	const result = spawnSync(bunExecutable(), ["--eval", script], {
 		cwd: process.cwd(),
 		env,
 		encoding: "utf8",

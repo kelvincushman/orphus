@@ -46,7 +46,11 @@ describe("goal objective-drift workflow behavior", () => {
 	test("persists explicit acceptance criteria separately from objective", async () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		const d = mod.default as unknown as WorkflowDefinition;
-		const ctx = makeMockCtx({ objective: "Follow-up delta", acceptance_criteria: "Original task" });
+		const ctx = makeMockCtx({
+			objective: "Follow-up delta",
+			acceptance_criteria: "Original task",
+			legacy_orchestrator: true,
+		});
 
 		const result = await d.run(ctx);
 		const ledger = JSON.parse(readFileSync(result.ledger_path as string, "utf8"));
@@ -66,7 +70,7 @@ describe("goal objective-drift workflow behavior", () => {
 			"consistent_with_objective",
 		);
 		const ctx = makeMockCtx(
-			{ objective: "Refactor tests" },
+			{ objective: "Refactor tests", legacy_orchestrator: true },
 			{
 				task: (name) => {
 					if (name.startsWith("completion-reviewer-") || name.startsWith("evidence-reviewer-")) {
@@ -94,7 +98,7 @@ describe("goal objective-drift workflow behavior", () => {
 			"required_by_objective",
 		);
 		const ctx = makeMockCtx(
-			{ objective: "Refactor tests", max_turns: 1 },
+			{ objective: "Refactor tests", max_turns: 1, legacy_orchestrator: true },
 			{
 				task: (name) => {
 					if (name.startsWith("completion-reviewer-") || name.startsWith("evidence-reviewer-")) {
@@ -126,7 +130,7 @@ describe("goal objective-drift workflow behavior", () => {
 			1,
 		);
 		const ctx = makeMockCtx(
-			{ objective: "Refactor tests", max_turns: 1 },
+			{ objective: "Refactor tests", max_turns: 1, legacy_orchestrator: true },
 			{
 				task: (name) => {
 					if (name.startsWith("completion-reviewer-")) return reviewJson("complete");

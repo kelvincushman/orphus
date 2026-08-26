@@ -81,11 +81,11 @@ See [Providers](/providers) for all supported providers, environment variables, 
 
 On a fresh install with no prior Orphus startup state, Orphus shows a one-time first-run explanation after any What's New notes and directly above the input box describing Orphus as a verifiable coding agent runtime for building and running agent workflows you can feel confident in. Returning users with prior startup state are marked onboarded automatically and continue directly into the normal chat UI; stored credentials by themselves do not skip the first-run explanation. The composer is the normal Orphus input from the start: type a message, run `/login` first if no provider is connected, open `/orphus`, or launch a workflow command without a special onboarding transition.
 
-Once Orphus starts, default to a workflow for non-trivial work and for requests with inherent structure plus a verifiable objective. Implementation, build, debugging, bug fixes, migrations, features, scoped multi-file edits, validation/review work, and loop-shaped requests are workflow candidates; reserve direct chat for tiny deterministic low-risk answers or edits where tracking clearly adds more overhead than value.
+Once Orphus starts, default to Goal for substantial verifiable build/change/fix/refactor work. Implementation, build, debugging, bug fixes, migrations, features, scoped multi-file edits, validation/review work, and loop-shaped requests should use Goal unless another workflow graph fits the domain better. Reserve direct chat for tiny deterministic read-only checks, handoff tasks, low-risk answers, or edits where tracking clearly adds more overhead than value.
 
-Workflow-first is not builtin-only or monolithic. Orphus can discover and run named builtin, project, user, and package workflows; author a rich custom TypeScript `workflow({...})` inline; and compositionally import reusable workflow definitions—including builtins from `@orphus/workflows/builtin`—into parent workflows with `ctx.workflow(...)`. Nested children can nest again within `maxDepth`, so custom graphs can combine proven research, implementation, design, verification, and approval workflows instead of copying them. They can also classify and branch, dynamically fan out and synthesize artifacts, run adversarial repair cycles, tournament-rank candidates, and loop until checks pass with explicit bounds.
+Goal-first is not builtin-only or monolithic. Orphus can discover and run named builtin, project, user, and package workflows; author a rich custom TypeScript `workflow({...})` inline; and compositionally import reusable workflow definitions—including builtins from `@orphus/workflows/builtin`—into parent workflows with `ctx.workflow(...)`. Nested children can nest again within `maxDepth`, so custom graphs can combine proven research, implementation, design, verification, and approval workflows instead of copying them. They can also classify and branch, dynamically fan out and synthesize artifacts, run adversarial repair cycles, tournament-rank candidates, and loop until checks pass with explicit bounds.
 
-Orphus turns repeatable engineering loops into executable stages with inspectable evidence instead of relying on a markdown checklist the model may or may not follow.
+Goal turns substantial engineering loops into executable stages with inspectable evidence instead of relying on a markdown checklist the model may or may not follow. It is native runtime behavior, not an optional skill. It freezes a plan before implementation, asks for 3..24 leaves, runs up to 10 ready leaves concurrently, verifies every leaf with exact per-check evidence, then requires final reviewer quorum. It reduces false completion but still reports unavailable tools, providers, unsafe checks, and external blockers honestly as `needs_human` instead of promising literal infallibility.
 
 For an interactive tour any time, run `/orphus` inside the TUI; `/orphus overview`, `/orphus workflows`, and `/orphus example` walk through the same flow in more depth.
 
@@ -101,13 +101,13 @@ Orphus ships with nine workflows you can run immediately. Use `/workflow list` t
 | `generate-and-filter` | Generate, dedupe, filter, optionally judge, and shortlist candidates. | `/workflow generate-and-filter prompt="Propose names for the new command"` |
 | `tournament` | Compare whole solutions through balanced pairwise judging. | `/workflow tournament prompt="Design the retry strategy"` |
 | `loop-until-done` | Iterate with a durable ledger until completion or bound exhaustion. | `/workflow loop-until-done prompt="Repair failures until the test suite passes"` |
-| `goal` | Autonomous work that needs a durable ledger, bounded sub-agent orchestration, receipts, and reviewer-gated completion. | `/workflow goal objective="Update the CLI docs, add one example, and validate the docs build"` |
+| `goal` | Default core route for substantial coding work: frozen plan, rolling 3..24-leaf team, per-check verification, and reviewer-gated completion. | `/workflow goal objective="Update the CLI docs, add one example, and validate the docs build"` |
 | `ralph` | Research-first autonomous work with prompt refinement, delegated implementation, and iterative multi-model review. | `/workflow ralph prompt="Implement specs/rate-limit.md and validate burst traffic"` |
 | `open-claude-design` | UI and design-system work with separate generate and feedback chains and a live `preview.html`. | `/workflow open-claude-design prompt="Refresh the settings page hierarchy as a page"` |
 
 <p align="center"><img src="images/workflow-list.png" alt="Workflow List" width="600" /></p>
 
-Inputs are bare `key=value` tokens. Values are JSON-parsed when possible, so `count=5`, `flag=true`, and `prompt="multi word value"` preserve useful types. If you call `/workflow <name>` without required inputs, the TUI opens an inline picker; pass `--no-picker` to skip it. Goal and Ralph support `git_worktree_dir` only when you explicitly want a reusable worktree, and skip PR creation unless you set `create_pr=true` for the post-approval final stage.
+Inputs are bare `key=value` tokens. Values are JSON-parsed when possible, so `count=5`, `flag=true`, and `prompt="multi word value"` preserve useful types. If you call `/workflow <name>` without required inputs, the TUI opens an inline picker; pass `--no-picker` to skip it. Goal exposes `min_team_size=3`, `max_team_size=24`, and `max_parallel_agents=10` defaults for native team planning, returns plan/report artifact paths, and Goal and Ralph both support `git_worktree_dir` only when you explicitly want a reusable worktree. PR creation is skipped unless you set `create_pr=true` for the post-approval final stage.
 
 You can also launch workflows with **natural language** — describe the task in chat and ask Orphus to run a matching installed workflow or author a task-specific one:
 
@@ -127,7 +127,7 @@ Use goal to update the CLI docs, include one example, run the docs build, and fi
 Use ralph to research and implement specs/rate-limit.md, then review and repair it within three loops.
 ```
 
-Orphus chooses a complete execution shape, fills inputs from the request, and confirms before launch. Use Goal when a durable ledger and receipt-backed reviewer gate fit the task. Use Ralph when the job benefits from a research-first implementation/review loop. For exact domain contracts that either builtin does not cover, author a custom graph with deterministic checks and bounded repairs.
+Orphus chooses a complete execution shape, fills inputs from the request, and confirms before launch. Use Goal as the normal core path for substantial verifiable coding work. Use Ralph when the job benefits from a research-first implementation/review loop. For exact domain contracts that either builtin does not cover, author a custom graph with deterministic checks and bounded repairs.
 
 ### Monitor and steer a run
 

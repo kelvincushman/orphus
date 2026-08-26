@@ -115,6 +115,26 @@ const BUNDLED_WORKFLOW_COMPLETION_METADATA: WorkflowCompletionMetadata[] = [
 				description: "Maximum orchestrator/review turns before Goal Runner stops as needs_human.",
 				kind: "number",
 			},
+			min_team_size: {
+				description:
+					"Minimum number of execution leaves Goal Runner asks the planner to create for non-trivial work before rolling fan-out.",
+				kind: "number",
+			},
+			max_team_size: {
+				description:
+					"Maximum number of execution leaves Goal Runner allows in a turn plan. This caps team size separately from concurrent dispatch.",
+				kind: "number",
+			},
+			max_parallel_agents: {
+				description:
+					"Maximum number of ready execution leaves Goal Runner may run concurrently during rolling fan-out.",
+				kind: "number",
+			},
+			legacy_orchestrator: {
+				description:
+					"Explicit legacy compatibility escape for the deprecated single-orchestrator Goal loop. Leave false so Goal uses the native plan, rolling team, independent leaf verification, and final reviewer path.",
+				kind: "boolean",
+			},
 			base_branch: {
 				description: "Optional branch reviewers compare the current code delta against (default origin/main).",
 				kind: "string",

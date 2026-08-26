@@ -19,6 +19,15 @@ Inherited from Atomic, and mostly left alone:
 - `@orphus/web-access` in `packages/web-access` — builtin web search, URL fetching, GitHub repository, PDF, and video extraction tools.
 - `@orphus/intercom` in `packages/intercom` — builtin coordination channel for parent/child and cross-session agent communication.
 
+Default completion route: for substantial verifiable build/change/fix/refactor
+work in this tree, use the builtin Goal workflow as Orphus's native core loop,
+not as an optional skill. Goal freezes a validated depth-tree plan before
+implementation, assigns disjoint ownership and dependency edges, rolls all ready
+leaves concurrently up to its configured bound, requires exact independent
+per-check evidence for every leaf, and keeps final completion behind three
+decorrelated reviewers and the reducer. Stay inline only for tiny deterministic
+read-only or handoff work where the team loop would add no proof.
+
 Companion packages under `packages/*` ship as **raw TypeScript** (no compile step) and are bundled into `@orphus/coding-agent` at build time rather than published independently. The coding-agent package follows upstream pi's compiled-package layout.
 
 ## Minimal-change principle (KISS) — read this first

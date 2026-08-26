@@ -20,6 +20,7 @@ import { DefaultMainDriver, type HarnessReport, isAlive, waitForExit } from "./f
  * SIGKILL and kill(pid, 0) process-tree semantics.
  */
 const serialTest = process.platform === "win32" ? test.sequential.skip : test.sequential;
+const INTERACTIVE_ENGINE_STARTUP_TIMEOUT_MS = 20_000;
 
 const FORBIDDEN_TEXT = ["Engine terminated;", "result unknown; inspect side effects before retrying"];
 
@@ -59,9 +60,10 @@ function assertNoForbiddenText(reports: HarnessReport[]): void {
 }
 
 async function mountFrozenCustomUi(driver: DefaultMainDriver, command: string, mountFile: string): Promise<number> {
-	await driver.waitFor((report) => report.type === "terminal_ready");
+	await driver.waitFor((report) => report.type === "terminal_ready", INTERACTIVE_ENGINE_STARTUP_TIMEOUT_MS);
 	const initial = await driver.waitFor(
 		(report) => report.type === "heartbeat" && typeof report.enginePid === "number",
+		INTERACTIVE_ENGINE_STARTUP_TIMEOUT_MS,
 	);
 	driver.send({ type: "input", data: command });
 	await driver.waitFor((report) => report.type === "heartbeat" && report.editorText === command);

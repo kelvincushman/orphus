@@ -11,7 +11,7 @@ describe("goal reviewer failure fail-fast", () => {
 		const mod = await import("../../packages/workflows/builtin/goal.js");
 		const d = mod.default as unknown as WorkflowDefinition;
 		const ctx = makeMockCtx(
-			{ objective: "Finish documentation", max_turns: 3 },
+			{ objective: "Finish documentation", max_turns: 3, legacy_orchestrator: true },
 			{
 				parallel: () => {
 					throw new AggregateError(

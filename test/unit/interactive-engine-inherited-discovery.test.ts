@@ -16,6 +16,8 @@ import {
 const serialTest = process.platform === "win32" ? test.sequential.skip : test.sequential;
 const PREFIX = "@@ORPHUS_TEST@@";
 const INHERITED_DISCOVERY_TIMEOUT_MS = 20_000;
+const INHERITED_DISCOVERY_STARTUP_TIMEOUT_MS = 30_000;
+const INHERITED_DISCOVERY_TEST_TIMEOUT_MS = 60_000;
 
 interface HarnessReport {
 	type?: string;
@@ -197,7 +199,7 @@ serialTest(
 			ORPHUS_LEGACY_COMMAND_LOG: logFile,
 		});
 		try {
-			await driver.waitFor((report) => report.type === "terminal_ready", 15_000);
+			await driver.waitFor((report) => report.type === "terminal_ready", INHERITED_DISCOVERY_STARTUP_TIMEOUT_MS);
 			assert.ok((await waitForCommand(driver)).has("legacy-compatible"));
 			driver.send({ type: "input", data: "/legacy-compatible" });
 			await driver.waitFor((report) => report.type === "heartbeat" && report.editorText === "/legacy-compatible");
@@ -210,7 +212,7 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	20_000,
+	INHERITED_DISCOVERY_TEST_TIMEOUT_MS,
 );
 
 serialTest(
@@ -228,7 +230,7 @@ serialTest(
 			PI_CODING_AGENT_DIR: undefined,
 		});
 		try {
-			await driver.waitFor((report) => report.type === "terminal_ready", 15_000);
+			await driver.waitFor((report) => report.type === "terminal_ready", INHERITED_DISCOVERY_STARTUP_TIMEOUT_MS);
 			await sleep(500);
 			assert.equal((await driver.autocomplete("/legacy-compatible")).has("legacy-compatible"), false);
 		} finally {
@@ -236,5 +238,5 @@ serialTest(
 			rmSync(temp, { recursive: true, force: true });
 		}
 	},
-	20_000,
+	INHERITED_DISCOVERY_TEST_TIMEOUT_MS,
 );

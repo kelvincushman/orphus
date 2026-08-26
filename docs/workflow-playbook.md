@@ -31,6 +31,22 @@ In practice, that means:
 
 A good workflow prompt does not just say what to try. It says what success looks like. Default to a workflow for non-trivial work or a request with inherent structure plus a verifiable objective: implementation, debugging, migrations, multi-file changes, validation, review gates, evidence requirements, and loop/stop-condition prompts all benefit from tracked execution. Use direct chat for tiny deterministic low-risk work. Do not force-fit a builtin—Atomic can author a custom TypeScript workflow inline and compose classify-and-act, fan-out-and-synthesize, adversarial verification, generate-and-filter, tournament, and loop-until-done patterns.
 
+In Orphus, the native default for substantial verifiable
+build/change/fix/refactor work is Goal. It is core runtime behavior, not an
+optional skill wrapper. Goal asks a Fable-5-preferred planner to freeze a
+depth-tree plan before implementation, validates each leaf's `OWNS`, `Needs`,
+tier, and checks, runs 3..24 total leaves with up to 10 ready leaves in flight,
+unlocks dependants as soon as their declared needs verify, rotates workers
+across configured model families with fallbacks, records exact independent
+per-check evidence, and uses three decorrelated final reviewers plus a reducer
+before completion. Use custom workflows when a task needs a different domain
+graph, but use direct chat only for tiny deterministic read-only checks, handoff
+tasks, low-risk answers, or edits where a tracked team adds no proof.
+
+This reduces false completion; it does not promise literal infallibility. Model
+judgment, unavailable providers, missing tools, unsafe or impossible checks, and
+external blockers still have to be reported honestly, often as `needs_human`.
+
 ---
 
 ## Prompt anatomy

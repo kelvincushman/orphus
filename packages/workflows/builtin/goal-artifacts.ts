@@ -20,17 +20,19 @@ function withoutTurn<T extends { readonly turn: number }>(value: T): Omit<T, "tu
   return copy;
 }
 
+export function reviewArtifactPathFor(artifactDir: string, reviewer: string, turn: number): string {
+  return join(artifactDir, `turn-${turn}-review-${artifactSafeName(reviewer)}.json`);
+}
+
 export async function writeReviewArtifact(
   artifactDir: string,
   reviewer: string,
+  turn: number,
   decision: ReviewDecision,
   rawText: string,
   convergenceDecision: ReviewConvergenceSummary,
 ): Promise<string> {
-  const artifactPath = join(
-    artifactDir,
-    `review-${artifactSafeName(reviewer)}.json`,
-  );
+  const artifactPath = reviewArtifactPathFor(artifactDir, reviewer, turn);
   await writeFile(
     artifactPath,
     `${JSON.stringify({ reviewer, decision, convergence_decision: convergenceDecision, raw_text: rawText }, null, 2)}\n`,
@@ -41,9 +43,10 @@ export async function writeReviewArtifact(
 
 export async function writeReviewRoundArtifact(
   artifactDir: string,
+  turn: number,
   reviews: readonly ReviewRecord[],
 ): Promise<string> {
-  const artifactPath = join(artifactDir, "review-round-latest.json");
+  const artifactPath = join(artifactDir, `turn-${turn}-review-round.json`);
   const visibleReviews = reviews.map(withoutTurn);
   // Deduplicated cross-reviewer findings batch so the next orchestrator turn can
   // plan and repair the round's findings together instead of one at a time.
@@ -60,4 +63,3 @@ export async function writeReviewRoundArtifact(
   );
   return artifactPath;
 }
-

@@ -4,7 +4,7 @@
 
 Orphus uses workflows to run executable engineering loops: reusable multi-stage automation with tracked stages, parallel branches, artifacts, human input, live status, checkpoints, and resumable background execution.
 
-Default to a workflow for non-trivial work with a verifiable objective — see [When to Use Workflows](#when-to-use-workflows) for the decision signals, execution shapes, and exceptions.
+Default to the built-in Goal workflow for substantial verifiable coding work. Use other workflows when their graph fits better, and use direct chat only for tiny deterministic low-risk work. See [Goal as the core completion loop](#goal-as-the-core-completion-loop) and [When to Use Workflows](#when-to-use-workflows).
 
 **Key capabilities:**
 - **Tracked stages** - Name each step and inspect it in workflow status and graph views
@@ -32,6 +32,7 @@ Default to a workflow for non-trivial work with a verifiable objective — see [
 
 - [Quick Start](#quick-start)
 - [When to Use Workflows](#when-to-use-workflows)
+- [Goal as the core completion loop](#goal-as-the-core-completion-loop)
 - [The Run Contract](#the-run-contract)
 - [Built-in Workflows](#built-in-workflows)
 - [Writing a Workflow](#writing-a-workflow)
@@ -185,7 +186,7 @@ See [Writing a Workflow](#writing-a-workflow) for the full `workflow({...})` API
 
 ## When to Use Workflows
 
-Workflows are the default execution path when a request is non-trivial or combines inherent structure with a verifiable objective — implementation, build, debugging, bug fixes, migrations, features, scoped multi-file edits, docs/code changes where validation matters, and work with dependencies, handoffs, review gates, uncertainty, measurable done criteria, or evidence requirements. Choose a workflow before direct chat when the prompt includes any of these signals:
+Workflows are the default execution path when a request is non-trivial or combines inherent structure with a verifiable objective. For substantial build/change/fix/refactor work, the default named workflow is `goal`: implementation, build, debugging, bug fixes, migrations, features, scoped multi-file edits, docs/code changes where validation matters, and work with dependencies, handoffs, review gates, uncertainty, measurable done criteria, or evidence requirements. Choose Goal before direct chat when the prompt includes any of these signals:
 
 - implementation, build, debugging/diagnosis, bug-fix, migration, new-feature, scoped multi-file, or validated docs/code work
 - multiple subtasks, dependencies, handoffs, uncertainty, or parallel/sequential stages
@@ -195,19 +196,51 @@ Workflows are the default execution path when a request is non-trivial or combin
 
 Loop or stop-condition phrasing is an especially strong workflow signal: `do X until Y`, `repeat until`, `iterate until`, `review/fix until passing`, `run checks and fix until green`, and `keep going until done` define control flow and convergence criteria that should be tracked.
 
-Use direct chat only for tiny, deterministic, low-risk answers or edits where stage tracking clearly costs more than it adds, typically a single-file/no-test/no-review change. Choose direct chat or a workflow based on that fit; reconnaissance is already inline execution. Once workflow fit is clear, limit pre-workflow reconnaissance to the few reads needed to sharpen the objective and validation criteria, and put deeper research or behavior probing inside the run.
+Use direct chat only for tiny, deterministic, low-risk answers, read-only checks, handoff tasks, or edits where stage tracking clearly costs more than it adds, typically a single-file/no-test/no-review change. Choose direct chat or a workflow based on that fit; reconnaissance is already inline execution. Once workflow fit is clear, limit pre-workflow reconnaissance to the few reads needed to sharpen the objective and validation criteria, and put deeper research or behavior probing inside the run.
 
-Workflow-first does not require builtins, monolithic workflows, or a force-fit builtin: a builtin that matches 60% of the task and fights the other 40% is worse than a small custom graph. Discover named builtin, project, user, and package workflows; or author a task-specific TypeScript `workflow({...})` inline with normal coding tools whenever the task needs richer branching, dynamic fan-out, artifacts, structured outputs, child workflows, human input, gates, retries, or loops.
+Goal-first does not require forcing every task into Goal. A builtin that matches 60% of the task and fights the other 40% is worse than a small custom graph. Discover named builtin, project, user, and package workflows; or author a task-specific TypeScript `workflow({...})` inline with normal coding tools whenever the task needs richer branching, dynamic fan-out, artifacts, structured outputs, child workflows, human input, gates, retries, or loops.
 
 Rich custom workflows can compose the [common workflow patterns](#common-workflow-patterns): classify and branch at runtime, fan out and synthesize artifacts, run worker/verifier/reducer repair cycles, generate and filter or tournament-rank candidates, and loop until explicit evidence says the work is done. Workflow definitions are composable TypeScript modules — see [Workflow Composition](#workflow-composition). Orphus can write the definition, reload workflow resources, and run it for the current task; the workflow tool has no create action.
 
-If inline work drifts past roughly ten exploratory tool calls without an artifact, edit, or commit, or repeats a "verify one more thing" loop, save the findings to a context file and hand the task to the best-fit named or custom workflow through `reads`. Sunk research is transferable, not a reason to continue inline.
+If inline work drifts past roughly ten exploratory tool calls without an artifact, edit, or commit, or repeats a "verify one more thing" loop, save the findings to a context file and hand the task to Goal or the best-fit custom workflow through `reads`. Sunk research is transferable, not a reason to continue inline.
+
+### Goal as the core completion loop
+
+Goal is Orphus's native completion method for substantial verifiable coding
+tasks, not an optional skill. It turns the user's objective into a frozen
+execution plan before implementation begins. The planner must produce a
+validated depth tree with 3..24 total leaves for the turn; each leaf declares an
+exact `id`, `title`, `task`, `OWNS`, `Needs`, `tier`, and ordered `checks`.
+Invalid, overlapping, cyclic, absolute, traversal, ambiguous, or undersized
+plans fail closed before worker stages launch.
+
+Goal then runs a rolling frontier: every ready leaf may dispatch immediately up
+to `max_parallel_agents` (default `10`), and a dependant unlocks as soon as all
+of its own `Needs` are verified. There is no static wave barrier that waits for
+unrelated slow leaves. Each worker receives only its leaf contract and artifact
+paths, and each verifier must return exact per-check results with command,
+expectation, status, and evidence. Missing, reordered, extra, or self-reported
+checks are unmet until proven by the verifier evidence.
+
+Model routing is deliberate. Goal prefers Fable 5 for the
+planner/orchestrator, rotates worker and verifier leaves across configured
+model families with fallbacks, and sends the final decision to three
+decorrelated reviewers before a deterministic reducer forms the completion
+quorum. Provider and model availability still come from the user's configured
+catalog, so fallbacks may run when a preferred model is unavailable.
+
+Goal reduces false completion, but it cannot promise literal infallibility.
+Model judgment can still be wrong; tools, files, providers, or credentials can
+be unavailable; some checks are unsafe or impossible to run; and external
+authority may be required. In those cases Goal carries evidence into a bounded
+repair turn, and if the turn budget is exhausted or human action is required it
+returns `needs_human` rather than calling incomplete work done.
 
 | User need | Use |
 |-----------|-----|
 | Run, inspect, connect to, pause, interrupt, quit, resume, or check status for an existing workflow | `/workflow ...` or `workflow({ action: ... })` |
 | Run repository-wide research | Compose `fan-out-and-synthesize` with repository-focused branches, artifact outputs, and a synthesis barrier, or author a smaller task-specific research workflow. |
-| Run an implementation/review loop | Author a task-specific worker → fresh verifier → reducer loop with explicit evidence, repair bounds, and stop conditions. |
+| Run an implementation/review loop | Use `goal` by default for substantial coding tasks, or author a task-specific worker -> fresh verifier -> reducer loop when domain gates require a custom graph. |
 | Create or edit reusable automation | A TypeScript workflow definition exported from `workflow({...})` |
 | Make a workflow robust | Design the stage graph, context handoffs, artifacts, validation gates, model fallbacks, and human approval points before coding |
 
@@ -750,7 +783,16 @@ All six can run by name or as nested definitions. Prefer composition over copyin
 
 ### `goal`
 
-Goal persists the literal objective and immutable acceptance criteria in a run ledger, delegates implementation through bounded orchestrator turns, records receipts, and asks independent reviewers to inspect the current delta. A TypeScript reducer returns `complete`, `blocked`, or `needs_human` rather than trusting free-form completion claims.
+Goal persists the literal objective and immutable acceptance criteria in a run
+ledger, asks a Fable-5-preferred planner/orchestrator to freeze a validated
+depth-tree execution plan, then runs the ready leaves as a rolling multi-agent
+team. The plan must contain 3..24 total leaves per turn and each leaf must carry
+exact `OWNS`, `Needs`, tier, and checks. Goal dispatches up to 10 ready leaves
+at once by default, unlocks dependants immediately after their own needs verify,
+records leaf receipts and exact per-check evidence, and asks independent
+reviewers to inspect the current delta. A TypeScript reducer returns
+`complete`, `blocked`, or `needs_human` rather than trusting free-form
+completion claims.
 
 Goal reviewers derive checks from the literal objective before consulting implementation receipts, inspect the actual checkout delta, and report commands, observed output, and file:line evidence rather than internal reasoning. Shared contracts cover acceptance-matrix traceability, contract-fidelity risks, end-to-end and QA-video evidence, and independent verification. `stop_review_loop` is the authoritative convergence signal: it remains `false` for P0–P2 findings, any `required_by_objective` finding, or unproven implementation/validation requirements; it becomes `true` only when independent evidence proves the objective and only non-blocking or authorized post-approval work remains. The deterministic reducer consumes that signal without reinterpreting free-form prose.
 
@@ -759,16 +801,30 @@ Goal reviewers derive checks from the literal objective before consulting implem
 | `objective` | text | yes | — | Task to implement and validate. Keep PR/MR creation out of this text. |
 | `acceptance_criteria` | text | no | objective | Immutable original contract, especially for follow-up runs. |
 | `max_turns` | number | no | `10` | Maximum orchestrator/review turns. |
+| `min_team_size` | number | no | `3` | Minimum execution leaves the planner must create for native Goal team mode. |
+| `max_team_size` | number | no | `24` | Maximum execution leaves in one turn plan; caps total team size separately from concurrent dispatch. |
+| `max_parallel_agents` | number | no | `10` | Maximum ready execution leaves Goal may run concurrently during rolling fan-out. |
+| `legacy_orchestrator` | boolean | no | `false` | Deprecated compatibility escape for the old single-orchestrator loop. Leave false for native Goal. |
 | `base_branch` | string | no | `origin/main` | Review and optional final-action comparison base. |
 | `git_worktree_dir` | string | no | `""` | Optional reusable worktree, only when explicitly requested. |
 | `create_pr` | boolean | no | `false` | Authorize the post-approval PR/MR/review stage. Prompt text alone never opts in. |
+
+The native team defaults are `min_team_size=3`, `max_team_size=24`, and
+`max_parallel_agents=10`.
 
 ```text
 /workflow goal objective="Update the CLI docs for --json, add one example, and validate the docs build"
 /workflow goal objective="Implement specs/rate-limit.md and run focused checks" create_pr=true
 ```
 
-Declared outputs include `result`, `status`, `approved`, `goal_id`, `objective`, `acceptance_criteria`, `ledger_path`, turn counts, receipts, remaining work, review artifacts, and optional `pr_report`.
+Declared outputs include `result`, `status`, `approved`, `goal_id`,
+`objective`, `acceptance_criteria`, `ledger_path`, turn counts, receipts,
+remaining work, `review_report_path`, `execution_plan_path`,
+`execution_report_path`, and optional `pr_report`. Every Goal invocation uses
+the native plan/fan-out/verify/review loop by default, including direct
+programmatic calls that omit the team inputs. The deprecated single-orchestrator
+path is available only when a caller explicitly sets
+`legacy_orchestrator=true`.
 
 ### `ralph`
 
