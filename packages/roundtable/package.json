@@ -1,6 +1,6 @@
 {
   "name": "@orphus/roundtable",
-  "version": "0.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "Atomic extension providing group chat rooms between agent sessions with token-budgeted digests that keep inter-agent discussion out of the context window until pulled.",
   "license": "MIT",
