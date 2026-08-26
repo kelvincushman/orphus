@@ -28,8 +28,7 @@ name: Release
 
 on:
   push:
-    # `v`-prefixed so it can never collide with the bare numeric tags that
-    # publish.yml triggers on, which the release-cutting script produces.
+    # `v`-prefixed so it never collides with inherited bare numeric release tags.
     tags: ["v*"]
 
 permissions:

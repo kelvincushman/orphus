@@ -168,7 +168,7 @@ curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.s
 orphus
 ```
 
-`install.sh --help` documents pinning a version (`--ref v2.0.0`) and the
+`install.sh --help` documents pinning a version (`--ref v2.1.0`) and the
 `ORPHUS_INSTALL_DIR` / `ORPHUS_BIN_DIR` overrides. Add an **API key** for whichever provider
 you use, or log in from inside a session with `/login`.
 
@@ -434,10 +434,13 @@ the empty list, so growing it again is a reviewed act. Details: [docs/ci.md](doc
 
 ### Release archives
 
-Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds a **macOS arm64**
-archive and a **Linux x64** archive, checks that each binary reports the tag's version,
-writes a `SHA256SUMS` the installer verifies against, and stages a **draft** GitHub Release
-for a human to publish. It deliberately publishes to no registry.
+Release cuts use a plain version tag for the stamped release commit and a matching `v`
+tag for the downloadable GitHub archives. For example, `2.1.0` is the internal
+release tag and `v2.1.0` is the public archive/install tag. The archive workflow
+builds a **macOS arm64** archive and a **Linux x64** archive, checks that each
+binary reports the tag's version, writes a `SHA256SUMS` the installer verifies
+against, and stages a **draft** GitHub Release for a human to publish. It
+deliberately publishes to no registry.
 
 **Platform scope.** macOS arm64 (Apple silicon) and Linux x64 glibc are the built platforms.
 Windows, Linux arm64, and musl (Alpine) are not built — each needs its own napi-slug `.node`

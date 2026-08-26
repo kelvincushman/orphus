@@ -2,9 +2,15 @@
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-08-26
+
 ### Changed
 
 - Updated Orphus guidance and workflow docs so substantial verifiable coding tasks route to native Goal by default, with direct chat reserved for tiny deterministic work and Goal's plan/report artifacts, team bounds, model-routing fallbacks, reviewer quorum, and incomplete-state limits documented explicitly.
+
+### Fixed
+
+- Installed and split-runtime extension loading now resolves `@orphus/roundtable/bounded-render.ts` from the bundled Roundtable package, preventing the v2.0.0 subagent startup failure caused by the missing virtual-module alias.
 
 ## [2.0.1] - 2026-08-23
 

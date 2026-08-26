@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-08-26
+
 ### Changed
 
 - Interactive top-level Goal runs now open the existing workflow graph automatically so operators can see the rolling team and attach to live worker sessions without first discovering F2 or `/workflow connect`.
