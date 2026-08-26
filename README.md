@@ -260,12 +260,16 @@ those agents, outside their context windows.
 ## Live worker visibility
 
 Orphus now treats visible orchestration as part of the product, not a hidden debug
-feature. When background subagents or workflow-owned workers are running, the
-below-editor panel is branded as `ORPHUS HARNESS · workers live` and each active lane is
-shown as `Worker N/M` with status, model/thinking labels, current activity, tool counts,
-token totals, and the live-detail shortcut. Press `Ctrl+O` (or your configured
-`app.tools.expand` binding) to expand the panel and see recent tools and output while
-the work is still in flight.
+feature. Interactive Goal runs automatically open the existing workflow graph, where
+you can see every stage and worker, its status, model, elapsed time, and dependencies.
+Use the arrow keys to select a worker, press Enter to attach to its live session, and
+press F2 to hide or return to the graph.
+
+Background subagents also appear in a below-editor panel branded as
+`ORPHUS HARNESS · workers live`. Parallel lanes are shown as `Worker N/M` with status,
+model/thinking labels, and current activity; expanded views add recent tools, output,
+and available counters. Press `Ctrl+O` (or your configured `app.tools.expand` binding)
+to expand the panel while work is still in flight.
 
 The shape is deliberately small: it borrows the useful part of Fusion Harness-style
 operator visibility — clear live lanes and evidence that every worker is moving —
