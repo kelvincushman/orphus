@@ -1,4 +1,8 @@
 <div align="center">
+<img src="docs/assets/orphus-wordmark.svg" alt="ORPHUS" width="720">
+
+<details>
+<summary>Plain-text wordmark fallback</summary>
 <pre>
  ██████╗ ██████╗ ██████╗ ██╗  ██╗██╗   ██╗███████╗
 ██╔═══██╗██╔══██╗██╔══██╗██║  ██║██║   ██║██╔════╝
