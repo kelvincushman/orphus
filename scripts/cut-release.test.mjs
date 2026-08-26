@@ -69,6 +69,7 @@ test("cut-release is fail-closed in a disposable Git remote", { timeout: 300_000
 		git(fixture, "checkout", "-B", "main");
 		git(fixture, "config", "user.name", "Orphus release test");
 		git(fixture, "config", "user.email", "release-test@localhost");
+		git(fixture, "config", "lfs.allowincompletepush", "true");
 
 		mkdirSync(remote);
 		git(remote, "init", "--bare");
