@@ -75,7 +75,7 @@ test("cut-release is fail-closed in a disposable Git remote", { timeout: 300_000
 		git(fixture, "remote", "set-url", "origin", remote);
 		git(fixture, "push", "-u", "origin", "main");
 
-		const releaseEnv = { ...process.env, TMPDIR: tempRoot };
+		const releaseEnv = { ...process.env, GIT_LFS_SKIP_SMUDGE: "1", TMPDIR: tempRoot };
 		const first = run(
 			bun,
 			["run", "scripts/cut-release.ts", "9.8.7", "--base", "main", "--yes"],
