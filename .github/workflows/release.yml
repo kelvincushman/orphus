@@ -312,6 +312,29 @@ jobs:
           if ($version -ne $env:VERSION) {
             throw "Expected version $env:VERSION, got $version"
           }
+          bun run ../../../scripts/assert-builtin-set.ts ./release/orphus/builtin
+          if ($LASTEXITCODE -ne 0) { throw "Bundled extension set is incomplete" }
+          foreach ($path in @(
+            "release/orphus/app.js",
+            "release/orphus/builtin/workflows/package.json",
+            "release/orphus/builtin/subagents/package.json",
+            "release/orphus/node_modules/@orphus/natives/native/atomic_natives.win32-x64-msvc.node",
+            "release/orphus/native/win32/prebuilds/win32-x64/win32-console-mode.node"
+          )) {
+            if (-not (Test-Path $path)) { throw "Missing release archive path: $path" }
+          }
+          $orphus = (Resolve-Path ./release/orphus/orphus.exe).Path
+          $smoke = Join-Path $env:RUNNER_TEMP "orphus-windows-cwd"
+          New-Item -ItemType Directory -Force -Path $smoke | Out-Null
+          Push-Location $smoke
+          $output = "" | & $orphus --no-session 2>&1 | Out-String
+          $status = $LASTEXITCODE
+          Pop-Location
+          Write-Host $output
+          if ($output -match "Failed to load extension") { throw "Bundled extension failed to load" }
+          if ($status -ne 0 -and $output -notmatch "No models available|No model selected|No API key found") {
+            throw "Unexpected clean-start exit: $status"
+          }
           Compress-Archive -Path release/orphus -DestinationPath orphus-windows-x64.zip -Force
           Remove-Item -Recurse -Force release, atomic-windows-x64.zip
 
@@ -356,11 +379,19 @@ jobs:
           # The tag tree carries the release announcement (RELEASE_NOTES.md at
           # the repo root); the platform line is the fallback so a tag without
           # notes still stages a usable draft.
+          existing=$(gh release view "$TAG" --json isDraft --jq .isDraft 2>/dev/null || true)
+          [[ "$existing" != false ]] || { echo "Release $TAG is already public; refusing to mutate it." >&2; exit 1; }
+          [[ "$existing" != true ]] || gh release delete "$TAG" --yes
           if [ -f ../RELEASE_NOTES.md ]; then
-            gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes-file ../RELEASE_NOTES.md \
-              orphus-darwin-arm64.tar.gz orphus-linux-x64.tar.gz orphus-windows-x64.zip SHA256SUMS
+            gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes-file ../RELEASE_NOTES.md
           else
             gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes \
-              'Linux x64, macOS arm64, and Windows x64 builds. Linux requires glibc 2.27 or newer; the archive verifies this exact floor before staging.' \
-              orphus-darwin-arm64.tar.gz orphus-linux-x64.tar.gz orphus-windows-x64.zip SHA256SUMS
+              'Linux x64, macOS arm64, and Windows x64 builds. Linux requires glibc 2.27 or newer; the archive verifies this exact floor before staging.'
           fi
+          assets=(orphus-darwin-arm64.tar.gz orphus-linux-x64.tar.gz orphus-windows-x64.zip SHA256SUMS)
+          for asset in "${assets[@]}"; do
+            gh release upload "$TAG" "$asset"
+          done
+          expected=$(printf '%s\n' "${assets[@]}" | sort)
+          actual=$(gh release view "$TAG" --json assets --jq '.assets[].name' | sort)
+          [[ "$actual" == "$expected" ]] || { echo "Draft release asset set mismatch" >&2; exit 1; }

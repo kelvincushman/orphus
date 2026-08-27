@@ -69,10 +69,28 @@ test("the windows x64 archive is host-built, renamed, verified, and staged", asy
 	assert.match(windowsJob, /Expand-Archive -Path atomic-windows-x64\.zip -DestinationPath release\/orphus/u);
 	assert.match(windowsJob, /Rename-Item -Path release\/orphus\/atomic\.exe -NewName orphus\.exe/u);
 	assert.match(windowsJob, /& \.\/release\/orphus\/orphus\.exe --version/u);
+	assert.match(windowsJob, /assert-builtin-set\.ts \.\/release\/orphus\/builtin/u);
+	assert.match(windowsJob, /atomic_natives\.win32-x64-msvc\.node/u);
+	assert.match(windowsJob, /win32-console-mode\.node/u);
+	assert.match(windowsJob, /& \$orphus --no-session/u);
+	assert.match(windowsJob, /Failed to load extension/u);
 	assert.match(windowsJob, /Compress-Archive -Path release\/orphus -DestinationPath orphus-windows-x64\.zip -Force/u);
 	assert.match(workflow, /name: orphus-windows-x64/u);
 	assert.match(workflow, /path: packages\/coding-agent\/binaries\/orphus-windows-x64\.zip/u);
 	assert.doesNotMatch(workflow, /gh release create[^\n]*[\s\S]{0,200}?atomic-windows-x64/u);
+});
+
+test("draft assets are uploaded one at a time and a rerun replaces only an existing draft", async () => {
+	const workflow = await readText(releasePath);
+	assert.match(workflow, /existing=\$\(gh release view "\$TAG" --json isDraft --jq \.isDraft/u);
+	assert.match(workflow, /\[\[ "\$existing" != false \]\]/u);
+	assert.match(workflow, /\[\[ "\$existing" != true \]\] \|\| gh release delete "\$TAG" --yes/u);
+	assert.match(
+		workflow,
+		/assets=\(orphus-darwin-arm64\.tar\.gz orphus-linux-x64\.tar\.gz orphus-windows-x64\.zip SHA256SUMS\)/u,
+	);
+	assert.match(workflow, /for asset in "\$\{assets\[@\]\}"; do\s+gh release upload "\$TAG" "\$asset"/u);
+	assert.match(workflow, /Draft release asset set mismatch/u);
 });
 
 test("the release glibc contract is wired, measured across every ELF file, and stated coherently", async () => {

@@ -158,9 +158,9 @@ context-window contract actually hold.
 
 ## Tier 2 — Use Orphus as your agent
 
-The fastest path is the release installer — no toolchain, no clone. It detects your platform
-(macOS arm64, Linux x64 glibc, or Windows x64), downloads the newest release archive, verifies
-its checksum, and links `orphus` into `~/.local/bin`:
+The fastest path on macOS arm64 or Linux x64 glibc is the release installer — no toolchain,
+no clone. It downloads the newest release archive, verifies its checksum, and links `orphus`
+into `~/.local/bin`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.sh | sh
@@ -176,6 +176,28 @@ re-runs the installer, and flips the `current` pointer — the previous version 
 disk for rollback (older ones are pruned). Nobody reinstalls by hand. Updates follow your channel: a stable install tracks
 stable releases only, so it is never dragged onto a beta; a prerelease install tracks the
 newest release of any kind.
+
+### Windows x64
+
+Windows x64 is distributed as a portable ZIP for now. Download
+`orphus-windows-x64.zip` and `SHA256SUMS` from the
+[latest release](https://github.com/kelvincushman/orphus/releases/latest), then verify and
+extract it in PowerShell:
+
+```powershell
+$checksum = Get-Content .\SHA256SUMS |
+  Where-Object { $_ -match 'orphus-windows-x64\.zip$' } |
+  Select-Object -First 1
+if (-not $checksum) { throw "Windows checksum not found" }
+$expected = $checksum.Split()[0].ToLowerInvariant()
+$actual = (Get-FileHash .\orphus-windows-x64.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actual -ne $expected) { throw "Checksum mismatch" }
+Expand-Archive .\orphus-windows-x64.zip -DestinationPath . -Force
+.\orphus\orphus.exe
+```
+
+The Windows ZIP does not yet have managed installation or in-place self-update; replace the
+extracted folder when a newer release is published.
 
 ### Building from a clone instead
 
@@ -437,15 +459,15 @@ Release cuts use a plain version tag for the stamped release commit and a matchi
 tag for the downloadable GitHub archives. For example, `2.1.0` is the internal
 release tag and `v2.1.0` is the public archive/install tag. The archive workflow
 builds **macOS arm64**, **Linux x64**, and **Windows x64** archives, checks that each
-binary reports the tag's version, writes a `SHA256SUMS` the installer verifies
-against, and stages a **draft** GitHub Release for a human to publish. It
+binary reports the tag's version, writes a `SHA256SUMS` for installer or manual
+verification, and stages a **draft** GitHub Release for a human to publish. It
 deliberately publishes to no registry.
 
 **Platform scope.** macOS arm64 (Apple silicon), Linux x64 glibc, and Windows x64 are the built platforms.
 Linux arm64 and musl (Alpine) are not built — each needs its own napi-slug `.node`
 staged first, so each is another job rather than another matrix row. Intel macOS is not
-planned. If you need one of these, open an issue; the installer already refuses politely on
-unsupported platforms rather than guessing.
+planned. The shell installer manages macOS and Linux; Windows uses the portable ZIP above.
+If you need another platform, open an issue rather than treating an unbuilt target as supported.
 
 **What the archive runs on.** Its glibc floor is **2.27** — distributions providing glibc
 2.27 or newer satisfy that ABI requirement (Ubuntu 18.04 ships 2.27). The floor is not
