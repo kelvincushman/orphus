@@ -1,6 +1,6 @@
 {
   "name": "@orphus/fleet",
-  "version": "0.0.0",
+  "version": "2.1.1",
   "private": true,
   "description": "Orphus extension for community-shareable fleet orchestration: blueprints bind teams of agents with pre-assigned skills to deliberation rooms and dispatch fan-out.",
   "license": "MIT",
@@ -24,16 +24,28 @@
     "LICENSE"
   ],
   "orphus": {
-    "extensions": ["./index.ts"],
-    "skills": ["./skills"]
+    "extensions": [
+      "./index.ts"
+    ],
+    "skills": [
+      "./skills"
+    ]
   },
   "atomic": {
-    "extensions": ["./index.ts"],
-    "skills": ["./skills"]
+    "extensions": [
+      "./index.ts"
+    ],
+    "skills": [
+      "./skills"
+    ]
   },
   "pi": {
-    "extensions": ["./index.ts"],
-    "skills": ["./skills"]
+    "extensions": [
+      "./index.ts"
+    ],
+    "skills": [
+      "./skills"
+    ]
   },
   "peerDependencies": {
     "@orphus/coding-agent": "*"

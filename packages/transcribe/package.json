@@ -1,6 +1,6 @@
 {
   "name": "@orphus/transcribe",
-  "version": "0.0.0",
+  "version": "2.1.1",
   "private": true,
   "description": "Local speech-to-text dictation for Orphus. Derived from pi-transcribe (MIT); see UPSTREAM.md.",
   "license": "MIT",
