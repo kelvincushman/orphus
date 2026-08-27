@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [2.1.2] - 2026-08-27
+
+### Changed
+
+- Stable releases now include a host-built, version-checked Windows x64 portable ZIP alongside the existing macOS arm64 and Linux x64 archives. The Windows package is checksum-listed but does not yet provide the Unix installer's managed update path.
+
+## [2.1.1] - 2026-08-27
+
 ### Changed
 
 - The startup ORPHUS wordmark is now plain ASCII, readable at terminal size, and pinned to the Orphus Matrix-green brand color instead of inheriting theme success colors that could render olive. The default dark theme now uses the same black, Matrix green, dim green, off-white, and grey tokens as the Orphus site.

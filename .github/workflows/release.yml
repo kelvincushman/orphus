@@ -9,7 +9,7 @@ name: Release
 # fork actually needs — produce something a user can download — and deliberately
 # does not publish to any registry.
 #
-# Linux x64 and macOS arm64 only, on purpose. Every platform needs its own
+# Linux x64, macOS arm64, and Windows x64 only, on purpose. Every platform needs its own
 # napi-slug `.node` staged before scripts/build-binaries.sh will run (it exits 1
 # rather than warning), so each additional target is another job. Targets are
 # added as they are actually wanted.
@@ -248,8 +248,105 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: false
+      # Same LFS hydration as the Unix jobs, expressed through Git Bash so the
+      # content-addressed asset contract stays identical.
+      - name: Hydrate the interactive release asset
+        shell: bash
+        env:
+          ASSET: packages/coding-agent/src/modes/interactive/assets/clankolas.png
+          ASSET_SHA256: 169acd0dfe6fbb8d8742ed24a3fc654fd0b2e2d4223c733249c5493723f1b72d
+        run: |
+          set -euo pipefail
+          git lfs install --local
+          git remote add upstream-lfs https://github.com/bastani-inc/atomic.git
+          git lfs fetch upstream-lfs HEAD --include="$ASSET" --exclude=''
+          git lfs checkout "$ASSET"
+          test "$(sha256sum "$ASSET" | cut -d' ' -f1)" = "$ASSET_SHA256"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # v1
+        with:
+          toolchain: stable
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Validate and stamp the release version
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG#v}"
+          [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta)\.[1-9][0-9]*)?$ ]]
+          [[ "$VERSION" != "0.0.0" ]]
+          bun run scripts/bump-version.ts "$VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Build the Windows x64 archive
+        shell: bash
+        run: ./scripts/build-binaries.sh --skip-deps --skip-install --platform windows-x64
+
+      - name: Package and verify the Orphus archive
+        shell: pwsh
+        working-directory: packages/coding-agent/binaries
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Path release | Out-Null
+          Expand-Archive -Path atomic-windows-x64.zip -DestinationPath release/orphus
+          Rename-Item -Path release/orphus/atomic.exe -NewName orphus.exe
+          $version = & ./release/orphus/orphus.exe --version
+          if ($version -ne $env:VERSION) {
+            throw "Expected version $env:VERSION, got $version"
+          }
+          bun run ../../../scripts/assert-builtin-set.ts ./release/orphus/builtin
+          if ($LASTEXITCODE -ne 0) { throw "Bundled extension set is incomplete" }
+          foreach ($path in @(
+            "release/orphus/app.js",
+            "release/orphus/builtin/workflows/package.json",
+            "release/orphus/builtin/subagents/package.json",
+            "release/orphus/node_modules/@orphus/natives/native/atomic_natives.win32-x64-msvc.node",
+            "release/orphus/native/win32/prebuilds/win32-x64/win32-console-mode.node"
+          )) {
+            if (-not (Test-Path $path)) { throw "Missing release archive path: $path" }
+          }
+          $orphus = (Resolve-Path ./release/orphus/orphus.exe).Path
+          $smoke = Join-Path $env:RUNNER_TEMP "orphus-windows-cwd"
+          New-Item -ItemType Directory -Force -Path $smoke | Out-Null
+          Push-Location $smoke
+          $output = "" | & $orphus --no-session 2>&1 | Out-String
+          $status = $LASTEXITCODE
+          Pop-Location
+          Write-Host $output
+          if ($output -match "Failed to load extension") { throw "Bundled extension failed to load" }
+          if ($status -ne 0 -and $output -notmatch "No models available|No model selected|No API key found") {
+            throw "Unexpected clean-start exit: $status"
+          }
+          Compress-Archive -Path release/orphus -DestinationPath orphus-windows-x64.zip -Force
+          Remove-Item -Recurse -Force release, atomic-windows-x64.zip
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: orphus-windows-x64
+          path: packages/coding-agent/binaries/orphus-windows-x64.zip
+          if-no-files-found: error
+          retention-days: 7
+
   release:
-    needs: [build-linux, build-darwin]
+    needs: [build-linux, build-darwin, build-windows]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -267,7 +364,7 @@ jobs:
 
       - name: Checksum
         working-directory: binaries
-        run: sha256sum orphus-darwin-arm64.tar.gz orphus-linux-x64.tar.gz > SHA256SUMS
+        run: sha256sum orphus-darwin-arm64.tar.gz orphus-linux-x64.tar.gz orphus-windows-x64.zip > SHA256SUMS
 
       # Draft, so a human decides whether the artifact is worth publishing —
       # matching publish.yml's staging behaviour, which never undrafts until the
@@ -282,11 +379,19 @@ jobs:
           # The tag tree carries the release announcement (RELEASE_NOTES.md at
           # the repo root); the platform line is the fallback so a tag without
           # notes still stages a usable draft.
+          existing=$(gh release view "$TAG" --json isDraft --jq .isDraft 2>/dev/null || true)
+          [[ "$existing" != false ]] || { echo "Release $TAG is already public; refusing to mutate it." >&2; exit 1; }
+          [[ "$existing" != true ]] || gh release delete "$TAG" --yes
           if [ -f ../RELEASE_NOTES.md ]; then
-            gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes-file ../RELEASE_NOTES.md \
-              orphus-darwin-arm64.tar.gz orphus-linux-x64.tar.gz SHA256SUMS
+            gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes-file ../RELEASE_NOTES.md
           else
             gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes \
-              'Linux x64 and macOS arm64 builds. Linux requires glibc 2.27 or newer; the archive verifies this exact floor before staging.' \
-              orphus-darwin-arm64.tar.gz orphus-linux-x64.tar.gz SHA256SUMS
+              'Linux x64, macOS arm64, and Windows x64 builds. Linux requires glibc 2.27 or newer; the archive verifies this exact floor before staging.'
           fi
+          assets=(orphus-darwin-arm64.tar.gz orphus-linux-x64.tar.gz orphus-windows-x64.zip SHA256SUMS)
+          for asset in "${assets[@]}"; do
+            gh release upload "$TAG" "$asset"
+          done
+          expected=$(printf '%s\n' "${assets[@]}" | sort)
+          actual=$(gh release view "$TAG" --json assets --jq '.assets[].name' | sort)
+          [[ "$actual" == "$expected" ]] || { echo "Draft release asset set mismatch" >&2; exit 1; }

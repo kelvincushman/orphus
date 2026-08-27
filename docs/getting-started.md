@@ -97,9 +97,8 @@ no room and no transcript** answers a question about what was decided.
 
 ## 2. Use Orphus as your coding agent
 
-The fastest path needs no clone at all — the release installer detects your
-platform (macOS arm64 or Linux x64 glibc today), verifies checksums, and links
-`orphus` onto your PATH:
+The fastest path on macOS arm64 or Linux x64 glibc needs no clone at all — the release
+installer verifies checksums and links `orphus` onto your PATH:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.sh | sh
@@ -115,6 +114,12 @@ prerelease install tracks the newest release of any kind. `--ref` pins one
 exact tag (`install.sh --ref v0.1.0-beta.4`) — installing a prerelease that
 way puts your next `orphus update` on the prerelease channel until a stable
 lands you back.
+
+Windows x64 currently uses the checksum-verified portable
+`orphus-windows-x64.zip` from the
+[latest release](https://github.com/kelvincushman/orphus/releases/latest). Follow the
+[PowerShell verification and extraction steps](../README.md#windows-x64) in the README.
+Managed Windows installation and in-place self-update are not yet supported.
 
 Orphus is not published to npm. To run from a checkout instead, build the
 binary:

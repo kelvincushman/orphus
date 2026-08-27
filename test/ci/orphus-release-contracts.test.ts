@@ -41,11 +41,11 @@ test("the tag version is stamped and proven by the packaged Orphus executable", 
 	assert.match(workflow, /mv release\/atomic release\/orphus/u);
 	assert.match(workflow, /mv release\/orphus\/atomic release\/orphus\/orphus/u);
 	assert.match(workflow, /test "\$\(release\/orphus\/orphus --version\)" = "\$VERSION"/u);
-	assert.match(workflow, /orphus-linux-x64\.tar\.gz SHA256SUMS/u);
+	assert.match(workflow, /orphus-linux-x64\.tar\.gz orphus-windows-x64\.zip SHA256SUMS/u);
 	assert.doesNotMatch(workflow, /gh release create[^\n]*[\s\S]{0,200}?atomic-linux-x64/u);
 });
 
-test("the darwin arm64 archive is host-built, renamed, verified, and staged beside linux", async () => {
+test("the darwin arm64 archive is host-built, renamed, verified, and staged beside linux and windows", async () => {
 	const workflow = await readText(releasePath);
 	assert.match(workflow, /runs-on: macos-15/u);
 	assert.match(workflow, /build-binaries\.sh --skip-deps --skip-install --platform darwin-arm64/u);
@@ -56,8 +56,41 @@ test("the darwin arm64 archive is host-built, renamed, verified, and staged besi
 	// IS the target, and zig/cargo-zigbuild there would only obscure that.
 	const darwinJob = workflow.slice(workflow.indexOf("build-darwin:"), workflow.indexOf("\n  release:"));
 	assert.doesNotMatch(darwinJob, /setup-zig|cargo-zigbuild@|CROSS_TARGET:|GLIBC_FLOOR/u);
-	assert.match(workflow, /needs: \[build-linux, build-darwin\]/u);
-	assert.match(workflow, /orphus-darwin-arm64\.tar\.gz orphus-linux-x64\.tar\.gz SHA256SUMS/u);
+	assert.match(workflow, /needs: \[build-linux, build-darwin, build-windows\]/u);
+	assert.match(workflow, /orphus-darwin-arm64\.tar\.gz orphus-linux-x64\.tar\.gz orphus-windows-x64\.zip SHA256SUMS/u);
+});
+
+test("the windows x64 archive is host-built, renamed, verified, and staged", async () => {
+	const workflow = await readText(releasePath);
+	const windowsJob = workflow.slice(workflow.indexOf("build-windows:"), workflow.indexOf("\n  release:"));
+	assert.match(windowsJob, /runs-on: windows-latest/u);
+	assert.match(windowsJob, /sha256sum "\$ASSET"/u);
+	assert.match(windowsJob, /build-binaries\.sh --skip-deps --skip-install --platform windows-x64/u);
+	assert.match(windowsJob, /Expand-Archive -Path atomic-windows-x64\.zip -DestinationPath release\/orphus/u);
+	assert.match(windowsJob, /Rename-Item -Path release\/orphus\/atomic\.exe -NewName orphus\.exe/u);
+	assert.match(windowsJob, /& \.\/release\/orphus\/orphus\.exe --version/u);
+	assert.match(windowsJob, /assert-builtin-set\.ts \.\/release\/orphus\/builtin/u);
+	assert.match(windowsJob, /atomic_natives\.win32-x64-msvc\.node/u);
+	assert.match(windowsJob, /win32-console-mode\.node/u);
+	assert.match(windowsJob, /& \$orphus --no-session/u);
+	assert.match(windowsJob, /Failed to load extension/u);
+	assert.match(windowsJob, /Compress-Archive -Path release\/orphus -DestinationPath orphus-windows-x64\.zip -Force/u);
+	assert.match(workflow, /name: orphus-windows-x64/u);
+	assert.match(workflow, /path: packages\/coding-agent\/binaries\/orphus-windows-x64\.zip/u);
+	assert.doesNotMatch(workflow, /gh release create[^\n]*[\s\S]{0,200}?atomic-windows-x64/u);
+});
+
+test("draft assets are uploaded one at a time and a rerun replaces only an existing draft", async () => {
+	const workflow = await readText(releasePath);
+	assert.match(workflow, /existing=\$\(gh release view "\$TAG" --json isDraft --jq \.isDraft/u);
+	assert.match(workflow, /\[\[ "\$existing" != false \]\]/u);
+	assert.match(workflow, /\[\[ "\$existing" != true \]\] \|\| gh release delete "\$TAG" --yes/u);
+	assert.match(
+		workflow,
+		/assets=\(orphus-darwin-arm64\.tar\.gz orphus-linux-x64\.tar\.gz orphus-windows-x64\.zip SHA256SUMS\)/u,
+	);
+	assert.match(workflow, /for asset in "\$\{assets\[@\]\}"; do\s+gh release upload "\$TAG" "\$asset"/u);
+	assert.match(workflow, /Draft release asset set mismatch/u);
 });
 
 test("the release glibc contract is wired, measured across every ELF file, and stated coherently", async () => {
