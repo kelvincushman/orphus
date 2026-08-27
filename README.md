@@ -159,8 +159,8 @@ context-window contract actually hold.
 ## Tier 2 — Use Orphus as your agent
 
 The fastest path is the release installer — no toolchain, no clone. It detects your platform
-(macOS arm64 or Linux x64 glibc today), downloads the newest release archive, verifies its
-checksum, and links `orphus` into `~/.local/bin`:
+(macOS arm64, Linux x64 glibc, or Windows x64), downloads the newest release archive, verifies
+its checksum, and links `orphus` into `~/.local/bin`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/kelvincushman/orphus/main/install.sh | sh
@@ -436,13 +436,13 @@ the empty list, so growing it again is a reviewed act. Details: [docs/ci.md](doc
 Release cuts use a plain version tag for the stamped release commit and a matching `v`
 tag for the downloadable GitHub archives. For example, `2.1.0` is the internal
 release tag and `v2.1.0` is the public archive/install tag. The archive workflow
-builds a **macOS arm64** archive and a **Linux x64** archive, checks that each
+builds **macOS arm64**, **Linux x64**, and **Windows x64** archives, checks that each
 binary reports the tag's version, writes a `SHA256SUMS` the installer verifies
 against, and stages a **draft** GitHub Release for a human to publish. It
 deliberately publishes to no registry.
 
-**Platform scope.** macOS arm64 (Apple silicon) and Linux x64 glibc are the built platforms.
-Windows, Linux arm64, and musl (Alpine) are not built — each needs its own napi-slug `.node`
+**Platform scope.** macOS arm64 (Apple silicon), Linux x64 glibc, and Windows x64 are the built platforms.
+Linux arm64 and musl (Alpine) are not built — each needs its own napi-slug `.node`
 staged first, so each is another job rather than another matrix row. Intel macOS is not
 planned. If you need one of these, open an issue; the installer already refuses politely on
 unsupported platforms rather than guessing.

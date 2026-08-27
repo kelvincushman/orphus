@@ -255,6 +255,7 @@ The active Orphus release tag is `v`-prefixed:
 | --- | --- |
 | `v2.1.0` | stable draft release with Linux x64 and macOS arm64 archives |
 | `v2.1.0-alpha.1` | prerelease draft release with Linux x64 and macOS arm64 archives |
+| `v2.1.2` and newer | release workflow stages Linux x64, macOS arm64, and Windows x64 archives |
 
 For inherited publisher recovery only, a manual dispatch is available in `publish.yml`. It requires `tag` and accepts optional `source_ref`; when omitted, `source_ref` defaults to the tag. The inherited publisher integrity job always verifies the release tag itself. Native, smoke, and payload builds consume `source_ref`, matching pi's recovery model; payload metadata validation still requires the recovery source's package version to equal the release tag.
 
@@ -267,7 +268,7 @@ only the leading `v`, and verifies the archive identity against `<version>`:
 
 1. The public tag has the supported `vMAJOR.MINOR.PATCH` or prerelease format.
 2. The staged binary reports `<version>` from `--version`.
-3. Linux x64 and macOS arm64 archives are built with one `SHA256SUMS` file.
+3. Linux x64, macOS arm64, and Windows x64 archives are built with one `SHA256SUMS` file.
 4. A draft GitHub Release is staged for the unchanged `v<version>` tag.
 
 The disabled inherited publisher has its own lightweight tag/manifest checks,
@@ -504,4 +505,4 @@ Repository-wide workflow permissions are read-only. Only draft staging, undrafti
 2. Require the selected base's normal CI to pass.
 3. From a clean checkout, run `bun run scripts/cut-release.ts <version> --base <base> --push`.
 4. Inspect the single `.github/workflows/release.yml` run for `v<version>`. Do not start a duplicate manual run during normal publication.
-5. Confirm the public GitHub draft release exists for `v<version>` with `orphus-darwin-arm64.tar.gz`, `orphus-linux-x64.tar.gz`, and `SHA256SUMS`.
+5. Confirm the public GitHub draft release exists for `v<version>` with `orphus-darwin-arm64.tar.gz`, `orphus-linux-x64.tar.gz`, `orphus-windows-x64.zip`, and `SHA256SUMS`.

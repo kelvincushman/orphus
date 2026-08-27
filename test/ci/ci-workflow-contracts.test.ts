@@ -578,6 +578,8 @@ test("Blacksmith runners are used everywhere they are supported", async () => {
 	//   macos-15       - release.yml `build-darwin`, the darwin-arm64 archive.
 	//     GitHub-hosted Apple Silicon; Blacksmith runners are registered to the
 	//     upstream org (see above), so the fork's release cannot use theirs.
+	//   windows-latest  - release.yml `build-windows`, the windows-x64 archive.
+	//     It verifies the actual .exe on the host OS before attaching the zip.
 	//   ubuntu-latest  - ci.yml `review-gate`, which fails a PR whose automated
 	//     review reported PASSING while skipping the review. Same Blacksmith
 	//     reasoning as `verify`; it makes only GitHub API calls, so it needs no
@@ -591,6 +593,7 @@ test("Blacksmith runners are used everywhere they are supported", async () => {
 		"ubuntu-latest",
 		"ubuntu-latest",
 		"ubuntu-latest",
+		"windows-latest",
 	]);
 	assert.match(publish, /# Blacksmith macOS is Apple Silicon only[^\n]*\n\s+- \{ runner: macos-26-intel/u);
 	assert.match(publish, /npm trusted publishing rejects self-hosted runners[\s\S]{0,160}?runs-on: ubuntu-latest/u);

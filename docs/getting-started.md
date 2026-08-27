@@ -98,7 +98,7 @@ no room and no transcript** answers a question about what was decided.
 ## 2. Use Orphus as your coding agent
 
 The fastest path needs no clone at all — the release installer detects your
-platform (macOS arm64 or Linux x64 glibc today), verifies checksums, and links
+platform (macOS arm64, Linux x64 glibc, or Windows x64), verifies checksums, and links
 `orphus` onto your PATH:
 
 ```bash
