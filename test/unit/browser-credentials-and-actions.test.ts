@@ -62,13 +62,17 @@ function gate(options: {
 	};
 }
 
-test("both switches are off unless set, and login cannot be enabled on its own", () => {
-	assert.deepEqual(readBrowserFlags({}).enabled, false);
-	assert.deepEqual(readBrowserFlags({ ORPHUS_ENABLE_BROWSER_LOGIN: "1" }).loginEnabled, false);
+test("browser operation is on by default, has an explicit opt-out, and login remains separately gated", () => {
+	assert.deepEqual(readBrowserFlags({}).enabled, true);
+	assert.deepEqual(readBrowserFlags({}).loginEnabled, false);
+	assert.deepEqual(readBrowserFlags({ ORPHUS_ENABLE_BROWSER_LOGIN: "1" }).loginEnabled, true);
 	assert.deepEqual(readBrowserFlags({ ORPHUS_ENABLE_BROWSER: "1" }).loginEnabled, false);
 	const both = readBrowserFlags({ ORPHUS_ENABLE_BROWSER: "1", ORPHUS_ENABLE_BROWSER_LOGIN: "1" });
 	assert.deepEqual([both.enabled, both.loginEnabled], [true, true]);
-	assert.equal(readBrowserFlags({ ORPHUS_ENABLE_BROWSER: "0" }).enabled, false);
+	for (const value of ["0", "false", "off", ""]) {
+		const disabled = readBrowserFlags({ ORPHUS_ENABLE_BROWSER: value, ORPHUS_ENABLE_BROWSER_LOGIN: "1" });
+		assert.deepEqual([disabled.enabled, disabled.loginEnabled], [false, false], value);
+	}
 	assert.equal(readBrowserFlags({ ORPHUS_ENABLE_BROWSER: "1" }).headless, true);
 	assert.equal(readBrowserFlags({ ORPHUS_ENABLE_BROWSER: "1", ORPHUS_BROWSER_HEADLESS: "0" }).headless, false);
 });

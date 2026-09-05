@@ -113,7 +113,7 @@ messages intact verbatim and only early exploration collapsed.
 | **[The `roundtable` tool](docs/roundtable-tool.md)** | Every action, parameter, and default, with the reasoning. |
 | **[Architecture](docs/architecture.md)** | What runs where, and what the bound actually guarantees. |
 | **[Harness](packages/coding-agent/docs/harness.md)** | The capability boundary, the provider/tool session records, and `orphus inspect runtime`. |
-| **[Browser operation](packages/coding-agent/docs/browser.md)** | Driving an isolated browser, and the four gates a credential passes first. Off by default. |
+| **[Browser operation](packages/coding-agent/docs/browser.md)** | Driving an isolated browser, available by default with a separately gated login path. |
 | **[Goal workflows](packages/coding-agent/docs/workflows.md#goal-as-the-core-completion-loop)** | The native plan/fan-out/verify/review loop Orphus uses for substantial coding tasks. |
 | **[Transcription](packages/coding-agent/docs/transcribe.md)** | Local dictation: the protocol, the model catalog, and why it is not enabled yet. |
 | **[Terminal backend](packages/coding-agent/docs/tui-backend.md)** | The termDOM pilot for startup selection and the session picker. Opt-in; pi stays the default. |

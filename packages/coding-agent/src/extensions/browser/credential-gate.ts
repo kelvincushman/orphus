@@ -5,8 +5,8 @@ import type { CredentialCapability, CredentialRecord } from "../../core/capabili
  *
  * Three conditions, all required:
  *
- * 1. Login support is enabled (`ORPHUS_ENABLE_BROWSER_LOGIN`, on top of
- *    `ORPHUS_ENABLE_BROWSER`).
+ * 1. Browser operation has not been disabled, and login support is explicitly
+ *    enabled with `ORPHUS_ENABLE_BROWSER_LOGIN`.
  * 2. The page's origin is on the allowlist, and matches the origin the
  *    credential itself is scoped to.
  * 3. A human approved this credential for this origin. Approval is asked once

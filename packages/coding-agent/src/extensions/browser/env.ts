@@ -1,4 +1,4 @@
-/** Master switch. Without it the `browser` tool is not registered at all. */
+/** Browser tool switch. It is on by default; an explicit false-like value disables registration. */
 export const ENV_ENABLE_BROWSER = "ORPHUS_ENABLE_BROWSER";
 /** Additional switch for credential injection. Requires {@link ENV_ENABLE_BROWSER} too. */
 export const ENV_ENABLE_BROWSER_LOGIN = "ORPHUS_ENABLE_BROWSER_LOGIN";
@@ -49,12 +49,12 @@ export interface BrowserFlags {
 /**
  * Read the browser switches.
  *
- * Both are off unless explicitly set, and login is off unless browser operation
- * is on: enabling credential injection without enabling the browser must not
- * half-enable anything.
+ * Browser operation is on unless explicitly disabled. Login remains off unless
+ * explicitly enabled, and cannot be enabled while browser operation is off.
  */
 export function readBrowserFlags(env: Record<string, string | undefined> = process.env): BrowserFlags {
-	const enabled = isTruthy(env[ENV_ENABLE_BROWSER]);
+	const configured = env[ENV_ENABLE_BROWSER];
+	const enabled = configured === undefined || isTruthy(configured);
 	return {
 		enabled,
 		loginEnabled: enabled && isTruthy(env[ENV_ENABLE_BROWSER_LOGIN]),
