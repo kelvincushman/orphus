@@ -23,7 +23,7 @@ any of their context windows. Start with the first link; the rest are reference.
 | **[Workflow playbook](workflow-playbook.md)** | Multi-stage workflow execution, inherited from Atomic. |
 | **[The refine loop](refine.md)** | `/refine` — gated, reversible self-modification: what the gate refuses, and what it does not claim. |
 | **[Execution kernels](repl.md)** | `repl` — values that outlive a tool call. **Not a security sandbox**, and honest about which pieces are wired. |
-| **[Browser operation](../packages/coding-agent/docs/browser.md)** | Driving an isolated browser, and the four gates a credential passes before it reaches a page. Off by default. |
+| **[Browser operation](../packages/coding-agent/docs/browser.md)** | Driving an isolated browser, available by default with four gates before a credential reaches a page. |
 | **[Transcription](../packages/coding-agent/docs/transcribe.md)** | Local dictation: the worker/helper protocol, the pinned model catalog, and why it is not enabled yet. |
 | **[Terminal backend](../packages/coding-agent/docs/tui-backend.md)** | The termDOM pilot for startup selection and the session picker. Opt-in; pi stays the default. |
 

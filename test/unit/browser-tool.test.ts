@@ -212,7 +212,7 @@ test("close reports its cleanup and empties the registry", async () => {
 });
 
 /**
- * The extension reads the whole `ORPHUS_*BROWSER*` family, so these two tests
+ * The extension reads the whole `ORPHUS_*BROWSER*` family, so these tests
  * must not inherit whatever the developer's or CI's ambient environment says —
  * a stray `ORPHUS_ENABLE_BROWSER_LOGIN=1` would route them into the keychain
  * wiring they do not mean to exercise.
@@ -240,7 +240,7 @@ function withBrowserEnv<T>(overrides: Record<string, string>, body: () => T): T 
 	}
 }
 
-test("the extension registers nothing when the browser switch is off", () => {
+test("the extension registers the browser tool by default", () => {
 	const registered: string[] = [];
 	const pi = {
 		registerTool: (tool: { name: string }) => registered.push(tool.name),
@@ -249,20 +249,22 @@ test("the extension registers nothing when the browser switch is off", () => {
 	withBrowserEnv({}, () => {
 		browserExtension(pi);
 	});
-	assert.deepEqual(registered, [], "a session that did not opt in must not carry the tool");
+	assert.deepEqual(registered, [BROWSER_TOOL_NAME]);
 });
 
-test("the extension registers the browser tool when the switch is on", () => {
-	const registered: string[] = [];
-	const pi = {
-		registerTool: (tool: { name: string }) => registered.push(tool.name),
-		on: () => {},
-	} as never;
-	withBrowserEnv({ ORPHUS_ENABLE_BROWSER: "1" }, () => {
-		assert.equal(readBrowserFlags().enabled, true);
-		browserExtension(pi);
-	});
-	assert.deepEqual(registered, [BROWSER_TOOL_NAME]);
+test("false-like browser switch values prevent registration", () => {
+	for (const value of ["0", "false", "off", ""]) {
+		const registered: string[] = [];
+		const pi = {
+			registerTool: (tool: { name: string }) => registered.push(tool.name),
+			on: () => {},
+		} as never;
+		withBrowserEnv({ ORPHUS_ENABLE_BROWSER: value }, () => {
+			assert.equal(readBrowserFlags().enabled, false);
+			browserExtension(pi);
+		});
+		assert.deepEqual(registered, [], value);
+	}
 });
 
 /**
