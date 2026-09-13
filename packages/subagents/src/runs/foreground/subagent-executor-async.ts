@@ -198,6 +198,7 @@ export async function runAsyncPath(
 			outputMode: params.outputMode,
 			progress: params.progress,
 			modelOverride,
+			cheapestFirst: params.cheapestFirst,
 			availableModels,
 			knownModelProviders,
 			maxSubagentDepth: resolveChildMaxSubagentDepth(depthPolicy.maxSubagentDepth, agent.maxSubagentDepth),

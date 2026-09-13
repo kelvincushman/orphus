@@ -18,6 +18,7 @@ describe("bundled fleet examples", () => {
 		assert.deepEqual(files.sort(), [
 			"blog-pipeline.fleet.yaml",
 			"coding-team.fleet.yaml",
+			"council.fleet.yaml",
 			"design-team.fleet.yaml",
 			"docs-release-team.fleet.yaml",
 			"media-team.fleet.yaml",

@@ -63,11 +63,11 @@ ownership of tools, prompts, and model ladders; the blueprint adds team
 structure, briefs, and skill assignments on top. Three modes: `dispatch`,
 `deliberate`, and `deliberate-then-dispatch` (decide in a room, then execute
 the decision). The full field reference ships as `SCHEMA.md` in the fleet
-package, and six example blueprints (coding, design, research, docs/release,
-media via Kie.ai, and a blog pipeline) ship in its `examples/`.
+package, and seven example blueprints (coding, design, council, research,
+docs/release, media via Kie.ai, and a blog pipeline) ship in its `examples/`.
 
 Blueprints live in `.orphus/fleets/` (project) and `<agentDir>/fleets/`
-(user); project shadows user, and the six shipped examples are always
+(user); project shadows user, and the seven shipped examples are always
 discoverable as a third, lowest-precedence `bundled` scope — so `/fleet` works
 out of the box, and copying an example into a project or user dir (or letting
 `/fleetsetup` start from one) overrides it by name. The `fleet` tool gives the model
@@ -100,6 +100,10 @@ interview.
 - Every member is a live model session; `count` and `concurrency` multiply
   real spend. The orchestration skill requires the model to state cost before
   large fan-outs, and caps retries at retry → diagnostic → human.
+- The runtime can start each seat at its cheapest priced rung: `cheapestFirst: true`
+  on a `subagent` call reorders the member's declared ladder by registry price and
+  escalates on failure, and a `handoff` of decision, files, and acceptance
+  criterion is what lets that rung succeed. See [Subagents](/subagents).
 
 ## Repo agent config — one blueprint, any repository
 

@@ -41,7 +41,8 @@ roundtable({ action: "digest", room: "design", budget: 4000, perMessage: 600 })
 roundtable({ action: "fetch", room: "design", afterSeq: 40, limit: 20 }) // raw, cursor unchanged
 ```
 
-See `skills/roundtable/SKILL.md` for discussion patterns and
+See `skills/roundtable/SKILL.md` for discussion patterns, `skills/memory/SKILL.md`
+for the recall-is-evidence discipline behind the `memory` tool, and
 [DESIGN.md](./DESIGN.md) for the architecture.
 
 ## Demo (no model required)

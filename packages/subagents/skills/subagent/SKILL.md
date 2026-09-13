@@ -2,7 +2,8 @@
 name: subagent
 description: |
   Delegate work to builtin or custom subagents with single-agent, chain,
-  parallel, selective async, forked-context, and intercom-coordinated runs.
+  parallel, selective async, forked-context, and intercom-coordinated runs;
+  hand a cheap child a bounded key→value handoff and route it cheapest-first.
   Use for bounded specialist delegation where a single parent agent stays in
   control while subagents contribute locate, analyze, pattern-find, research,
   debug, or simplify passes.
@@ -161,7 +162,7 @@ Builtin agents load at the lowest priority. Project agents override user agents,
 | `code-simplifier`            | Clean up recently changed code without changing behavior          | `openai/gpt-5.5`      | low      | read, edit, write, search, find, ls, bash                                                | **Writer.** Scopes to recently modified code by default; preserves all observable behavior.                |
 | `debugger`                   | Reproduce, diagnose, and fix failing behavior                     | `openai-codex/gpt-5.6-sol:xhigh` | xhigh | read, edit, write, search, find, ls, bash, web_search, fetch_content, get_search_content, intercom, contact_supervisor, todo | **Writer.** Has the `tdd`, `playwright-cli`, and `tmux` skills. Can coordinate with the parent; inspect-only mode requires an explicit instruction. |
 
-Each builtin declares an explicit `model` and `fallbackModels` chain (typically `github-copilot/<same>`, then `anthropic/claude-opus-4-8`, then `github-copilot/claude-opus-4.7`). The current user-selected model is automatically appended as the last fallback and de-duplicated. Override per run with inline config:
+Each builtin declares an explicit `model` and `fallbackModels` chain (typically `github-copilot/<same>`, then `anthropic/claude-opus-4-8`, then `github-copilot/claude-opus-4.7`). The current user-selected model is automatically appended as the last fallback and de-duplicated. `cheapestFirst: true` starts the walk at the cheapest priced rung of that chain instead of the primary. Override per run with inline config:
 
 ```text
 /run codebase-analyzer[model=anthropic/claude-sonnet-4] "Trace the auth flow"
@@ -253,6 +254,26 @@ subagent({
   async: true
 })
 ```
+
+### Handoff — brief a cheaper model
+
+```typescript
+subagent({
+  agent: "worker",
+  context: "fresh",
+  cheapestFirst: true,
+  handoff: {
+    decision: "Render through boundedRender; no second budget implementation.",
+    files: "packages/subagents/src/shared/settings.ts",
+    done_when: "the new unit test passes and npm run check is clean"
+  },
+  task: "Implement the change described above."
+})
+```
+
+`handoff` is the middle path between `fresh` (nothing) and `fork` (everything): small facts you already hold — the decision of record, files in scope, the acceptance criterion — rendered at the top of the child task within a ~2000-character bound, keys in the order you give them. What does not fit is named, not dropped, so put anything large in a file and pass it through `reads`. The child sees it labelled *asserted, not verified*; write facts, not conclusions you want trusted blindly. Pair it with `cheapestFirst: true`: a precise brief is what lets the cheapest rung of the agent's ladder succeed, and the runtime escalates on failure. Available on single calls and parallel `tasks[]`; chain steps use `{outputs.name}`.
+
+Choose the channel by what the child needs: a handful of facts → `handoff`; whole files → `reads`; the conversation itself → `fork`.
 
 ### Forked context
 

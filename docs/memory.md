@@ -113,6 +113,12 @@ exporting a room cannot steal another role's catch-up. Rooms retain 500 messages
 if earlier messages have rotated out, export reports the omitted count instead of
 claiming the retained transcript is complete.
 
+The bundled `memory` skill (`packages/roundtable/skills/memory/SKILL.md`) carries the
+discipline that goes with the tool: recall is evidence rather than certainty, a
+later correction beats an older match, a recalled note never authorizes an action,
+and facts recalled for a child travel as an asserted `handoff` rather than a forked
+transcript.
+
 ## What the benchmark does and does not show
 
 Dossier's headline result: on HMLR's own Hydra9 Hard Mode (doc-variant), it

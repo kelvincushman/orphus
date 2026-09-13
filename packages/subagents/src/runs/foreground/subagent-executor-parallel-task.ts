@@ -2,7 +2,7 @@ import type { ExtensionContext } from "@orphus/coding-agent";
 import type { AgentConfig } from "../../agents/agents.ts";
 import { INTERCOM_BRIDGE_MARKER } from "../../intercom/intercom-bridge.ts";
 import type { ModelInfo } from "../../shared/model-info.ts";
-import { buildChainInstructions, type ResolvedStepBehavior } from "../../shared/settings.ts";
+import { buildChainInstructions, buildHandoffInstruction, type ResolvedStepBehavior } from "../../shared/settings.ts";
 import type {
 	AgentProgress,
 	ArtifactConfig,
@@ -87,8 +87,9 @@ export async function runForegroundParallelTasks(input: ForegroundParallelRunInp
 				)
 			: { prefix: "", suffix: "" };
 		const outputPath = resolveSingleOutputPath(behavior?.output, input.ctx.cwd, taskCwd);
+		const handoffInstruction = buildHandoffInstruction(task.handoff);
 		const taskText = injectSingleOutputInstruction(
-			`${readInstructions.prefix}${input.taskTexts[index]!}${progressInstructions.suffix}`,
+			`${readInstructions.prefix}${handoffInstruction ? `${handoffInstruction}\n\n` : ""}${input.taskTexts[index]!}${progressInstructions.suffix}`,
 			outputPath,
 		);
 		const interruptController = new AbortController();
@@ -142,6 +143,7 @@ export async function runForegroundParallelTasks(input: ForegroundParallelRunInp
 				onIntercomDetachCommit: () => intercomDetachController.abort(),
 				nestedRoute: input.foregroundControl?.nestedRoute,
 				modelOverride: input.modelOverrides[index],
+				cheapestFirst: task.cheapestFirst,
 				availableModels: input.availableModels,
 				knownModelProviders: input.knownModelProviders,
 				preferredModelProvider: input.ctx.model?.provider,

@@ -64,6 +64,30 @@ npx gitnexus@1.6.9 analyze . --skip-agents-md   # writes .gitnexus/ (gitignored)
 npx gitnexus@1.6.9 status                       # re-run analyze when this reports "stale"
 ```
 
+**Behind a proxy that blocks `api.nuget.org`, plain `npx` silently installs
+nothing.** `gitnexus` depends on `onnxruntime-node`, whose install script fetches
+native libraries from NuGet. When that host is unreachable the install aborts
+partway, leaving an npx cache whose `gitnexus` entry holds only `vendor/` — no
+`package.json`, no `dist/`. Every later `npx gitnexus …` re-attempts the install,
+fails the same way, and **exits with no output at all**, which reads like a
+working command that found nothing. The MCP server fails identically, so the
+session reports a connection timeout rather than a missing dependency.
+
+Install it with scripts off instead, then relink the one native binding that
+genuinely needs its install step:
+
+```sh
+npm i --ignore-scripts gitnexus@1.6.9              # into a scratch dir
+node node_modules/@ladybugdb/core/install.js       # copies the prebuilt lbugjs.node into place
+./node_modules/.bin/gitnexus analyze . --skip-agents-md
+```
+
+ONNX only powers semantic search; the graph, `cypher`, and full-text search all
+work without it. `doctor` reports capabilities as "available" **before** the
+LadybugDB binding is linked, so it is not proof that `analyze` will run — the
+first `analyze` is. When `analyze` fails it names this repair explicitly; take it
+at its word rather than re-running `npx`.
+
 `--skip-agents-md` is not optional politeness: a bare `analyze` appends a
 45-line block to `AGENTS.md` and `CLAUDE.md` whose MUST/NEVER framing
 contradicts this file (the graph is a lookup tool, not an authority), leaving a
@@ -98,6 +122,9 @@ Two limits worth knowing before you trust an empty result:
   is complete, but `query` silently returns zero matches with a `warning` field
   rather than an error — which reads exactly like "no such code exists". Use
   `cypher` for search in that case, and check `doctor` if you are unsure.
+- **A session whose GitNexus MCP server failed to connect has no graph tools at
+  all**, and the reuse check falls back to grep. That is weaker, not equivalent:
+  say so in the PR rather than ticking the box.
 - **Files over 512 KB are skipped** (currently one: the `0002` rebrand patch).
   Raise `GITNEXUS_MAX_FILE_SIZE` if you need them indexed.
 

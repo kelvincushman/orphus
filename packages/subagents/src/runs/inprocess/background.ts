@@ -43,6 +43,7 @@ export interface AsyncSingleParams {
 	outputMode?: "inline" | "file-only" | "digest";
 	progress?: boolean;
 	modelOverride?: string;
+	cheapestFirst?: boolean;
 	availableModels?: ModelInfo[];
 	knownModelProviders?: string[];
 	maxSubagentDepth: number;
