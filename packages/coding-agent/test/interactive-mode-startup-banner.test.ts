@@ -126,7 +126,7 @@ describe("InteractiveMode startup banner", () => {
 		});
 
 		const lines = rendered.split("\n");
-		expect(lines[0]).toContain("####");
+		expect(lines[0]).toContain("█");
 		expect(lines[0]).toContain("Orphus v0.0.0");
 	});
 
@@ -143,13 +143,13 @@ describe("InteractiveMode startup banner", () => {
 		// No line mixes logo art with identity text (which is what wrapped
 		// and shredded the logo on narrow terminals).
 		for (const line of lines) {
-			if (line.includes("####")) {
+			if (line.includes("█")) {
 				expect(line.trimEnd().length).toBeLessThanOrEqual(64);
 				expect(line).not.toContain("Orphus");
 				expect(line).not.toContain("openai");
 			}
 		}
-		expect(lines.some((line) => line.includes("####"))).toBe(true);
+		expect(lines.some((line) => line.includes("█"))).toBe(true);
 		expect(rendered).toContain("Orphus v0.0.0");
 		expect(rendered).toContain("(openai) gpt-5.1-codex");
 		expect(rendered).toContain("/tmp/project");
@@ -164,7 +164,7 @@ describe("InteractiveMode startup banner", () => {
 			maxWidth: 20,
 		});
 
-		expect(rendered).not.toContain("#");
+		expect(rendered).not.toContain("█");
 		expect(rendered).toContain("Orphus v0.0.0");
 		expect(rendered).toContain("(openai) gpt-5.1-codex");
 		expect(rendered).toContain("/tmp/project");
@@ -182,7 +182,7 @@ describe("InteractiveMode startup banner", () => {
 			});
 			expect(rendered, `gap ${gap}`).not.toBe("");
 			expect(rendered).toContain("Orphus v0.0.0");
-			expect(rendered).not.toContain("#");
+			expect(rendered).not.toContain("█");
 		}
 	});
 
@@ -225,9 +225,9 @@ describe("InteractiveMode startup banner", () => {
 			);
 			const rendered = renderAtomicAssemblyBanner(0, limitedTheme, "high").join("\n");
 
-			expect(rendered).toContain("\u001b[38;5;47m#");
-			expect(rendered).not.toContain(`${limitedTheme.getFgAnsi("success")}#`);
-			expect(rendered).not.toContain(`${limitedTheme.getFgAnsi("thinkingHigh")}#`);
+			expect(rendered).toContain("\u001b[38;5;47m█");
+			expect(rendered).not.toContain(`${limitedTheme.getFgAnsi("success")}█`);
+			expect(rendered).not.toContain(`${limitedTheme.getFgAnsi("thinkingHigh")}█`);
 		});
 	});
 
@@ -244,9 +244,9 @@ describe("InteractiveMode startup banner", () => {
 			);
 			const rendered = renderAtomicAssemblyBanner(0, customTheme, "high").join("\n");
 
-			expect(rendered).toContain("\u001b[38;2;0;255;65m#");
-			expect(rendered).not.toContain("\u001b[38;2;18;52;86m#");
-			expect(rendered).not.toContain("\u001b[38;2;101;67;33m#");
+			expect(rendered).toContain("\u001b[38;2;0;255;65m█");
+			expect(rendered).not.toContain("\u001b[38;2;18;52;86m█");
+			expect(rendered).not.toContain("\u001b[38;2;101;67;33m█");
 		});
 	});
 
@@ -269,8 +269,8 @@ describe("InteractiveMode startup banner", () => {
 		expect(STARTUP_ASSEMBLY_GAPS).toEqual([10, 8, 6, 4, 3, 2, 1, 1, 0]);
 		for (const gap of STARTUP_ASSEMBLY_GAPS) {
 			const frame = renderAtomicAssemblyBanner(gap, theme, "off").map(plain);
-			expect(frame).toHaveLength(7);
-			expect(frame.every((line) => line.length === 40)).toBe(true);
+			expect(frame).toHaveLength(8);
+			expect(frame.every((line) => [...line].length === 50)).toBe(true);
 		}
 	});
 
