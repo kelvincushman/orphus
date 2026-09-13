@@ -133,7 +133,17 @@ export async function executeAsyncSingle(id: string, params: AsyncSingleParams):
 		tools: params.tools,
 		orchestratorIntercomTarget: controlIntercomTarget,
 		intercomGroup: resolveChildIntercomGroup(params.group, ctx.intercomGroup, undefined),
-		modelOverride: filteredCandidates.candidates[0] ?? params.modelOverride ?? agentConfig.model,
+		// The ORIGINAL primary, not `filteredCandidates.candidates[0]`.
+		// `runSingleInProcess` rebuilds the ladder from whatever it receives, so
+		// handing it the winning rung makes the inner build start there and lose
+		// every rung above it. That was harmless while the winner was always the
+		// primary; once `cheapestFirst` reorders, it silently drops the agent's
+		// configured primary from the retry ladder. Passing the same primary and
+		// the same flag makes the inner ladder identical to the one checked above,
+		// and the inner filter re-runs with the same inputs — so the pre-flight
+		// build stays what it always was in practice: a fail-fast check.
+		modelOverride: params.modelOverride ?? agentConfig.model,
+		cheapestFirst: params.cheapestFirst,
 		availableModels,
 		knownModelProviders,
 		preferredModelProvider: ctx.currentModelProvider,

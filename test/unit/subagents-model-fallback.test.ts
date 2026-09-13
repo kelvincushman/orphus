@@ -335,4 +335,47 @@ describe("subagent model fallback helpers", () => {
 	test("the blended price weights input 3:1 over output", () => {
 		assert.equal(blendedCostPerMillion({ input: 1, output: 5, cacheRead: 0, cacheWrite: 0 }), 2);
 	});
+
+	test("rebuilding the ladder from the primary is stable, so the async double-build cannot lose a rung", () => {
+		// background-single builds a ladder to fail fast, then runSingleInProcess
+		// builds it again from what it was handed. The two must agree, or the
+		// child retries a different ladder than the one that was checked.
+		const priced: AvailableModelInfo[] = [
+			{
+				provider: "anthropic",
+				id: "opus",
+				fullId: "anthropic/opus",
+				cost: { input: 15, output: 75, cacheRead: 1.5, cacheWrite: 18 },
+			},
+			{
+				provider: "anthropic",
+				id: "haiku",
+				fullId: "anthropic/haiku",
+				cost: { input: 1, output: 5, cacheRead: 0.1, cacheWrite: 1 },
+			},
+			{
+				provider: "openai",
+				id: "mini",
+				fullId: "openai/mini",
+				cost: { input: 0.4, output: 1.6, cacheRead: 0.1, cacheWrite: 0.4 },
+			},
+			{ provider: "local", id: "unpriced", fullId: "local/unpriced" },
+		];
+		const primary = "anthropic/opus";
+		const ladder = ["local/unpriced", "anthropic/haiku", "openai/mini"];
+		const opts = { cheapestFirst: true };
+
+		const outer = buildModelCandidates(primary, ladder, priced, undefined, undefined, undefined, opts);
+		assert.deepEqual(outer, ["openai/mini", "anthropic/haiku", "anthropic/opus", "local/unpriced"]);
+
+		// What the inner build now does: same primary, same flag — same ladder.
+		const inner = buildModelCandidates(primary, ladder, priced, undefined, undefined, undefined, opts);
+		assert.deepEqual(inner, outer, "inner rebuild must reproduce the ladder that was checked");
+
+		// Why it may not be handed the winner instead: rebuilding from outer[0]
+		// starts at that rung and drops every rung above it — the configured
+		// primary included.
+		const fromWinner = buildModelCandidates(outer[0], ladder, priced, undefined, undefined, undefined, opts);
+		assert.ok(!fromWinner.includes(primary), "collapsing to the winner is exactly what loses the primary");
+	});
 });

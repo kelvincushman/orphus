@@ -2,15 +2,25 @@
 # No code is written — the output is a decision of record synthesized by the
 # orchestrator from the room digest, with the strongest dissent kept verbatim.
 #
-# Mixing model families is the point. Seat each stance on a different provider
-# with `model:` so disagreement comes from different training rather than one
-# model arguing with itself, e.g.
+# AS SHIPPED, THIS IS A SAME-PROVIDER COUNCIL. All four seats use the `worker`
+# agent, so all four inherit one primary model and one fallback ladder: the
+# stances differ, the training behind them does not. A verdict from this
+# blueprint unmodified must be labelled `same-provider` — or `unverified` if
+# you have not checked which model `worker` actually resolved to. Claiming
+# provider diversity here would be claiming something you did not buy.
+#
+# To make it a genuine cross-provider council, pin each seat to a different
+# provider from among those you have configured:
 #   - agent: worker
-#     model: openai/gpt-5.6-luna
-# and check the pins with fleet({ action: "validate", name: "council" }).
-# The verdict must name the relationship between the seats it weighs —
-# cross-provider, same-provider, or unverified — never diversity that was
-# not actually bought.
+#     model: openai/gpt-5.6-luna       # architect
+#   - agent: worker
+#     model: anthropic/claude-opus     # skeptic
+#   - agent: worker
+#     model: google/gemini-3-pro       # pragmatist
+#   - agent: worker
+#     model: xai/grok-4.5              # critic
+# Then `fleet({ action: "validate", name: "council" })` checks every pin
+# resolves and has credentials, and the verdict may say `cross-provider`.
 name: council
 description: Four-stance deliberation to a decision of record, strongest dissent preserved, provider relationship labelled.
 version: 1

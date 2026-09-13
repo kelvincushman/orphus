@@ -154,8 +154,10 @@ re-dispatch the original task with the new tool named in its brief.
 - Every member is a live model session. Before a fan-out larger than the
   blueprint's concurrency default, say what it will spawn and why.
   Say what it will cost, too, and from real prices rather than a feeling:
-  `members × (task and handoff characters ÷ 4 + the output you expect) ×`
-  the registry's blended per-million price for each seat's model. A number
+  `members × (task and handoff characters ÷ 4 + the output you expect)`
+  `÷ 1,000,000 × the registry's blended per-million price for each seat's model`.
+  The division is the part people drop, and dropping it overstates the bill by
+  a factor of a million. A number
   the user can object to beats a fan-out they discover on the invoice.
 - State results as summaries with pointers to files/rooms — never paste a
   member's whole transcript into your own context. Rooms exist so the full
