@@ -387,7 +387,15 @@ atomic:
 
 Atomic uses a **versionless release-base** flow: supported bases keep `packages/*/package.json` at `0.0.0`; `scripts/cut-release.ts` materializes the real version only on a tagged detached `Release <version>` commit with harmless immutable `Release-base-ref`/`Release-base-sha` trailers. Pushing the version tag directly starts `publish.yml`. Its lightweight integrity job checks that the source resolves to the tag commit, `packages/coding-agent/package.json` equals the tag, and the subject is `Release <version>`. Build jobs produce and smoke-test native modules and archives; a draft GitHub Release is staged before OIDC-only npm publication and undrafted only after npm succeeds. `publish-npm` alone receives `id-token: write` under `npm-publish`; release staging, undrafting, and failed-draft cleanup alone receive `contents: write`. Configure npm trusted publishers with filename `publish.yml` and environment `npm-publish`.
 
-Cut and publish a release with:
+**Do not run `scripts/cut-release.ts` by hand to cut a release.** The
+`publish-release` workflow runs it, after the `release` skill's gate has proved
+the base is ready — see "Agent publishing requests" below. Invoking it directly
+skips that gate and every check the workflow performs, and its tags persist in
+the local checkout whether or not they reach origin.
+
+The command the workflow issues, recorded here so the mechanism below is
+readable, and usable directly only to recover a release the workflow could not
+finish:
 
 ```sh
 bun run scripts/cut-release.ts 0.8.31 --base main --push
@@ -465,13 +473,12 @@ Use these sections under `## [Unreleased]`:
 `scripts/bump-version.ts` is the low-level stamper that rewrites every versioned manifest. It is invoked by `scripts/cut-release.ts` inside a throwaway worktree at the exact remote base SHA to materialize the real version on the tagged release commit. You normally never run it directly against a release base; the only direct use is resetting the placeholder if it ever drifts:
 
 ```sh
-# stamp a real version onto the off-base tag commit (preferred; explicit base shown)
-bun run scripts/cut-release.ts 0.1.0 --base main
-bun run scripts/cut-release.ts 0.1.0-alpha.1 --base main
-
-# low-level: reset main back to the versionless placeholder
+# reset main back to the versionless placeholder (the only direct use)
 bun run scripts/bump-version.ts 0.0.0 && npm install --package-lock-only --ignore-scripts
 ```
+
+To stamp a real version, go through the `release` skill and the `publish-release`
+workflow — not `cut-release.ts` directly. See "Releasing" above.
 
 ## CI
 

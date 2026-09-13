@@ -77,6 +77,7 @@ function buildFixture() {
 		`Release 1.0.0\n\nRelease-base-ref: refs/heads/main\nRelease-base-sha: ${baseSha}`,
 	);
 	git(fixture, "tag", "v1.0.0");
+	git(fixture, "push", "-q", "origin", "v1.0.0");
 	git(fixture, "checkout", "-q", "main");
 
 	return { tempRoot, fixture };
@@ -199,6 +200,52 @@ test("release-preflight refuses to report readiness when origin cannot be fetche
 		const unreachable = preflight(fixture);
 		assert.notEqual(unreachable.status, 0, unreachable.output);
 		assert.match(unreachable.output, /Could not fetch .* from origin/u);
+	} finally {
+		rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("release-preflight ignores a local-only tag that origin never saw", () => {
+	const { tempRoot, fixture } = buildFixture();
+	try {
+		write(fixture, "packages/demo/index.ts", "export const value = 2;\n");
+		write(
+			fixture,
+			"packages/demo/CHANGELOG.md",
+			"# Changelog\n\n## [Unreleased]\n\n### Changed\n\n- Value is now 2\n\n## [1.0.0]\n\n- First release\n",
+		);
+		const shipped = commit(fixture, "Change shipped behaviour");
+		git(fixture, "push", "-q", "origin", "main");
+
+		// What `cut-release.ts <version>` leaves behind without `--push`.
+		git(fixture, "tag", "v9.9.9", shipped);
+
+		const rendered = preflight(fixture);
+		assert.equal(rendered.status, 0, rendered.output);
+		assert.match(rendered.output, /Since: v1\.0\.0/u);
+		assert.doesNotMatch(rendered.output, /v9\.9\.9/u);
+		assert.match(rendered.output, /Commits since that point: 1/u);
+	} finally {
+		rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("release-preflight refuses a starting point that is not an ancestor of the base", () => {
+	const { tempRoot, fixture } = buildFixture();
+	try {
+		write(fixture, "packages/demo/index.ts", "export const value = 2;\n");
+		commit(fixture, "Change shipped behaviour");
+		git(fixture, "push", "-q", "origin", "main");
+
+		// An orphan commit shares no history with main, yet `a..b` still yields a range.
+		git(fixture, "checkout", "-q", "--orphan", "unrelated");
+		write(fixture, "packages/demo/index.ts", "export const value = 99;\n");
+		const orphan = commit(fixture, "Unrelated history");
+		git(fixture, "checkout", "-q", "main");
+
+		const unrelated = preflight(fixture, "--since", orphan);
+		assert.notEqual(unrelated.status, 0, unrelated.output);
+		assert.match(unrelated.output, /is not an ancestor of origin\/main, so the range would span unrelated history/u);
 	} finally {
 		rmSync(tempRoot, { recursive: true, force: true });
 	}

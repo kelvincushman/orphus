@@ -106,15 +106,31 @@ function parseArgs(argv: string[]): { base: string; since?: string; expect: stri
  * from, which `cut-release.ts` records on the release commit as
  * `Release-base-sha`.
  */
+async function newestOriginReleaseTag(): Promise<string | undefined> {
+	const remote = await git(["ls-remote", "--tags", "--refs", "origin", "v*"]);
+	const onOrigin = new Set(
+		remote
+			.split("\n")
+			.map((line) => line.split("refs/tags/")[1])
+			.filter((name): name is string => name !== undefined && name.length > 0),
+	);
+	// Ask git for the version ordering, then take the newest tag origin also has.
+	const ordered = (await git(["tag", "--list", "v*", "--sort=-v:refname"])).split("\n").filter(Boolean);
+	return ordered.find((tag) => onOrigin.has(tag));
+}
+
 async function resolveSincePoint(): Promise<{ ref: string; label: string }> {
 	await fetchOrFail(["--tags", "--quiet", "origin"], "tags");
-	const tags = (await git(["tag", "--list", "v*", "--sort=-v:refname"])).split("\n").filter(Boolean);
-	const tag = tags[0];
+	// Local tags are not evidence of a release. `cut-release.ts` tags in this
+	// checkout and only publishes with `--push`, so a dry run leaves a higher
+	// version behind that origin never saw; measuring the range from it would
+	// report the work of a release that does not exist as already shipped.
+	const tag = await newestOriginReleaseTag();
 	if (!tag) {
 		throw new Error(
 			[
-				"No v* tag exists in this checkout, so there is no range to check.",
-				"A shallow clone carries no tags: run `git fetch --unshallow --tags origin`.",
+				"Origin has no v* tag, so there is no range to check.",
+				"A shallow clone carries no tags locally: run `git fetch --unshallow --tags origin`.",
 				"If this really is the first release, pass the starting point with --since <ref>.",
 			].join("\n"),
 		);
@@ -166,6 +182,18 @@ async function main(): Promise<void> {
 	const baseSha = await git(["rev-parse", `origin/${base}`]);
 	const sincePoint = since ? { ref: since, label: since } : await resolveSincePoint();
 	const sinceRef = sincePoint.ref;
+	// `a..b` yields a range for any two commits, related or not. An unrelated
+	// starting point — a trailer pointing at rewritten history, a mistyped
+	// `--since` — would silently measure against the wrong history rather than
+	// fail, and every check below reads that range.
+	if (!(await gitOk(["rev-parse", "--verify", `${sinceRef}^{commit}`]))) {
+		throw new Error(`The release starting point ${sinceRef} does not resolve to a commit in this checkout.`);
+	}
+	if (!(await gitOk(["merge-base", "--is-ancestor", sinceRef, baseSha]))) {
+		throw new Error(
+			`The release starting point ${sinceRef} is not an ancestor of origin/${base}, so the range would span unrelated history.`,
+		);
+	}
 
 	const failures: string[] = [];
 	const warnings: string[] = [];
