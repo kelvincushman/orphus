@@ -162,6 +162,9 @@ Skills are reusable expert instructions. Trigger one with `/skill:<name>` follow
 | `impeccable` | Critique or refine web/native frontend and product UI; includes detector hooks. | `/skill:impeccable` |
 | `playwright-cli` | Drive a real browser for end-to-end UI checks, screenshots, and reviewable proof videos. | `/skill:playwright-cli` |
 | `liteparse` | Pull text, tables, or values out of PDF, DOCX, PPTX, XLSX, and image files locally. | `/skill:liteparse` |
+| `context-budget` | Measure what fills the context window with `orphus inspect runtime`, then rank what to cut. | `/skill:context-budget` |
+| `strategic-compact` | Compact at a phase boundary after writing state down — and reach for rooms, `handoff`, and file-only returns first. | `/skill:strategic-compact` |
+| `memory` | Treat recall as evidence: query before writing, verify against the repository, hand facts to children as an asserted `handoff`. | `/skill:memory` |
 
 Use `/skill:research-codebase` for a focused subsystem or question. For repository-wide research, use `fan-out-and-synthesize` with distinct repository partitions and an artifact synthesis barrier. Use Goal for ledger-backed bounded orchestration and Ralph for research-first delegated implementation with iterative review; task size alone does not select either workflow.
 

@@ -9,6 +9,15 @@ import {
 import { type Details, type SubagentToolResult, wrapForkTask } from "../../shared/types.ts";
 import type { SubagentParamsLike, TaskParam } from "./subagent-executor-types.ts";
 
+const HANDOFF_SHAPE_ERROR = "handoff must be an object of string values";
+
+/** `handoff` crosses the tool boundary untyped; reject anything but string values before a child sees it. */
+export function validateHandoff(handoff: unknown): string | undefined {
+	if (handoff === undefined) return undefined;
+	if (typeof handoff !== "object" || handoff === null || Array.isArray(handoff)) return HANDOFF_SHAPE_ERROR;
+	return Object.values(handoff).every((value) => typeof value === "string") ? undefined : HANDOFF_SHAPE_ERROR;
+}
+
 export function validateExecutionInput(
 	params: SubagentParamsLike,
 	agents: AgentConfig[],
@@ -41,6 +50,14 @@ export function validateExecutionInput(
 				details: { mode: "single", results: [] },
 			};
 		}
+		const handoffError = validateHandoff((params as SubagentParamsLike & { handoff?: unknown }).handoff);
+		if (handoffError) {
+			return {
+				content: [{ type: "text", text: handoffError }],
+				isError: true,
+				details: { mode: "single", results: [] },
+			};
+		}
 	}
 
 	if (hasSingle && params.agent && !agents.find((agent) => agent.name === params.agent)) {
@@ -57,6 +74,14 @@ export function validateExecutionInput(
 			if (!agents.find((agent) => agent.name === task.agent)) {
 				return {
 					content: [{ type: "text", text: `Unknown agent: ${task.agent} (task ${i + 1})` }],
+					isError: true,
+					details: { mode: "parallel" as const, results: [] },
+				};
+			}
+			const handoffError = validateHandoff((task as TaskParam & { handoff?: unknown }).handoff);
+			if (handoffError) {
+				return {
+					content: [{ type: "text", text: `${handoffError} (task ${i + 1})` }],
 					isError: true,
 					details: { mode: "parallel" as const, results: [] },
 				};

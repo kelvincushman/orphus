@@ -99,6 +99,7 @@ export async function executeAsyncSingle(id: string, params: AsyncSingleParams):
 		ctx.currentModelProvider,
 		ctx.currentModel,
 		agentConfig.fallbackThinkingLevels,
+		{ cheapestFirst: params.cheapestFirst },
 	);
 	const filteredCandidates = filterSpawnableModelCandidates({
 		candidates: rawModelCandidates,

@@ -132,6 +132,7 @@ the honest scoreboard of which are actually bounded by the runtime today:
 | subagent → parent (parallel) | **Runtime-enforced** *when artifact paths exist* | The same tiering as a room digest, through the same [`bounded-render.ts`](../packages/roundtable/bounded-render.ts) core: budget + one marker line, with each task's artifact path carried alongside. Failures are ordered first so a collapsed error is impossible. `inline` and `file-only` opt out per call, and if any task lacks an artifact path nothing is bounded — see below |
 | subagent → parent (single, chain) | Truncation only — 200 KB / 5000 lines | Still concatenated in full; the cap is `DEFAULT_MAX_OUTPUT` in [`types-runtime.ts`](../packages/subagents/src/shared/types-runtime.ts) |
 | chain step → next step | **Runtime-enforced** *when an artifact path exists* | `{outputs.name}` splices a bounded rendering (2000 chars) plus the path to the full output, through the same `boundedRender` core ([`chain-outputs.ts`](../packages/subagents/src/runs/shared/chain-outputs.ts)). `{outputs.name.full}` is the explicit opt-out. With artifacts disabled there is nowhere to point, so the splice falls back to full text rather than discarding what it cannot relocate |
+| parent → subagent (handoff) | **Runtime-enforced** | A parent's `handoff` key→value facts render at the top of the child task through the same `boundedRender` core ([`settings.ts`](../packages/subagents/src/shared/settings.ts), budget 2000, per-key cap 600). What does not fit is named in the marker, not dropped — the parent still holds it. This bounds size, not truth, and the render says so; the `task` string beside it stays unbounded, so it makes the small handoff the easy path rather than defending against a hostile parent |
 | tool result → context | Spill to file above 50 000 chars | `DEFAULT_MAX_RESULT_SIZE_CHARS` in [`tool-limits.ts`](../packages/coding-agent/src/core/tools/tool-limits.ts); the model receives a preview and a path |
 | kernel → agent | **Bounded in memory; context bound is the spill above** | The kernel buffer retains the last 200 000 chars and returns at most 4 000 per view, counting elisions ([`kernel-output.ts`](../packages/coding-agent/src/core/repl/kernel-output.ts)). This is a *memory* bound on a process that prints forever; the context bound is the tool-result spill in the row above, which a `repl` tool gets by being an ordinary tool. The tool is registered behind `ORPHUS_ENABLE_REPL`, **default off** — see [`repl.md`](./repl.md) |
 
@@ -148,7 +149,17 @@ carries 2000 characters plus the path to the rest, and `{outputs.name.full}` is
 there for the step that genuinely needs everything. That escape hatch matters:
 bounding without one would have broken chains built when the splice was total.
 
-**Both bounded subagent rows depend on an artifact path, and say so.** A bound
+A parent's handoff is the newest row, and the first bound on content flowing
+*down* rather than up. It is deliberately the weakest claim in the table: the
+same tiering, the same budget, the same name-what-did-not-fit rule — but the
+`task` string beside it is still unbounded, so a parent that wants to flood a
+child can. The bound is a coordination tool, like the librarian writer
+convention in [`memory.md`](./memory.md): it makes the small, inspectable
+handoff the path of least resistance, and it labels what it carries as asserted
+rather than verified, because a size bound says nothing about whether the
+parent's summary is true.
+
+**The two bounded rows that carry output upward depend on an artifact path, and say so.** A bound
 relocates content; it does not delete it. Artifacts are where the full output
 goes, and they can be switched off — so when there is nowhere to point, neither
 the parallel return nor the chain splice bounds anything. That is a deliberate

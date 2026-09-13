@@ -100,6 +100,10 @@ interview.
 - Every member is a live model session; `count` and `concurrency` multiply
   real spend. The orchestration skill requires the model to state cost before
   large fan-outs, and caps retries at retry → diagnostic → human.
+- The runtime can start each seat at its cheapest priced rung: `cheapestFirst: true`
+  on a `subagent` call reorders the member's declared ladder by registry price and
+  escalates on failure, and a `handoff` of decision, files, and acceptance
+  criterion is what lets that rung succeed. See [Subagents](/subagents).
 
 ## Repo agent config — one blueprint, any repository
 

@@ -2,12 +2,14 @@ import assert from "node:assert/strict";
 import { describe, test } from "vitest";
 import type { AvailableModelInfo } from "../../packages/subagents/src/runs/shared/model-fallback.js";
 import {
+	blendedCostPerMillion,
 	buildModelCandidates,
 	currentModelFullId,
 	isRetryableModelFailure,
 	modelFailureMessage,
 	normalizeModelFailureSignal,
 } from "../../packages/subagents/src/runs/shared/model-fallback.js";
+import { toModelInfo } from "../../packages/subagents/src/shared/model-info.js";
 
 const models: AvailableModelInfo[] = [
 	{ provider: "anthropic", id: "claude-sonnet-4", fullId: "anthropic/claude-sonnet-4" },
@@ -282,5 +284,55 @@ describe("subagent model fallback helpers", () => {
 			isRetryableModelFailure({ status: 422, diagnostics: [{ error: { message: "command failed" } }] }),
 			false,
 		);
+	});
+
+	test("cheapestFirst starts the ladder at the cheapest priced rung and keeps unpriced rungs last, in declared order", () => {
+		const priced: AvailableModelInfo[] = [
+			{
+				provider: "anthropic",
+				id: "opus",
+				fullId: "anthropic/opus",
+				cost: { input: 15, output: 75, cacheRead: 1.5, cacheWrite: 18 },
+			},
+			{
+				provider: "anthropic",
+				id: "haiku",
+				fullId: "anthropic/haiku",
+				cost: { input: 1, output: 5, cacheRead: 0.1, cacheWrite: 1 },
+			},
+			{
+				provider: "openai",
+				id: "mini",
+				fullId: "openai/mini",
+				cost: { input: 0.4, output: 1.6, cacheRead: 0.1, cacheWrite: 0.4 },
+			},
+			{ provider: "local", id: "unpriced", fullId: "local/unpriced" },
+		];
+		const ladder = ["local/unpriced", "anthropic/haiku:high", "openai/mini"];
+
+		// Without the flag the declared order is untouched.
+		assert.deepEqual(buildModelCandidates("anthropic/opus", ladder, priced), [
+			"anthropic/opus",
+			"local/unpriced",
+			"anthropic/haiku:high",
+			"openai/mini",
+		]);
+		// With it the walk starts cheapest; the thinking suffix rides along; unpriced is not treated as free.
+		assert.deepEqual(
+			buildModelCandidates("anthropic/opus", ladder, priced, undefined, undefined, undefined, {
+				cheapestFirst: true,
+			}),
+			["openai/mini", "anthropic/haiku:high", "anthropic/opus", "local/unpriced"],
+		);
+	});
+
+	test("toModelInfo keeps the registry price and adds no key when there is none", () => {
+		const rates = { input: 1, output: 2, cacheRead: 0.1, cacheWrite: 1 };
+		assert.deepEqual(toModelInfo({ provider: "p", id: "m", cost: rates }).cost, rates);
+		assert.ok(!("cost" in toModelInfo({ provider: "p", id: "m" })));
+	});
+
+	test("the blended price weights input 3:1 over output", () => {
+		assert.equal(blendedCostPerMillion({ input: 1, output: 5, cacheRead: 0, cacheWrite: 0 }), 2);
 	});
 });

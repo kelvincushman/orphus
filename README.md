@@ -58,11 +58,13 @@ your context. Read cursors live broker-side, keyed by role name, so they survive
 session restarts.
 
 That guarantee is specific, and worth not overstating. The room was the first
-boundary bounded this way; **three now are**, through the same tiering core:
-the room digest, a parallel subagent's return, and a chain step's `{outputs.name}`
-splice. The two subagent rows carry a real qualifier — they bound by pointing at
+boundary bounded this way; **four now are**, through the same tiering core:
+the room digest, a parallel subagent's return, a chain step's `{outputs.name}`
+splice, and a parent's `handoff` of key→value facts to a child. The two rows
+that carry output upward have a real qualifier — they bound by pointing at
 an artifact file, so with artifacts disabled there is nowhere to point and
-nothing is bounded rather than content being dropped. What is still *not*
+nothing is bounded rather than content being dropped. The handoff bounds size,
+not truth, and tells the child so. What is still *not*
 bounded: a **single or chain subagent return** is truncated at 200 KB / 5000
 lines and nothing more. An oversized **tool result** spills to a file above a
 threshold, and an execution **kernel** bounds its buffer in memory while relying

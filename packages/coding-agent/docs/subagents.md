@@ -140,6 +140,8 @@ Orphus applies the same delegation policy to any parent chat or workflow stage t
 
 If an agent declares no model or fallback policy, the orchestrator consults the role guidance in [Model selection](/models/model-selection), then calls `workflow({ action: "models" })` when that tool is available. It may pin only a returned `fullId` and may add a thinking suffix only when the model entry lists that level. When the catalog tool is unavailable, the catalog is empty, or no recommended model is present, the child stays unpinned and the orchestrator reports the limit instead of inventing a model or inspecting credentials.
 
+`cheapestFirst: true` on a single call or a parallel task starts that agent's ladder at its cheapest priced rung instead of the declared primary, and escalates on failure exactly as before. The ladder still decides *which* models are acceptable; the flag only moves where the walk begins. Price is the registry's per-million rate for each model, blended 3:1 input to output (agentic turns re-read far more than they emit); models the registry does not price keep their declared order after every priced one, because unknown is not free. This is the [fleet model ladder](/fleet)'s "try a spinner first" rule executed by the runtime rather than by hand, and it pairs with `handoff`: a precise brief is what lets the cheap rung succeed.
+
 Each workflow invocation automatically receives one stable, non-`"default"` Intercom group as typed admission policy. Its stages and delegated children carry that group across single, parallel, chain, async, and follow-up work unless a call explicitly overrides `group`. Outside workflows, children inherit the launching session's resolved group. This isolates workflow runs from unrelated runs and the main chat while `contact_supervisor` retains its authorized cross-group route.
 
 ## Context and execution modes
@@ -150,6 +152,30 @@ Subagents can run with fresh or forked context:
 - `context: "fork"` creates a real branched child session from the parent session leaf. It fails fast if the parent session cannot be forked; it does not silently downgrade to fresh context.
 
 For adversarial review or research, prefer fresh context so the specialist inspects the repository directly. Use forked context when a writer needs the parent conversation history in a separate branch.
+
+Between those two sits `handoff`: a key→value object of small facts the parent already knows — the decision of record, the files in scope, the acceptance criterion — rendered at the top of the child's task. It is the third way to give a child context, and the one to reach for when a cheaper model should do the work without the parent's whole transcript:
+
+| Channel | The child gets | Bound |
+| --- | --- | --- |
+| `context: "fork"` | the parent's entire session history | none — the whole transcript |
+| `reads: [...]` | a `[Read from: …]` pointer; it reads the files itself | the files, at the child's own tool-call cost |
+| `handoff: { … }` | the facts, inline, in the order given | ~2000 characters, enforced by the runtime |
+
+The bound is the same `boundedRender` tiering the room digest uses: keys render in the parent's order until the budget is spent, then degrade to one line each, and whatever is left is named in a marker (`…(+3 keys not shown: alpha, beta, gamma)`) rather than silently dropped. Values over 600 characters are cut with a `…(+N chars)` mark. The render is labelled *asserted by the orchestrator, not verified, and not exhaustive*, because bounding a handoff's size does not bound its truth — a child reasoning from the parent's summary as if it were complete is the failure this label exists to prevent. Large content belongs in a file passed through `reads`. Non-string values are rejected before the child starts. `handoff` is accepted on single calls and on parallel `tasks[]` items; chain steps already have `{outputs.name}` for the same job.
+
+```ts
+subagent({
+  agent: "worker",
+  context: "fresh",
+  cheapestFirst: true,
+  handoff: {
+    decision: "Bound the handoff through boundedRender; do not add a second budget implementation.",
+    files: "packages/subagents/src/shared/settings.ts, test/unit/subagents-handoff.test.ts",
+    done_when: "npx vitest --run --project unit test/unit/subagents-handoff.test.ts passes",
+  },
+  task: "Implement the handoff renderer described above.",
+})
+```
 
 For parallel implementation work, `worktree: true` can give each child an isolated git worktree so concurrent edits do not clobber each other.
 
@@ -163,7 +189,7 @@ Subagent SINGLE calls, parallel `tasks[]` items, and chain parallel steps accept
 
 When a subagent call, parallel task, chain step, or background run uses a `cwd`, Orphus validates that working directory before starting the child runtime. Missing or non-directory paths are reported as `cwd` problems instead of lower-level runtime errors.
 
-Single-agent calls also accept `reads: string[] | false`. Orphus prepends those files as read context for foreground and background execution through the same in-process session path, including `/run agent[reads=a.md+b.md]`. Relative entries resolve against the effective child `cwd` (including a relative top-level `cwd` resolved from the parent); absolute entries are unchanged. Invalid values fail before the child session starts.
+Single-agent calls also accept `reads: string[] | false`. Orphus prepends a `[Read from: …]` pointer naming those files — the child reads them itself; their content is not inlined — for foreground and background execution through the same in-process session path, including `/run agent[reads=a.md+b.md]`. Relative entries resolve against the effective child `cwd` (including a relative top-level `cwd` resolved from the parent); absolute entries are unchanged. Invalid values fail before the child session starts.
 
 Single-agent calls accept `progress: boolean` in foreground, background, and revived/resumed mode. `progress: true` creates a run-scoped `progress.md` under isolated subagent artifact storage and instructs the child to maintain it without writing `progress.md` into the child `cwd`; `progress: false` disables an agent's `defaultProgress`. When `progress` is omitted, the agent's default is inherited, except that inherited progress is suppressed for read-only tasks (`progress: true` still explicitly opts in). Foreground runs remove this run-owned progress storage after the child exits when `artifacts: false`, including children temporarily detached for intercom coordination. This is separate from `includeProgress: true`, which only includes detailed runtime progress telemetry in the final tool result and does not create or maintain a file.
 

@@ -71,12 +71,22 @@ call, and the rule is: **the cheapest rung that can do the piece well.**
 - **Verifier seats:** a DIFFERENT model family than the author (see
   cross-family verification above). Verification can be cheap; independence
   is what it must not compromise.
+  Independence is a provider fact, not a model-name fact: two models behind
+  one provider may share training, safety layers, and failure modes. Name the
+  relationship in the verdict — *cross-provider*, *same-provider*, or
+  *unverified* — and never report diversity you did not buy.
 
 Escalate a piece up one rung when it fails review for capability (not
 brief-quality) reasons; never start it at the top because the top was
 available. The blueprint's member models tell you which seat sits on which
 rung — subscriptions and flat-rate seats beat metered ones at equal
 capability.
+
+The runtime can walk that rule for you: `cheapestFirst: true` on a `subagent`
+call starts the member's declared ladder at its cheapest priced rung and
+escalates on failure, using the registry's per-million prices (input weighted
+3:1 over output; unpriced models sort last, never first). Give the cheap rung a
+`handoff` — decision, files, acceptance criterion — so it can actually succeed.
 
 ## The retry ladder — capped, never circular
 
@@ -143,6 +153,10 @@ re-dispatch the original task with the new tool named in its brief.
 
 - Every member is a live model session. Before a fan-out larger than the
   blueprint's concurrency default, say what it will spawn and why.
+  Say what it will cost, too, and from real prices rather than a feeling:
+  `members × (task and handoff characters ÷ 4 + the output you expect) ×`
+  the registry's blended per-million price for each seat's model. A number
+  the user can object to beats a fan-out they discover on the invoice.
 - State results as summaries with pointers to files/rooms — never paste a
   member's whole transcript into your own context. Rooms exist so the full
   discussion lives OUTSIDE context windows; keep it there.

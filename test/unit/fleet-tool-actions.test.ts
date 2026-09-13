@@ -55,7 +55,7 @@ afterEach(() => {
 describe("fleet tool", () => {
 	test("list shows discovered fleets with scope, and says so when none exist", async () => {
 		// With an empty bundled dir nothing is discoverable; the real package
-		// always ships examples, so a fresh install lists six bundled entries
+		// always ships examples, so a fresh install lists seven bundled entries
 		// (covered below by the real-bundled test).
 		const empty = await run({ action: "list" });
 		assert.equal(empty.isError, false);

@@ -216,6 +216,7 @@ export async function runSinglePath(
 			},
 			index: 0,
 			modelOverride,
+			cheapestFirst: params.cheapestFirst,
 			availableModels,
 			knownModelProviders,
 			preferredModelProvider: currentProvider,

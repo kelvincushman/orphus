@@ -55,6 +55,18 @@ const GroupSchema = Type.Union([Type.String(), Type.Boolean()], {
 		"Intercom group for spawned children. A named string joins that group; boolean `true` or the trimmed, case-insensitive string sentinel `true`/`auto` auto-generates one shared UUID group per parallel set. The names `true` and `auto` are reserved; use a different literal group name. Defaults to the current session/stage's group. Only applied when the child has intercom access; contact_supervisor still reaches the supervisor across groups.",
 });
 
+const HandoffSchema = Type.Unsafe<Record<string, string>>({
+	type: "object",
+	additionalProperties: { type: "string" },
+	description:
+		"Small parent-known facts for the child as key→value strings, rendered at the top of the task within a ~2000-character bound: keys in the order given, what does not fit named rather than silently dropped. Asserted, not verified. Put large content in a file and pass it via reads.",
+});
+
+const CheapestFirstSchema = Type.Boolean({
+	description:
+		"Start the agent's model ladder at its cheapest priced rung (registry price, input weighted 3:1 over output) and escalate on failure, instead of at the declared primary. Unpriced models keep their declared order after priced ones.",
+});
+
 const TaskItem = Type.Object({
 	agent: Type.String(),
 	task: Type.String(),
@@ -79,6 +91,8 @@ const TaskItem = Type.Object({
 	reads: Type.Optional(ReadsOverride),
 	progress: Type.Optional(Type.Boolean({ description: "Enable progress.md tracking for this task" })),
 	model: Type.Optional(Type.String({ description: "Override model for this task (e.g. 'google/gemini-3-pro')" })),
+	handoff: Type.Optional(HandoffSchema),
+	cheapestFirst: Type.Optional(CheapestFirstSchema),
 	skill: Type.Optional(SkillOverride),
 	group: Type.Optional(GroupSchema),
 });
@@ -416,6 +430,8 @@ export const SubagentParams = Type.Object(
 		model: Type.Optional(
 			Type.String({ description: "Override model for single agent (e.g. 'anthropic/claude-sonnet-4')" }),
 		),
+		handoff: Type.Optional(HandoffSchema),
+		cheapestFirst: Type.Optional(CheapestFirstSchema),
 	},
 	{ additionalProperties: false },
 );

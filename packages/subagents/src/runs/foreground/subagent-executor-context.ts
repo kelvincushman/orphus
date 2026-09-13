@@ -13,6 +13,7 @@ import { getArtifactsDir } from "../../shared/artifacts.ts";
 import { createForkContextResolver } from "../../shared/fork-context.ts";
 import { resolveCurrentSessionId } from "../../shared/session-identity.ts";
 import {
+	buildHandoffInstruction,
 	buildReadInstruction,
 	isParallelStep as isSettingsParallelStep,
 	type SequentialStep,
@@ -118,9 +119,13 @@ export function prepareExecutionContext(input: {
 	const validationError = validateExecutionInput(effectiveParams, agents, hasChain, hasTasks, hasSingle);
 	if (validationError) return { error: validationError };
 	if (hasSingle) {
-		const readInstruction = buildReadInstruction(effectiveParams.reads, effectiveCwd);
-		if (readInstruction)
-			effectiveParams = { ...effectiveParams, task: `${readInstruction}\n\n${effectiveParams.task ?? ""}` };
+		const prefix = [
+			buildReadInstruction(effectiveParams.reads, effectiveCwd),
+			buildHandoffInstruction(effectiveParams.handoff),
+		]
+			.filter(Boolean)
+			.join("\n\n");
+		if (prefix) effectiveParams = { ...effectiveParams, task: `${prefix}\n\n${effectiveParams.task ?? ""}` };
 	}
 
 	let sessionFileForIndex: (idx?: number) => string | undefined = () => undefined;
