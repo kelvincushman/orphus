@@ -29,7 +29,7 @@
 
 import { resolve } from "node:path";
 import { $ } from "bun";
-import { parseReleaseBaseTrailers } from "./release-base.js";
+import { canonicalReleaseBaseRef, parseReleaseBaseTrailers, type ReleaseBaseMetadata } from "./release-base.js";
 
 const ROOT = resolve(import.meta.dir, "..");
 
@@ -97,16 +97,8 @@ function parseArgs(argv: string[]): { base: string; since?: string; expect: stri
 	return { base, since, expect };
 }
 
-/**
- * Where the last release was cut from — which is not the tag itself.
- *
- * A release tag points at a detached `Release <version>` commit that is never
- * merged back, so it is not an ancestor of the base and `git describe` cannot
- * see it. What the range needs is the base commit that release was stamped
- * from, which `cut-release.ts` records on the release commit as
- * `Release-base-sha`.
- */
-async function newestOriginReleaseTag(): Promise<string | undefined> {
+/** Every `v*` tag origin has, newest version first. */
+async function originReleaseTags(): Promise<string[]> {
 	const remote = await git(["ls-remote", "--tags", "--refs", "origin", "v*"]);
 	const onOrigin = new Set(
 		remote
@@ -114,36 +106,55 @@ async function newestOriginReleaseTag(): Promise<string | undefined> {
 			.map((line) => line.split("refs/tags/")[1])
 			.filter((name): name is string => name !== undefined && name.length > 0),
 	);
-	// Ask git for the version ordering, then take the newest tag origin also has.
+	// git decides the version ordering; keep only the tags origin also has.
 	const ordered = (await git(["tag", "--list", "v*", "--sort=-v:refname"])).split("\n").filter(Boolean);
-	return ordered.find((tag) => onOrigin.has(tag));
+	return ordered.filter((tag) => onOrigin.has(tag));
 }
 
-async function resolveSincePoint(): Promise<{ ref: string; label: string }> {
+/**
+ * The newest release origin has that was cut from this base, and the commit it
+ * was cut from.
+ *
+ * Two things disqualify a tag. A local tag is not evidence of a release:
+ * `cut-release.ts` tags this checkout and publishes only under `--push`, so a
+ * dry run leaves a higher version behind that origin never saw. And a tag cut
+ * from a different base measures a different line of history — a release may be
+ * cut from any protected base, and each tag records which one it came from in
+ * `Release-base-ref`. Ignoring that would reject a valid release on one base
+ * because a newer one exists on another.
+ *
+ * What comes back is the base commit, not the tag: a release tag points at a
+ * detached `Release <version>` commit that is never merged back, so it is not
+ * an ancestor of the base and `git describe` cannot see it from there.
+ */
+async function resolveSincePoint(base: string): Promise<{ ref: string; label: string }> {
 	await fetchOrFail(["--tags", "--quiet", "origin"], "tags");
-	// Local tags are not evidence of a release. `cut-release.ts` tags in this
-	// checkout and only publishes with `--push`, so a dry run leaves a higher
-	// version behind that origin never saw; measuring the range from it would
-	// report the work of a release that does not exist as already shipped.
-	const tag = await newestOriginReleaseTag();
-	if (!tag) {
-		throw new Error(
-			[
-				"Origin has no v* tag, so there is no range to check.",
-				"A shallow clone carries no tags locally: run `git fetch --unshallow --tags origin`.",
-				"If this really is the first release, pass the starting point with --since <ref>.",
-			].join("\n"),
-		);
+	const baseRef = canonicalReleaseBaseRef(base);
+	let untrailered: string | undefined;
+
+	for (const tag of await originReleaseTags()) {
+		let trailers: ReleaseBaseMetadata;
+		try {
+			trailers = parseReleaseBaseTrailers(await git(["log", "-1", "--format=%B", tag]));
+		} catch {
+			// A tag made by hand names no base, so it cannot be attributed to one.
+			// Keep the newest as a last resort rather than claiming it is this base's.
+			untrailered ??= tag;
+			continue;
+		}
+		if (trailers.baseRef !== baseRef) continue;
+		return { ref: trailers.baseSha, label: `${tag} (cut from ${baseRef} at ${trailers.baseSha.slice(0, 9)})` };
 	}
-	const message = await git(["log", "-1", "--format=%B", tag]);
-	try {
-		const { baseSha } = parseReleaseBaseTrailers(message);
-		return { ref: baseSha, label: `${tag} (cut from ${baseSha.slice(0, 9)})` };
-	} catch {
-		// A tag made by hand carries no trailers. Its own commit is the best
-		// available starting point; say so rather than reporting a bogus range.
-		return { ref: tag, label: `${tag} (no release-base trailers; using the tag itself)` };
-	}
+
+	if (untrailered)
+		return { ref: untrailered, label: `${untrailered} (no release-base trailers; using the tag itself)` };
+	throw new Error(
+		[
+			`Origin has no v* tag cut from ${baseRef}, so there is no range to check.`,
+			"A shallow clone carries no tags locally: run `git fetch --unshallow --tags origin`.",
+			"If this really is the first release from this base, pass the starting point with --since <ref>.",
+		].join("\n"),
+	);
 }
 
 /** Entries under `## [Unreleased]`, stopping at the next version heading. */
@@ -180,7 +191,7 @@ async function main(): Promise<void> {
 	// guaranteed to move FETCH_HEAD, and it is `origin/<base>` that is read below.
 	await fetchOrFail(["--quiet", "origin", `refs/heads/${base}:refs/remotes/origin/${base}`], `origin/${base}`);
 	const baseSha = await git(["rev-parse", `origin/${base}`]);
-	const sincePoint = since ? { ref: since, label: since } : await resolveSincePoint();
+	const sincePoint = since ? { ref: since, label: since } : await resolveSincePoint(base);
 	const sinceRef = sincePoint.ref;
 	// `a..b` yields a range for any two commits, related or not. An unrelated
 	// starting point — a trailer pointing at rewritten history, a mistyped

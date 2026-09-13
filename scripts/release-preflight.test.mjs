@@ -250,3 +250,44 @@ test("release-preflight refuses a starting point that is not an ancestor of the 
 		rmSync(tempRoot, { recursive: true, force: true });
 	}
 });
+
+test("release-preflight selects the release cut from the requested base, not the newest overall", () => {
+	const { tempRoot, fixture } = buildFixture();
+	try {
+		// A later release cut from a different protected base. Its base commit
+		// shares no history with main, so picking it would fail a valid release.
+		git(fixture, "checkout", "-q", "-b", "release/2.x");
+		write(fixture, "packages/demo/index.ts", "export const value = 20;\n");
+		const otherBase = commit(fixture, "Base for the 2.x release");
+		git(fixture, "push", "-q", "-u", "origin", "release/2.x");
+		git(fixture, "checkout", "-q", "--detach", otherBase);
+		git(
+			fixture,
+			"commit",
+			"--no-verify",
+			"-q",
+			"--allow-empty",
+			"-m",
+			`Release 2.0.0\n\nRelease-base-ref: refs/heads/release/2.x\nRelease-base-sha: ${otherBase}`,
+		);
+		git(fixture, "tag", "v2.0.0");
+		git(fixture, "push", "-q", "origin", "v2.0.0");
+		git(fixture, "checkout", "-q", "main");
+
+		write(fixture, "packages/demo/index.ts", "export const value = 2;\n");
+		write(
+			fixture,
+			"packages/demo/CHANGELOG.md",
+			"# Changelog\n\n## [Unreleased]\n\n### Changed\n\n- Value is now 2\n\n## [1.0.0]\n\n- First release\n",
+		);
+		commit(fixture, "Change shipped behaviour");
+		git(fixture, "push", "-q", "origin", "main");
+
+		const rendered = preflight(fixture, "--base", "main");
+		assert.equal(rendered.status, 0, rendered.output);
+		assert.match(rendered.output, /Since: v1\.0\.0 \(cut from refs\/heads\/main/u);
+		assert.doesNotMatch(rendered.output, /v2\.0\.0/u);
+	} finally {
+		rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
