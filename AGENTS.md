@@ -237,6 +237,7 @@ platform-sensitive change as unverified on Windows until someone runs it there.
   `evals/longcontext/scorecard.json`. Deterministic and model-free; the model-backed task families are
   deliberately kept out so CI can gate on this half. See `evals/longcontext/README.md`
 - `npm run roles` — turn `orphus.roles.yaml` into launch commands (`--format plan|json|sh|tmux|orca`)
+- `bun run scripts/release-preflight.ts --base main --expect <sha>` — the release gate: is there anything to ship, is the work actually on the base, does every changed package carry `[Unreleased]` entries. Read-only; exits non-zero when it is not ready
 - `npx vitest --run --project unit test/unit/roundtable-` — the Orphus tests alone, in seconds
 - `npm run test:unit`, `npm run test:integration`, `npm run test:ci-contracts`, `npm run test:all`
 - `npm run test --workspace=@orphus/coding-agent` — the coding-agent vitest suite, under Node
@@ -413,7 +414,15 @@ atomic:
 
 Atomic uses a **versionless release-base** flow: supported bases keep `packages/*/package.json` at `0.0.0`; `scripts/cut-release.ts` materializes the real version only on a tagged detached `Release <version>` commit with harmless immutable `Release-base-ref`/`Release-base-sha` trailers. Pushing the version tag directly starts `publish.yml`. Its lightweight integrity job checks that the source resolves to the tag commit, `packages/coding-agent/package.json` equals the tag, and the subject is `Release <version>`. Build jobs produce and smoke-test native modules and archives; a draft GitHub Release is staged before OIDC-only npm publication and undrafted only after npm succeeds. `publish-npm` alone receives `id-token: write` under `npm-publish`; release staging, undrafting, and failed-draft cleanup alone receive `contents: write`. Configure npm trusted publishers with filename `publish.yml` and environment `npm-publish`.
 
-Cut and publish a release with:
+**Do not run `scripts/cut-release.ts` by hand to cut a release.** The
+`publish-release` workflow runs it, after the `release` skill's gate has proved
+the base is ready — see "Agent publishing requests" below. Invoking it directly
+skips that gate and every check the workflow performs, and its tags persist in
+the local checkout whether or not they reach origin.
+
+The command the workflow issues, recorded here so the mechanism below is
+readable, and usable directly only to recover a release the workflow could not
+finish:
 
 ```sh
 bun run scripts/cut-release.ts 0.8.31 --base main --push
@@ -423,7 +432,17 @@ The selected base is never advanced by the version stamp. The script resolves it
 
 ### Agent publishing requests
 
-If a user asks to publish a release or prerelease, route the request through the repository-local `publish-release` Atomic workflow:
+If a user asks to publish a release or prerelease, follow the repository-local **`release` skill** (`.orphus/skills/release/SKILL.md`), which sequences the whole thing and names what each piece already owns. Orphus sessions load it automatically; other harnesses should read it.
+
+Its first step is the one nothing else does. `publish-release` requires a changelog-only diff, so the docs, the README, and the `[Unreleased]` entries must already be on the base before it runs — and the base must actually contain the work being announced. Prove both before anything else:
+
+```sh
+bun run scripts/release-preflight.ts --base main --expect <pr-head-sha>
+```
+
+It exits non-zero when the base has nothing new since the last release, when an `--expect` commit is not an ancestor of the base, or when a changed package has no `[Unreleased]` entries. **Someone saying a pull request is merged is not evidence that it is merged.**
+
+Then route the request through the repository-local `publish-release` Atomic workflow:
 
 1. Ask for the version only when it was not supplied. Stable releases use `MAJOR.MINOR.PATCH`; prereleases use `MAJOR.MINOR.PATCH-alpha.REVISION` with revision starting at 1.
 2. Infer release versus prerelease from a valid supplied version; ask only when it is ambiguous or invalid. Use the requested `base_ref`, defaulting to the short branch name `main` when omitted.
@@ -438,7 +457,7 @@ If a user asks to publish a release or prerelease, route the request through the
 ## Docs
 
 - ALWAYS keep the user-facing docs in `packages/coding-agent/docs` up-to-date with the latest changes after you make changes. Prefer to keep other docs up-to-date as well, but the coding-agent docs are the most important since they are user-facing and often consulted by users and other agents.
-- To update docs, prefer using your `release-docs` workflow to thoroughly update all relevant docs with the latest changes. If you need to make a quick fix or update, you can also edit the markdown files directly, but make sure to keep them comprehensive and up-to-date.
+- To update docs, prefer using your `release-docs` workflow, which finds stale pages against the current branch and validates them with `docs:check` plus Mintlify. Its `owner_docs` are scoped to `packages/coding-agent/docs` — **the root `README.md` and `docs/` are not covered and stay a manual pass.** If you need to make a quick fix or update, you can also edit the markdown files directly, but make sure to keep them comprehensive and up-to-date.
 
 ## Changelog
 
@@ -481,13 +500,12 @@ Use these sections under `## [Unreleased]`:
 `scripts/bump-version.ts` is the low-level stamper that rewrites every versioned manifest. It is invoked by `scripts/cut-release.ts` inside a throwaway worktree at the exact remote base SHA to materialize the real version on the tagged release commit. You normally never run it directly against a release base; the only direct use is resetting the placeholder if it ever drifts:
 
 ```sh
-# stamp a real version onto the off-base tag commit (preferred; explicit base shown)
-bun run scripts/cut-release.ts 0.1.0 --base main
-bun run scripts/cut-release.ts 0.1.0-alpha.1 --base main
-
-# low-level: reset main back to the versionless placeholder
+# reset main back to the versionless placeholder (the only direct use)
 bun run scripts/bump-version.ts 0.0.0 && npm install --package-lock-only --ignore-scripts
 ```
+
+To stamp a real version, go through the `release` skill and the `publish-release`
+workflow — not `cut-release.ts` directly. See "Releasing" above.
 
 ## CI
 
