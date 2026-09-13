@@ -161,3 +161,45 @@ test("release-preflight refuses a base with nothing new since the last release",
 		rmSync(tempRoot, { recursive: true, force: true });
 	}
 });
+
+test("release-preflight reads changelogs from the base, not the working tree", () => {
+	const { tempRoot, fixture } = buildFixture();
+	try {
+		write(fixture, "packages/demo/index.ts", "export const value = 2;\n");
+		commit(fixture, "Change shipped behaviour");
+		git(fixture, "push", "-q", "origin", "main");
+
+		// Recorded locally but never pushed: origin/main still has no entry.
+		write(
+			fixture,
+			"packages/demo/CHANGELOG.md",
+			"# Changelog\n\n## [Unreleased]\n\n### Changed\n\n- Value is now 2\n\n## [1.0.0]\n\n- First release\n",
+		);
+		commit(fixture, "Record the change locally");
+
+		const unpushed = preflight(fixture);
+		assert.notEqual(unpushed.status, 0, unpushed.output);
+		assert.match(
+			unpushed.output,
+			/packages\/demo changed but packages\/demo\/CHANGELOG\.md has no \[Unreleased\] entries/u,
+		);
+	} finally {
+		rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("release-preflight refuses to report readiness when origin cannot be fetched", () => {
+	const { tempRoot, fixture } = buildFixture();
+	try {
+		write(fixture, "packages/demo/index.ts", "export const value = 2;\n");
+		commit(fixture, "Change shipped behaviour");
+		git(fixture, "push", "-q", "origin", "main");
+
+		git(fixture, "remote", "set-url", "origin", join(tempRoot, "missing.git"));
+		const unreachable = preflight(fixture);
+		assert.notEqual(unreachable.status, 0, unreachable.output);
+		assert.match(unreachable.output, /Could not fetch .* from origin/u);
+	} finally {
+		rmSync(tempRoot, { recursive: true, force: true });
+	}
+});

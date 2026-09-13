@@ -27,8 +27,7 @@
  *   bun run scripts/release-preflight.ts --base main --expect 35fbf45
  */
 
-import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { $ } from "bun";
 import { parseReleaseBaseTrailers } from "./release-base.js";
 
@@ -53,6 +52,29 @@ async function git(args: string[]): Promise<string> {
 
 async function gitOk(args: string[]): Promise<boolean> {
 	return (await $`git -C ${ROOT} ${args}`.nothrow().quiet()).exitCode === 0;
+}
+
+/**
+ * A fetch whose failure is fatal. Suppressing it would leave the later checks
+ * reading whatever refs this checkout happened to have, and report a release as
+ * ready from stale data — the one thing this script exists to prevent.
+ */
+async function fetchOrFail(args: string[], what: string): Promise<void> {
+	const result = await $`git -C ${ROOT} fetch ${args}`.nothrow().quiet();
+	if (result.exitCode === 0) return;
+	throw new Error(
+		[
+			`Could not fetch ${what} from origin, so every ref below would be whatever this checkout already had.`,
+			"Check the branch name and that origin is reachable. git said:",
+			result.stderr.toString().trim() || "(no output)",
+		].join("\n"),
+	);
+}
+
+/** A package changelog as it exists on the base, or "" when the base has no such file. */
+async function changelogAt(baseSha: string, name: string): Promise<string> {
+	const shown = await $`git -C ${ROOT} show ${`${baseSha}:packages/${name}/CHANGELOG.md`}`.nothrow().quiet();
+	return shown.exitCode === 0 ? shown.stdout.toString() : "";
 }
 
 function parseArgs(argv: string[]): { base: string; since?: string; expect: string[] } {
@@ -85,7 +107,7 @@ function parseArgs(argv: string[]): { base: string; since?: string; expect: stri
  * `Release-base-sha`.
  */
 async function resolveSincePoint(): Promise<{ ref: string; label: string }> {
-	await $`git -C ${ROOT} fetch --tags --quiet origin`.nothrow().quiet();
+	await fetchOrFail(["--tags", "--quiet", "origin"], "tags");
 	const tags = (await git(["tag", "--list", "v*", "--sort=-v:refname"])).split("\n").filter(Boolean);
 	const tag = tags[0];
 	if (!tag) {
@@ -109,9 +131,7 @@ async function resolveSincePoint(): Promise<{ ref: string; label: string }> {
 }
 
 /** Entries under `## [Unreleased]`, stopping at the next version heading. */
-function unreleasedEntries(changelogPath: string): string[] {
-	if (!existsSync(changelogPath)) return [];
-	const text = readFileSync(changelogPath, "utf8");
+function unreleasedEntries(text: string): string[] {
 	const start = text.search(/^## \[Unreleased\]/mu);
 	if (start === -1) return [];
 	const rest = text.slice(start).replace(/^## \[Unreleased\][^\n]*\n/u, "");
@@ -140,10 +160,9 @@ function packagesTouched(files: string[]): Map<string, string[]> {
 async function main(): Promise<void> {
 	const { base, since, expect } = parseArgs(process.argv.slice(2));
 
-	await $`git -C ${ROOT} fetch --quiet origin ${base}`.nothrow().quiet();
-	if (!(await gitOk(["rev-parse", "--verify", `origin/${base}`]))) {
-		throw new Error(`origin/${base} does not exist. Pass an existing branch with --base.`);
-	}
+	// The explicit refspec matters: a bare `fetch origin <base>` is only
+	// guaranteed to move FETCH_HEAD, and it is `origin/<base>` that is read below.
+	await fetchOrFail(["--quiet", "origin", `refs/heads/${base}:refs/remotes/origin/${base}`], `origin/${base}`);
 	const baseSha = await git(["rev-parse", `origin/${base}`]);
 	const sincePoint = since ? { ref: since, label: since } : await resolveSincePoint();
 	const sinceRef = sincePoint.ref;
@@ -183,7 +202,7 @@ async function main(): Promise<void> {
 	const touched = packagesTouched(changedFiles);
 	console.log(`\nPackages changed: ${touched.size === 0 ? "(none)" : ""}`);
 	for (const [name, files] of [...touched].sort()) {
-		const entries = unreleasedEntries(join(ROOT, "packages", name, "CHANGELOG.md"));
+		const entries = unreleasedEntries(await changelogAt(baseSha, name));
 		console.log(
 			`  ${entries.length > 0 ? "✓" : "✗"} ${name} — ${files.length} file(s), ${entries.length} Unreleased entr${entries.length === 1 ? "y" : "ies"}`,
 		);
