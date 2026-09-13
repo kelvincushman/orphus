@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The isolated `browser` tool is now registered by default, while Chrome still launches only on the first `open` action. Set `ORPHUS_ENABLE_BROWSER=0` to remove it from the runtime. Credential login remains off by default and still requires its separate switch, exact origin allowlisting, credential-origin matching, and interactive approval.
+
 ## [2.1.2] - 2026-08-27
 
 ### Changed

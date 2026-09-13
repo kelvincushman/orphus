@@ -4,6 +4,6 @@ import llamaExtension from "./llama/index.js";
 
 export const builtInExtensions: InlineExtension[] = [
 	{ name: "llama.cpp", factory: llamaExtension, hidden: true, bundled: true },
-	// Registers nothing unless ORPHUS_ENABLE_BROWSER is set.
+	// Registered by default; ORPHUS_ENABLE_BROWSER=0 removes it entirely.
 	{ name: "browser", factory: browserExtension, hidden: true, bundled: true },
 ];

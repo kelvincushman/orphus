@@ -19,12 +19,13 @@ Orphus accepts environment variables for configuration, provider credentials, an
 
 ### Browser operation
 
-Off by default. Nothing is registered without `ORPHUS_ENABLE_BROWSER`; see [Browser operation](/browser).
+Available by default, with Chrome launched lazily on the first `open` action.
+Set `ORPHUS_ENABLE_BROWSER=0` to remove the tool from the runtime; see [Browser operation](/browser).
 
 | Variable | Purpose |
 |---|---|
-| `ORPHUS_ENABLE_BROWSER` | Master switch for the `browser` tool |
-| `ORPHUS_ENABLE_BROWSER_LOGIN` | Allow credential injection. Requires the switch above |
+| `ORPHUS_ENABLE_BROWSER` | Browser tool switch. `0`, `false`, `off`, or an empty value disables the default registration |
+| `ORPHUS_ENABLE_BROWSER_LOGIN` | Allow credential injection. Requires browser operation to remain enabled |
 | `ORPHUS_BROWSER_LOGIN_ORIGINS` | Space- or comma-separated origins credentials may be used on, e.g. `https://app.example.com` |
 | `ORPHUS_BROWSER_EXECUTABLE` | Explicit Chrome/Chromium path |
 | `ORPHUS_BROWSER_HEADLESS` | `0` runs Chrome with a visible window |
