@@ -117,6 +117,8 @@ messages intact verbatim and only early exploration collapsed.
 | **[Harness](packages/coding-agent/docs/harness.md)** | The capability boundary, the provider/tool session records, and `orphus inspect runtime`. |
 | **[Browser operation](packages/coding-agent/docs/browser.md)** | Driving an isolated browser, and the four gates a credential passes first. Off by default. |
 | **[Goal workflows](packages/coding-agent/docs/workflows.md#goal-as-the-core-completion-loop)** | The native plan/fan-out/verify/review loop Orphus uses for substantial coding tasks. |
+| **[Subagents](packages/coding-agent/docs/subagents.md)** | Bounded delegation inside a session: fresh, forked, or a key→value `handoff`; cheapest-first routing down an agent's model ladder. |
+| **[Skills](packages/coding-agent/docs/skills.md)** | What ships in every session, how skills load, and the writing-for-agents standard for new ones. |
 | **[Transcription](packages/coding-agent/docs/transcribe.md)** | Local dictation: the protocol, the model catalog, and why it is not enabled yet. |
 | **[Terminal backend](packages/coding-agent/docs/tui-backend.md)** | The termDOM pilot for startup selection and the session picker. Opt-in; pi stays the default. |
 | **[Troubleshooting](docs/troubleshooting.md)** | The three failures that look like success. |
@@ -238,7 +240,8 @@ difference), and secrets are redacted. Sessions also record the exact body of ev
 request and what came back — see
 [harness.md](packages/coding-agent/docs/harness.md).
 
-Skills extend from there: `orphus install <git-url>` consumes community skill packs
+Every session also ships a set of skills — listed under [Skills](#skills) below. They
+extend from there: `orphus install <git-url>` consumes community skill packs
 ([mattpocock/skills](https://github.com/mattpocock/skills) for engineering workflow,
 [cli-printing-press](https://github.com/mvanhorn/cli-printing-press) to mint agent-native
 CLIs from any API), and new skills follow the writing-for-agents method — see
@@ -315,14 +318,16 @@ packages/roundtable/          The Orphus contribution — rooms and the context-
   roundtable-tool.ts, index.ts  The `roundtable` tool and extension
   memory-tool.ts, memory/       The `memory` tool → HMLR-Wiki/Dossier (docs/memory.md)
   demo/run-demo.ts              The scripted discussion demo
-  skills/                       Discussion etiquette, shipped as an agent skill
+  skills/                       The roundtable etiquette and memory skills
 packages/fleet/               Fleet blueprints: /fleet, /fleetsetup, the fleet tool, SCHEMA.md,
-                                six examples, and the orchestration + kie-ai-media skills
+                                seven examples, and the orchestration + kie-ai-media skills
 packages/coding-agent/        The `orphus` binary (Atomic-derived, plus the first-party
                                 harness boundary, browser operation, and termDOM backend)
 packages/transcribe/          Local dictation, derived from pi-transcribe — protocol, model
                                 catalog, ABI pin. Not bundled: fails closed until natives exist
-packages/{workflows,subagents,intercom,mcp,web-access,natives}
+packages/subagents/           Subagent runtime (Atomic-derived) plus the bounded handoff channel,
+                                cheapest-first routing, and the context-discipline skills
+packages/{workflows,intercom,mcp,web-access,natives}
 orphus.roles.yaml · roles/    Example role manifest and briefs — copy-me templates
 test/unit/roundtable-*        Rooms, memory, socket, digest, broker lifecycle, and role-launcher tests
 patches/atomic/               The 0001–0004 series, as applied to upstream `d84fc43`
@@ -519,11 +524,46 @@ created like skills are created.
 
 The orchestrator routes rather than works: deliberate teams argue in a room
 and converge on `FINAL:` lines the orchestrator digests; dispatch teams fan
-out as named subagents whose results return. Six example blueprints ship in
-`packages/fleet/examples/` — including a Kie.ai media team and a
-blog-from-YouTube pipeline — and the protocol lives in the
+out as named subagents whose results return. Seven example blueprints ship in
+`packages/fleet/examples/` — including a Kie.ai media team, a
+blog-from-YouTube pipeline, and a four-stance `council` — and the protocol lives in the
 `fleet-orchestration` skill. Reference:
 [packages/coding-agent/docs/fleet.md](packages/coding-agent/docs/fleet.md).
+
+## Skills
+
+Every session ships a set of skills — reusable expert instructions the agent loads on
+demand, and that you can invoke directly with `/skill:<name>`. Only the one-line
+descriptions sit in context; a skill's body loads when a task matches it.
+
+| Skill | Package | What it does |
+| --- | --- | --- |
+| `subagent` | subagents | Delegate to builtin or custom subagents — single, chain, parallel, async — hand a cheaper child a bounded `handoff`, and route it cheapest-first. |
+| `context-budget` | subagents | Measure what fills the context window with `orphus inspect runtime`, then rank what to cut. |
+| `strategic-compact` | subagents | Compact at a phase boundary after writing state down — and reach for rooms, `handoff`, and file-only returns first. |
+| `ponytail` | subagents | The laziest solution that works: YAGNI, reuse, stdlib, one line before fifty. `/ponytail lite\|full\|ultra`. |
+| `tdd` | subagents | Red-green-refactor, with tests that exercise public interfaces rather than internals. |
+| `minting-clis` | subagents | When a task needs an API no tool serves: find or mint an agent-native CLI before hand-rolling `curl` or adding an MCP server. |
+| `liteparse` | subagents | Local, model-free extraction from PDF, DOCX, PPTX, XLSX, and image files via the `lit` CLI. |
+| `playwright-cli` | subagents | Drive a real browser for end-to-end checks, screenshots, and proof videos. |
+| `tmux` | subagents | Drive tmux sessions, windows, and panes for interactive CLIs. |
+| `roundtable` | roundtable | Discussion etiquette for rooms: post conclusions not transcripts, digest before deciding, one room per concern. |
+| `memory` | roundtable | Recall is evidence, not certainty: query before writing, verify against the repository, hand recall to a child as an asserted `handoff`. |
+| `fleet-orchestration` | fleet | The protocol a `/fleet` run follows: route by difficulty down the price curve, converge deliberations, verify dispatch, a capped retry ladder, when to gate on the human. |
+| `kie-ai-media` | fleet | Images, video, and audio through the Kie.ai API, for media-team members. |
+| `intercom` | intercom | Session-to-session messaging and delegation between agents on one machine. |
+| `research-codebase` | workflows | Scoped research that writes a grounded artifact for one subsystem or question. |
+| `create-spec` | workflows | Turn research into an implementation-ready plan built around the program's entrypoints. |
+| `prompt-engineer` | workflows | Create, optimize, evaluate, or troubleshoot prompts for current frontier models. |
+| `impeccable` | workflows | Critique and refine frontend and product UI. |
+| `skill-creator` | workflows | Create, improve, and benchmark skills. |
+
+Three of these — `context-budget`, `strategic-compact`, and `memory` — are rewrites of
+skills from [ECC](https://github.com/affaan-m/ECC) (MIT) against what Orphus enforces in
+code rather than what it asks a model to remember; the `council` fleet example is the
+fourth. Community packs install with `orphus install <git-url>`, and new skills follow the
+writing-for-agents method — both in
+[skills.md](packages/coding-agent/docs/skills.md).
 
 ## Orchestrating a fleet with Orca
 
@@ -546,6 +586,12 @@ so any LLM can sit behind any role, and you can mix providers freely: Claude as
 planner, a fast cheap model as researcher, a different family as critic. Launch
 recipes, role briefs, and the phase-2 declarative role manifest:
 [docs/roles.md](docs/roles.md).
+
+Inside a session the same idea runs downward. A parent hands a cheaper child a bounded
+`handoff` of the facts it needs — decision, files, acceptance criterion — and
+`cheapestFirst: true` starts that child's model ladder at its cheapest priced rung,
+escalating on failure. Frontier tokens buy decisions; the grind goes down the price
+curve. Reference: [subagents.md](packages/coding-agent/docs/subagents.md).
 
 ## Roadmap: the self-improving harness
 

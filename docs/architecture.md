@@ -232,17 +232,18 @@ Most of this repository is vendored upstream. What Orphus authors:
 | `packages/roundtable/` | Rooms, digest, broker, roles, memory adapter — everything above |
 | `packages/fleet/` | Fleet blueprints, `/fleet` + `/fleetsetup`, the orchestration and kie-ai-media skills |
 | `packages/transcribe/` | Local dictation, derived from pi-transcribe. Not bundled; fails closed until its natives are built |
+| `packages/subagents/src/shared/settings.ts` (`buildHandoffInstruction`), `.../runs/shared/model-fallback.ts` (cost ranking, `cheapestFirst`), `packages/subagents/skills/{context-budget,strategic-compact}/` | The bounded `handoff` channel, cheapest-first routing, and the context-discipline skills — first-party, inside the otherwise vendored subagents package |
 | `packages/coding-agent/src/core/{capabilities,replay}/`, `.../core/provider-audit.ts`, `.../cli/inspect-runtime.ts`, `.../extensions/browser/`, `.../core/terminal/termdom-*` | The capability boundary, the provider/tool session records and replay harness, `orphus inspect runtime`, browser operation, and the termDOM backend — first-party, inside an otherwise vendored package |
-| `test/unit/roundtable-*`, `test/unit/fleet-*`, `test/unit/{harness,browser,terminal,transcribe}-*` | Their tests |
+| `test/unit/roundtable-*`, `test/unit/fleet-*`, `test/unit/{harness,browser,terminal,transcribe}-*`, `test/unit/subagents-handoff.test.ts` | Their tests |
 | `docs/`, `roles/`, `orphus.roles.yaml` | This documentation and the example manifest |
 | `.github/workflows/ci.yml` | The gate that actually runs |
 
-Everything else — the agent loop, providers, tools, MCP, subagents, workflows,
-the TUI — comes from [Atomic](https://github.com/bastani-inc/atomic) and behaves
+Everything else — the agent loop, providers, tools, MCP, the rest of subagents,
+workflows, the TUI — comes from [Atomic](https://github.com/bastani-inc/atomic) and behaves
 as it does upstream. A bug there is usually worth reporting upstream too.
 
-Note that `packages/coding-agent/` is no longer wholly vendored: the rows above
-name first-party subsystems living inside it. Check the row before assuming a
+Note that `packages/coding-agent/` and `packages/subagents/` are no longer wholly
+vendored: the rows above name first-party subsystems living inside them. Check the row before assuming a
 file there is upstream's.
 
 The inherited `test.yml`, `publish.yml`, and `warm-toolchain-cache.yml` are all

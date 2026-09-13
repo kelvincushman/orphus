@@ -47,7 +47,7 @@ Only the first arrives unasked, and it carries no message bodies at all.
 
 ## Requirements
 
-- **Node.js ≥ 22.13** — installs dependencies and runs the test suites.
+- **Node.js ≥ 22.19** — installs dependencies and runs the test suites.
 - **[Bun](https://bun.sh) 1.3.14** — runs the demos, the role launcher, and the
   repository scripts. Both runtimes are needed; see the Tech Stack table in
   [`AGENTS.md`](../AGENTS.md) for which does what and why.
@@ -228,6 +228,12 @@ Full reference: [`memory.md`](memory.md).
   what the broker does, and where the trust boundary sits.
 - **[`troubleshooting.md`](troubleshooting.md)** — when agents cannot see each
   other, when memory answers nothing, and other things that fail quietly.
+- **[`fleet.md`](../packages/coding-agent/docs/fleet.md)** — a whole orchestration in
+  one command: `/fleetsetup` writes a blueprint, `/fleet` runs it.
+- **[`subagents.md`](../packages/coding-agent/docs/subagents.md)** — delegating inside a
+  session: fresh, forked, or a bounded `handoff`; cheapest-first routing.
+- **[`skills.md`](../packages/coding-agent/docs/skills.md)** — what ships in every
+  session, and how to add more.
 - **[`orca-integration.md`](orca-integration.md)** — running a fleet across
   parallel git worktrees.
 - **[`../AGENTS.md`](../AGENTS.md)** — read this before contributing; it is also
