@@ -77,7 +77,7 @@ Install it with scripts off instead, then relink the one native binding that
 genuinely needs its install step:
 
 ```sh
-npm i --ignore-scripts gitnexus@1.6.9              # into a scratch dir, or -g
+npm i --ignore-scripts gitnexus@1.6.9              # into a scratch dir
 node node_modules/@ladybugdb/core/install.js       # copies the prebuilt lbugjs.node into place
 ./node_modules/.bin/gitnexus analyze . --skip-agents-md
 ```
