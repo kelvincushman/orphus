@@ -13,7 +13,7 @@
  * This reports the facts and exits non-zero when one of them is wrong:
  *   - the base carries commits since the last release tag (there is something to ship)
  *   - every `--expect <ref>` is an ancestor of the base (the work is actually in)
- *   - every package changed since that tag has entries under `[Unreleased]`
+ *   - every package changed since that tag records that change in its changelog
  *
  * It also warns — without failing — when packages changed but no doc or README
  * did. Whether a doc is now misleading is a judgement call a script cannot
@@ -22,9 +22,14 @@
  * Usage:
  *   bun run scripts/release-preflight.ts [--base <ref>] [--since <tag>] [--expect <ref>]...
  *
+ * `--expect` takes the commit on the base, not the pull request head. This
+ * repository squash-merges, so a merged PR's head is never an ancestor of
+ * `main` and passing it fails a release that is genuinely ready. Take the SHA
+ * from the base's own log.
+ *
  * Examples:
  *   bun run scripts/release-preflight.ts
- *   bun run scripts/release-preflight.ts --base main --expect 35fbf45
+ *   bun run scripts/release-preflight.ts --base main --expect 4071c215
  */
 
 import { resolve } from "node:path";
@@ -157,14 +162,28 @@ async function resolveSincePoint(base: string): Promise<{ ref: string; label: st
 	);
 }
 
-/** Entries under `## [Unreleased]`, stopping at the next version heading. */
-function unreleasedEntries(text: string): string[] {
-	const start = text.search(/^## \[Unreleased\]/mu);
-	if (start === -1) return [];
-	const rest = text.slice(start).replace(/^## \[Unreleased\][^\n]*\n/u, "");
-	const end = rest.search(/^## \[/mu);
-	const section = end === -1 ? rest : rest.slice(0, end);
-	return section
+/**
+ * Entry lines a changelog has gained since the last release: everything above
+ * the topmost section that was already there when that release was cut.
+ *
+ * Asking only for `[Unreleased]` entries was wrong at the one moment this gate
+ * exists for. Cutting a release moves those entries under a dated version
+ * heading — the state the release itself requires — and the check then called
+ * the package undocumented and failed, with the changelog in exactly the shape
+ * it was supposed to be in. Both shapes say the same thing: an entry above the
+ * last released section has not shipped yet.
+ *
+ * `[Unreleased]` is never the boundary even though both files carry it; the
+ * boundary is the first *version* heading they share. A changelog that did not
+ * exist at the last release, or has no released section yet, is pending whole.
+ */
+function entriesNotYetReleased(current: string, atLastRelease: string): string[] {
+	const headings = current.match(/^## \[[^\]]+\][^\n]*$/gmu) ?? [];
+	const released = headings.find(
+		(heading) => !heading.startsWith("## [Unreleased]") && atLastRelease.includes(heading),
+	);
+	const pending = released ? current.slice(0, current.indexOf(released)) : current;
+	return pending
 		.split("\n")
 		.map((line) => line.trim())
 		.filter((line) => line.startsWith("- "));
@@ -232,23 +251,26 @@ async function main(): Promise<void> {
 		const contained = await gitOk(["merge-base", "--is-ancestor", ref, baseSha]);
 		console.log(`  ${contained ? "✓" : "✗"} ${ref}${contained ? "" : ` — NOT in origin/${base}`}`);
 		if (!contained) {
-			failures.push(`--expect ${ref} is not an ancestor of origin/${base}. Its pull request is not merged.`);
+			failures.push(
+				`--expect ${ref} is not an ancestor of origin/${base}. Either its pull request is not merged, ` +
+					"or it is the pull request head and the merge squashed it — pass the commit from the base's own log.",
+			);
 		}
 	}
 
-	// 3. Does every changed package carry Unreleased entries?
+	// 3. Does every changed package record that change in its changelog?
 	const changedFiles = (await git(["diff", "--name-only", `${sinceRef}..${baseSha}`])).split("\n").filter(Boolean);
 	const touched = packagesTouched(changedFiles);
 	console.log(`\nPackages changed: ${touched.size === 0 ? "(none)" : ""}`);
 	for (const [name, files] of [...touched].sort()) {
-		const entries = unreleasedEntries(await changelogAt(baseSha, name));
+		const entries = entriesNotYetReleased(await changelogAt(baseSha, name), await changelogAt(sinceRef, name));
 		console.log(
-			`  ${entries.length > 0 ? "✓" : "✗"} ${name} — ${files.length} file(s), ${entries.length} Unreleased entr${entries.length === 1 ? "y" : "ies"}`,
+			`  ${entries.length > 0 ? "✓" : "✗"} ${name} — ${files.length} file(s), ${entries.length} unreleased entr${entries.length === 1 ? "y" : "ies"}`,
 		);
 		if (entries.length === 0) {
 			failures.push(
-				`packages/${name} changed but packages/${name}/CHANGELOG.md has no [Unreleased] entries. ` +
-					"Add them, or confirm the change is infrastructure-level per the Changelog rules in CLAUDE.md.",
+				`packages/${name} changed but packages/${name}/CHANGELOG.md records nothing since ${sincePoint.label}. ` +
+					"Add entries under [Unreleased], or confirm the change is infrastructure-level per the Changelog rules in CLAUDE.md.",
 			);
 		}
 	}

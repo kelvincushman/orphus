@@ -83,7 +83,7 @@ function buildFixture() {
 	return { tempRoot, fixture };
 }
 
-test("release-preflight fails a package change with no Unreleased entries, and passes once they exist", () => {
+test("release-preflight fails a package change with no changelog entry, and passes once one exists", () => {
 	const { tempRoot, fixture } = buildFixture();
 	try {
 		write(fixture, "packages/demo/index.ts", "export const value = 2;\n");
@@ -94,7 +94,7 @@ test("release-preflight fails a package change with no Unreleased entries, and p
 		assert.notEqual(missing.status, 0, missing.output);
 		assert.match(
 			missing.output,
-			/packages\/demo changed but packages\/demo\/CHANGELOG\.md has no \[Unreleased\] entries/u,
+			/packages\/demo changed but packages\/demo\/CHANGELOG\.md records nothing since v1\.0\.0/u,
 		);
 
 		write(
@@ -113,6 +113,50 @@ test("release-preflight fails a package change with no Unreleased entries, and p
 	}
 });
 
+test("release-preflight accepts entries a release stamp moved out of Unreleased", () => {
+	const { tempRoot, fixture } = buildFixture();
+	try {
+		write(fixture, "packages/demo/index.ts", "export const value = 2;\n");
+		// The shape `publish-release` leaves behind: the entries have moved under a
+		// dated heading, and `[Unreleased]` is present and empty. This is what the
+		// base looks like at the moment the release is cut, so it has to pass.
+		write(
+			fixture,
+			"packages/demo/CHANGELOG.md",
+			"# Changelog\n\n## [Unreleased]\n\n## [1.1.0] - 2026-09-13\n\n### Changed\n\n- Value is now 2\n\n## [1.0.0]\n\n- First release\n",
+		);
+		commit(fixture, "Change shipped behaviour and stamp it into 1.1.0");
+		git(fixture, "push", "-q", "origin", "main");
+
+		const stamped = preflight(fixture);
+		assert.equal(stamped.status, 0, stamped.output);
+		assert.match(stamped.output, /demo — 1 file\(s\), 1 unreleased entry/u);
+	} finally {
+		rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("release-preflight still fails when only an already-released section carries entries", () => {
+	const { tempRoot, fixture } = buildFixture();
+	try {
+		write(fixture, "packages/demo/index.ts", "export const value = 2;\n");
+		// Entries exist, but every one of them shipped in 1.0.0 — the new change is
+		// undocumented, and reading the whole file rather than the pending part
+		// would call that ready.
+		commit(fixture, "Change shipped behaviour without recording it");
+		git(fixture, "push", "-q", "origin", "main");
+
+		const undocumented = preflight(fixture);
+		assert.notEqual(undocumented.status, 0, undocumented.output);
+		assert.match(
+			undocumented.output,
+			/packages\/demo changed but packages\/demo\/CHANGELOG\.md records nothing since/u,
+		);
+	} finally {
+		rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
 test("release-preflight fails when an expected commit is not on the base", () => {
 	const { tempRoot, fixture } = buildFixture();
 	try {
@@ -124,7 +168,7 @@ test("release-preflight fails when an expected commit is not on the base", () =>
 
 		const unmerged = preflight(fixture, "--expect", featureSha);
 		assert.notEqual(unmerged.status, 0, unmerged.output);
-		assert.match(unmerged.output, /is not an ancestor of origin\/main\. Its pull request is not merged\./u);
+		assert.match(unmerged.output, /is not an ancestor of origin\/main\. Either its pull request is not merged/u);
 
 		// The same commit passes once the base actually carries it.
 		git(fixture, "merge", "-q", "--no-edit", "feature");
@@ -182,7 +226,7 @@ test("release-preflight reads changelogs from the base, not the working tree", (
 		assert.notEqual(unpushed.status, 0, unpushed.output);
 		assert.match(
 			unpushed.output,
-			/packages\/demo changed but packages\/demo\/CHANGELOG\.md has no \[Unreleased\] entries/u,
+			/packages\/demo changed but packages\/demo\/CHANGELOG\.md records nothing since v1\.0\.0/u,
 		);
 	} finally {
 		rmSync(tempRoot, { recursive: true, force: true });

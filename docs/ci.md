@@ -495,6 +495,8 @@ Repository-wide workflow permissions are read-only. Only draft staging, undrafti
 
 | File | Trigger | Purpose |
 | --- | --- | --- |
+| `.github/workflows/ci.yml` | every pull request and pushes to `main` | **the only gate on a pull request here** — `verify`, `suites`, `review-gate` |
+| `.github/workflows/release.yml` | push of a `v*` tag | **the only active release path** — builds the three archives onto a GitHub Release; publishes to no registry |
 | `.github/workflows/test.yml` | selected pushes and every pull request | workspace tests and cross-platform release smoke |
 | `.github/workflows/publish.yml` | disabled inherited release tag push; manual recovery dispatch | upstream npm publisher topology and contract coverage |
 | `.github/workflows/warm-toolchain-cache.yml` | manual dispatch (see gate above) | write the Zig and MSVC CRT cache keys into the default-branch scope |

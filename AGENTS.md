@@ -237,7 +237,7 @@ platform-sensitive change as unverified on Windows until someone runs it there.
   `evals/longcontext/scorecard.json`. Deterministic and model-free; the model-backed task families are
   deliberately kept out so CI can gate on this half. See `evals/longcontext/README.md`
 - `npm run roles` — turn `orphus.roles.yaml` into launch commands (`--format plan|json|sh|tmux|orca`)
-- `bun run scripts/release-preflight.ts --base main --expect <sha>` — the release gate: is there anything to ship, is the work actually on the base, does every changed package carry `[Unreleased]` entries. Read-only; exits non-zero when it is not ready
+- `bun run scripts/release-preflight.ts --base main --expect <sha>` — the release gate: is there anything to ship, is the work actually on the base, does every changed package record it in its changelog. `--expect` takes the commit on the base, not the pull request head (this repository squash-merges). Read-only; exits non-zero when it is not ready
 - `npx vitest --run --project unit test/unit/roundtable-` — the Orphus tests alone, in seconds
 - `npm run test:unit`, `npm run test:integration`, `npm run test:ci-contracts`, `npm run test:all`
 - `npm run test --workspace=@orphus/coding-agent` — the coding-agent vitest suite, under Node
@@ -412,7 +412,11 @@ atomic:
 
 ## Releasing
 
-Atomic uses a **versionless release-base** flow: supported bases keep `packages/*/package.json` at `0.0.0`; `scripts/cut-release.ts` materializes the real version only on a tagged detached `Release <version>` commit with harmless immutable `Release-base-ref`/`Release-base-sha` trailers. Pushing the version tag directly starts `publish.yml`. Its lightweight integrity job checks that the source resolves to the tag commit, `packages/coding-agent/package.json` equals the tag, and the subject is `Release <version>`. Build jobs produce and smoke-test native modules and archives; a draft GitHub Release is staged before OIDC-only npm publication and undrafted only after npm succeeds. `publish-npm` alone receives `id-token: write` under `npm-publish`; release staging, undrafting, and failed-draft cleanup alone receive `contents: write`. Configure npm trusted publishers with filename `publish.yml` and environment `npm-publish`.
+Atomic uses a **versionless release-base** flow: supported bases keep `packages/*/package.json` at `0.0.0`; `scripts/cut-release.ts` materializes the real version only on a tagged detached `Release <version>` commit with harmless immutable `Release-base-ref`/`Release-base-sha` trailers. Pushing the `v`-prefixed version tag is the publication signal.
+
+**On this fork that tag push starts `release.yml`, not `publish.yml`.** `publish.yml` is disabled at the repository level along with the other inherited workflows (see the Tech Stack section), so nothing it describes happens here. `release.yml` builds Linux x64, macOS arm64 and Windows x64 archives, attaches them to a GitHub Release, and **deliberately publishes to no registry** — its own header says so. It takes `contents: read` overall and `contents: write` on the release job alone; no job receives `id-token: write`, because nothing is published under OIDC. A release here produces downloadable binaries and nothing else; there is no npm publication to wait for or verify.
+
+Upstream's `publish.yml`, kept byte-identical and disabled, is the record of what Atomic does instead: a lightweight integrity job checking that the source resolves to the tag commit, that `packages/coding-agent/package.json` equals the tag, and that the subject is `Release <version>`; build jobs producing and smoke-testing native modules and archives; a draft GitHub Release staged before OIDC-only npm publication and undrafted only after npm succeeds, with `publish-npm` alone receiving `id-token: write` under `npm-publish`. Re-enabling it would mean configuring npm trusted publishers with filename `publish.yml` and environment `npm-publish` — and renaming the published package, since it would publish under the upstream name.
 
 **Do not run `scripts/cut-release.ts` by hand to cut a release.** The
 `publish-release` workflow runs it, after the `release` skill's gate has proved
@@ -437,10 +441,10 @@ If a user asks to publish a release or prerelease, follow the repository-local *
 Its first step is the one nothing else does. `publish-release` requires a changelog-only diff, so the docs, the README, and the `[Unreleased]` entries must already be on the base before it runs — and the base must actually contain the work being announced. Prove both before anything else:
 
 ```sh
-bun run scripts/release-preflight.ts --base main --expect <pr-head-sha>
+bun run scripts/release-preflight.ts --base main --expect <merge-sha>
 ```
 
-It exits non-zero when the base has nothing new since the last release, when an `--expect` commit is not an ancestor of the base, or when a changed package has no `[Unreleased]` entries. **Someone saying a pull request is merged is not evidence that it is merged.**
+It exits non-zero when the base has nothing new since the last release, when an `--expect` commit is not an ancestor of the base, or when a changed package records nothing in its changelog since the last release. Pass the commit on the base, not the pull request head: this repository squash-merges, so a merged PR's head is never an ancestor of `main`. **Someone saying a pull request is merged is not evidence that it is merged.**
 
 Then route the request through the repository-local `publish-release` Atomic workflow:
 
@@ -451,8 +455,8 @@ Then route the request through the repository-local `publish-release` Atomic wor
 5. The workflow creates `[release|prerelease]/<version>` from the selected base, updates relevant changelogs without bumping package versions, validates and commits the changes, pushes the branch, and opens the PR.
 6. It watches required CI until every required check reaches a terminal state, treating an admin merge of the PR as approval to proceed; check failures or an expired watch window stop the run with evidence.
 7. After checks pass, it merges the exact verified PR head, switches to the selected base, and fast-forwards from `origin/<base_ref>`.
-8. It runs `bun run scripts/cut-release.ts <version> --base <base_ref> --push --yes`, which stamps only the detached release commit and pushes the tag. That tag push automatically starts `publish.yml`; the workflow does not manually dispatch normal publication.
-9. It watches the matching `Publish <version>` action until it completes. Failure or an expired watch window stops the run with evidence; success returns a concise release summary.
+8. It runs `bun run scripts/cut-release.ts <version> --base <base_ref> --push --yes`, which stamps only the detached release commit and pushes the tag. That tag push automatically starts `release.yml`; the workflow does not manually dispatch normal publication.
+9. It watches the matching `release.yml` run until it completes. Failure or an expired watch window stops the run with evidence; success returns a concise release summary.
 
 ## Docs
 
@@ -511,7 +515,7 @@ workflow — not `cut-release.ts` directly. See "Releasing" above.
 
 An overview of CI is described here: [CI Docs](docs/ci.md).
 
-Note: npm provenance publishing uses GitHub OIDC trusted publishing and must not configure a static npm credential.
+Note: npm provenance publishing uses GitHub OIDC trusted publishing and must not configure a static npm credential. It is upstream's arrangement; this fork publishes to no registry (see Releasing).
 
 ## Tips
 

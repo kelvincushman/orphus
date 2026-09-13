@@ -94,14 +94,22 @@ test("workflow follows the short versionless release sequence", () => {
 	}
 });
 
+/**
+ * The workflow names `release.yml`, not upstream's `publish.yml`, and not the
+ * upstream repository. `publish.yml` is disabled at the repository level here,
+ * so a gate watching for its run waits out its whole window and then reports
+ * that a finished release never published. Anyone restoring the upstream
+ * strings has to re-enable that workflow first.
+ */
 test("workflow preserves versionless bases and inspects direct tag publication", () => {
 	const source = workflowSource();
 	assert.match(source, /package manifests, lockfiles, Cargo files, and generated version files remain at 0\.0\.0/u);
 	assert.match(source, /scripts\/cut-release\.ts \$\{release\.version\} --base \$\{baseRef\} --push --yes/u);
-	assert.match(source, /Pushing the version tag directly starts publish\.yml/u);
-	assert.match(source, /push-event publish\.yml run for the exact tag and release SHA/u);
-	assert.match(source, /exact publish workflow path, matching tag, SHA, and push event/u);
+	assert.match(source, /Pushing the version tag directly starts release\.yml/u);
+	assert.match(source, /push-event \.github\/workflows\/release\.yml run for the exact tag and release SHA/u);
+	assert.match(source, /exact release workflow path, matching tag, SHA, and push event/u);
 	assert.doesNotMatch(source, /gh workflow run|workflow_dispatch|environment:\s*npm-publish/u);
+	assert.doesNotMatch(source, /bastani-inc\/atomic/u);
 });
 
 test("external gates watch to a terminal state and stop the run instead of prompting humans", () => {
@@ -112,7 +120,7 @@ test("external gates watch to a terminal state and stop the run instead of promp
 	assert.match(source, /admin merge/u);
 	assert.match(
 		source,
-		/Watch the automatically triggered Publish \$\{release\.version\} GitHub Actions run until it completes/u,
+		/Watch the automatically triggered Release \$\{release\.version\} GitHub Actions run until it completes/u,
 	);
 	assert.match(source, /did not reach a terminal state within the watch window/u);
 });

@@ -10,34 +10,43 @@ metadata:
 Almost all of this is already built. Your job is the part that is not: proving
 the base is ready, then handing off. **Never reimplement a step below.**
 
+A release here is a **GitHub Release carrying Linux x64, macOS arm64 and
+Windows x64 archives, and nothing else.** `release.yml` publishes to no
+registry, and `publish.yml` — which would have — is disabled at the repository
+level. Never tell anyone a version reached npm.
+
 | Step | Owned by |
 | --- | --- |
 | `[Unreleased]` → version section, PR, CI watch, merge, tag, publish watch | `publish-release` workflow (`.atomic/workflows/publish-release.ts`) |
 | Stamping the version on a detached `Release <version>` commit | `scripts/cut-release.ts`, run by that workflow |
-| Building and publishing the artifacts | `.github/workflows/publish.yml`, started by the tag push |
+| Building the artifacts | `.github/workflows/release.yml`, started by the tag push |
 | Sweeping `packages/coding-agent/docs` and opening a docs PR | `release-docs` workflow |
 
 ## 1. Prove the base is ready
 
 `publish-release` requires a **changelog-only diff**, so the docs, the README
 and the `[Unreleased]` entries must already be on the base before it starts.
-Run the gate first, naming the head commit of every pull request you believe is
-in this release:
+Run the gate first, naming every pull request you believe is in this release by
+**its commit on the base** — this repository squash-merges, so a merged PR's
+head is never an ancestor of `main` and passing it fails a release that is
+ready:
 
 ```sh
-bun run scripts/release-preflight.ts --base main --expect <pr-head-sha>
+bun run scripts/release-preflight.ts --base main --expect <merge-sha>
 ```
 
 It fails when the base has nothing new since the last release, when an
-`--expect` commit is not an ancestor of the base, or when a changed package has
-no `[Unreleased]` entries. **A person saying a pull request is merged is not
+`--expect` commit is not an ancestor of the base, or when a changed package
+records nothing in its changelog since the last release. Entries already
+stamped under the version being cut count — that is the shape the release
+itself requires. **A person saying a pull request is merged is not
 evidence it is merged** — a 2.2.0 release was nearly cut from a base whose
 feature PR was still open. Check, then say what you found.
 
 Fix what it reports before going on:
 
-- **Not an ancestor** → the PR is unmerged. Stop and say so. Do not merge it yourself.
-- **Missing `[Unreleased]` entries** → write them, or establish the change is infrastructure under the Changelog rules in `CLAUDE.md` and say which.
+- **Not an ancestor** → check you passed the base's commit and not the PR head; if you did, the PR is unmerged. Stop and say so. Do not merge it yourself.
+- **Records nothing in its changelog** → write the entries, or establish the change is infrastructure under the Changelog rules in `CLAUDE.md` and say which.
 - **Warning that no doc changed** → reread `README.md`, `docs/`, and `packages/coding-agent/docs/` as a new user against what the base now does. The test is not "did I add docs", it is **would someone following the current docs now be misled?** `release-docs` covers `packages/coding-agent/docs` only; the README and root `docs/` are yours.
 
 Land any of those as an ordinary PR and merge it **before** step 3.
@@ -55,10 +64,10 @@ invalid or ambiguous about kind.
 
 Launch exactly one `publish-release` run with `target_version`, `release_kind`
 and `base_ref` (default `main`). It does everything from the changelog PR to
-watching `Publish <version>` to completion. Do not duplicate its git, PR, tag
-or publishing actions inline, and do not launch a second run. For a non-`main`
-base, first require that branch to be protected with the repository's required
-checks.
+watching the `release.yml` run the tag push starts. Do not duplicate its git,
+PR, tag or publishing actions inline, and do not launch a second run. For a
+non-`main` base, first require that branch to be protected with the
+repository's required checks.
 
 If it stops, it stops with evidence. Report that evidence rather than retrying
 around it.
@@ -72,8 +81,8 @@ Neither workflow owns these:
 
 ## Never
 
-- Never run `scripts/cut-release.ts`, `scripts/bump-version.ts`, or `publish.yml` by hand during a normal release — the tag push is the publication signal.
+- Never run `scripts/cut-release.ts`, `scripts/bump-version.ts`, or `release.yml` by hand during a normal release — the tag push is the publication signal.
 - Never bump a version on a release base. `main` stays at the `0.0.0` placeholder; only the detached release commit carries a real version.
 - Never edit an already-released changelog section. They are immutable.
 - Never force-push, re-tag, or re-run publication to get past a failure.
-- Never claim a release is published without the `Publish <version>` run's own result.
+- Never claim a release is published without the `Release` run's own result, and never describe it as published to a registry.

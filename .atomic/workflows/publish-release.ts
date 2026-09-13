@@ -58,7 +58,7 @@ function releaseFacts(release: ValidatedRelease, baseRef: string): string {
     `Release base: ${baseRef}`,
     "The release base is versionless: package manifests, lockfiles, Cargo files, and generated version files remain at 0.0.0.",
     "Only scripts/cut-release.ts may stamp the real version on the detached Release commit after the changelog PR merges.",
-    "Pushing the version tag directly starts publish.yml. Do not dispatch a duplicate normal publication run.",
+    "Pushing the version tag directly starts release.yml, which attaches Linux x64, macOS arm64 and Windows x64 archives to a GitHub Release and publishes to no registry. publish.yml, the inherited npm publisher, is disabled at the repository level. Do not dispatch a duplicate normal publication run.",
     "Use Bun for development commands. Do not force-push, force a tag, rerun publication during a normal release, or launch a duplicate release workflow.",
   ].join("\n");
 }
@@ -249,7 +249,7 @@ export default workflow({
         facts,
         `Verified synchronized base SHA: ${synchronized.base_sha}`,
         `Run exactly: bun run scripts/cut-release.ts ${release.version} --base ${baseRef} --push --yes`,
-        "Do not run scripts/bump-version.ts directly, move the base branch, force a tag, or dispatch publish.yml for a normal release.",
+        "Do not run scripts/bump-version.ts directly, move the base branch, force a tag, or dispatch release.yml for a normal release.",
         "Verify the exact remote tag resolves to the resulting release commit, whose sole parent/base trailer matches the synchronized base and whose package version matches the tag.",
         "Return the exact 40-character release_sha. If a conflicting tag exists, return blocked instead of moving it.",
       ].join("\n\n"),
@@ -260,12 +260,12 @@ export default workflow({
     }
 
     const publish = await inspectGate("publish action", [
-      `Watch the automatically triggered Publish ${release.version} GitHub Actions run until it completes.`,
+      `Watch the automatically triggered Release ${release.version} GitHub Actions run until it completes.`,
       facts,
       `Expected release SHA: ${released.release_sha}`,
-      "Use gh run list/view and select the push-event publish.yml run for the exact tag and release SHA. Require repository bastani-inc/atomic, the exact publish workflow path, matching tag, SHA, and push event.",
+      "Use gh run list/view and select the push-event .github/workflows/release.yml run for the exact tag and release SHA, in this repository. Require the exact release workflow path, matching tag, SHA, and push event.",
       "Wait for completion instead of returning early: re-check roughly every 30 seconds, for up to 60 minutes; the run may take a few minutes to appear after the tag push.",
-      "Return passed only when the exact publish action completed successfully; include its URL as evidence_url. Return failed for identity mismatch, command/auth failure, or a completed non-success conclusion. Return pending only if the watch window expires without a terminal state.",
+      "Return passed only when the exact release action completed successfully; include its URL as evidence_url. Return failed for identity mismatch, command/auth failure, or a completed non-success conclusion. Return pending only if the watch window expires without a terminal state.",
       "Do not dispatch, rerun, tag, publish packages, or create a GitHub Release manually.",
     ].join("\n\n"));
 
