@@ -66,6 +66,12 @@ export function blendedCostPerMillion(cost: ModelCostRates): number {
 	return (3 * cost.input + cost.output) / 4;
 }
 
+/**
+ * The blended price of one ladder rung, or `undefined` when the registry does
+ * not price it. The thinking suffix is stripped first: `anthropic/haiku:high`
+ * and `anthropic/haiku` are the same model billed at the same rate, so a rung
+ * that carries one must not sort as unpriced.
+ */
 function candidateCost(candidate: string, availableModels: AvailableModelInfo[] | undefined): number | undefined {
 	const { baseModel } = splitKnownThinkingSuffix(candidate);
 	const cost = availableModels?.find((entry) => entry.fullId === baseModel)?.cost;
@@ -82,6 +88,11 @@ export function sortCandidatesByCost(candidates: string[], availableModels?: Ava
 		.map((entry) => entry.candidate);
 }
 
+/**
+ * Optional knobs for {@link buildModelCandidates}, kept as a trailing bag rather
+ * than a seventh positional parameter so the six that precede it stay stable —
+ * they are passed by position at four call sites.
+ */
 export interface ModelCandidateOptions {
 	/**
 	 * Walk the ladder cheapest-first instead of in declared order. The ladder

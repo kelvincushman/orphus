@@ -23,7 +23,7 @@ which follows your channel: a stable install only moves to newer stable releases
 prerelease install tracks the newest release of any kind.
 
 To run from a clone instead — required on platforms without a release archive — build
-the binary with Node ≥ 22.13, Bun 1.3.14, and a Rust toolchain; see
+the binary with Node ≥ 22.19, Bun 1.3.14, and a Rust toolchain; see
 [the repository README](https://github.com/kelvincushman/orphus#tier-2--use-orphus-as-your-agent).
 
 ### Platforms without an archive

@@ -56,6 +56,13 @@ Pick by the cost of being wrong in each role, not by raw accuracy. Match the rol
 - **Design** — a quality-first, unbenchmarked domain; keep a top-tier model (`gpt-5.6-sol` or `claude-fable-5`) here and rely on human judgment rather than a score.
 - **Interactive coding sessions** — `gpt-5.6-terra [max]` as a balanced default.
 
+A subagent can walk this curve without you naming a model per call: `cheapestFirst: true`
+starts that agent's declared ladder at its cheapest priced rung and escalates on failure,
+using the registry's own per-million rates (input weighted 3:1 over output, since agentic
+turns re-read far more than they emit; unpriced models sort last, never first). Pair it with
+a `handoff` of the decision, files and acceptance criterion — a precise brief is what lets
+the cheap rung succeed. See [Subagents](/subagents).
+
 ## Related
 
 - [Pareto Efficiency](/models/pareto-efficiency) — cost-vs-accuracy frontier, dominated models, and provider-diversity exceptions.
