@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, test } from "vitest";
 import type { AvailableModelInfo } from "../../packages/subagents/src/runs/shared/model-fallback.js";
 import {
@@ -377,5 +379,42 @@ describe("subagent model fallback helpers", () => {
 		// primary included.
 		const fromWinner = buildModelCandidates(outer[0], ladder, priced, undefined, undefined, undefined, opts);
 		assert.ok(!fromWinner.includes(primary), "collapsing to the winner is exactly what loses the primary");
+	});
+
+	/**
+	 * The async path builds its ladder twice — once in `background-single` to fail
+	 * fast, once inside `runSingleInProcess` from the options it is handed — so the
+	 * two only agree while those options carry the original primary AND the flag.
+	 * Drop either and cheapest-first silently reverts to declared order for async
+	 * runs, with no test above catching it: they all call `buildModelCandidates`
+	 * directly, which is the half that stays correct.
+	 *
+	 * Asserting that behaviourally would mean dispatching a model: cost ordering is
+	 * only observable once candidates survive `filterSpawnableModelCandidates`, and
+	 * surviving it requires a provider the filter considers authed. A test that then
+	 * leans on real dispatch failing in a particular order is the flaky kind this
+	 * repo refuses. So this pins the wiring at the source, the way
+	 * `test/ci/ci-workflow-contracts.test.ts` pins the sqlite loader order.
+	 */
+	test("the async runner is handed the original primary and the cheapestFirst flag", () => {
+		const source = readFileSync(
+			join(import.meta.dirname, "../../packages/subagents/src/runs/inprocess/background-single.ts"),
+			"utf8",
+		);
+		const call = source.slice(source.indexOf("runSingleInProcess("));
+		assert.ok(call.length > 0, "background-single must still call runSingleInProcess");
+
+		assert.match(call, /cheapestFirst:\s*params\.cheapestFirst/u, "the flag must reach the inner build");
+		assert.match(
+			call,
+			/modelOverride:\s*params\.modelOverride \?\? agentConfig\.model/u,
+			"the inner build must start from the original primary",
+		);
+		// The specific regression: collapsing to the winning rung drops everything above it.
+		assert.doesNotMatch(
+			call,
+			/modelOverride:\s*filteredCandidates\.candidates\[0\]/u,
+			"passing the winner as the primary loses the rungs above it once cost reorders",
+		);
 	});
 });
