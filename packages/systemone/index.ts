@@ -13,7 +13,18 @@ export {
 	type LlmWrapperOptions,
 	renderWrapperPrompt,
 } from "./adapters/llm-wrapper.ts";
+export {
+	createLocalSystemOne,
+	LOCAL_LETTERS,
+	type LocalCalibration,
+	type LocalSystemOneOptions,
+	localOptions,
+	renderLocalPrompt,
+	UNSEEN_FLOOR,
+	weightsFromLogprobs,
+} from "./adapters/local.ts";
 export { nullSystemOne } from "./adapters/null.ts";
+export { createTypesafeSystemOne, type TypesafeSystemOneOptions } from "./adapters/typesafe.ts";
 export {
 	ADAPTER_NAMES,
 	type AdapterName,

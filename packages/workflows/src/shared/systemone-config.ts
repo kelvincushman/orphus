@@ -21,6 +21,15 @@ import { getEnvValue } from "@orphus/coding-agent";
 /** Selects the adapter. `ORPHUS_SYSTEMONE` overrides the config file. */
 export const ENV_SYSTEM_ONE_ADAPTER = "ORPHUS_SYSTEMONE";
 
+/**
+ * TypeSafe's API key, read from the environment only.
+ *
+ * Deliberately not an `ORPHUS_`-prefixed name: it is that vendor's credential
+ * under the name their own SDK uses, and it is never accepted from a config
+ * file, which is the kind of place a key gets committed by accident.
+ */
+export const ENV_TYPESAFE_API_KEY = "TYPESAFE_API_KEY";
+
 export const SYSTEM_ONE_ADAPTERS = ["null", "llm-wrapper", "local", "typesafe"] as const;
 export type SystemOneAdapterName = (typeof SYSTEM_ONE_ADAPTERS)[number];
 
@@ -56,9 +65,10 @@ export interface SystemOneLocalSettings {
 	 * single-token read.
 	 */
 	readonly api?: "completions" | "chat";
-	/** Path to a fitted temperature file. Absent means the answers are uncalibrated. */
-	readonly calibration?: string;
 	readonly timeoutMs?: number;
+	// No calibration key yet: the adapter takes fitted temperatures, and nothing
+	// fits them until the calibration script exists. A setting that silently did
+	// nothing would be worse than its absence.
 }
 
 /** TypeSafe's hosted System One model. Opt-in, and the key only ever comes from the environment. */
@@ -94,7 +104,7 @@ export const SYSTEM_ONE_DEFAULTS = {
 export interface EffectiveSystemOneConfig {
 	readonly adapter: SystemOneAdapterName;
 	readonly thresholds: Required<SystemOneThresholds>;
-	readonly local: Required<Omit<SystemOneLocalSettings, "calibration">> & { readonly calibration?: string };
+	readonly local: Required<SystemOneLocalSettings>;
 	readonly typesafe: Required<SystemOneTypesafeSettings>;
 }
 
@@ -123,7 +133,6 @@ export function withSystemOneDefaults(
 			model: settings.local?.model ?? SYSTEM_ONE_DEFAULTS.local.model,
 			api: settings.local?.api ?? SYSTEM_ONE_DEFAULTS.local.api,
 			timeoutMs: settings.local?.timeoutMs ?? SYSTEM_ONE_DEFAULTS.local.timeoutMs,
-			...(settings.local?.calibration === undefined ? {} : { calibration: settings.local.calibration }),
 		},
 		typesafe: {
 			baseUrl: settings.typesafe?.baseUrl ?? SYSTEM_ONE_DEFAULTS.typesafe.baseUrl,
@@ -172,7 +181,7 @@ export function validateSystemOneSettings(value: unknown): string | null {
 			return `"systemOne.local" must be a JSON object, got ${JSON.stringify(typeof local)}`;
 		}
 		const fields = local as Record<string, unknown>;
-		for (const name of ["baseUrl", "model", "calibration"]) {
+		for (const name of ["baseUrl", "model"]) {
 			if (name in fields && (typeof fields[name] !== "string" || (fields[name] as string).trim().length === 0)) {
 				return `"systemOne.local.${name}" must be a non-empty string, got ${JSON.stringify(fields[name])}`;
 			}

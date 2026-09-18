@@ -31,8 +31,9 @@ import {
   stateHash,
   uncertainAnswers,
 } from "@orphus/systemone";
+import { getEnvValue } from "@orphus/coding-agent";
 import type { WorkflowTaskOptions, WorkflowTaskResult } from "../src/shared/types.js";
-import { resolveSystemOneConfig } from "../src/shared/systemone-config.js";
+import { ENV_TYPESAFE_API_KEY, resolveSystemOneConfig } from "../src/shared/systemone-config.js";
 import { goalLeafModelConfig } from "./goal-models.js";
 import {
   type GoalExecutionLeaf,
@@ -117,6 +118,10 @@ export function createGoalSystemOne(input: {
     try {
       adapter = createSystemOne({
         adapter: config.adapter,
+        local: config.local,
+        // Read here and nowhere else: a hosted credential does not belong in a
+        // config file that gets committed.
+        typesafe: { ...config.typesafe, apiKey: getEnvValue(ENV_TYPESAFE_API_KEY) ?? "" },
         ...(input.ctx === undefined ? {} : { complete: stageCompletion(input.ctx, input.turn) }),
       });
     } catch (err) {

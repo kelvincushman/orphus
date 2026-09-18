@@ -23,7 +23,6 @@ describe("System One settings", () => {
 		assert.deepEqual(config.thresholds, { tier: 0.8, review: 0.9, verify: 0.9 });
 		assert.equal(config.local.api, "completions");
 		assert.equal(config.typesafe.model, "jev-latest");
-		assert.equal(config.local.calibration, undefined);
 	});
 
 	test("a partially specified block keeps the defaults it did not mention", () => {
