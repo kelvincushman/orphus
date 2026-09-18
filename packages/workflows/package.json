@@ -88,9 +88,6 @@
     },
     "@earendil-works/pi-tui": {
       "optional": true
-    },
-    "@orphus/systemone": {
-      "optional": true
     }
   }
 }

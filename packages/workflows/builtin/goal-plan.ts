@@ -100,6 +100,31 @@ export function initialReadyLeaves(plan: GoalExecutionPlan): readonly GoalExecut
   return plan.leaves.filter((leaf) => leaf.needs.length === 0);
 }
 
+/**
+ * A copy of the plan with some leaves re-tiered.
+ *
+ * The plan is frozen for a reason — no stage may edit the contract it was
+ * dispatched against — so a re-tier produces a new frozen plan rather than
+ * mutating this one, and it happens before any worker is dispatched. Tier is
+ * the only field that may be revised this way: it selects which model pool
+ * runs the leaf and changes nothing the leaf is judged against.
+ */
+export function withTierOverrides(
+  plan: GoalExecutionPlan,
+  overrides: ReadonlyMap<string, GoalExecutionTier>,
+): GoalExecutionPlan {
+  if (overrides.size === 0) {
+    return plan;
+  }
+  return deepFreeze({
+    version: 1,
+    leaves: plan.leaves.map((leaf) => {
+      const tier = overrides.get(leaf.id);
+      return tier === undefined || tier === leaf.tier ? leaf : { ...leaf, tier };
+    }),
+  });
+}
+
 function requireNonEmpty(value: string, label: string): string {
   const trimmed = value.trim();
   if (trimmed.length === 0) {

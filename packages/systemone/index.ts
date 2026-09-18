@@ -9,6 +9,13 @@
 
 export { nullSystemOne } from "./adapters/null.ts";
 export {
+	ADAPTER_NAMES,
+	type AdapterName,
+	type CreateSystemOneOptions,
+	createSystemOne,
+	SystemOneAdapterError,
+} from "./create.ts";
+export {
 	type Answer,
 	answerConfidence,
 	assertValidQuestions,

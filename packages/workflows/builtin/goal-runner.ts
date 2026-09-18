@@ -30,6 +30,7 @@ import { renderReviewerPrompt, taggedPrompt } from "./goal-prompts.js";
 import { normalizeGoalExecutionPlan, type GoalExecutionPlan } from "./goal-plan.js";
 import { goalExecutionPlanSchema } from "./goal-schemas.js";
 import { runGoalExecutionPlan } from "./goal-execution.js";
+import { applySystemOneTiers, createGoalSystemOne } from "./goal-systemone.js";
 
 function positiveInteger(value: number | undefined, fallback: number): number {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
@@ -383,9 +384,18 @@ export async function runGoalWorkflow(
       if (planResult === undefined) {
         throw new Error("internal goal runner error: native team mode did not produce a plan result.");
       }
-      const plan = planResult.plan;
+      // The planner guesses a tier per leaf from the objective alone. Ask the
+      // cheap decision before any worker is dispatched, so a confident answer
+      // picks the model pool rather than the guess; an unsure one leaves the
+      // guess standing. The re-tiered plan is what the artifact records, so the
+      // dispatch and the audit trail cannot disagree.
+      const { systemOne, warning: systemOneWarning } = createGoalSystemOne({ artifactDir, turn });
+      const plan = await applySystemOneTiers({ systemOne, plan: planResult.plan, planArtifactPath });
       ledger.turns = turn;
       latestExecutionPlanPath = planArtifactPath;
+      if (systemOneWarning !== undefined) {
+        appendLifecycleEvent(ledger, "receipt_recorded", systemOneWarning, turn);
+      }
       ledger.receipts.push({
         turn,
         stage: `execution-plan-${turn}`,

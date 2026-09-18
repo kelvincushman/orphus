@@ -21,6 +21,13 @@ export type GoalExecutionCheckResult = {
   readonly evidence: string;
 };
 
+/** One model attempt for a leaf's worker stage, in the order the ladder walked. */
+export type GoalExecutionModelAttempt = {
+  readonly model: string;
+  readonly success: boolean;
+  readonly error?: string;
+};
+
 export type GoalExecutionLeafRecord = {
   readonly leaf_id: string;
   readonly title: string;
@@ -31,6 +38,13 @@ export type GoalExecutionLeafRecord = {
   readonly evidence: string;
   readonly remaining_work: string;
   readonly check_results: readonly GoalExecutionCheckResult[];
+  /**
+   * Which models the worker stage actually attempted, cheapest evidence there
+   * is for what tier selection costs: a leaf that succeeded on its first rung
+   * was tiered well, and one that walked four rungs was not. Absent on records
+   * that never reached a stage.
+   */
+  readonly model_attempts?: readonly GoalExecutionModelAttempt[];
 };
 
 export type GoalExecutionReport = {
@@ -204,6 +218,7 @@ async function runGoalLeaf(input: {
             evidence: normalized.evidence,
             remaining_work: normalized.remaining_work,
             check_results: normalized.check_results,
+            ...modelAttemptsOf(workResult),
           },
           workResult.text,
         );
@@ -219,6 +234,7 @@ async function runGoalLeaf(input: {
           evidence: normalized.evidence,
           remaining_work: normalized.remaining_work,
           check_results: normalized.check_results,
+          ...modelAttemptsOf(workResult),
         },
         workResult.text,
       );
@@ -376,6 +392,21 @@ async function writeSynthesizedArtifactIfUnavailable(path: string, contents: str
     }
   }
   await writeFile(path, contents, { encoding: "utf8" });
+}
+
+/** The worker stage's ladder walk, kept only when the runtime reported one. */
+function modelAttemptsOf(result: WorkflowTaskResult): { model_attempts?: readonly GoalExecutionModelAttempt[] } {
+  const attempts = result.modelAttempts;
+  if (attempts === undefined || attempts.length === 0) {
+    return {};
+  }
+  return {
+    model_attempts: attempts.map((attempt) => ({
+      model: attempt.model,
+      success: attempt.success,
+      ...(attempt.error === undefined ? {} : { error: attempt.error }),
+    })),
+  };
 }
 
 function normalizeTurn(turn: number | undefined): number {
