@@ -6,6 +6,8 @@ import { goalLeafModelConfig } from "./goal-models.js";
 import type { GoalExecutionCheck, GoalExecutionLeaf, GoalExecutionPlan } from "./goal-plan.js";
 import { goalExecutionLeafVerificationSchema } from "./goal-schemas.js";
 import { taggedPrompt } from "./goal-prompts.js";
+import type { GoalSystemOne } from "./goal-systemone.js";
+import { prescreenLeaf } from "./goal-systemone.js";
 
 type GoalExecutionContext = {
   task(name: string, options: WorkflowTaskOptions): Promise<WorkflowTaskResult>;
@@ -65,6 +67,7 @@ export async function runGoalExecutionPlan(input: {
   readonly workflowStartCwd: string;
   readonly maxParallelAgents: number;
   readonly turn?: number;
+  readonly systemOne?: GoalSystemOne;
 }): Promise<GoalExecutionReport> {
   const records = new Map<string, GoalExecutionLeafRecord>();
   const running = new Map<string, Promise<GoalExecutionLeafRecord>>();
@@ -154,6 +157,7 @@ async function runGoalLeaf(input: {
   readonly artifactDir: string;
   readonly workflowStartCwd: string;
   readonly turn: number;
+  readonly systemOne?: GoalSystemOne;
 }): Promise<GoalExecutionLeafRecord> {
   const taskArtifactPath = join(input.artifactDir, `turn-${input.turn}-leaf-${input.leaf.id}-receipt.md`);
   const verificationArtifactPath = join(
@@ -192,6 +196,35 @@ async function runGoalLeaf(input: {
       },
       `Worker stage failed before it could create a receipt.\n\n${message}`,
     );
+  }
+
+  // Deny-only pre-screen, before a verify turn is spent. A confident refusal
+  // fails the leaf here; a confident agreement does nothing, because the
+  // verifier's whole instruction is not to trust this receipt and a classifier
+  // reading the same receipt is in no better position to.
+  if (input.systemOne !== undefined) {
+    const refusal = await prescreenLeaf({
+      systemOne: input.systemOne,
+      leaf: input.leaf,
+      receipt: workResult.text,
+    });
+    if (refusal !== undefined) {
+      return await finalizeLeafRecord(
+        {
+          leaf_id: input.leaf.id,
+          title: input.leaf.title,
+          tier: input.leaf.tier,
+          status: "failed",
+          task_artifact_path: taskArtifactPath,
+          verification_artifact_path: verificationArtifactPath,
+          evidence: `Failed before verification: ${refusal}`,
+          remaining_work: `Rerun leaf ${input.leaf.id} and produce a receipt that evidences every declared check.`,
+          check_results: declaredCheckResults(input.leaf.checks, "failed", `Not evidenced by the worker receipt: ${refusal}`),
+          ...modelAttemptsOf(workResult),
+        },
+        workResult.text,
+      );
+    }
   }
 
   try {

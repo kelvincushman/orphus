@@ -17,11 +17,13 @@ import { dirname, join } from "node:path";
 import {
   assertValidQuestions,
   type CompleteStructured,
+  confidentNoul,
   confidentScoreLevel,
   createSystemOne,
   type Decision,
   nullSystemOne,
   decisionOf,
+  type NoulQuestion,
   type Questions,
   receiptOf,
   type ScoreQuestion,
@@ -282,4 +284,165 @@ export async function applySystemOneTiers(input: {
     await writeFile(input.planArtifactPath, `${JSON.stringify(plan, null, 2)}\n`, { encoding: "utf8" });
   }
   return plan;
+}
+
+/**
+ * "Does the cited evidence support stopping?" — asked of a reviewer's own
+ * decision, before the reducer counts it.
+ *
+ * This is the claim-verification shape: the model wrote the verdict, and a
+ * cheap independent read checks it against the evidence it cited rather than
+ * against the world. A confident "no" withholds that reviewer's vote. It can
+ * never supply one, and it can never block a quorum the other reviewers
+ * reached on their own.
+ */
+export function evidenceSupportsStopQuestion(): NoulQuestion {
+  return {
+    type: "noul",
+    instructions:
+      "A reviewer says this work is complete. Judging only by the evidence quoted in their own record, does that evidence support stopping?",
+    criteria: {
+      true: "Every requirement is marked proven and the quoted evidence names the concrete thing that proves it: a command and its result, a file and its contents, a test and its outcome.",
+      false: "A requirement is unproven, unverified, or contradicted; or the evidence is a restatement of the claim, an intention, or a plan rather than a result.",
+    },
+  };
+}
+
+/**
+ * A reviewer's verdict reduced to the claims it rests on.
+ *
+ * Deliberately excludes `stop_review_loop` itself: including the verdict would
+ * invite agreement with it, and the question is whether the evidence supports
+ * that verdict, not whether it was stated confidently.
+ */
+export function reviewEvidenceState(review: {
+  readonly requirements_traceability: readonly { requirement: string; status: string; evidence: string }[];
+  readonly receipt_assessment: string;
+  readonly verification_remaining: string;
+  readonly findings: readonly { title: string; body: string }[];
+}): State {
+  return {
+    requirements: review.requirements_traceability.map((entry) => ({
+      requirement: entry.requirement,
+      status: entry.status,
+      evidence: entry.evidence,
+    })),
+    receipt_assessment: review.receipt_assessment,
+    verification_remaining: review.verification_remaining,
+    open_findings: review.findings.map((finding) => `${finding.title}: ${finding.body}`),
+  };
+}
+
+/**
+ * Which reviewers' "complete" votes the evidence does not support.
+ *
+ * Only the complete votes are examined: a reviewer who already said the work
+ * is unfinished needs no second opinion, and asking would spend a decision to
+ * learn nothing.
+ */
+export async function withheldReviewers(input: {
+  readonly systemOne: GoalSystemOne;
+  readonly reviews: readonly {
+    readonly reviewer: string;
+    readonly decision: string;
+    readonly requirements_traceability: readonly { requirement: string; status: string; evidence: string }[];
+    readonly receipt_assessment: string;
+    readonly verification_remaining: string;
+    readonly findings: readonly { title: string; body: string }[];
+  }[];
+}): Promise<readonly string[]> {
+  if (!input.systemOne.enabled) {
+    return [];
+  }
+  const question = evidenceSupportsStopQuestion();
+  const verdicts = await Promise.all(
+    input.reviews
+      .filter((review) => review.decision === "complete")
+      .map(async (review) => {
+        const decisions = await input.systemOne.ask({
+          surface: "goal.review",
+          state: reviewEvidenceState(review),
+          questions: { evidence_supports_stop: question },
+          threshold: input.systemOne.thresholds.review,
+          context: { reviewer: review.reviewer },
+        });
+        return { reviewer: review.reviewer, supported: confidentNoul(decisions.evidence_supports_stop) };
+      }),
+  );
+  // Only a confident NO withholds. An abstention leaves the vote exactly as the
+  // reviewer cast it, which is the behaviour with no layer at all.
+  return verdicts.filter((verdict) => verdict.supported === false).map((verdict) => verdict.reviewer);
+}
+
+/**
+ * "Does this receipt show the check was met?" — asked of a worker's own
+ * receipt, before the verifier stage runs.
+ *
+ * Deny-only, and that restriction is load-bearing. A confident NO fails the
+ * leaf before a verify turn is spent on work that plainly did not happen. A
+ * confident YES does nothing: the verifier's whole instruction is not to trust
+ * the worker's receipt, and a classifier reading that same receipt is in no
+ * better position to. Independent verification is never skipped by agreement.
+ */
+export function checkPrescreenQuestions(leaf: GoalExecutionLeaf): Questions {
+  const questions: Questions = {
+    addresses_task: {
+      type: "noul",
+      instructions: "Does this receipt describe work that addresses the leaf's task at all?",
+      criteria: {
+        true: "The receipt describes changes to the owned files that pursue the task.",
+        false: "The receipt describes unrelated work, no work, or only a plan to do the work.",
+      },
+    },
+  };
+  const withChecks: Record<string, (typeof questions)[string]> = { ...questions };
+  leaf.checks.forEach((check, index) => {
+    withChecks[`check_${index}`] = {
+      type: "noul",
+      instructions: `Does the receipt show that this check was run and met? Command: ${check.command}. Expected: ${check.expect}`,
+      criteria: {
+        true: "The receipt reports running this command and an outcome matching the expectation.",
+        false: "The receipt does not report running it, reports a different command, or reports an outcome that does not match.",
+      },
+    };
+  });
+  return withChecks;
+}
+
+/** The worker's receipt against the contract it was dispatched with. */
+export function leafPrescreenState(leaf: GoalExecutionLeaf, receipt: string): State {
+  return {
+    task: leaf.task,
+    owns: [...leaf.owns],
+    checks: leaf.checks.map((check) => ({ command: check.command, expect: check.expect })),
+    worker_receipt: receipt,
+  };
+}
+
+/** A confident reason to fail the leaf before verifying it, or undefined to verify as usual. */
+export async function prescreenLeaf(input: {
+  readonly systemOne: GoalSystemOne;
+  readonly leaf: GoalExecutionLeaf;
+  readonly receipt: string;
+}): Promise<string | undefined> {
+  if (!input.systemOne.enabled || input.receipt.trim().length === 0) {
+    return undefined;
+  }
+  const questions = checkPrescreenQuestions(input.leaf);
+  const decisions = await input.systemOne.ask({
+    surface: "goal.verify",
+    state: leafPrescreenState(input.leaf, input.receipt),
+    questions,
+    threshold: input.systemOne.thresholds.verify,
+    context: { leaf_id: input.leaf.id },
+  });
+
+  if (confidentNoul(decisions.addresses_task) === false) {
+    return "the receipt does not describe work addressing this leaf's task";
+  }
+  const unmet = input.leaf.checks
+    .map((check, index) => ({ check, met: confidentNoul(decisions[`check_${index}`]) }))
+    .filter((entry) => entry.met === false)
+    .map((entry) => entry.check.command);
+  return unmet.length === 0 ? undefined : `the receipt does not show these checks were run and met: ${unmet.join("; ")}`;
 }

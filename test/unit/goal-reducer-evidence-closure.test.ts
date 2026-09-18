@@ -135,3 +135,59 @@ describe("goal reducer boolean convergence", () => {
 		assert.match(outcome.decision.reason, /Unproven contract clause/);
 	});
 });
+
+describe("goal reducer with withheld votes", () => {
+	test("a withheld vote is one the quorum never receives", () => {
+		const outcome = reduceGoalDecision(
+			ledger(),
+			[review("a", "complete"), review("b", "complete"), review("c", "continue")],
+			{ ...OPTIONS, withheldReviewers: ["a"] },
+		);
+		assert.equal(outcome.status, "active");
+		assert.equal(outcome.decision.complete_votes, 1);
+		assert.match(outcome.decision.reason, /1 complete vote\(s\) withheld/);
+		assert.match(outcome.decision.reason, /\(a\)/, "the reducer must name whose vote it dropped");
+	});
+
+	test("it withholds, it does not veto: the remaining reviewers can still carry quorum", () => {
+		// The distinction that keeps this layer unable to block a run on its own.
+		// Three reviewers approve, one vote is withheld, two remain, quorum is 2.
+		const outcome = reduceGoalDecision(
+			ledger(),
+			[review("a", "complete"), review("b", "complete"), review("c", "complete")],
+			{ ...OPTIONS, withheldReviewers: ["a"] },
+		);
+		assert.equal(outcome.status, "complete");
+		assert.equal(outcome.decision.complete_votes, 2);
+		assert.match(outcome.decision.reason, /1 complete vote\(s\) withheld/);
+	});
+
+	test("it can never supply a vote, only remove one", () => {
+		const outcome = reduceGoalDecision(ledger(), [review("a", "complete"), review("b", "continue")], {
+			...OPTIONS,
+			withheldReviewers: [],
+		});
+		assert.equal(outcome.status, "active");
+		assert.equal(outcome.decision.complete_votes, 1);
+	});
+
+	test("withholding a reviewer who did not approve changes nothing", () => {
+		const outcome = reduceGoalDecision(ledger(), [review("a", "complete"), review("b", "complete")], {
+			...OPTIONS,
+			withheldReviewers: ["c"],
+		});
+		assert.equal(outcome.status, "complete");
+		assert.equal(outcome.decision.complete_votes, 2);
+		assert.doesNotMatch(outcome.decision.reason, /withheld/);
+	});
+
+	test("no withheld list behaves exactly as before the layer existed", () => {
+		const withoutOption = reduceGoalDecision(ledger(), [review("a", "complete"), review("b", "complete")], OPTIONS);
+		const withEmpty = reduceGoalDecision(ledger(), [review("a", "complete"), review("b", "complete")], {
+			...OPTIONS,
+			withheldReviewers: [],
+		});
+		assert.equal(withoutOption.decision.reason, withEmpty.decision.reason);
+		assert.equal(withoutOption.status, "complete");
+	});
+});

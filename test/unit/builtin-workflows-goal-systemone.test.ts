@@ -9,11 +9,15 @@ import { goalLeafModelConfig } from "../../packages/workflows/builtin/goal-model
 import { normalizeGoalExecutionPlan, withTierOverrides } from "../../packages/workflows/builtin/goal-plan.js";
 import {
 	applySystemOneTiers,
+	checkPrescreenQuestions,
 	createGoalSystemOne,
 	leafTierState,
+	prescreenLeaf,
 	reasoningRequiredQuestion,
+	reviewEvidenceState,
 	systemOneReceiptPath,
 	TIER_LEVELS,
+	withheldReviewers,
 } from "../../packages/workflows/builtin/goal-systemone.js";
 import { setSystemOneConfig, withSystemOneDefaults } from "../../packages/workflows/src/shared/systemone-config.js";
 
@@ -284,5 +288,170 @@ describe("the stage the model-backed adapter runs on", () => {
 		const { systemOne, warning } = createGoalSystemOne({ artifactDir, turn: 1 });
 		assert.equal(systemOne.enabled, false);
 		assert.match(warning ?? "", /System One disabled: .*constrained completion/u);
+	});
+});
+
+/** A deterministic yes/no adapter, for the surfaces that ask nouls. */
+function noulAdapter(answer: (key: string) => boolean | undefined): SystemOne {
+	return {
+		id: "noul-stub@1",
+		decide: async (_state: State, questions: Questions) => {
+			const answers: Record<string, Answer> = {};
+			for (const [name, question] of Object.entries(questions)) {
+				const verdict = answer(name);
+				answers[name] =
+					verdict === undefined || question.type !== "noul"
+						? uncertainAnswers({ [name]: question })[name]!
+						: answerFrom(question, { true: verdict ? 1 : 0, false: verdict ? 0 : 1 });
+			}
+			return answers;
+		},
+	};
+}
+
+function reviewRecord(reviewer: string, decision: "complete" | "continue", status = "proven") {
+	return {
+		reviewer,
+		decision,
+		requirements_traceability: [{ requirement: "ship the thing", status, evidence: "npm test passed" }],
+		receipt_assessment: "receipts inspected",
+		verification_remaining: decision === "complete" ? "none" : "work remains",
+		findings: [],
+		stop_review_loop: decision === "complete",
+	};
+}
+
+describe("withholding a reviewer's vote", () => {
+	let artifactDir: string;
+
+	beforeEach(async () => {
+		artifactDir = await mkdtemp(join(tmpdir(), "orphus-goal-review-"));
+	});
+
+	afterEach(async () => {
+		setSystemOneConfig(withSystemOneDefaults({}, noEnv));
+		await rm(artifactDir, { recursive: true, force: true });
+	});
+
+	test("withholds a complete vote the cited evidence does not support", async () => {
+		const { systemOne } = createGoalSystemOne({ artifactDir, turn: 1, adapter: noulAdapter(() => false) });
+		const withheld = await withheldReviewers({
+			systemOne,
+			reviews: [reviewRecord("opus", "complete"), reviewRecord("codex", "complete")],
+		});
+		assert.deepEqual([...withheld].sort(), ["codex", "opus"]);
+	});
+
+	test("leaves a supported vote alone, and never examines one already saying continue", async () => {
+		// Asking about a reviewer who already said the work is unfinished spends
+		// a decision to learn nothing.
+		const asked: string[] = [];
+		const adapter: SystemOne = {
+			id: "watch@1",
+			decide: async (state, questions) => {
+				asked.push(JSON.stringify(state));
+				return noulAdapter(() => true).decide(state, questions);
+			},
+		};
+		const { systemOne } = createGoalSystemOne({ artifactDir, turn: 1, adapter });
+		const withheld = await withheldReviewers({
+			systemOne,
+			reviews: [reviewRecord("opus", "complete"), reviewRecord("codex", "continue")],
+		});
+
+		assert.deepEqual(withheld, []);
+		assert.equal(asked.length, 1, "only the complete votes are checked");
+	});
+
+	test("an unsure answer leaves the vote exactly as the reviewer cast it", async () => {
+		const { systemOne } = createGoalSystemOne({ artifactDir, turn: 1, adapter: noulAdapter(() => undefined) });
+		const withheld = await withheldReviewers({ systemOne, reviews: [reviewRecord("opus", "complete")] });
+		assert.deepEqual(withheld, []);
+	});
+
+	test("the state it judges excludes the verdict, so it cannot simply agree", () => {
+		// Including stop_review_loop would invite agreement with the claim under
+		// examination rather than a read of the evidence behind it.
+		const state = reviewEvidenceState(reviewRecord("opus", "complete")) as Record<string, unknown>;
+		assert.deepEqual(Object.keys(state).sort(), [
+			"open_findings",
+			"receipt_assessment",
+			"requirements",
+			"verification_remaining",
+		]);
+		assert.equal(JSON.stringify(state).includes("stop_review_loop"), false);
+	});
+
+	test("the default adapter withholds nothing", async () => {
+		const { systemOne } = createGoalSystemOne({ artifactDir, turn: 1 });
+		assert.deepEqual(await withheldReviewers({ systemOne, reviews: [reviewRecord("opus", "complete")] }), []);
+	});
+});
+
+describe("the leaf pre-screen", () => {
+	let artifactDir: string;
+
+	beforeEach(async () => {
+		artifactDir = await mkdtemp(join(tmpdir(), "orphus-goal-prescreen-"));
+	});
+
+	afterEach(async () => {
+		await rm(artifactDir, { recursive: true, force: true });
+	});
+
+	const leaf = () => plan(["standard"]).leaves[0]!;
+
+	test("refuses a receipt that does not show the declared check was met", async () => {
+		const { systemOne } = createGoalSystemOne({
+			artifactDir,
+			turn: 1,
+			adapter: noulAdapter((key) => (key === "addresses_task" ? true : false)),
+		});
+		const refusal = await prescreenLeaf({ systemOne, leaf: leaf(), receipt: "I edited the file." });
+		assert.match(refusal ?? "", /does not show these checks were run and met: npm run check/u);
+	});
+
+	test("refuses a receipt about entirely different work", async () => {
+		const { systemOne } = createGoalSystemOne({
+			artifactDir,
+			turn: 1,
+			adapter: noulAdapter((key) => (key === "addresses_task" ? false : true)),
+		});
+		const refusal = await prescreenLeaf({ systemOne, leaf: leaf(), receipt: "I fixed an unrelated typo." });
+		assert.match(refusal ?? "", /does not describe work addressing this leaf's task/u);
+	});
+
+	test("a confident agreement does NOT skip verification", async () => {
+		// The load-bearing restriction: the verifier is told not to trust this
+		// receipt, and a classifier reading the same receipt is no better placed
+		// to. Independent verification is never skipped by agreement.
+		const { systemOne } = createGoalSystemOne({ artifactDir, turn: 1, adapter: noulAdapter(() => true) });
+		assert.equal(
+			await prescreenLeaf({ systemOne, leaf: leaf(), receipt: "ran npm run check, it passed" }),
+			undefined,
+		);
+	});
+
+	test("an unsure answer verifies as usual", async () => {
+		const { systemOne } = createGoalSystemOne({ artifactDir, turn: 1, adapter: noulAdapter(() => undefined) });
+		assert.equal(await prescreenLeaf({ systemOne, leaf: leaf(), receipt: "something happened" }), undefined);
+	});
+
+	test("an empty receipt is left to the existing fail-closed path", async () => {
+		// A worker that produced nothing is already handled, and spending a
+		// decision to rediscover that would only add latency.
+		const { systemOne } = createGoalSystemOne({ artifactDir, turn: 1, adapter: noulAdapter(() => false) });
+		assert.equal(await prescreenLeaf({ systemOne, leaf: leaf(), receipt: "   " }), undefined);
+	});
+
+	test("asks one question per declared check, plus the task question", () => {
+		const questions = checkPrescreenQuestions(leaf());
+		assert.deepEqual(Object.keys(questions), ["addresses_task", "check_0"]);
+		assert.match(JSON.stringify(questions.check_0), /npm run check/u);
+	});
+
+	test("the default adapter never refuses", async () => {
+		const { systemOne } = createGoalSystemOne({ artifactDir, turn: 1 });
+		assert.equal(await prescreenLeaf({ systemOne, leaf: leaf(), receipt: "anything" }), undefined);
 	});
 });

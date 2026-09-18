@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { setImmediate, setTimeout } from "node:timers/promises";
@@ -797,5 +797,129 @@ describe("Goal rolling execution plan", () => {
 		assert.match(worker.options.prompt ?? "", /Foundation A/);
 		assert.doesNotMatch(worker.options.prompt ?? "", /Foundation B/);
 		assert.doesNotMatch(verifier.options.prompt ?? "", /Dependant C/);
+	});
+});
+
+describe("the System One pre-screen inside execution", () => {
+	test("a refusal fails the leaf without spending a verify turn", async () => {
+		const artifactDir = mkdtempSync(join(tmpdir(), "orphus-exec-prescreen-"));
+		const ledgerPath = join(artifactDir, "goal-ledger.json");
+		writeFileSync(ledgerPath, "{}");
+		const calls: string[] = [];
+		try {
+			const report = await runGoalExecutionPlan({
+				ctx: {
+					task: async (name: string, options: WorkflowTaskOptions) => {
+						calls.push(name);
+						return result(name, options);
+					},
+				},
+				plan: normalizeGoalExecutionPlan({
+					version: 1,
+					leaves: [
+						{
+							id: "1",
+							title: "A",
+							task: "Edit A",
+							owns: ["packages/a.ts"],
+							needs: [],
+							tier: "standard",
+							checks: [{ command: "npm run check:a", expect: "A passes" }],
+						},
+					],
+				}),
+				objective: "obj",
+				acceptanceCriteria: "obj",
+				ledgerPath,
+				artifactDir,
+				workflowStartCwd: process.cwd(),
+				maxParallelAgents: 1,
+				turn: 1,
+				// Confident that the work was attempted but the check is unevidenced.
+				systemOne: {
+					adapterId: "stub@1",
+					enabled: true,
+					thresholds: { tier: 0.8, review: 0.9, verify: 0.9 },
+					ask: async ({ questions }) => {
+						const { answerFrom, decisionOf } = await import("@orphus/systemone");
+						return Object.fromEntries(
+							Object.entries(questions).map(([key, question]) => {
+								const yes = key === "addresses_task";
+								return [key, decisionOf(answerFrom(question, { true: yes ? 1 : 0, false: yes ? 0 : 1 }), 0.9)];
+							}),
+						);
+					},
+				},
+			});
+
+			assert.deepEqual(report.failed_leaf_ids, ["1"]);
+			assert.equal(
+				calls.some((name) => name.endsWith("-verify")),
+				false,
+				"the verifier must not run once the receipt has been refused",
+			);
+			assert.match(report.records[0]!.evidence, /Failed before verification/u);
+			assert.equal(report.records[0]!.check_results[0]!.status, "failed");
+		} finally {
+			rmSync(artifactDir, { recursive: true, force: true });
+		}
+	});
+
+	test("without the layer, the verifier runs exactly as before", async () => {
+		const artifactDir = mkdtempSync(join(tmpdir(), "orphus-exec-noprescreen-"));
+		const ledgerPath = join(artifactDir, "goal-ledger.json");
+		writeFileSync(ledgerPath, "{}");
+		const calls: string[] = [];
+		try {
+			await runGoalExecutionPlan({
+				ctx: {
+					task: async (name: string, options: WorkflowTaskOptions) => {
+						calls.push(name);
+						return result(
+							name,
+							options,
+							name.endsWith("-verify")
+								? {
+										status: "verified",
+										evidence: "ran it",
+										remaining_work: "none",
+										checks: [
+											{ command: "npm run check:a", expect: "A passes", status: "passed", evidence: "ok" },
+										],
+									}
+								: undefined,
+						);
+					},
+				},
+				plan: normalizeGoalExecutionPlan({
+					version: 1,
+					leaves: [
+						{
+							id: "1",
+							title: "A",
+							task: "Edit A",
+							owns: ["packages/a.ts"],
+							needs: [],
+							tier: "standard",
+							checks: [{ command: "npm run check:a", expect: "A passes" }],
+						},
+					],
+				}),
+				objective: "obj",
+				acceptanceCriteria: "obj",
+				ledgerPath,
+				artifactDir,
+				workflowStartCwd: process.cwd(),
+				maxParallelAgents: 1,
+				turn: 1,
+			});
+
+			assert.equal(
+				calls.some((name) => name.endsWith("-verify")),
+				true,
+			);
+		} finally {
+			rmSync(artifactDir, { recursive: true, force: true });
+		}
 	});
 });
