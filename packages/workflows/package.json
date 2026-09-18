@@ -79,13 +79,17 @@
   },
   "peerDependencies": {
     "@orphus/coding-agent": "*",
-    "@earendil-works/pi-tui": "^0.83.0"
+    "@earendil-works/pi-tui": "^0.83.0",
+    "@orphus/systemone": "*"
   },
   "peerDependenciesMeta": {
     "@orphus/coding-agent": {
       "optional": true
     },
     "@earendil-works/pi-tui": {
+      "optional": true
+    },
+    "@orphus/systemone": {
       "optional": true
     }
   }

@@ -1,0 +1,25 @@
+{
+  "name": "@orphus/systemone",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Orphus System One decision layer: fixed questions in, typed decisions with calibrated-by-intent probabilities out, and an abstain band that defers to the model whenever it is unsure.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "bun": ">=1.3.14"
+  },
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "files": [
+    "*.ts",
+    "adapters/**/*.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "typebox": "^1.3.7"
+  }
+}
