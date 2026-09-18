@@ -229,6 +229,14 @@ decorrelated reviewers before a deterministic reducer forms the completion
 quorum. Provider and model availability still come from the user's configured
 catalog, so fallbacks may run when a preferred model is unavailable.
 
+Several decisions inside that loop are cheap to make and expensive to think
+about: which tier a leaf needs, whether a reviewer's evidence supports the
+verdict it reached, whether a worker's receipt evidences the checks it was
+given. The optional [System One](/systemone) layer answers those before the
+model step each one precedes, and defers to that step whenever it is not
+confident. It is off by default, it can deny but never approve, and with the
+default `null` adapter Goal behaves exactly as described above.
+
 Goal reduces false completion, but it cannot promise literal infallibility.
 Model judgment can still be wrong; tools, files, providers, or credentials can
 be unavailable; some checks are unsafe or impossible to run; and external
@@ -3476,6 +3484,10 @@ Example config:
   "workflows": {
     "team": { "path": "./workflows/team.ts" },
     "shared": { "path": "/shared/team/workflows" }
+  },
+  "systemOne": {
+    "adapter": "null",
+    "thresholds": { "tier": 0.8, "review": 0.9, "verify": 0.9 }
   },
   "defaultConcurrency": 4,
   "maxDepth": 4,

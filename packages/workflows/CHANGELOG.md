@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Goal can ask a cheap question before spending a model turn on it.** The optional System One layer (`@orphus/systemone`) is consulted at four points, each one *before* the model step it could save: the planner's tier guess is checked against the leaf contract before any worker is dispatched; a reviewer's "complete" vote is checked against the evidence that reviewer itself cited before the reducer counts it; and a worker's receipt is checked against its declared checks before a verify turn is spent. It is off by default — the `null` adapter abstains on everything, so Goal behaves exactly as it did — and it can deny but never approve. A withheld reviewer vote is one the quorum never receives; it cannot supply a vote, and it cannot block a quorum the remaining reviewers reached on their own. The leaf pre-screen can fail a leaf but never skip verification by agreeing with the worker, because the verifier's whole instruction is not to trust that receipt.
+- **A `systemOne` block in the workflow extension config**, with per-surface confidence thresholds (`tier` 0.8, `review` 0.9, `verify` 0.9 by default) and adapter settings. `ORPHUS_SYSTEMONE` overrides the adapter for a single run. An invalid value is reported rather than silently replaced by its default. See [System One](https://github.com/kelvincushman/orphus/blob/main/packages/coding-agent/docs/systemone.md).
+- **Leaf records carry `model_attempts`**, the ladder walk the worker stage actually performed. A leaf that succeeded on its first rung was tiered well and one that walked four was not, which is the cheapest evidence available for whether tier selection is worth anything.
+
 ## [2.1.0] - 2026-08-26
 
 ### Changed
