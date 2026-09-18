@@ -5,6 +5,7 @@ import { join } from "node:path";
 import type { Answer, Questions, State, SystemOne, SystemOneReceipt } from "@orphus/systemone";
 import { answerFrom, uncertainAnswers } from "@orphus/systemone";
 import { afterEach, beforeEach, describe, test } from "vitest";
+import { goalLeafModelConfig } from "../../packages/workflows/builtin/goal-models.js";
 import { normalizeGoalExecutionPlan, withTierOverrides } from "../../packages/workflows/builtin/goal-plan.js";
 import {
 	applySystemOneTiers,
@@ -228,5 +229,60 @@ describe("tier overrides on a frozen plan", () => {
 			result.leaves.map((leaf) => leaf.tier),
 			["standard"],
 		);
+	});
+});
+
+describe("the stage the model-backed adapter runs on", () => {
+	let artifactDir: string;
+
+	beforeEach(async () => {
+		artifactDir = await mkdtemp(join(tmpdir(), "orphus-goal-systemone-stage-"));
+		setSystemOneConfig(withSystemOneDefaults({ adapter: "llm-wrapper" }, noEnv));
+	});
+
+	afterEach(async () => {
+		setSystemOneConfig(withSystemOneDefaults({}, noEnv));
+		await rm(artifactDir, { recursive: true, force: true });
+	});
+
+	test("asks on the cheapest tier's model, reading and writing nothing", async () => {
+		// A decision meant to be cheaper than the step it replaces must not cost
+		// more than that step would have, and it must not touch the run's files.
+		const calls: { name: string; options: Record<string, unknown> }[] = [];
+		const ctx = {
+			task: async (name: string, options: Record<string, unknown>) => {
+				calls.push({ name, options });
+				return {
+					name,
+					stageName: name,
+					text: "",
+					structured: { reasoning_required: { "0": 1, "1": 0, "2": 0 } },
+				} as never;
+			},
+		};
+
+		const { systemOne, warning } = createGoalSystemOne({ ctx: ctx as never, artifactDir, turn: 3 });
+		assert.equal(warning, undefined, "a host that can run a stage must build the wrapper");
+		const result = await applySystemOneTiers({
+			systemOne,
+			plan: plan(["judgment"]),
+			planArtifactPath: join(artifactDir, "plan.json"),
+		});
+
+		assert.equal(result.leaves[0]!.tier, "fast");
+		assert.equal(calls.length, 1);
+		assert.match(calls[0]!.name, /^systemone-turn-3-/u);
+		assert.equal(calls[0]!.options.reads, false, "the decision stage must read no files");
+		assert.equal(calls[0]!.options.output, false, "the decision stage must write no artifact");
+		assert.equal(calls[0]!.options.model, goalLeafModelConfig("fast", 0).model);
+		assert.ok(calls[0]!.options.schema, "the stage must be schema-constrained");
+	});
+
+	test("without a host that can run a stage, the layer disables itself and says why", () => {
+		// Better a named warning than a run that silently behaves as if the
+		// configured adapter were doing something.
+		const { systemOne, warning } = createGoalSystemOne({ artifactDir, turn: 1 });
+		assert.equal(systemOne.enabled, false);
+		assert.match(warning ?? "", /System One disabled: .*constrained completion/u);
 	});
 });

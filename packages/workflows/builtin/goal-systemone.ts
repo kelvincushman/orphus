@@ -16,6 +16,7 @@ import { appendFile, mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
   assertValidQuestions,
+  type CompleteStructured,
   confidentScoreLevel,
   createSystemOne,
   type Decision,
@@ -30,7 +31,9 @@ import {
   stateHash,
   uncertainAnswers,
 } from "@orphus/systemone";
+import type { WorkflowTaskOptions, WorkflowTaskResult } from "../src/shared/types.js";
 import { resolveSystemOneConfig } from "../src/shared/systemone-config.js";
+import { goalLeafModelConfig } from "./goal-models.js";
 import {
   type GoalExecutionLeaf,
   type GoalExecutionPlan,
@@ -41,6 +44,34 @@ import {
 /** Where a turn's receipts land, beside the evidence they influenced. */
 export function systemOneReceiptPath(artifactDir: string, turn: number): string {
   return join(artifactDir, `turn-${turn}-systemone-receipts.jsonl`);
+}
+
+/** The one thing the layer needs from Goal to run a model-backed adapter. */
+type GoalTaskRunner = {
+  task(name: string, options: WorkflowTaskOptions): Promise<WorkflowTaskResult>;
+};
+
+/**
+ * Run one constrained completion as a workflow stage.
+ *
+ * Deliberately on the `fast` tier's own model: a decision meant to be cheaper
+ * than the step it replaces must not be routed to a more expensive model than
+ * that step would have used. The stage reads no files and writes no artifact —
+ * its whole input is the prompt, and its whole output is the structured answer.
+ */
+function stageCompletion(ctx: GoalTaskRunner, turn: number): CompleteStructured {
+  let call = 0;
+  return async ({ prompt, schema }) => {
+    call += 1;
+    const result = await ctx.task(`systemone-turn-${turn}-${call}`, {
+      prompt,
+      schema,
+      reads: false,
+      output: false,
+      ...goalLeafModelConfig("fast", 0),
+    });
+    return result.structured;
+  };
 }
 
 export interface GoalSystemOneAsk {
@@ -71,6 +102,8 @@ export interface GoalSystemOne {
 export function createGoalSystemOne(input: {
   readonly artifactDir: string;
   readonly turn: number;
+  /** Lets a model-backed adapter run a stage. Omit it and only `null` can be built. */
+  readonly ctx?: GoalTaskRunner;
   /** Supplied instead of building one from config; the seam tests decide through. */
   readonly adapter?: SystemOne;
   readonly now?: () => Date;
@@ -82,7 +115,10 @@ export function createGoalSystemOne(input: {
     adapter = input.adapter;
   } else {
     try {
-      adapter = createSystemOne({ adapter: config.adapter });
+      adapter = createSystemOne({
+        adapter: config.adapter,
+        ...(input.ctx === undefined ? {} : { complete: stageCompletion(input.ctx, input.turn) }),
+      });
     } catch (err) {
       warning = `System One disabled: ${err instanceof Error ? err.message : String(err)}`;
       adapter = createSystemOne({ adapter: "null" });

@@ -389,7 +389,7 @@ export async function runGoalWorkflow(
       // picks the model pool rather than the guess; an unsure one leaves the
       // guess standing. The re-tiered plan is what the artifact records, so the
       // dispatch and the audit trail cannot disagree.
-      const { systemOne, warning: systemOneWarning } = createGoalSystemOne({ artifactDir, turn });
+      const { systemOne, warning: systemOneWarning } = createGoalSystemOne({ ctx, artifactDir, turn });
       const plan = await applySystemOneTiers({ systemOne, plan: planResult.plan, planArtifactPath });
       ledger.turns = turn;
       latestExecutionPlanPath = planArtifactPath;

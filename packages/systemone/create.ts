@@ -7,6 +7,7 @@
  * from a deliberate choice.
  */
 
+import { type CompleteStructured, createLlmWrapperSystemOne } from "./adapters/llm-wrapper.ts";
 import { nullSystemOne } from "./adapters/null.ts";
 import type { SystemOne } from "./port.ts";
 
@@ -22,12 +23,21 @@ export class SystemOneAdapterError extends Error {
 
 export interface CreateSystemOneOptions {
 	readonly adapter: string;
+	/** Required by `llm-wrapper`: the host's way of running one constrained completion. */
+	readonly complete?: CompleteStructured;
 }
 
 export function createSystemOne(options: CreateSystemOneOptions): SystemOne {
 	switch (options.adapter) {
 		case "null":
 			return nullSystemOne;
+		case "llm-wrapper":
+			if (options.complete === undefined) {
+				throw new SystemOneAdapterError(
+					"The llm-wrapper adapter needs a host that can run a constrained completion; this one supplied none.",
+				);
+			}
+			return createLlmWrapperSystemOne({ complete: options.complete });
 		default:
 			throw new SystemOneAdapterError(
 				`Unknown System One adapter "${options.adapter}"; expected one of ${ADAPTER_NAMES.join(", ")}.`,

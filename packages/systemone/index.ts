@@ -7,6 +7,12 @@
  * packages/coding-agent/docs/systemone.md for the user-facing account.
  */
 
+export {
+	type CompleteStructured,
+	createLlmWrapperSystemOne,
+	type LlmWrapperOptions,
+	renderWrapperPrompt,
+} from "./adapters/llm-wrapper.ts";
 export { nullSystemOne } from "./adapters/null.ts";
 export {
 	ADAPTER_NAMES,
