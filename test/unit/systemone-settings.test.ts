@@ -125,10 +125,21 @@ describe("System One config validation", () => {
 	test("rejects malformed adapter settings", () => {
 		assert.match(invalid({ local: { api: "responses" } })!, /"completions" or "chat"/u);
 		assert.match(invalid({ local: { baseUrl: "" } })!, /non-empty string/u);
-		assert.match(invalid({ local: { timeoutMs: 0 } })!, /positive number/u);
-		assert.match(invalid({ typesafe: { timeoutMs: -1 } })!, /positive number/u);
+		assert.match(invalid({ local: { timeoutMs: 0 } })!, /positive finite number/u);
+		assert.match(invalid({ typesafe: { timeoutMs: -1 } })!, /positive finite number/u);
 		assert.match(invalid({ typesafe: { model: 7 } })!, /non-empty string/u);
 		assert.match(invalid([])!, /must be a JSON object/u);
+	});
+
+	test("rejects a timeout that is a number but not a usable one", () => {
+		// `1e400` is how a JSON config file spells Infinity. It passes both a
+		// typeof and a `> 0` test while being no timeout at all: Node clamps it
+		// and fires almost at once, so every decision would abort and abstain
+		// while the setting reported itself valid.
+		const parsed = JSON.parse('{"timeoutMs": 1e400}') as { readonly timeoutMs: number };
+		assert.equal(parsed.timeoutMs, Number.POSITIVE_INFINITY);
+		assert.match(invalid({ local: parsed })!, /positive finite number/u);
+		assert.match(invalid({ typesafe: parsed })!, /positive finite number/u);
 	});
 
 	test("a bad block fails the real config file load rather than being ignored", async () => {

@@ -189,8 +189,13 @@ export function validateSystemOneSettings(value: unknown): string | null {
 		if ("api" in fields && fields.api !== "completions" && fields.api !== "chat") {
 			return `"systemOne.local.api" must be "completions" or "chat", got ${JSON.stringify(fields.api)}`;
 		}
-		if ("timeoutMs" in fields && (typeof fields.timeoutMs !== "number" || (fields.timeoutMs as number) <= 0)) {
-			return `"systemOne.local.timeoutMs" must be a positive number, got ${JSON.stringify(fields.timeoutMs)}`;
+		if (
+			"timeoutMs" in fields &&
+			// `1e400` in a config file parses to Infinity, which passes both a
+			// typeof and a `> 0` test while being no timeout at all.
+			(typeof fields.timeoutMs !== "number" || !Number.isFinite(fields.timeoutMs) || fields.timeoutMs <= 0)
+		) {
+			return `"systemOne.local.timeoutMs" must be a positive finite number, got ${JSON.stringify(fields.timeoutMs)}`;
 		}
 	}
 
@@ -205,8 +210,13 @@ export function validateSystemOneSettings(value: unknown): string | null {
 				return `"systemOne.typesafe.${name}" must be a non-empty string, got ${JSON.stringify(fields[name])}`;
 			}
 		}
-		if ("timeoutMs" in fields && (typeof fields.timeoutMs !== "number" || (fields.timeoutMs as number) <= 0)) {
-			return `"systemOne.typesafe.timeoutMs" must be a positive number, got ${JSON.stringify(fields.timeoutMs)}`;
+		if (
+			"timeoutMs" in fields &&
+			// `1e400` in a config file parses to Infinity, which passes both a
+			// typeof and a `> 0` test while being no timeout at all.
+			(typeof fields.timeoutMs !== "number" || !Number.isFinite(fields.timeoutMs) || fields.timeoutMs <= 0)
+		) {
+			return `"systemOne.typesafe.timeoutMs" must be a positive finite number, got ${JSON.stringify(fields.timeoutMs)}`;
 		}
 	}
 

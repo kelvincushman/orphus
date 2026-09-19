@@ -25,6 +25,19 @@ import { answerFrom, uncertainAnswers } from "../schema.ts";
 /** Letters, in the order options are offered. 26 covers every question Goal asks. */
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
+/**
+ * More answers on offer than there are letters to offer them under.
+ *
+ * The port accepts up to 255 choice labels, because Jev does. A single-token
+ * read cannot put that many on a ballot: past Z there is no letter to print
+ * and none to score, so every option past the 26th would silently collect the
+ * unseen floor and the winner would be drawn from the first 26 alone. That is
+ * a confident answer to a question this engine never asked, so it abstains.
+ */
+function exceedsLetterBudget(question: Questions[string]): boolean {
+	return localOptions(question).length > LETTERS.length;
+}
+
 /** Per-primitive temperatures fitted on outcomes; absent means uncalibrated. */
 export interface LocalCalibration {
 	readonly noul?: number;
@@ -181,6 +194,7 @@ export function createLocalSystemOne(options: LocalSystemOneOptions): SystemOne 
 	const base = options.baseUrl.replace(/\/+$/u, "");
 
 	const askOne = async (state: State, name: string, question: Questions[string]): Promise<Answer> => {
+		if (exceedsLetterBudget(question)) return uncertainAnswers({ [name]: question })[name]!;
 		const prompt = renderLocalPrompt(state, name, question);
 		const url = `${base}/${api === "chat" ? "chat/completions" : "completions"}`;
 		const body =

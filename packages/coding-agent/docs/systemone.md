@@ -148,6 +148,15 @@ it and a local model is a number rather than an opinion. Requires
 `TYPESAFE_API_KEY` in the environment; it is never read from a config file, and
 no other adapter contacts a third party.
 
+**The key goes wherever `systemOne.typesafe.baseUrl` points.** It is sent as a
+bearer token to `<baseUrl>/v1/systemone`, along with the state being judged —
+which for Goal is leaf contracts, worker receipts and reviewer evidence. The
+default is TypeSafe's own API; anything else you set there, a gateway or a proxy
+or a recording server, has to be an origin you trust with that credential and
+with what it is asked about. The setting is read from the same project and
+global config as every other workflow knob, so on a shared checkout it is worth
+knowing who can change it.
+
 ## Receipts
 
 Every decision is recorded, including every abstention, in the run's own
@@ -240,7 +249,7 @@ Being straight about the gap:
   deliberate acts: refitting calibration on harvested labels, and having a
   System 2 model read the receipts and rewrite the question criteria. The
   receipts carry what both need; neither is built yet.
-- **Not everywhere.** Four surfaces inside Goal. Room convergence, post
+- **Not everywhere.** Three surfaces inside Goal. Room convergence, post
   etiquette, and skill selection are all candidates and none are wired.
 
 ## Further reading

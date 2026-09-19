@@ -299,6 +299,24 @@ async function checkRows(input: {
 	return rows;
 }
 
+/**
+ * The artifact of the highest turn, compared as a number.
+ *
+ * Sorting the file names as strings puts turn 9 after turn 10, so a run that
+ * reached double figures would be harvested against a superseded plan and the
+ * rows would describe leaf contracts that never ran. `max_turns` is a user
+ * input, so that run is reachable.
+ */
+function newestTurn(names: readonly string[], pattern: RegExp): string | undefined {
+	let best: { name: string; turn: number } | undefined;
+	for (const name of names) {
+		const turn = Number(pattern.exec(name)?.[1]);
+		if (Number.isNaN(turn)) continue;
+		if (best === undefined || turn > best.turn) best = { name, turn };
+	}
+	return best?.name;
+}
+
 /** Every label one run yields. */
 export async function harvestRun(runDir: string, runName: string): Promise<LabelRow[]> {
 	const names = await readdir(runDir).catch(() => [] as string[]);
@@ -308,14 +326,8 @@ export async function harvestRun(runDir: string, runName: string): Promise<Label
 	const receipts = await readReceipts(runDir);
 	// The newest plan and report of the run: later turns supersede earlier ones,
 	// and a leaf re-planned after a failure is a different contract.
-	const planName = names
-		.filter((name) => /^goal-execution-plan-turn-\d+\.json$/u.test(name))
-		.sort()
-		.at(-1);
-	const reportName = names
-		.filter((name) => /^turn-\d+-goal-execution-report\.json$/u.test(name))
-		.sort()
-		.at(-1);
+	const planName = newestTurn(names, /^goal-execution-plan-turn-(\d+)\.json$/u);
+	const reportName = newestTurn(names, /^turn-(\d+)-goal-execution-report\.json$/u);
 	const plan = planName === undefined ? undefined : await readJson<{ leaves: PlanLeaf[] }>(join(runDir, planName));
 	const report =
 		reportName === undefined ? undefined : await readJson<{ records: ExecutionRecord[] }>(join(runDir, reportName));

@@ -85,6 +85,45 @@ describe("the typesafe adapter", () => {
 		);
 	});
 
+	test("an answer of the right primitive but the wrong shape is discarded too", async () => {
+		// `decisionOf` compares the confidence against a threshold, and a missing
+		// or out-of-range one compares false against every threshold — so a merely
+		// malformed answer would be read as a certain one. That is the single way
+		// this layer can be wrong rather than slow.
+		const malformed: readonly Record<string, unknown>[] = [
+			{ type: "choice", choice: "fast", probabilities: { fast: 1 } },
+			{ type: "choice", choice: "fast", confidence: 7, probabilities: { fast: 1 } },
+			{ type: "choice", choice: "fast", confidence: "high", probabilities: { fast: 1 } },
+			{ type: "choice", choice: "nothing-offered", confidence: 0.99, probabilities: {} },
+			{ type: "choice", choice: 1, confidence: 0.99, probabilities: {} },
+		];
+		for (const answer of malformed) {
+			await withServer(
+				() => ({ payload: { answers: { profile: answer } } }),
+				async ({ baseUrl }) => {
+					const answers = await createTypesafeSystemOne({ apiKey: "k", baseUrl }).decide("s", { profile: choice });
+					assert.equal(
+						decisionOf(answers.profile!, 0.01).abstain,
+						true,
+						`acted on a malformed answer: ${JSON.stringify(answer)}`,
+					);
+				},
+			);
+		}
+	});
+
+	test("a noul whose probability is not a probability abstains", async () => {
+		// Without the shape check this one denies: |2·NaN − 1| is NaN, NaN clears
+		// no threshold by comparison, and a deny-only surface would fail a leaf.
+		await withServer(
+			() => ({ payload: { answers: { sufficient: { type: "noul", noul: "yes" } } } }),
+			async ({ baseUrl }) => {
+				const answers = await createTypesafeSystemOne({ apiKey: "k", baseUrl }).decide("s", { sufficient: noul });
+				assert.equal(decisionOf(answers.sufficient!, 0.01).abstain, true);
+			},
+		);
+	});
+
 	test("a question the response never answered abstains", async () => {
 		await withServer(
 			() => ({ payload: { answers: { sufficient: { type: "noul", noul: 0.9 } } } }),

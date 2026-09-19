@@ -259,6 +259,26 @@ describe("the local adapter over a model server", () => {
 		);
 	});
 
+	test("abstains on a question offering more answers than there are letters", async () => {
+		// The port accepts 255 choice labels because Jev does; a single-token read
+		// can offer 26. Answering from the first 26 would be a confident answer to
+		// a question this engine never managed to ask.
+		const crowded: ChoiceQuestion = {
+			type: "choice",
+			criteria: Object.fromEntries(
+				Array.from({ length: LOCAL_LETTERS.length + 1 }, (_unused, index) => [`label-${index}`, null]),
+			),
+		};
+		await withServer(
+			() => ({ payload: completionsLogprobs({ A: 0 }) }),
+			async ({ baseUrl, recorded }) => {
+				const answers = await createLocalSystemOne({ baseUrl, model: "m" }).decide("s", { crowded });
+				assert.equal(decisionOf(answers.crowded!, 0.01).abstain, true);
+				assert.deepEqual(recorded, [], "and it does not spend a request to find that out");
+			},
+		);
+	});
+
 	test("names the model in its id, so receipts identify what decided", async () => {
 		assert.equal(createLocalSystemOne({ baseUrl: "http://x/v1", model: "qwen3-4b" }).id, "local:qwen3-4b");
 	});

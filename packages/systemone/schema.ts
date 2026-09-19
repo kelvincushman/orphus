@@ -100,6 +100,42 @@ export function answerFrom(question: Question, weights: Readonly<Record<string, 
 	return question.type === "choice" ? choiceAnswer(question, weights) : scoreAnswer(question, weights);
 }
 
+function isProbability(value: unknown): boolean {
+	return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
+/**
+ * Whether an answer built outside this package can be acted on.
+ *
+ * A matching `type` says nothing about the fields a decision is actually read
+ * from. `decisionOf` compares the confidence against a threshold, and a missing
+ * or non-numeric confidence compares `false` against every threshold — so an
+ * answer that is merely malformed would be taken as a confident one. That is
+ * the single way this layer can be wrong rather than slow, so the hosted
+ * adapter checks the whole shape before letting an answer through.
+ */
+export function isWellFormedAnswer(question: Question, answer: Answer): boolean {
+	if (question.type === "noul") return answer.type === "noul" && isProbability(answer.noul);
+	if (question.type === "choice") {
+		// A label nothing offered is as unusable as a missing confidence: the
+		// caller would act on a choice that was never on the ballot.
+		return (
+			answer.type === "choice" &&
+			isProbability(answer.confidence) &&
+			typeof answer.choice === "string" &&
+			Object.hasOwn(question.criteria, answer.choice)
+		);
+	}
+	return (
+		answer.type === "score" &&
+		isProbability(answer.confidence) &&
+		typeof answer.score === "number" &&
+		Number.isFinite(answer.score) &&
+		answer.score >= 0 &&
+		answer.score <= question.criteria.length - 1
+	);
+}
+
 /** The maximally uncertain answer: what every adapter returns when it could not decide. */
 export function uncertainAnswer(question: Question): Answer {
 	const keys = answerKeys(question);

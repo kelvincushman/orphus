@@ -238,6 +238,67 @@ test("does not label a leaf that never verified", () => {
 	}
 });
 
+test("harvests against the highest turn, not the last one alphabetically", () => {
+	// Sorting the file names as strings puts turn 9 after turn 10, so a run that
+	// reached double figures would be labelled against a superseded plan and a
+	// superseded report. `max_turns` is a user input, so that run is reachable.
+	const runsDir = mkdtempSync(join(tmpdir(), "orphus-labels-"));
+	try {
+		const dir = makeRun(runsDir, "long-run");
+		rmSync(join(dir, "goal-execution-plan-turn-1.json"));
+		rmSync(join(dir, "turn-1-goal-execution-report.json"));
+
+		for (const [turn, task, status] of [
+			[9, "The ninth plan", "failed"],
+			[10, "The tenth plan", "verified"],
+		]) {
+			writeFileSync(
+				join(dir, `goal-execution-plan-turn-${turn}.json`),
+				JSON.stringify({
+					version: 1,
+					leaves: [
+						{
+							id: "1",
+							title: "Do the thing",
+							task,
+							owns: ["packages/thing.ts"],
+							needs: [],
+							tier: "standard",
+							checks: [{ command: "npm run check", expect: "passes" }],
+						},
+					],
+				}),
+			);
+			writeFileSync(
+				join(dir, `turn-${turn}-goal-execution-report.json`),
+				JSON.stringify({
+					complete: status === "verified",
+					records: [
+						{
+							leaf_id: "1",
+							title: "Do the thing",
+							tier: "standard",
+							status,
+							evidence: "did it",
+							check_results: [
+								{ command: "npm run check", expect: "passes", status: "passed", evidence: "check passed" },
+							],
+							model_attempts: [{ model: "openai/gpt", success: true }],
+						},
+					],
+				}),
+			);
+		}
+
+		const { rows } = harvest(runsDir);
+		const tier = rows.find((row) => row.surface === "goal.tier");
+		assert.ok(tier, "turn 10 verified the leaf, so it yields a tier label");
+		assert.equal(tier.state.task, "The tenth plan");
+	} finally {
+		rmSync(runsDir, { recursive: true, force: true });
+	}
+});
+
 test("reports an empty harvest plainly instead of failing", () => {
 	const runsDir = mkdtempSync(join(tmpdir(), "orphus-labels-"));
 	try {

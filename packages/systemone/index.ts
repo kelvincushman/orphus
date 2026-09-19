@@ -71,6 +71,7 @@ export {
 	answerFrom,
 	answerKeys,
 	answerSchemaFor,
+	isWellFormedAnswer,
 	normalizeDistribution,
 	uncertainAnswer,
 	uncertainAnswers,

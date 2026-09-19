@@ -14,7 +14,7 @@
  */
 
 import type { Answer, Questions, State, SystemOne } from "../port.ts";
-import { uncertainAnswers } from "../schema.ts";
+import { isWellFormedAnswer, uncertainAnswers } from "../schema.ts";
 
 export interface TypesafeSystemOneOptions {
 	readonly apiKey: string;
@@ -32,11 +32,14 @@ interface WireResponse {
 }
 
 /**
- * Accept only the answers that match the questions asked.
+ * Accept only the answers that match the questions asked, in full.
  *
  * A response naming a question we did not ask, or answering one with the wrong
  * primitive, is a version skew rather than a decision — and the safe reading of
- * a decision we cannot interpret is that there was none.
+ * a decision we cannot interpret is that there was none. The same holds one
+ * level down: an answer of the right primitive whose confidence is missing or
+ * out of range would clear every threshold and be acted on as a certainty, so
+ * the whole shape is checked rather than the tag alone.
  */
 function reconcile(questions: Questions, answers: Record<string, Answer> | undefined): Record<string, Answer> {
 	const fallback = uncertainAnswers(questions);
@@ -44,7 +47,7 @@ function reconcile(questions: Questions, answers: Record<string, Answer> | undef
 	const result: Record<string, Answer> = {};
 	for (const [name, question] of Object.entries(questions)) {
 		const answer = answers[name];
-		result[name] = answer !== undefined && answer.type === question.type ? answer : fallback[name]!;
+		result[name] = answer !== undefined && isWellFormedAnswer(question, answer) ? answer : fallback[name]!;
 	}
 	return result;
 }
