@@ -8,6 +8,8 @@ The packages this project exists for:
 
 - `@orphus/roundtable` in `packages/roundtable` — **the Orphus contribution.** Rooms and the context-window contract: the budgeted digest algorithm (`digest.ts`), the local-socket broker and its client (`broker/`), the `roundtable` and `memory` tools, the declarative role manifest and launcher (`roles/`, `bin/orphus-roles.ts`), the discussion-etiquette skill, and the no-model demos. When a change here is not obviously about rooms, digests, roles, or memory, it probably belongs in the vendored tree instead.
 - `@orphus/fleet` in `packages/fleet` — **Orphus-authored orchestration on top of rooms and subagents.** Shareable fleet blueprints (`*.fleet.yaml`: teams of agent definitions with pre-assigned skills and a delegation mode each), the `/fleet` and `/fleetsetup` commands, the `fleet` introspection tool, and the `fleet-orchestration` and `kie-ai-media` skills. It executes nothing itself — members run via the `subagent` tool and deliberate in roundtable rooms. When a change is about *how members run* rather than *how a fleet is described and briefed*, it belongs in `packages/subagents` or the vendored tree.
+- `@orphus/systemone` in `packages/systemone` — **Orphus-authored.** The System One decision layer: three closed-vocabulary question primitives (`noul`, `choice`, `score`) in TypeSafe's Jev wire shape, an abstain band that defers to the model whenever confidence falls short, receipts for every decision including the abstentions, and four adapters (`null` by default, `llm-wrapper`, `local` over a user-run model server, `typesafe` for comparison). Goal consults it at three surfaces; `packages/workflows/builtin/goal-systemone.ts` is the only wiring. It may deny, never approve, and it always runs *before* the model step it could save.
+
 - `@orphus/transcribe` in `packages/transcribe` — **Orphus-authored**, derived from pi-transcribe (MIT, with attribution and a pinned upstream-sync record in `UPSTREAM.md`). Local dictation: the versioned six-request JSON-Lines worker/helper protocol, ABI and build-hash verification, and the consent-then-checksum model catalog. **It is not bundled and not registered as a builtin** — the native miniaudio/transcribe.cpp artifacts for the eight release targets are not built in this repository, so both channels fail closed. That is the intended state, not a bug to fix: the ABI is pinned in `native/ABI.md`, and wiring it up means building those artifacts, not removing the guard.
 
 Inherited from Atomic, and mostly left alone:
@@ -272,6 +274,16 @@ Atomic's product brief.
 ## Issues and pull requests
 
 Follow [`CONTRIBUTING.md`](CONTRIBUTING.md) for external-contributor coordination, issue assignment, and pull request guidance.
+
+**Every push opens a pull request.** A branch pushed without one is invisible work: nothing
+states what changed or why, and CI has nowhere to be read. Open it as part of the same piece
+of work, not as a later step someone has to remember.
+
+Check for an existing pull request on the branch before opening one. This repository has
+auto-created a PR on first push, titled after whatever the first commit happened to say —
+**update that one** rather than opening a second and leaving a stale duplicate. Its title and
+body describe the whole change, not the commit that created it, and are refreshed as later
+commits land on the branch. `.github/PULL_REQUEST_TEMPLATE.md` is the layout to fill in.
 
 ## Testing
 

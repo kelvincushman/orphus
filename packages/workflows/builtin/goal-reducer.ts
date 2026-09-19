@@ -78,6 +78,18 @@ export function collectRemainingWork(reviews: readonly ReviewRecord[]): string {
   return items.length > 0 ? items.join("; ") : "Reviewer quorum did not prove completion.";
 }
 
+/**
+ * Name the withheld votes in the reducer's own reason.
+ *
+ * A quorum that failed by one vote must say so: without this, a run would stop
+ * short with no stated cause, which is the opposite of what an auditable
+ * completion gate is for.
+ */
+function withheldSuffix(withheld: ReadonlySet<string>, withheldVotes: number): string {
+  if (withheldVotes === 0) return "";
+  return ` ${withheldVotes} complete vote(s) withheld because the cited evidence did not support stopping (${[...withheld].join(", ")}).`;
+}
+
 export function reduceGoalDecision(
   ledger: GoalLedger,
   turnReviews: readonly ReviewRecord[],
@@ -87,11 +99,23 @@ export function reduceGoalDecision(
     readonly reviewQuorum: number;
     readonly blockerThreshold: number;
     readonly nextActionOnComplete: ReviewNextAction;
+    /**
+     * Reviewers whose "complete" vote does not survive an independent read of
+     * the evidence they cited.
+     *
+     * Withholding only, never vetoing: a withheld vote is one the quorum never
+     * receives, and the remaining reviewers can still carry it. Nothing here
+     * can approve, and nothing here can block a quorum the other reviewers
+     * reached on their own.
+     */
+    readonly withheldReviewers?: readonly string[];
   },
 ): ReducerOutcome {
-  const completeVotes = turnReviews.filter(
-    (review) => review.decision === "complete",
-  ).length;
+  const withheld = new Set(options.withheldReviewers ?? []);
+  const completeReviews = turnReviews.filter((review) => review.decision === "complete");
+  const countedVotes = completeReviews.filter((review) => !withheld.has(review.reviewer));
+  const completeVotes = countedVotes.length;
+  const withheldVotes = completeReviews.length - completeVotes;
   const quorumMet = completeVotes >= options.reviewQuorum;
 
   // Deterministic boolean convergence: each review's `decision` is derived
@@ -107,7 +131,7 @@ export function reduceGoalDecision(
         ...summary,
         turn: options.turn,
         decision: "complete",
-        reason: `Reviewer quorum met: ${completeVotes}/${options.reviewQuorum} reviewers independently reported stop_review_loop=true with no reviewer execution errors.`,
+        reason: `Reviewer quorum met: ${completeVotes}/${options.reviewQuorum} reviewers independently reported stop_review_loop=true with no reviewer execution errors.${withheldSuffix(withheld, withheldVotes)}`,
         complete_votes: completeVotes,
         review_quorum: options.reviewQuorum,
       },
@@ -162,7 +186,7 @@ export function reduceGoalDecision(
       ...reducerSummary(turnReviews, false, "implementation"),
       turn: options.turn,
       decision: "continue",
-      reason: `Reviewer quorum not met. Remaining work: ${collectRemainingWork(turnReviews)}`,
+      reason: `Reviewer quorum not met.${withheldSuffix(withheld, withheldVotes)} Remaining work: ${collectRemainingWork(turnReviews)}`,
       complete_votes: completeVotes,
       review_quorum: options.reviewQuorum,
       ...(observation ? { blocker: observation.blocker } : {}),

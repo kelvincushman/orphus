@@ -117,6 +117,7 @@ messages intact verbatim and only early exploration collapsed.
 | **[Harness](packages/coding-agent/docs/harness.md)** | The capability boundary, the provider/tool session records, and `orphus inspect runtime`. |
 | **[Browser operation](packages/coding-agent/docs/browser.md)** | Driving an isolated browser, and the four gates a credential passes first. Off by default. |
 | **[Goal workflows](packages/coding-agent/docs/workflows.md#goal-as-the-core-completion-loop)** | The native plan/fan-out/verify/review loop Orphus uses for substantial coding tasks. |
+| **[System One](packages/coding-agent/docs/systemone.md)** | The optional decision layer that answers Goal's cheap questions before the model does, and defers whenever it is unsure. Off by default. |
 | **[Subagents](packages/coding-agent/docs/subagents.md)** | Bounded delegation inside a session: fresh, forked, or a key→value `handoff`; cheapest-first routing down an agent's model ladder. |
 | **[Skills](packages/coding-agent/docs/skills.md)** | What ships in every session, how skills load, and the writing-for-agents standard for new ones. |
 | **[Transcription](packages/coding-agent/docs/transcribe.md)** | Local dictation: the protocol, the model catalog, and why it is not enabled yet. |
@@ -321,6 +322,8 @@ packages/roundtable/          The Orphus contribution — rooms and the context-
   skills/                       The roundtable etiquette and memory skills
 packages/fleet/               Fleet blueprints: /fleet, /fleetsetup, the fleet tool, SCHEMA.md,
                                 seven examples, and the orchestration + kie-ai-media skills
+packages/systemone/           The System One decision layer: three closed-vocabulary question
+                                primitives, an abstain band, receipts, and four adapters
 packages/coding-agent/        The `orphus` binary (Atomic-derived, plus the first-party
                                 harness boundary, browser operation, and termDOM backend)
 packages/transcribe/          Local dictation, derived from pi-transcribe — protocol, model

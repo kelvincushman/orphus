@@ -34,6 +34,8 @@
             "@orphus/intercom": ["./packages/intercom/index.ts"],
             "@orphus/intercom/*": ["./packages/intercom/*"],
             "@orphus/roundtable": ["./packages/roundtable/index.ts"],
+            "@orphus/systemone": ["./packages/systemone/index.ts"],
+            "@orphus/systemone/*": ["./packages/systemone/*"],
             "@orphus/roundtable/*": ["./packages/roundtable/*"],
             "@orphus/transcribe": ["./packages/transcribe/src/index.ts"],
             "@orphus/transcribe/*": ["./packages/transcribe/src/*"]
@@ -43,6 +45,7 @@
         "packages/coding-agent/src/**/*.d.ts",
         "packages/workflows/**/*",
         "packages/roundtable/**/*",
+        "packages/systemone/**/*",
         "packages/transcribe/**/*",
         "test/**/*",
         "examples/**/*",

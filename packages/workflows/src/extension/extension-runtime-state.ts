@@ -5,6 +5,7 @@ import { stageUiBroker } from "../shared/stage-ui-broker.js";
 import { store } from "../shared/store.js";
 import { readGraphStoreSnapshot } from "../shared/store-observation.js";
 import type { RunSnapshot } from "../shared/store-types.js";
+import { setSystemOneConfig } from "../shared/systemone-config.js";
 import type {
 	WorkflowExecutionPolicy,
 	WorkflowMcpPort,
@@ -222,6 +223,9 @@ export function createWorkflowExtensionRuntimeState(
 			worktree: effectiveConfig.worktree,
 		};
 		lifecycleNotificationConfigRef.current = effectiveConfig.workflowNotifications;
+		// Published rather than passed: the Goal builtin reads it when a run starts,
+		// and has no handle on this extension's state to receive it through.
+		setSystemOneConfig(effectiveConfig.systemOne);
 		reinstallLifecycleNotifications();
 		statusWriterRef.unsubscribe();
 		statusWriterRef = createStatusWriter(store, runtimeConfigRef.current);

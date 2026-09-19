@@ -6,6 +6,8 @@ import { goalLeafModelConfig } from "./goal-models.js";
 import type { GoalExecutionCheck, GoalExecutionLeaf, GoalExecutionPlan } from "./goal-plan.js";
 import { goalExecutionLeafVerificationSchema } from "./goal-schemas.js";
 import { taggedPrompt } from "./goal-prompts.js";
+import type { GoalSystemOne } from "./goal-systemone.js";
+import { prescreenLeaf } from "./goal-systemone.js";
 
 type GoalExecutionContext = {
   task(name: string, options: WorkflowTaskOptions): Promise<WorkflowTaskResult>;
@@ -21,6 +23,13 @@ export type GoalExecutionCheckResult = {
   readonly evidence: string;
 };
 
+/** One model attempt for a leaf's worker stage, in the order the ladder walked. */
+export type GoalExecutionModelAttempt = {
+  readonly model: string;
+  readonly success: boolean;
+  readonly error?: string;
+};
+
 export type GoalExecutionLeafRecord = {
   readonly leaf_id: string;
   readonly title: string;
@@ -31,6 +40,13 @@ export type GoalExecutionLeafRecord = {
   readonly evidence: string;
   readonly remaining_work: string;
   readonly check_results: readonly GoalExecutionCheckResult[];
+  /**
+   * Which models the worker stage actually attempted, cheapest evidence there
+   * is for what tier selection costs: a leaf that succeeded on its first rung
+   * was tiered well, and one that walked four rungs was not. Absent on records
+   * that never reached a stage.
+   */
+  readonly model_attempts?: readonly GoalExecutionModelAttempt[];
 };
 
 export type GoalExecutionReport = {
@@ -51,6 +67,7 @@ export async function runGoalExecutionPlan(input: {
   readonly workflowStartCwd: string;
   readonly maxParallelAgents: number;
   readonly turn?: number;
+  readonly systemOne?: GoalSystemOne;
 }): Promise<GoalExecutionReport> {
   const records = new Map<string, GoalExecutionLeafRecord>();
   const running = new Map<string, Promise<GoalExecutionLeafRecord>>();
@@ -140,6 +157,7 @@ async function runGoalLeaf(input: {
   readonly artifactDir: string;
   readonly workflowStartCwd: string;
   readonly turn: number;
+  readonly systemOne?: GoalSystemOne;
 }): Promise<GoalExecutionLeafRecord> {
   const taskArtifactPath = join(input.artifactDir, `turn-${input.turn}-leaf-${input.leaf.id}-receipt.md`);
   const verificationArtifactPath = join(
@@ -180,6 +198,35 @@ async function runGoalLeaf(input: {
     );
   }
 
+  // Deny-only pre-screen, before a verify turn is spent. A confident refusal
+  // fails the leaf here; a confident agreement does nothing, because the
+  // verifier's whole instruction is not to trust this receipt and a classifier
+  // reading the same receipt is in no better position to.
+  if (input.systemOne !== undefined) {
+    const refusal = await prescreenLeaf({
+      systemOne: input.systemOne,
+      leaf: input.leaf,
+      receipt: workResult.text,
+    });
+    if (refusal !== undefined) {
+      return await finalizeLeafRecord(
+        {
+          leaf_id: input.leaf.id,
+          title: input.leaf.title,
+          tier: input.leaf.tier,
+          status: "failed",
+          task_artifact_path: taskArtifactPath,
+          verification_artifact_path: verificationArtifactPath,
+          evidence: `Failed before verification: ${refusal}`,
+          remaining_work: `Rerun leaf ${input.leaf.id} and produce a receipt that evidences every declared check.`,
+          check_results: declaredCheckResults(input.leaf.checks, "failed", `Not evidenced by the worker receipt: ${refusal}`),
+          ...modelAttemptsOf(workResult),
+        },
+        workResult.text,
+      );
+    }
+  }
+
   try {
     const verification = await input.ctx.task(`goal-turn-${input.turn}-leaf-${input.leaf.id}-verify`, {
       prompt: renderLeafVerificationPrompt(input, taskArtifactPath, verificationArtifactPath),
@@ -204,6 +251,7 @@ async function runGoalLeaf(input: {
             evidence: normalized.evidence,
             remaining_work: normalized.remaining_work,
             check_results: normalized.check_results,
+            ...modelAttemptsOf(workResult),
           },
           workResult.text,
         );
@@ -219,6 +267,7 @@ async function runGoalLeaf(input: {
           evidence: normalized.evidence,
           remaining_work: normalized.remaining_work,
           check_results: normalized.check_results,
+          ...modelAttemptsOf(workResult),
         },
         workResult.text,
       );
@@ -376,6 +425,21 @@ async function writeSynthesizedArtifactIfUnavailable(path: string, contents: str
     }
   }
   await writeFile(path, contents, { encoding: "utf8" });
+}
+
+/** The worker stage's ladder walk, kept only when the runtime reported one. */
+function modelAttemptsOf(result: WorkflowTaskResult): { model_attempts?: readonly GoalExecutionModelAttempt[] } {
+  const attempts = result.modelAttempts;
+  if (attempts === undefined || attempts.length === 0) {
+    return {};
+  }
+  return {
+    model_attempts: attempts.map((attempt) => ({
+      model: attempt.model,
+      success: attempt.success,
+      ...(attempt.error === undefined ? {} : { error: attempt.error }),
+    })),
+  };
 }
 
 function normalizeTurn(turn: number | undefined): number {

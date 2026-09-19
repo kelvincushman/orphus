@@ -26,6 +26,7 @@
 	"files": {
 		"includes": [
 			"packages/*/src/**/*.ts",
+			"packages/systemone/**/*.ts",
 			"packages/*/test/**/*.ts",
 			"packages/coding-agent/examples/**/*.ts",
 			"test/**/*.ts",
