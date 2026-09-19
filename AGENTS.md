@@ -275,6 +275,16 @@ Atomic's product brief.
 
 Follow [`CONTRIBUTING.md`](CONTRIBUTING.md) for external-contributor coordination, issue assignment, and pull request guidance.
 
+**Every push opens a pull request.** A branch pushed without one is invisible work: nothing
+states what changed or why, and CI has nowhere to be read. Open it as part of the same piece
+of work, not as a later step someone has to remember.
+
+Check for an existing pull request on the branch before opening one. This repository has
+auto-created a PR on first push, titled after whatever the first commit happened to say —
+**update that one** rather than opening a second and leaving a stale duplicate. Its title and
+body describe the whole change, not the commit that created it, and are refreshed as later
+commits land on the branch. `.github/PULL_REQUEST_TEMPLATE.md` is the layout to fill in.
+
 ## Testing
 
 Use `npm run test:unit` (or `test:integration`, `test:all`) and make use of your tdd skill to write high quality tests. The suites run under **vitest**; the assertion style stays `node:assert/strict`:
