@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, test } from "vitest";
 import { InMemoryDurableBackend } from "../../packages/workflows/src/durable/backend.js";
+import { DbosDurableBackend, type DbosSdkHandle } from "../../packages/workflows/src/durable/dbos-backend.js";
+import { resetDbosLifecycleForTests } from "../../packages/workflows/src/durable/dbos-lifecycle.js";
 import { setDurableBackend } from "../../packages/workflows/src/durable/factory.js";
 import {
 	createWorkflowLifecycleNotificationState,
@@ -118,6 +120,57 @@ async function resume(
 	);
 	return { messages, errors };
 }
+
+function fakeDbosSdk(): DbosSdkHandle {
+	return {
+		launch: async () => {},
+		shutdown: async () => {},
+		startWorkflow: async () => {},
+		retrieveWorkflow: async () => undefined,
+		cancelWorkflow: async () => {},
+		resumeWorkflow: async () => {},
+		listAllWorkflows: async () => [],
+		listStepRecords: async () => [],
+		recordStepOutput: async () => {},
+		deleteWorkflowData: async () => {},
+	};
+}
+
+describe("/workflow resume explicit-target DBOS readiness", () => {
+	afterEach(() => resetDbosLifecycleForTests());
+
+	test("awaits DBOS launch instead of racing the synchronous backend getter", async () => {
+		// test/setup-workflow-durability.ts injects a default in-memory backend
+		// before every test; clear it so getDurableBackend() actually falls
+		// through to the real (fake-configured) DBOS lifecycle below instead of
+		// short-circuiting on the injection seam — that seam is exactly what
+		// bypasses the race this test exists to catch. A fresh process's first
+		// /workflow resume <id> reaches this command with DBOS still
+		// "uninitialized" — getDurableBackend() synchronously throws
+		// DbosNotReadyError unless the caller awaits initializeDurableBackend()
+		// (or the equivalent launch) first, exactly like every other
+		// DBOS-backend-consuming path in this file already does.
+		setDurableBackend(undefined);
+		let configureCalls = 0;
+		resetDbosLifecycleForTests(async () => {
+			configureCalls += 1;
+			// A real gap, not an already-resolved promise: proves the fix truly
+			// awaits readiness rather than happening to win a same-tick race.
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			return {
+				backend: new DbosDurableBackend(fakeDbosSdk()),
+				launch: async () => {},
+				shutdown: async () => {},
+			};
+		});
+
+		const runtime = createExtensionRuntime({ store });
+		const result = await resume(testRunId("dbos-readiness-race"), runtime);
+
+		assert.equal(configureCalls, 1);
+		assert.doesNotMatch(result.errors.join("\n"), /DBOS workflow durability is not ready/);
+	});
+});
 
 describe("/workflow resume completed target", () => {
 	test("opens an exact completed id without invoking durable resume dispatch", async () => {

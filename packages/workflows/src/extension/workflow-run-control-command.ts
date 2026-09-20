@@ -1,4 +1,4 @@
-import { getDurableBackend } from "../durable/factory.js";
+import { getDurableBackend, initializeDurableBackend } from "../durable/factory.js";
 import { isWorkflowRunResumable } from "../durable/resume-eligibility.js";
 import type { ResumableWorkflowEntry } from "../durable/types.js";
 import { hasPendingDurableResumeTransition } from "../runs/background/durable-resume-transition.js";
@@ -314,6 +314,11 @@ export async function handleRunControlCommand(
 			if (picked.kind !== (action === "attach" ? "connect" : action)) return true;
 			runId = picked.runId;
 		} else if (action === "resume") {
+			// getDurableBackend() is the synchronous getter and never waits: on a
+			// fresh process this is the first workflow command to touch DBOS, and
+			// without this await it races the still-launching lifecycle and throws
+			// DbosNotReadyError instead of resolving the target.
+			await initializeDurableBackend();
 			const backend = getDurableBackend();
 			const localResolution = resolveRunId(target);
 			const localBeforePreparation =
