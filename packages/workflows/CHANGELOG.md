@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-09-20
+
 ### Added
 
 - **Goal can ask a cheap question before spending a model turn on it.** The optional System One layer (`@orphus/systemone`) is consulted at three points, each one *before* the model step it could save: the planner's tier guess is checked against the leaf contract before any worker is dispatched; a reviewer's "complete" vote is checked against the evidence that reviewer itself cited before the reducer counts it; and a worker's receipt is checked against its declared checks before a verify turn is spent. It is off by default — the `null` adapter abstains on everything, so Goal behaves exactly as it did — and it can deny but never approve. A withheld reviewer vote is one the quorum never receives; it cannot supply a vote, and it cannot block a quorum the remaining reviewers reached on their own. The leaf pre-screen can fail a leaf but never skip verification by agreeing with the worker, because the verifier's whole instruction is not to trust that receipt.

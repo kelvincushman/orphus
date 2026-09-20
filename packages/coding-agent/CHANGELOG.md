@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-09-20
+
 ### Changed
 
 - The startup ORPHUS wordmark is the block-letter mark orphus.dev renders — the same glyphs, the same six rows, the same fifty columns — so the terminal, the README, and the site are one brand mark again. It stays pinned to Matrix green `#00ff41`. The drop-shadow layer that made this mark hard to read before 2.1.1 is not coming back with it; the shadow was the legibility problem, not the letters.
