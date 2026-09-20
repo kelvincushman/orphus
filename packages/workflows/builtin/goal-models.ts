@@ -9,6 +9,7 @@ const GPT_SOL_PRIMARY = "openai-codex/gpt-5.6-sol:xhigh";
 const KIMI_PRIMARY = "kimi-coding/k3:max";
 const GLM_PRIMARY = "zai/glm-5.2:xhigh";
 const GROK_PRIMARY = "xai/grok-4.5:high";
+const GROQ_FAST = "groq/openai/gpt-oss-120b:high";
 
 const JUDGMENT_FALLBACKS = [
   "github-copilot/claude-fable-5:high",
@@ -72,6 +73,7 @@ const FAST_FALLBACKS = [
   "moonshotai/kimi-k3:max",
   "zai/glm-5.2:high",
   "zai-coding-cn/glm-5.2:high",
+  GROQ_FAST,
   "openrouter/openai/gpt-5.5:medium",
   "openrouter/anthropic/claude-fable-5:low",
   "openrouter/moonshotai/kimi-k3:max",

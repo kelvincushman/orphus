@@ -4,11 +4,12 @@
 <details>
 <summary>Plain-text wordmark fallback</summary>
 <pre>
-  ####  #####  #####  #   # #   #  ####
- #    # #    # #    # #   # #   # #
- #    # #####  #####  ##### #   #  ####
- #    # #   #  #      #   # #   #      #
-  ####  #    # #      #   #  ###   ####
+ ██████╗ ██████╗ ██████╗ ██╗  ██╗██╗   ██╗███████╗
+██╔═══██╗██╔══██╗██╔══██╗██║  ██║██║   ██║██╔════╝
+██║   ██║██████╔╝██████╔╝███████║██║   ██║███████╗
+██║   ██║██╔══██╗██╔═══╝ ██╔══██║██║   ██║╚════██║
+╚██████╔╝██║  ██║██║     ██║  ██║╚██████╔╝███████║
+ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
 </pre>
 </details>
 </div>
@@ -115,7 +116,7 @@ messages intact verbatim and only early exploration collapsed.
 | **[The `roundtable` tool](docs/roundtable-tool.md)** | Every action, parameter, and default, with the reasoning. |
 | **[Architecture](docs/architecture.md)** | What runs where, and what the bound actually guarantees. |
 | **[Harness](packages/coding-agent/docs/harness.md)** | The capability boundary, the provider/tool session records, and `orphus inspect runtime`. |
-| **[Browser operation](packages/coding-agent/docs/browser.md)** | Driving an isolated browser, and the four gates a credential passes first. Off by default. |
+| **[Browser operation](packages/coding-agent/docs/browser.md)** | Driving an isolated browser, available by default with a separately gated login path. |
 | **[Goal workflows](packages/coding-agent/docs/workflows.md#goal-as-the-core-completion-loop)** | The native plan/fan-out/verify/review loop Orphus uses for substantial coding tasks. |
 | **[System One](packages/coding-agent/docs/systemone.md)** | The optional decision layer that answers Goal's cheap questions before the model does, and defers whenever it is unsure. Off by default. |
 | **[Subagents](packages/coding-agent/docs/subagents.md)** | Bounded delegation inside a session: fresh, forked, or a key→value `handoff`; cheapest-first routing down an agent's model ladder. |

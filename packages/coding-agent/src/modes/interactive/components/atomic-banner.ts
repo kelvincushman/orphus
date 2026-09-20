@@ -4,14 +4,20 @@ import { fgAnsi } from "../theme/color-utils.ts";
 import type { Theme } from "../theme/theme.ts";
 import { theme } from "../theme/theme.ts";
 
-const BANNER_WIDTH = 40;
+const BANNER_WIDTH = 50;
 const ORPHUS_MATRIX_GREEN = "#00ff41";
+/**
+ * The brand wordmark, identical to the one orphus.dev renders — same glyphs,
+ * same six rows, same 50 columns. The terminal, the README and the site are one
+ * mark; changing it here without changing the others splits the brand.
+ */
 const ORPHUS_FORALL_BANNER_LINES: readonly string[] = [
-	"  ####  #####  #####  #   # #   #  ####",
-	" #    # #    # #    # #   # #   # #",
-	" #    # #####  #####  ##### #   #  ####",
-	" #    # #   #  #      #   # #   #      #",
-	"  ####  #    # #      #   #  ###   ####",
+	" ██████╗ ██████╗ ██████╗ ██╗  ██╗██╗   ██╗███████╗",
+	"██╔═══██╗██╔══██╗██╔══██╗██║  ██║██║   ██║██╔════╝",
+	"██║   ██║██████╔╝██████╔╝███████║██║   ██║███████╗",
+	"██║   ██║██╔══██╗██╔═══╝ ██╔══██║██║   ██║╚════██║",
+	"╚██████╔╝██║  ██║██║     ██║  ██║╚██████╔╝███████║",
+	" ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚══════╝",
 	"",
 ].map((line) => line.padEnd(BANNER_WIDTH));
 
@@ -79,10 +85,13 @@ export function composeStartupIdentity(
 	const markWidth = Math.max(...markLines.map((line) => visibleWidth(line)));
 	const asideWidth = Math.max(0, ...metaLines.map(visibleWidth), ...manifestoLines.map(visibleWidth));
 	const wide = maxWidth === undefined || (maxWidth >= 80 && maxWidth >= markWidth + 2 + asideWidth);
+	// The manifesto is bottom-aligned against the mark; the metadata is top-aligned.
+	// Deriving the offset keeps both correct when the mark's height changes.
+	const manifestoStart = markLines.length - manifestoLines.length;
 	if (wide) {
 		return markLines
 			.map((line, index) => {
-				const aside = index < 3 ? metaLines[index] : index >= 4 && index < 7 ? manifestoLines[index - 4] : "";
+				const aside = index < 3 ? metaLines[index] : (manifestoLines[index - manifestoStart] ?? "");
 				return `${line}${aside ? `  ${aside}` : ""}`.trimEnd();
 			})
 			.join("\n");

@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "vitest";
+import { scrubProviderCredentials } from "../../packages/coding-agent/test/helpers/provider-credentials.ts";
 import {
 	bunExecutable,
 	decodeStream,
@@ -33,12 +34,12 @@ class InteractiveDriver {
 	private stderr = "";
 
 	constructor(args: string[], overrides: Record<string, string | undefined>) {
-		const inherited: Record<string, string | undefined> = { ...process.env };
+		// Runner provider credentials must not leak real providers into the
+		// fixture's model world (issue #66). An AWS key pair matches neither
+		// suffix, which is why the list is shared rather than spelled out here.
+		const inherited: Record<string, string | undefined> = scrubProviderCredentials(process.env);
 		for (const key of Object.keys(inherited)) {
 			if (key.startsWith("ORPHUS_INTERACTIVE_ENGINE_")) delete inherited[key];
-			// Runner provider credentials must not leak real providers into the
-			// fixture's model world (issue #66).
-			if (key.endsWith("_API_KEY") || key.endsWith("_BEARER_AUTH")) delete inherited[key];
 		}
 		const env: Record<string, string> = {};
 		for (const [key, value] of Object.entries({ ...inherited, ...overrides })) {

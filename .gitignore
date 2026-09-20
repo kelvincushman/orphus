@@ -1,4 +1,8 @@
-node_modules/
+# No trailing slash: with one, this matches only directories, and a
+# `node_modules` SYMLINK into a shared install — what a git worktree needs to
+# run the suites — is not a directory to git, so it slipped past and was
+# committed as an absolute machine-local path.
+node_modules
 .atomic-test-fixtures/
 dist/
 target/

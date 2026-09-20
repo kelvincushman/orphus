@@ -2,8 +2,14 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The startup ORPHUS wordmark is the block-letter mark orphus.dev renders — the same glyphs, the same six rows, the same fifty columns — so the terminal, the README, and the site are one brand mark again. It stays pinned to Matrix green `#00ff41`. The drop-shadow layer that made this mark hard to read before 2.1.1 is not coming back with it; the shadow was the legibility problem, not the letters.
+- The isolated `browser` tool is now registered by default, while Chrome still launches only on the first `open` action. Set `ORPHUS_ENABLE_BROWSER=0` to remove it from the runtime. Credential login remains off by default and still requires its separate switch, exact origin allowlisting, credential-origin matching, and interactive approval.
+
 ### Fixed
 
+- **`/login` no longer crashes the session while you are completing it.** `login_provider` is exempt from the RPC request deadline because it legitimately waits as long as a human takes to finish an OAuth flow, but it was still queued on the ordinary command lane, where it starved every command behind it. A routine `get_state` refresh — which is *not* deadline-exempt — therefore timed out after 30s and took the whole CLI down with an uncaught `Timeout waiting for response to get_state`. Any login slower than 30 seconds hit this, including both browser and device-code flows. `login_provider` now runs on the concurrent lane it always needed; commands that genuinely require a consistent read (`compact`, `prompt`) keep waiting as before.
 - **Cold extension loading no longer takes ~34 seconds.** Two compounding defects made every cold load of the builtin extension graph pathologically slow on Node, which is what made child sessions (subagents, fleet members) slow to start and pushed `test/unit/subagents-child-extension-tools.test.ts` past the shared 30s test budget. First, `getAliases()` pointed `@orphus/coding-agent` at `src/index.js`, a file that exists only in the built `dist` layout — in a source checkout every jiti-imported file that imported it fell into fallback resolution, measured at 194,475 `statx` calls with 87.6% of them failing. Second, `jiti`'s native import path self-enables only under Bun, so Node transformed the whole TypeScript extension graph on every cold load; the `workflows` extension alone cost ~21s. The alias now resolves to whichever of `index.js`/`index.ts` exists, and TypeScript extension entries on Node import through a scoped `tsx` loader with jiti retained as the fallback. Cold load drops from ~34s to ~4s. Bun, bundled single-file builds, and the Windows transformed-reload path are unchanged.
 
 ## [2.1.2] - 2026-08-27

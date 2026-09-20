@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -294,6 +294,121 @@ test("harvests against the highest turn, not the last one alphabetically", () =>
 		const tier = rows.find((row) => row.surface === "goal.tier");
 		assert.ok(tier, "turn 10 verified the leaf, so it yields a tier label");
 		assert.equal(tier.state.task, "The tenth plan");
+	} finally {
+		rmSync(runsDir, { recursive: true, force: true });
+	}
+});
+
+test("pairs a check label with the worker receipt of the turn it was harvested from", () => {
+	// The check results come from one turn's report, so the receipt must come
+	// from that same turn. Matching by leaf suffix alone took whatever `readdir`
+	// returned first, so a leaf re-planned after a failure could have turn 2's
+	// verdict labelled against turn 1's work.
+	const runsDir = mkdtempSync(join(tmpdir(), "orphus-labels-"));
+	try {
+		const dir = makeRun(runsDir, "replanned-run");
+		writeFileSync(join(dir, "turn-1-leaf-1-receipt.md"), "# Receipt\n\nThe first attempt, which failed.\n");
+		writeFileSync(join(dir, "turn-2-leaf-1-receipt.md"), "# Receipt\n\nThe second attempt, which passed.\n");
+		for (const name of ["goal-execution-plan-turn-1.json", "turn-1-goal-execution-report.json"]) {
+			writeFileSync(join(dir, name.replace("turn-1", "turn-2")), readFileSync(join(dir, name), "utf8"));
+		}
+
+		const { rows } = harvest(runsDir);
+		const check = rows.find((row) => row.surface === "goal.verify");
+		assert.ok(check, "the run has a check result to label");
+		assert.match(check.state.worker_receipt, /second attempt/);
+	} finally {
+		rmSync(runsDir, { recursive: true, force: true });
+	}
+});
+
+test("skips a check label whose harvested turn left no worker receipt", () => {
+	// The discriminating case, because it does not depend on `readdir` order: the
+	// run was re-planned to turn 2 but only turn 1 wrote a receipt. Matching by
+	// suffix finds turn 1's and emits a row pairing turn 2's verdict with turn
+	// 1's work. There is no correct label here, and a mislabelled example is
+	// worse than a missing one — it trains on a lie.
+	const runsDir = mkdtempSync(join(tmpdir(), "orphus-labels-"));
+	try {
+		const dir = makeRun(runsDir, "orphaned-receipt-run");
+		for (const name of ["goal-execution-plan-turn-1.json", "turn-1-goal-execution-report.json"]) {
+			writeFileSync(join(dir, name.replace("turn-1", "turn-2")), readFileSync(join(dir, name), "utf8"));
+		}
+
+		const { rows } = harvest(runsDir);
+		assert.equal(
+			rows.filter((row) => row.surface === "goal.verify").length,
+			0,
+			"turn 2 wrote no receipt, so its check results have nothing to be labelled against",
+		);
+		// The turns that are self-consistent still label, so this is a narrowed
+		// join rather than a harvester that quietly stopped producing check rows.
+		assert.ok(rows.some((row) => row.surface === "goal.tier"));
+	} finally {
+		rmSync(runsDir, { recursive: true, force: true });
+	}
+});
+
+test("marks has_receipt per row, not per surface", () => {
+	// The column exists so the set can be partitioned into what the layer
+	// predicted and what it did not — which is exactly the split a calibration
+	// fit needs. Asking whether the run holds *any* receipt on the surface
+	// answers `true` for every row whose siblings were decided while it was not,
+	// and the layer abstaining on some leaves and not others is the normal case.
+	const runsDir = mkdtempSync(join(tmpdir(), "orphus-labels-"));
+	try {
+		const dir = makeRun(runsDir, "partly-decided-run", { withReceipts: true });
+		// A second verified leaf, with no receipt of its own.
+		for (const [file, key, extra] of [
+			[
+				"goal-execution-plan-turn-1.json",
+				"leaves",
+				{
+					id: "2",
+					title: "Do the other thing",
+					task: "Implement the other thing",
+					owns: ["packages/other.ts"],
+					needs: [],
+					tier: "fast",
+					checks: [{ command: "npm run check", expect: "passes" }],
+				},
+			],
+			[
+				"turn-1-goal-execution-report.json",
+				"records",
+				{
+					leaf_id: "2",
+					title: "Do the other thing",
+					tier: "fast",
+					status: "verified",
+					evidence: "did it",
+					check_results: [
+						{ command: "npm run check", expect: "passes", status: "passed", evidence: "check passed" },
+					],
+					model_attempts: [{ model: "openai/gpt", success: true }],
+				},
+			],
+		]) {
+			const parsed = JSON.parse(readFileSync(join(dir, file), "utf8"));
+			parsed[key].push(extra);
+			writeFileSync(join(dir, file), JSON.stringify(parsed));
+		}
+		writeFileSync(join(dir, "turn-1-leaf-2-receipt.md"), "# Receipt\n\nRan npm run check, it passed.\n");
+
+		const { rows } = harvest(runsDir);
+		const decided = rows.find((row) => row.surface === "goal.tier" && row.state.task === "Implement the thing");
+		const undecided = rows.find(
+			(row) => row.surface === "goal.tier" && row.state.task === "Implement the other thing",
+		);
+		assert.ok(decided && undecided, "both verified leaves yield a tier row");
+		assert.equal(decided.has_receipt, true);
+		assert.ok(decided.receipt, "the decided leaf carries the receipt it reports");
+		assert.equal(undecided.has_receipt, false, "leaf 2 has no receipt of its own, whatever leaf 1 had");
+		assert.equal(undecided.receipt, undefined);
+
+		// And the invariant behind the column, over every row the run produced.
+		for (const row of rows)
+			assert.equal(row.has_receipt, row.receipt !== undefined, `${row.surface} ${row.question_key}`);
 	} finally {
 		rmSync(runsDir, { recursive: true, force: true });
 	}

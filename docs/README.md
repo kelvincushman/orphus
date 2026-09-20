@@ -18,7 +18,7 @@ any of their context windows. Start with the first link; the rest are reference.
 | **[Roles and the manifest](roles.md)** | Declaring a fleet in `orphus.roles.yaml` and turning it into launch commands. |
 | **[Memory](memory.md)** | The durable layer: the librarian convention, the export → ingest → query flow, and its contract. |
 | **[Fleets](../packages/coding-agent/docs/fleet.md)** | Blueprint-driven orchestration: teams with pre-assigned skills, run by `/fleet`, authored by `/fleetsetup`. |
-| **[System One](../packages/coding-agent/docs/systemone.md)** | The optional decision layer in front of Goal's model turns: fixed questions, calibrated-by-intent probabilities, and an abstain band that defers to the model. Off by default. |
+| **[System One](../packages/coding-agent/docs/systemone.md)** | The optional decision layer in front of Goal's model turns: fixed questions, probabilities over the answers you supply, and an abstain band that defers to the model whenever confidence falls short. Off by default, and not yet calibrated. |
 | **[Subagents](../packages/coding-agent/docs/subagents.md)** | Delegation inside a session: fresh, forked, or a bounded key→value `handoff`; cheapest-first routing down an agent's model ladder. |
 | **[Skills](../packages/coding-agent/docs/skills.md)** | What ships in every session, how skills load, community packs, and the standard for writing new ones. |
 | **[Live worker visibility](../README.md#live-worker-visibility)** | The automatic Goal graph overlay and `ORPHUS HARNESS · workers live` panel for background subagents. |
@@ -26,7 +26,7 @@ any of their context windows. Start with the first link; the rest are reference.
 | **[Workflow playbook](workflow-playbook.md)** | Multi-stage workflow execution, inherited from Atomic. |
 | **[The refine loop](refine.md)** | `/refine` — gated, reversible self-modification: what the gate refuses, and what it does not claim. |
 | **[Execution kernels](repl.md)** | `repl` — values that outlive a tool call. **Not a security sandbox**, and honest about which pieces are wired. |
-| **[Browser operation](../packages/coding-agent/docs/browser.md)** | Driving an isolated browser, and the four gates a credential passes before it reaches a page. Off by default. |
+| **[Browser operation](../packages/coding-agent/docs/browser.md)** | Driving an isolated browser, available by default with four gates before a credential reaches a page. |
 | **[Transcription](../packages/coding-agent/docs/transcribe.md)** | Local dictation: the worker/helper protocol, the pinned model catalog, and why it is not enabled yet. |
 | **[Terminal backend](../packages/coding-agent/docs/tui-backend.md)** | The termDOM pilot for startup selection and the session picker. Opt-in; pi stays the default. |
 

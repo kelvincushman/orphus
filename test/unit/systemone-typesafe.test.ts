@@ -96,6 +96,13 @@ describe("the typesafe adapter", () => {
 			{ type: "choice", choice: "fast", confidence: "high", probabilities: { fast: 1 } },
 			{ type: "choice", choice: "nothing-offered", confidence: 0.99, probabilities: {} },
 			{ type: "choice", choice: 1, confidence: 0.99, probabilities: {} },
+			// Every row above supplies `probabilities`, which is how these three
+			// stayed uncovered: the table checked every field except the one the
+			// receipt reads. A receipt cannot be written without a distribution,
+			// and it is written outside the adapter's guard.
+			{ type: "choice", choice: "fast", confidence: 0.99 },
+			{ type: "choice", choice: "fast", confidence: 0.99, probabilities: null },
+			{ type: "choice", choice: "fast", confidence: 0.99, probabilities: { fast: 1 } },
 		];
 		for (const answer of malformed) {
 			await withServer(

@@ -9,7 +9,18 @@ const INTERRUPT_COMMANDS: ReadonlySet<string> = new Set([
 	"abort_bash",
 	"pause_queued_messages",
 ]);
-const CONCURRENT_COMMANDS: ReadonlySet<string> = new Set(["bash", "user_bash", "refresh_models"]);
+const CONCURRENT_COMMANDS: ReadonlySet<string> = new Set([
+	"bash",
+	"user_bash",
+	"refresh_models",
+	// Exempt from the requester's response deadline (see LONG_LIVED_COMMANDS)
+	// because it legitimately runs as long as the human takes to finish an
+	// OAuth flow. It never touches session state, so — unlike prompt/compact,
+	// which a concurrent get_state should wait behind for a consistent read —
+	// nothing needs it serialized on the ordinary lane, and leaving it there
+	// starves any ordinary command queued behind it until the timeout fires.
+	"login_provider",
+]);
 
 export function isRpcExtensionUIResponse(value: unknown): value is RpcExtensionUIResponse {
 	return (

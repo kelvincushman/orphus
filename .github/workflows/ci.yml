@@ -190,6 +190,16 @@ jobs:
       - name: CI contract tests
         run: npm run test:ci-contracts
 
+      # The suites already write vitest's JSON reports here; this turns them into
+      # one page in the Orphus palette, plus a table on the run summary so a
+      # result is readable without downloading anything. It reports rather than
+      # gates — the suites' own exit codes and the duration guard above do that —
+      # so it never fails the step.
+      - name: Branded test report
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: bun run scripts/ci-test-report.ts
+
       - name: Upload test diagnostics
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
