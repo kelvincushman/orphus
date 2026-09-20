@@ -35,9 +35,24 @@ export const PROVIDER_CREDENTIAL_ENV: readonly string[] = [
 	"CLOUDFLARE_GATEWAY_ID",
 ];
 
-/** Whether this variable authenticates a provider rather than configuring one. */
-export function isProviderCredential(name: string): boolean {
-	return name.endsWith("_API_KEY") || name.endsWith("_BEARER_AUTH") || PROVIDER_CREDENTIAL_ENV.includes(name);
+/**
+ * Whether this variable authenticates a provider rather than configuring one.
+ *
+ * `platform` is a parameter rather than a direct `process.platform` read so the
+ * Windows branch is testable from any host. Windows environment variables are
+ * case-insensitive and `Object.keys` hands back whatever casing they were set
+ * with, so a credential can arrive spelled `aws_access_key_id` and slip an
+ * exact match. Normalizing only there is deliberate: on POSIX that name is a
+ * genuinely different variable which no SDK reads, and folding case would scrub
+ * something harmless.
+ */
+export function isProviderCredential(name: string, platform: NodeJS.Platform = process.platform): boolean {
+	const candidate = platform === "win32" ? name.toUpperCase() : name;
+	return (
+		candidate.endsWith("_API_KEY") ||
+		candidate.endsWith("_BEARER_AUTH") ||
+		PROVIDER_CREDENTIAL_ENV.includes(candidate)
+	);
 }
 
 /**
@@ -46,10 +61,13 @@ export function isProviderCredential(name: string): boolean {
  * Non-mutating, mirroring `scrubInteractiveEngineEnv`: a fixture hands the
  * result to a child process while its own environment stays intact.
  */
-export function scrubProviderCredentials(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+export function scrubProviderCredentials(
+	env: NodeJS.ProcessEnv,
+	platform: NodeJS.Platform = process.platform,
+): NodeJS.ProcessEnv {
 	const scrubbed: NodeJS.ProcessEnv = { ...env };
 	for (const name of Object.keys(scrubbed)) {
-		if (isProviderCredential(name)) delete scrubbed[name];
+		if (isProviderCredential(name, platform)) delete scrubbed[name];
 	}
 	return scrubbed;
 }

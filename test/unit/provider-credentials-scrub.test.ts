@@ -56,6 +56,31 @@ test("scrubbing removes every credential, keeps the rest, and leaves the input a
 	assert.equal(input.AWS_ACCESS_KEY_ID, "AKIA-not-real", "the caller's environment was mutated");
 });
 
+test("Windows case-insensitivity is honoured, and only on Windows", () => {
+	// Windows environment variables are case-insensitive and `Object.keys` hands
+	// back the casing they were set with, so an exact match can miss one there.
+	assert.equal(isProviderCredential("aws_access_key_id", "win32"), true);
+	assert.equal(isProviderCredential("Groq_Api_Key", "win32"), true);
+
+	// On POSIX the same spelling is a different variable that no SDK reads, so
+	// scrubbing it would remove something harmless rather than a credential.
+	assert.equal(isProviderCredential("aws_access_key_id", "linux"), false);
+	assert.equal(isProviderCredential("Groq_Api_Key", "darwin"), false);
+
+	// The conventional spelling is a credential on every platform.
+	for (const platform of ["win32", "linux", "darwin"] as const) {
+		assert.equal(isProviderCredential("AWS_ACCESS_KEY_ID", platform), true, `missed on ${platform}`);
+	}
+});
+
+test("scrubbing carries the platform through to the matcher", () => {
+	const input: NodeJS.ProcessEnv = { aws_secret_access_key: "secret", PATH: "/usr/bin" };
+
+	assert.ok(!("aws_secret_access_key" in scrubProviderCredentials(input, "win32")));
+	assert.equal(scrubProviderCredentials(input, "linux").aws_secret_access_key, "secret");
+	assert.equal(scrubProviderCredentials(input, "win32").PATH, "/usr/bin");
+});
+
 test("every listed name matches neither suffix, so the list earns its place", () => {
 	// A name that matches a suffix belongs to the rule, not the list; keeping it
 	// in both is how the two halves drift apart.
