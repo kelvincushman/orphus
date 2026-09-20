@@ -4,14 +4,16 @@ Orphus can drive a real browser: navigate, read a page back as text, click,
 type, screenshot, and — behind a second switch — fill a login form from a
 credential in your OS keychain.
 
-It is **off by default** and registers nothing until you turn it on.
+The tool is available by default. Registration does not launch Chrome; the
+first `open` action does. To remove the tool from the tool list, prompt, and
+context window for a session, turn it off explicitly:
 
 ```sh
-ORPHUS_ENABLE_BROWSER=1 orphus
+ORPHUS_ENABLE_BROWSER=0 orphus
 ```
 
 With the switch off the `browser` tool does not exist: not in the tool list, not
-in the system prompt, not in the context window.
+in the system prompt, and not in the context window.
 
 ## It is not your browser
 
@@ -56,10 +58,9 @@ connection dropped. Orphus does **not** retry them. It says so:
 
 ## Login
 
-Credential injection needs a second switch on top of the first:
+Credential injection remains off until its separate switch is set:
 
 ```sh
-ORPHUS_ENABLE_BROWSER=1 \
 ORPHUS_ENABLE_BROWSER_LOGIN=1 \
 ORPHUS_BROWSER_LOGIN_ORIGINS="https://app.example.com" \
 orphus
@@ -67,7 +68,7 @@ orphus
 
 Four conditions, all required, before a secret reaches a page:
 
-1. Both switches are on.
+1. Browser operation is enabled (the default) and the login switch is on.
 2. The page's origin is in `ORPHUS_BROWSER_LOGIN_ORIGINS`. Entries must be full
    origins (`https://app.example.com`), not bare hosts — a scheme-less entry
    authorizes nothing.
@@ -151,8 +152,8 @@ them failed" is something you can act on; "no orphans" would not have been true.
 
 | Variable | Purpose |
 | --- | --- |
-| `ORPHUS_ENABLE_BROWSER` | Master switch. Nothing is registered without it. |
-| `ORPHUS_ENABLE_BROWSER_LOGIN` | Allow credential injection. Requires the switch above. |
+| `ORPHUS_ENABLE_BROWSER` | Browser tool switch. Enabled by default; `0`, `false`, `off`, or an empty value disables registration. |
+| `ORPHUS_ENABLE_BROWSER_LOGIN` | Allow credential injection. Requires browser operation to remain enabled. |
 | `ORPHUS_BROWSER_LOGIN_ORIGINS` | Space- or comma-separated origins credentials may be used on. |
 | `ORPHUS_BROWSER_EXECUTABLE` | Explicit Chrome/Chromium path. |
 | `ORPHUS_BROWSER_HEADLESS` | `0` for a visible window. |

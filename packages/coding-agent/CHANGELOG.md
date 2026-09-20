@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The isolated `browser` tool is now registered by default, while Chrome still launches only on the first `open` action. Set `ORPHUS_ENABLE_BROWSER=0` to remove it from the runtime. Credential login remains off by default and still requires its separate switch, exact origin allowlisting, credential-origin matching, and interactive approval.
+
 ### Fixed
 
 - **`/login` no longer crashes the session while you are completing it.** `login_provider` is exempt from the RPC request deadline because it legitimately waits as long as a human takes to finish an OAuth flow, but it was still queued on the ordinary command lane, where it starved every command behind it. A routine `get_state` refresh — which is *not* deadline-exempt — therefore timed out after 30s and took the whole CLI down with an uncaught `Timeout waiting for response to get_state`. Any login slower than 30 seconds hit this, including both browser and device-code flows. `login_provider` now runs on the concurrent lane it always needed; commands that genuinely require a consistent read (`compact`, `prompt`) keep waiting as before.
