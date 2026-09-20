@@ -19,7 +19,7 @@ import * as path from "path";
 import { fileURLToPath } from "url";
 
 const require = createRequire(import.meta.url);
-const fs = require("fs") as typeof import("fs");
+const fs = require("node:fs") as typeof import("fs");
 
 // Re-export types from the main package
 export type { PhotonImage as PhotonImageType } from "@silvia-odwyer/photon-node";
