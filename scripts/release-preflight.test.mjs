@@ -136,6 +136,56 @@ test("release-preflight fails when an expected commit is not on the base", () =>
 	}
 });
 
+test("release-preflight names the surface a release missed, not just the count", () => {
+	// The old check was one count of doc files, so a release that updated
+	// `docs/` but never the README looked identical to one that updated both.
+	// That is how orphus.dev kept announcing a shipped version: a surface
+	// nothing names individually is the one nobody notices.
+	const { tempRoot, fixture } = buildFixture();
+	try {
+		write(fixture, "packages/demo/src/thing.ts", "export const thing = 1;\n");
+		write(fixture, "packages/demo/CHANGELOG.md", "# Changelog\n\n## [Unreleased]\n\n### Added\n\n- A thing.\n");
+		write(fixture, "docs/guide.md", "Documented.\n");
+		commit(fixture, "Change a package and its docs, but not the README");
+		git(fixture, "push", "-q", "origin", "main");
+
+		const missed = preflight(fixture);
+		assert.equal(missed.status, 0, missed.output);
+		// Reported per surface, and the one that was missed is warned about by name.
+		assert.match(missed.output, /Release surfaces:/u);
+		assert.match(missed.output, /✓ documentation/u);
+		assert.match(missed.output, /✗ README\.md/u);
+		assert.match(missed.output, /package\(s\) changed and README\.md did not/u);
+
+		// The surfaces this repository cannot see are listed, never warned about:
+		// a warning that fires on every release is one people learn to skim.
+		assert.match(missed.output, /→ website/u);
+		assert.match(missed.output, /→ announcement/u);
+		assert.doesNotMatch(missed.output, /WARN.*website/u);
+
+		// A file that merely starts with the configured name is not that file.
+		// Counting `README.md.bak` as README coverage would silence this exact
+		// warning — the failure mode a coverage check can least afford.
+		write(fixture, "README.md.bak", "An editor left this behind.\n");
+		commit(fixture, "Leave a backup file lying around");
+		git(fixture, "push", "-q", "origin", "main");
+		const decoy = preflight(fixture);
+		assert.match(decoy.output, /✗ README\.md/u, decoy.output);
+		assert.match(decoy.output, /package\(s\) changed and README\.md did not/u);
+
+		// And the warning clears once the README is part of the release.
+		write(fixture, "README.md", "Demo, and what the thing does.\n");
+		commit(fixture, "Say what the thing is in the README");
+		git(fixture, "push", "-q", "origin", "main");
+		const covered = preflight(fixture);
+		assert.equal(covered.status, 0, covered.output);
+		assert.match(covered.output, /✓ README\.md/u);
+		assert.doesNotMatch(covered.output, /changed and README\.md did not/u);
+	} finally {
+		rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
 test("release-preflight does not demand a changelog entry for a documentation-only package change", () => {
 	const { tempRoot, fixture } = buildFixture();
 	try {

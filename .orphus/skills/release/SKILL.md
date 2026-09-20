@@ -63,12 +63,57 @@ checks.
 If it stops, it stops with evidence. Report that evidence rather than retrying
 around it.
 
-## 4. Finish the release
+## 4. Finish the release — every surface, in order
 
-Neither workflow owns these:
+A release is not the tag. It is the tag plus every place a person finds out what
+changed. The gate in step 1 prints these as **Release surfaces** and warns on the
+ones it can see; the last three live outside this repository, so they are steps
+here rather than checks there.
 
-- **Release notes.** The GitHub release body is written from the version's changelog sections — what changed and why it matters, in the register of the previous releases. No invented numbers: every figure must trace to something in the repository.
-- **www.orphus.dev.** The site mirrors docs from `main`; sync it after the tag so the changelog page and any new pages match the release. Sync from a checkout of `main`, never from a feature branch.
+| Surface | Owner | Done when |
+| --- | --- | --- |
+| Changelogs | `publish-release` | `[Unreleased]` is now a version section |
+| README | you, before step 1 | someone following it is not misled |
+| Documentation | you, before step 1 | same test, for `docs/` and `packages/coding-agent/docs/` |
+| GitHub release | you, after the tag | body written from the version's changelog sections |
+| **www.orphus.dev** | you, after the tag | synced from `main`, built, pushed |
+| **LinkedIn + X** | you, after the site | drafted, shown to the user, posted by them |
+
+**The GitHub release body** is written from the version's changelog sections —
+what changed and why it matters, in the register of the previous releases. No
+invented numbers: every figure must trace to something in the repository.
+
+**www.orphus.dev** mirrors `main`. Sync from a checkout of `main`, never a
+feature branch:
+
+```sh
+ORPHUS_LOCAL=/path/to/main/checkout npm run sync && npm run build
+```
+
+Check the sync's own output before committing. It warns when an indexed page is
+not mirrored, and when the GitHub API refused and `stars` kept a stale value.
+The banner and the changelog note read the version from `meta.json`, which the
+sync derives from `RELEASE_NOTES.md` — so they follow the release automatically,
+and a hand-typed version anywhere on the site is a bug, not a task.
+
+**The announcement.** One LinkedIn post and one X post per stable release;
+prereleases get neither. Draft both, show them to the user, and let them post —
+never post on their behalf.
+
+What an Orphus post is:
+
+- **One idea, the one a reader could not have guessed.** Not a feature list.
+  System One's idea is "ask a cheap question before spending a model turn, and
+  defer whenever it is unsure"; rooms' idea is "deliberation that does not cost
+  context window".
+- **Every number traceable.** Same rule as the release body. "32% of raw
+  transcript cost" is on the site because a committed demo measures it and CI
+  fails if it regresses. If a figure cannot be traced, cut it.
+- **Honest about what is not done.** The abstain band is not calibrated; say so.
+  A post that oversells is the one that gets quoted back.
+- **LinkedIn**: a short paragraph or two, the idea and why it matters, a link to
+  the release. **X**: one post, the idea in its first line, the link last. No
+  hashtag spam, no thread unless the content genuinely needs one.
 
 ## Never
 
