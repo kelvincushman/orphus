@@ -255,6 +255,8 @@ function reviewRows(input: {
 async function checkRows(input: {
 	readonly run: string;
 	readonly runDir: string;
+	readonly names: readonly string[];
+	readonly reportTurn?: number;
 	readonly leaves: readonly PlanLeaf[];
 	readonly records: readonly ExecutionRecord[];
 	readonly receipts: Map<string, Receipt[]>;
@@ -264,10 +266,17 @@ async function checkRows(input: {
 	for (const record of input.records) {
 		const leaf = byId.get(record.leaf_id);
 		if (leaf === undefined) continue;
-		const receiptPath = (await readdir(input.runDir).catch(() => []))
-			.filter((name) => name.endsWith(`-leaf-${record.leaf_id}-receipt.md`))
-			.map((name) => join(input.runDir, name))[0];
-		const workerReceipt = receiptPath === undefined ? "" : await readFile(receiptPath, "utf8").catch(() => "");
+		// The check results come from one turn's report, so the receipt must come
+		// from that same turn. Matching the leaf suffix alone took whatever
+		// `readdir` happened to return first, which on a run that re-planned a
+		// failed leaf pairs turn 3's verdict with turn 1's work — a mislabelled
+		// example, which is the one thing a label harvester must not produce.
+		const receiptName =
+			input.reportTurn === undefined
+				? undefined
+				: input.names.find((name) => name === `turn-${input.reportTurn}-leaf-${record.leaf_id}-receipt.md`);
+		const workerReceipt =
+			receiptName === undefined ? "" : await readFile(join(input.runDir, receiptName), "utf8").catch(() => "");
 		if (workerReceipt.trim().length === 0) continue;
 
 		record.check_results.forEach((check, index) => {
@@ -307,14 +316,14 @@ async function checkRows(input: {
  * rows would describe leaf contracts that never ran. `max_turns` is a user
  * input, so that run is reachable.
  */
-function newestTurn(names: readonly string[], pattern: RegExp): string | undefined {
+function newestTurn(names: readonly string[], pattern: RegExp): { name: string; turn: number } | undefined {
 	let best: { name: string; turn: number } | undefined;
 	for (const name of names) {
 		const turn = Number(pattern.exec(name)?.[1]);
 		if (Number.isNaN(turn)) continue;
 		if (best === undefined || turn > best.turn) best = { name, turn };
 	}
-	return best?.name;
+	return best;
 }
 
 /** Every label one run yields. */
@@ -328,16 +337,27 @@ export async function harvestRun(runDir: string, runName: string): Promise<Label
 	// and a leaf re-planned after a failure is a different contract.
 	const planName = newestTurn(names, /^goal-execution-plan-turn-(\d+)\.json$/u);
 	const reportName = newestTurn(names, /^turn-(\d+)-goal-execution-report\.json$/u);
-	const plan = planName === undefined ? undefined : await readJson<{ leaves: PlanLeaf[] }>(join(runDir, planName));
+	const plan =
+		planName === undefined ? undefined : await readJson<{ leaves: PlanLeaf[] }>(join(runDir, planName.name));
 	const report =
-		reportName === undefined ? undefined : await readJson<{ records: ExecutionRecord[] }>(join(runDir, reportName));
+		reportName === undefined
+			? undefined
+			: await readJson<{ records: ExecutionRecord[] }>(join(runDir, reportName.name));
 
 	const leaves = plan?.leaves ?? [];
 	const records = report?.records ?? [];
 	return [
 		...tierRows({ run: runName, leaves, records, receipts }),
 		...reviewRows({ run: runName, ledger, receipts }),
-		...(await checkRows({ run: runName, runDir, leaves, records, receipts })),
+		...(await checkRows({
+			run: runName,
+			runDir,
+			names,
+			...(reportName === undefined ? {} : { reportTurn: reportName.turn }),
+			leaves,
+			records,
+			receipts,
+		})),
 	];
 }
 
