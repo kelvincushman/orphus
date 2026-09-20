@@ -58,15 +58,25 @@ async function gitOk(args: string[]): Promise<boolean> {
  * A fetch whose failure is fatal. Suppressing it would leave the later checks
  * reading whatever refs this checkout happened to have, and report a release as
  * ready from stale data — the one thing this script exists to prevent.
+ *
+ * `.quiet()` captures git's output rather than streaming it; `--quiet` is
+ * deliberately NOT passed on, because it suppresses the very line that says why
+ * a fetch failed. A checkout holding a tag that diverges from origin's fails
+ * with `! [rejected] … (would clobber existing tag)` and, under `--quiet`,
+ * nothing else — so this reported an unreachable origin for a purely local
+ * conflict, and sent the reader looking at the network.
  */
 async function fetchOrFail(args: string[], what: string): Promise<void> {
 	const result = await $`git -C ${ROOT} fetch ${args}`.nothrow().quiet();
 	if (result.exitCode === 0) return;
+	const said = result.stderr.toString().trim();
 	throw new Error(
 		[
 			`Could not fetch ${what} from origin, so every ref below would be whatever this checkout already had.`,
-			"Check the branch name and that origin is reachable. git said:",
-			result.stderr.toString().trim() || "(no output)",
+			said.includes("would clobber existing tag")
+				? "A local tag diverges from origin's. Delete it locally and re-run; nothing on origin changes. git said:"
+				: "Check the branch name and that origin is reachable. git said:",
+			said || "(no output)",
 		].join("\n"),
 	);
 }
@@ -128,7 +138,7 @@ async function originReleaseTags(): Promise<string[]> {
  * an ancestor of the base and `git describe` cannot see it from there.
  */
 async function resolveSincePoint(base: string): Promise<{ ref: string; label: string }> {
-	await fetchOrFail(["--tags", "--quiet", "origin"], "tags");
+	await fetchOrFail(["--tags", "origin"], "tags");
 	const baseRef = canonicalReleaseBaseRef(base);
 	let untrailered: string | undefined;
 
@@ -189,7 +199,7 @@ async function main(): Promise<void> {
 
 	// The explicit refspec matters: a bare `fetch origin <base>` is only
 	// guaranteed to move FETCH_HEAD, and it is `origin/<base>` that is read below.
-	await fetchOrFail(["--quiet", "origin", `refs/heads/${base}:refs/remotes/origin/${base}`], `origin/${base}`);
+	await fetchOrFail(["origin", `refs/heads/${base}:refs/remotes/origin/${base}`], `origin/${base}`);
 	const baseSha = await git(["rev-parse", `origin/${base}`]);
 	const sincePoint = since ? { ref: since, label: since } : await resolveSincePoint(base);
 	const sinceRef = sincePoint.ref;
