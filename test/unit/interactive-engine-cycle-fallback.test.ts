@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "vitest";
 import { SessionManager } from "../../packages/coding-agent/src/core/session-manager.ts";
+import { scrubProviderCredentials } from "../../packages/coding-agent/test/helpers/provider-credentials.ts";
 import {
 	bunExecutable,
 	decodeStream,
@@ -40,14 +41,15 @@ class Driver {
 	private stderr = "";
 
 	constructor(args: string[], env: Record<string, string>, cwd: string) {
-		const baseEnv: Record<string, string | undefined> = { ...process.env };
+		// Provider credentials leak real providers into the fixture's model world:
+		// a GROQ_API_KEY or an AWS key pair on the runner makes that provider
+		// resolvable, and the fallback then lands on its catalog instead of the
+		// fixture's `recovery` provider — the cycle predicate never matches
+		// (issue #66). The AWS pair matches neither suffix, which is why the list
+		// is shared rather than spelled out here.
+		const baseEnv: Record<string, string | undefined> = scrubProviderCredentials(process.env);
 		for (const key of Object.keys(baseEnv)) {
 			if (key.startsWith("ORPHUS_INTERACTIVE_ENGINE_")) delete baseEnv[key];
-			// Provider credentials leak real providers into the fixture's model
-			// world: a GROQ_API_KEY on the runner makes groq resolvable, and the
-			// fallback then lands on groq's catalog instead of the fixture's
-			// `recovery` provider — the cycle predicate never matches (issue #66).
-			if (key.endsWith("_API_KEY") || key.endsWith("_BEARER_AUTH")) delete baseEnv[key];
 		}
 		this.process = spawnProcess(
 			[bunExecutable(), join(moduleDir(import.meta.url), "fixtures", "default-main-interactive-host.ts"), ...args],

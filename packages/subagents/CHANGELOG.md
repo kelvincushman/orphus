@@ -2,8 +2,6 @@
 
 ## [Unreleased]
 
-## [2.2.0] - 2026-09-13
-
 ### Added
 
 - **`handoff` gives a child bounded key→value context.** Between `context: "fresh"` (nothing) and `context: "fork"` (the parent's whole transcript) there was no way to pass a child *just the facts it needs*; the workaround was gluing them into `task`, unbounded, or writing files for `reads`. A single call or a parallel `tasks[]` item now accepts `handoff: { key: "value", … }`, rendered at the top of the child's task through the same `boundedRender` core as the room digest: keys in the order given until ~2000 characters are spent, then one line each, then a marker naming what did not fit — never a silent drop. The render is labelled *asserted, not verified, and not exhaustive*, because a size bound says nothing about truth. Non-string values are rejected before the child starts.
