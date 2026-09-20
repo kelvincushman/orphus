@@ -15,9 +15,13 @@
  *   - every `--expect <ref>` is an ancestor of the base (the work is actually in)
  *   - every package changed since that tag has entries under `[Unreleased]`
  *
- * It also warns — without failing — when packages changed but no doc or README
- * did. Whether a doc is now misleading is a judgement call a script cannot
- * make; naming the gap is the most it can honestly do.
+ * It also reports every surface a release must reach — changelogs, README,
+ * documentation, the website and the announcement — and warns, without failing,
+ * on the ones this repository can see that nothing touched. Whether a doc is now
+ * misleading is a judgement call a script cannot make; naming the gap is the
+ * most it can honestly do. The website and the announcement live outside this
+ * repository and are listed rather than checked, because a surface nothing
+ * lists is the one that gets forgotten.
  *
  * Usage:
  *   bun run scripts/release-preflight.ts [--base <ref>] [--since <tag>] [--expect <ref>]...
@@ -45,6 +49,36 @@ function isDocumentationOnly(pathInPackage: string): boolean {
 
 /** A change under any of these answers the "did anything get documented?" question. */
 const DOC_PATHS = ["README.md", "docs/", "packages/coding-agent/docs/"];
+
+/**
+ * Every surface a release has to reach, and whether this script can see it.
+ *
+ * The old check was a single count of doc files: 17 could change without the
+ * README among them and it stayed silent, because "a doc changed" and "the
+ * right doc changed" looked identical. Each surface is now reported on its own.
+ *
+ * `checkable: false` marks the ones that live outside this repository — the
+ * website is a separate repo and the announcement is prose. Naming them here
+ * anyway is the point: an unchecked surface that nothing lists is the one that
+ * gets forgotten, which is how orphus.dev announced "v2.1 coming soon" for a
+ * month after v2.1.2 shipped.
+ */
+const SURFACES: readonly {
+	readonly name: string;
+	readonly paths?: readonly string[];
+	readonly checkable: boolean;
+	readonly note: string;
+}[] = [
+	{ name: "README.md", paths: ["README.md"], checkable: true, note: "what Orphus is and how it is run" },
+	{
+		name: "documentation",
+		paths: ["docs/", "packages/coding-agent/docs/"],
+		checkable: true,
+		note: "docs/ and the user-facing coding-agent docs",
+	},
+	{ name: "website", checkable: false, note: "kelvincushman/orphus-site — sync from main AFTER the tag" },
+	{ name: "announcement", checkable: false, note: "GitHub release body, then the LinkedIn and X posts" },
+];
 
 async function git(args: string[]): Promise<string> {
 	return (await $`git -C ${ROOT} ${args}`.text()).trim();
@@ -263,15 +297,32 @@ async function main(): Promise<void> {
 		}
 	}
 
-	// 4. Did anything get documented?
+	// 4. Did the release reach every surface?
 	const docsTouched = changedFiles.filter((file) => DOC_PATHS.some((path) => file.startsWith(path)));
-	console.log(`\nDoc files changed: ${docsTouched.length}`);
-	if (touched.size > 0 && docsTouched.length === 0) {
-		warnings.push(
-			`${touched.size} package(s) changed and no README or doc did. Reread them as a new user before releasing: ` +
-				"stale documentation is worse than none, because it is trusted.",
-		);
+	console.log("\nRelease surfaces:");
+	console.log(`  ✓ changelogs — ${touched.size} package(s), checked above`);
+	for (const surface of SURFACES) {
+		if (!surface.checkable) {
+			console.log(`  → ${surface.name} — ${surface.note}`);
+			continue;
+		}
+		const hit = changedFiles.filter((file) => (surface.paths ?? []).some((path) => file.startsWith(path)));
+		console.log(`  ${hit.length > 0 ? "✓" : "✗"} ${surface.name} — ${hit.length} file(s); ${surface.note}`);
+		if (touched.size > 0 && hit.length === 0) {
+			warnings.push(
+				`${touched.size} package(s) changed and ${surface.name} did not (${surface.note}). ` +
+					"Reread it as a new user: the test is not whether you added docs, it is whether anyone following " +
+					"the current ones would now be misled.",
+			);
+		}
 	}
+	if (touched.size > 0 && docsTouched.length === 0) {
+		warnings.push("Nothing under README.md, docs/ or packages/coding-agent/docs/ changed at all.");
+	}
+	// Deliberately NOT a warning. The → surfaces are unchecked on every release,
+	// so warning about them every time would train the reader to skim past the
+	// warnings that do mean something. Listing them is the reminder; the release
+	// skill owns them as steps.
 
 	for (const warning of warnings) console.log(`\nWARN  ${warning}`);
 	for (const failure of failures) console.log(`\nFAIL  ${failure}`);
