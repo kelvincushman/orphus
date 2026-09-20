@@ -105,6 +105,21 @@ function isProbability(value: unknown): boolean {
 }
 
 /**
+ * Whether a distribution covers every label of its question.
+ *
+ * `receiptOf` reads `probabilities[chosen]` to record what the decision rested
+ * on, so an answer without one throws there rather than abstaining — outside
+ * the adapter's guard, which turns a bad response into a failed run. Every
+ * in-package adapter emits the full key set (`answerFrom` builds it), so
+ * requiring it here rejects only the hosted responses nothing else validates.
+ */
+function isDistributionOver(value: unknown, keys: readonly string[]): boolean {
+	if (value === null || typeof value !== "object") return false;
+	const record = value as Record<string, unknown>;
+	return keys.every((key) => isProbability(record[key]));
+}
+
+/**
  * Whether an answer built outside this package can be acted on.
  *
  * A matching `type` says nothing about the fields a decision is actually read
@@ -123,7 +138,8 @@ export function isWellFormedAnswer(question: Question, answer: Answer): boolean 
 			answer.type === "choice" &&
 			isProbability(answer.confidence) &&
 			typeof answer.choice === "string" &&
-			Object.hasOwn(question.criteria, answer.choice)
+			Object.hasOwn(question.criteria, answer.choice) &&
+			isDistributionOver(answer.probabilities, answerKeys(question))
 		);
 	}
 	return (
@@ -132,7 +148,8 @@ export function isWellFormedAnswer(question: Question, answer: Answer): boolean 
 		typeof answer.score === "number" &&
 		Number.isFinite(answer.score) &&
 		answer.score >= 0 &&
-		answer.score <= question.criteria.length - 1
+		answer.score <= question.criteria.length - 1 &&
+		isDistributionOver(answer.probabilities, answerKeys(question))
 	);
 }
 

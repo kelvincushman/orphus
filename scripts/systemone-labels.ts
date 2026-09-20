@@ -44,6 +44,12 @@ interface LabelRow {
 	readonly label: boolean | string | number;
 	/** How the label was established, in a form a human can check. */
 	readonly outcome: string;
+	/**
+	 * Whether the layer decided *this* row, so the set can be partitioned into
+	 * what it predicted and what it did not. Asking whether the run holds any
+	 * receipt on the surface answers a different question, and answers it `true`
+	 * for every row whose siblings were decided while it was not.
+	 */
 	readonly has_receipt: boolean;
 	/** What the layer actually predicted at the time, when it was running. */
 	readonly receipt?: {
@@ -184,6 +190,7 @@ function tierRows(input: {
 		if (record === undefined || record.status !== "verified") continue;
 		const attempts = record.model_attempts ?? [];
 		const firstTry = attempts.length === 0 ? undefined : attempts[0]?.success === true;
+		const tierReceipt = receiptFor(input.receipts, "goal.tier", (entry) => entry.context?.leaf_id === leaf.id);
 		rows.push({
 			run: input.run,
 			surface: "goal.tier",
@@ -203,11 +210,8 @@ function tierRows(input: {
 					: firstTry
 						? "verified on the first model attempt"
 						: `verified after ${attempts.length} model attempts`,
-			has_receipt: input.receipts.has("goal.tier"),
-			...(() => {
-				const receipt = receiptFor(input.receipts, "goal.tier", (entry) => entry.context?.leaf_id === leaf.id);
-				return receipt === undefined ? {} : { receipt };
-			})(),
+			has_receipt: tierReceipt !== undefined,
+			...(tierReceipt === undefined ? {} : { receipt: tierReceipt }),
 		});
 	}
 	return rows;
@@ -222,39 +226,41 @@ function reviewRows(input: {
 	const completed = input.ledger.status === "complete";
 	return (input.ledger.reviews ?? [])
 		.filter((review) => review.decision === "complete")
-		.map((review) => ({
-			run: input.run,
-			surface: "goal.review" as const,
-			question_key: "evidence_supports_stop",
-			kind: "noul" as const,
-			state: {
-				requirements: (review.requirements_traceability ?? []).map((entry) => ({
-					requirement: entry.requirement,
-					status: entry.status,
-					evidence: entry.evidence,
-				})),
-				receipt_assessment: review.receipt_assessment ?? "",
-				verification_remaining: review.verification_remaining ?? "",
-				open_findings: (review.findings ?? []).map((finding) => `${finding.title}: ${finding.body}`),
-			},
-			label: completed,
-			outcome: `run ended as ${input.ledger.status ?? "unknown"}`,
-			has_receipt: input.receipts.has("goal.review"),
-			...(() => {
-				const receipt = receiptFor(
-					input.receipts,
-					"goal.review",
-					(entry) => entry.context?.reviewer === review.reviewer,
-				);
-				return receipt === undefined ? {} : { receipt };
-			})(),
-		}));
+		.map((review) => {
+			const reviewReceipt = receiptFor(
+				input.receipts,
+				"goal.review",
+				(entry) => entry.context?.reviewer === review.reviewer,
+			);
+			return {
+				run: input.run,
+				surface: "goal.review" as const,
+				question_key: "evidence_supports_stop",
+				kind: "noul" as const,
+				state: {
+					requirements: (review.requirements_traceability ?? []).map((entry) => ({
+						requirement: entry.requirement,
+						status: entry.status,
+						evidence: entry.evidence,
+					})),
+					receipt_assessment: review.receipt_assessment ?? "",
+					verification_remaining: review.verification_remaining ?? "",
+					open_findings: (review.findings ?? []).map((finding) => `${finding.title}: ${finding.body}`),
+				},
+				label: completed,
+				outcome: `run ended as ${input.ledger.status ?? "unknown"}`,
+				has_receipt: reviewReceipt !== undefined,
+				...(reviewReceipt === undefined ? {} : { receipt: reviewReceipt }),
+			};
+		});
 }
 
 /** Check labels: did the verifier find this check met, given the worker's receipt? */
 async function checkRows(input: {
 	readonly run: string;
 	readonly runDir: string;
+	readonly names: readonly string[];
+	readonly reportTurn?: number;
 	readonly leaves: readonly PlanLeaf[];
 	readonly records: readonly ExecutionRecord[];
 	readonly receipts: Map<string, Receipt[]>;
@@ -264,13 +270,25 @@ async function checkRows(input: {
 	for (const record of input.records) {
 		const leaf = byId.get(record.leaf_id);
 		if (leaf === undefined) continue;
-		const receiptPath = (await readdir(input.runDir).catch(() => []))
-			.filter((name) => name.endsWith(`-leaf-${record.leaf_id}-receipt.md`))
-			.map((name) => join(input.runDir, name))[0];
-		const workerReceipt = receiptPath === undefined ? "" : await readFile(receiptPath, "utf8").catch(() => "");
+		// The check results come from one turn's report, so the receipt must come
+		// from that same turn. Matching the leaf suffix alone took whatever
+		// `readdir` happened to return first, which on a run that re-planned a
+		// failed leaf pairs turn 3's verdict with turn 1's work — a mislabelled
+		// example, which is the one thing a label harvester must not produce.
+		const receiptName =
+			input.reportTurn === undefined
+				? undefined
+				: input.names.find((name) => name === `turn-${input.reportTurn}-leaf-${record.leaf_id}-receipt.md`);
+		const workerReceipt =
+			receiptName === undefined ? "" : await readFile(join(input.runDir, receiptName), "utf8").catch(() => "");
 		if (workerReceipt.trim().length === 0) continue;
 
 		record.check_results.forEach((check, index) => {
+			const checkReceipt = receiptFor(
+				input.receipts,
+				"goal.verify",
+				(entry) => entry.context?.leaf_id === record.leaf_id && entry.question_key === `check_${index}`,
+			);
 			rows.push({
 				run: input.run,
 				surface: "goal.verify",
@@ -284,15 +302,8 @@ async function checkRows(input: {
 				},
 				label: check.status === "passed",
 				outcome: `verifier reported ${check.status}: ${check.evidence}`,
-				has_receipt: input.receipts.has("goal.verify"),
-				...(() => {
-					const receipt = receiptFor(
-						input.receipts,
-						"goal.verify",
-						(entry) => entry.context?.leaf_id === record.leaf_id && entry.question_key === `check_${index}`,
-					);
-					return receipt === undefined ? {} : { receipt };
-				})(),
+				has_receipt: checkReceipt !== undefined,
+				...(checkReceipt === undefined ? {} : { receipt: checkReceipt }),
 			});
 		});
 	}
@@ -307,14 +318,14 @@ async function checkRows(input: {
  * rows would describe leaf contracts that never ran. `max_turns` is a user
  * input, so that run is reachable.
  */
-function newestTurn(names: readonly string[], pattern: RegExp): string | undefined {
+function newestTurn(names: readonly string[], pattern: RegExp): { name: string; turn: number } | undefined {
 	let best: { name: string; turn: number } | undefined;
 	for (const name of names) {
 		const turn = Number(pattern.exec(name)?.[1]);
 		if (Number.isNaN(turn)) continue;
 		if (best === undefined || turn > best.turn) best = { name, turn };
 	}
-	return best?.name;
+	return best;
 }
 
 /** Every label one run yields. */
@@ -328,16 +339,27 @@ export async function harvestRun(runDir: string, runName: string): Promise<Label
 	// and a leaf re-planned after a failure is a different contract.
 	const planName = newestTurn(names, /^goal-execution-plan-turn-(\d+)\.json$/u);
 	const reportName = newestTurn(names, /^turn-(\d+)-goal-execution-report\.json$/u);
-	const plan = planName === undefined ? undefined : await readJson<{ leaves: PlanLeaf[] }>(join(runDir, planName));
+	const plan =
+		planName === undefined ? undefined : await readJson<{ leaves: PlanLeaf[] }>(join(runDir, planName.name));
 	const report =
-		reportName === undefined ? undefined : await readJson<{ records: ExecutionRecord[] }>(join(runDir, reportName));
+		reportName === undefined
+			? undefined
+			: await readJson<{ records: ExecutionRecord[] }>(join(runDir, reportName.name));
 
 	const leaves = plan?.leaves ?? [];
 	const records = report?.records ?? [];
 	return [
 		...tierRows({ run: runName, leaves, records, receipts }),
 		...reviewRows({ run: runName, ledger, receipts }),
-		...(await checkRows({ run: runName, runDir, leaves, records, receipts })),
+		...(await checkRows({
+			run: runName,
+			runDir,
+			names,
+			...(reportName === undefined ? {} : { reportTurn: reportName.turn }),
+			leaves,
+			records,
+			receipts,
+		})),
 	];
 }
 

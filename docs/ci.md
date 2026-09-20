@@ -48,6 +48,17 @@ also wrapped — it must stay green without LFS objects, because the two
 inherited compaction fixtures 404 forever on this fork and their tests skip on
 pointer detection), `npm run test:scripts`, and `npm run test:ci-contracts`.
 
+The job closes with `scripts/ci-test-report.ts`, which reads the vitest JSON
+reports the wrapper already wrote and renders one `.ci-diagnostics/index.html`
+in the Orphus palette — verdict, a row per suite, every failure with its
+message, and the slowest tests — plus a compact table on the Actions run
+summary so a result is readable without downloading the artifact. Its colours
+are read from `packages/coding-agent/src/modes/interactive/theme/dark.json`,
+the same file the terminal renders, rather than a second copy. It reports
+rather than gates: the step is `continue-on-error`, because the suites' exit
+codes and the duration guard already decide the run, and a reporting step that
+can redden a green build is a step someone deletes.
+
 It also fetches the **inherited upstream tags** before running. `changelog.test.ts`
 compares each released changelog section against the git tag that released it,
 and this fork has no tags of its own — so without that step the test cannot
