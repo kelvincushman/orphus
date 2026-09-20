@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-09-20
+
 ### Added
 
 - **A `council` example blueprint.** Four stances — architect, skeptic, pragmatist, critic — deliberate a consequential decision in one room to a decision of record that keeps the strongest dissent verbatim. It is the Orphus form of ECC's `council-multi-model` skill (affaan-m/ECC, MIT): where ECC simulates a council inside one model and bolts on an optional external critique, Orphus seats each stance on a real session and lets `model:` put them on different providers, so disagreement comes from different training rather than one model arguing with itself. ECC's per-packet consent step does not carry over — every seat here runs on a provider the user configured — but its honesty rule does: the verdict names the author–reviewer relationship as cross-provider, same-provider, or unverified.

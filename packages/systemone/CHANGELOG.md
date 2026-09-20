@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-09-20
+
 ### Added
 
 - **The System One decision layer.** Fixed questions in, typed decisions with probabilities out, and an abstain band that defers to the model whenever confidence falls below a per-surface threshold. Three primitives — `noul` (yes/no), `choice` (pick one, up to 255 labels), and `score` (rate against an ordered rubric, up to 11 levels) — in the same wire shape TypeSafe's Jev uses, so a question written here stays portable and the two can answer identical state for comparison. Nothing is generated: every answer is a distribution over the answers the caller supplied, so a malformed answer is not a possible outcome, only an uncertain one.
