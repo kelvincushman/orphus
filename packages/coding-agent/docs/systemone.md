@@ -132,7 +132,16 @@ llama-server -m qwen3-4b-instruct-q4_k_m.gguf --port 8080
 Use `"api": "completions"` (the default) where you can. A chat template can put
 reasoning tokens in front of the answer, which moves the letter out of reach of
 a single-token read. `"api": "chat"` is there for servers that expose nothing
-else.
+else. Both have now been read against real servers: llama.cpp returns the
+first token's logprobs in one shape and vLLM in another, and the adapter reads
+either.
+
+**Model size decides whether it decides at all.** On the same nine questions, a
+0.6B answered two of them and abstained on the rest; a 27B answered eight. Both
+are correct behaviour — a model that is unsure *should* abstain at these
+thresholds — but a small model makes the layer close to a no-op, and you may
+conclude it does nothing when it is in fact being careful. Give it the largest
+model you can spare the prefill for.
 
 ### `llm-wrapper` — a language model imitating a classifier
 
@@ -217,7 +226,15 @@ jq '[.records[].model_attempts // [] | length] | add' \
 ```
 
 Run the same objective twice, once with `ORPHUS_SYSTEMONE=null` and once with
-your chosen adapter, and compare. Also worth comparing: how many verify turns
+your chosen adapter, and compare.
+
+**This comparison needs Goal's workers to actually run.** Goal's pools are
+frontier model ids, so on a machine with no provider auth a run falls through
+roughly twenty failing attempts per leaf before reaching the fallback — and each
+failure records a `model_attempts` entry of its own, which swamps the number you
+are trying to measure. Run the A/B where the workers have real credentials, or
+against a dedicated endpoint; otherwise the count measures your auth failures
+rather than the layer. Also worth comparing: how many verify turns
 were spent, and whether any reviewer vote was withheld (the reducer names them
 in its reason).
 
@@ -242,9 +259,10 @@ Being straight about the gap:
 - **Not calibrated.** Jev is trained for calibrated confidence. Nothing here is.
   Fitting a temperature on harvested outcomes is the next step, and until then
   the thresholds stay conservative and every receipt says `calibrated: false`.
-- **Not as fast as Jev.** A local 4B model answers in a few hundred milliseconds
-  to a second or two, against Jev's sub-200ms. For Goal, where a leaf takes
-  minutes, that is fine.
+- **Not as fast as Jev.** A single-token read on a local model is one prefill
+  rather than a generation, but it is still a network round trip to a server you
+  host, against Jev's reported sub-200ms. For Goal, where a leaf takes minutes,
+  that has never been the binding constraint.
 - **Not automatically improving.** Two loops make it better, and both are
   deliberate acts: refitting calibration on harvested labels, and having a
   System 2 model read the receipts and rewrite the question criteria. The
