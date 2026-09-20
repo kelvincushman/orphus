@@ -4,7 +4,13 @@ import { createRequire } from "node:module";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
 import { createJiti } from "jiti/static";
-import { getExtensionTranspileCacheDir, getPackageDir, isBunBinary, isBundledBuild } from "../../config.ts";
+import {
+	getExtensionTranspileCacheDir,
+	getPackageDir,
+	isBunBinary,
+	isBundledBuild,
+	isBunRuntime,
+} from "../../config.ts";
 import { resolutionBaseUrl } from "../../utils/module-require.ts";
 import { resolvePath } from "../../utils/paths.ts";
 import { moduleDirFromMetaUrl } from "../../utils/split-launcher.ts";
@@ -443,7 +449,10 @@ function getAliases(): Record<string, string> {
 	if (_aliases) return _aliases;
 
 	const __dirname = currentModuleDir();
-	const packageIndex = path.resolve(__dirname, "../..", "index.js");
+	const packageIndex = firstExistingFile(
+		["index.js", "index.ts"].map((entry) => () => path.resolve(__dirname, "../..", entry)),
+		"@orphus/coding-agent entry",
+	);
 
 	const typeboxEntry = require.resolve("typebox");
 	const typeboxCompileEntry = require.resolve("typebox/compile");
@@ -520,6 +529,34 @@ export const extensionLoaderTestHooks = {
  */
 const nativelyImportedPaths = new Set<string>();
 
+// Bun never takes this Node-only path; keep the specifier opaque so single-file builds do not bundle tsx/esbuild.
+const tsxEsmApiSpecifier = "tsx/esm/api";
+let nativeTypeScriptImportPromise: Promise<(specifier: string, parent: string) => Promise<unknown>> | undefined;
+
+function canRetryWithTransformedImport(error: unknown): boolean {
+	if (typeof error !== "object" || error === null || !("code" in error)) return false;
+	return [
+		"ERR_INVALID_FILE_URL_PATH",
+		"ERR_MODULE_NOT_FOUND",
+		"ERR_PACKAGE_PATH_NOT_EXPORTED",
+		"ERR_UNKNOWN_FILE_EXTENSION",
+		"MODULE_NOT_FOUND",
+	].includes(String(error.code));
+}
+
+async function importTypeScriptNative(specifier: string): Promise<unknown> {
+	nativeTypeScriptImportPromise ??= import(tsxEsmApiSpecifier).then((module) => {
+		const { register } = module as typeof import("tsx/esm/api");
+		return register({ namespace: "orphus-extension-loader" }).import;
+	});
+	const importTypeScript = await nativeTypeScriptImportPromise;
+	let imported: unknown = await importTypeScript(specifier, resolutionBaseUrl(import.meta.url));
+	while (typeof imported === "object" && imported !== null && "default" in imported) {
+		imported = imported.default;
+	}
+	return imported;
+}
+
 async function importExtensionModule(
 	extensionPath: string,
 	cacheToken: ExtensionCacheToken | undefined,
@@ -527,10 +564,21 @@ async function importExtensionModule(
 ): Promise<ExtensionFactory | undefined> {
 	const isWindows = process.platform === "win32";
 	const isSingleFileBuild = isBunBinary || isBundledBuild;
+	const useNativeTypeScript = !isBunRuntime && /\.[cm]?tsx?$/.test(extensionPath);
 	const jiti = createJiti(resolutionBaseUrl(import.meta.url), {
 		moduleCache: false,
+		// jiti's own default is `false` (it self-enables only under Bun), so setting
+		// this explicitly also opts NON-TypeScript entries on Node into a native
+		// import attempt, which they did not get before. That is deliberate and
+		// safe: `tryNative` is a *try*, and jiti falls back to its transformed
+		// import when native resolution fails — verified against an entry whose
+		// bare specifier resolves only through `alias` below, with no node_modules
+		// copy. It is also slightly faster, since a `.js` entry needs no transform.
+		// When the tsx path above is active this must stay false: that path already
+		// imported the module, and this jiti instance exists only as its fallback.
+		tryNative: !forceTransformedImports && !useNativeTypeScript,
 		...(forceTransformedImports
-			? { fsCache: getTranspileCacheDir(), tryNative: false }
+			? { fsCache: getTranspileCacheDir() }
 			: isWindows
 				? { fsCache: getTranspileCacheDir() }
 				: {}),
@@ -546,6 +594,13 @@ async function importExtensionModule(
 		const recorded = await recordExtensionGraph(extensionPath, () => jiti.import(specifier, { default: true }));
 		module = recorded.result;
 		recordedManifest = recorded.manifest;
+	} else if (useNativeTypeScript) {
+		try {
+			module = await importTypeScriptNative(specifier);
+		} catch (error) {
+			if (!canRetryWithTransformedImport(error)) throw error;
+			module = await jiti.import(specifier, { default: true });
+		}
 	} else {
 		module = await jiti.import(specifier, { default: true });
 	}
@@ -605,9 +660,9 @@ export async function loadExtensionModule(
 	// module instances baked into the build, so virtualModules is used instead
 	// (which requires jiti's transformed-import path).
 	const isSingleFileBuild = isBunBinary || isBundledBuild;
-	// Windows first-load fast path: native import() (jiti's default tryNative)
-	// skips per-launch transpilation of the extension module graph. Re-loads of
-	// the same path fall back to transformed imports for fresh evaluation.
+	// Native import() on the first load skips per-launch transpilation of the
+	// extension module graph. Windows re-loads of the same path fall back to
+	// transformed imports for fresh evaluation.
 	//
 	// That fallback is not free. Measured on Windows CI, a transformed re-import
 	// costs ~15 ms per module file in the extension's transitive graph, so a

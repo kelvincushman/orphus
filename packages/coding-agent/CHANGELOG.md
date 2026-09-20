@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Cold extension loading no longer takes ~34 seconds.** Two compounding defects made every cold load of the builtin extension graph pathologically slow on Node, which is what made child sessions (subagents, fleet members) slow to start and pushed `test/unit/subagents-child-extension-tools.test.ts` past the shared 30s test budget. First, `getAliases()` pointed `@orphus/coding-agent` at `src/index.js`, a file that exists only in the built `dist` layout — in a source checkout every jiti-imported file that imported it fell into fallback resolution, measured at 194,475 `statx` calls with 87.6% of them failing. Second, `jiti`'s native import path self-enables only under Bun, so Node transformed the whole TypeScript extension graph on every cold load; the `workflows` extension alone cost ~21s. The alias now resolves to whichever of `index.js`/`index.ts` exists, and TypeScript extension entries on Node import through a scoped `tsx` loader with jiti retained as the fallback. Cold load drops from ~34s to ~4s. Bun, bundled single-file builds, and the Windows transformed-reload path are unchanged.
+
 ## [2.1.2] - 2026-08-27
 
 ### Changed
