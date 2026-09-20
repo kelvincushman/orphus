@@ -80,6 +80,20 @@ const SURFACES: readonly {
 	{ name: "announcement", checkable: false, note: "GitHub release body, then the LinkedIn and X posts" },
 ];
 
+/**
+ * Whether a changed file is covered by a configured path.
+ *
+ * A trailing slash means a directory prefix; anything else is one exact file.
+ * Plain `startsWith` counted `README.md.bak` as README coverage, which would
+ * silence the very warning this gate exists to raise — a false positive here
+ * reads as "the surface was updated" and says nothing. No such file exists in
+ * the tree today; the predicate should mean what it says rather than be
+ * accidentally right until someone adds a `.tmpl`.
+ */
+function coveredBy(file: string, path: string): boolean {
+	return path.endsWith("/") ? file.startsWith(path) : file === path;
+}
+
 async function git(args: string[]): Promise<string> {
 	return (await $`git -C ${ROOT} ${args}`.text()).trim();
 }
@@ -298,7 +312,7 @@ async function main(): Promise<void> {
 	}
 
 	// 4. Did the release reach every surface?
-	const docsTouched = changedFiles.filter((file) => DOC_PATHS.some((path) => file.startsWith(path)));
+	const docsTouched = changedFiles.filter((file) => DOC_PATHS.some((path) => coveredBy(file, path)));
 	console.log("\nRelease surfaces:");
 	console.log(`  ✓ changelogs — ${touched.size} package(s), checked above`);
 	for (const surface of SURFACES) {
@@ -306,7 +320,7 @@ async function main(): Promise<void> {
 			console.log(`  → ${surface.name} — ${surface.note}`);
 			continue;
 		}
-		const hit = changedFiles.filter((file) => (surface.paths ?? []).some((path) => file.startsWith(path)));
+		const hit = changedFiles.filter((file) => (surface.paths ?? []).some((path) => coveredBy(file, path)));
 		console.log(`  ${hit.length > 0 ? "✓" : "✗"} ${surface.name} — ${hit.length} file(s); ${surface.note}`);
 		if (touched.size > 0 && hit.length === 0) {
 			warnings.push(

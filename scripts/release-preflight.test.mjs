@@ -163,6 +163,16 @@ test("release-preflight names the surface a release missed, not just the count",
 		assert.match(missed.output, /→ announcement/u);
 		assert.doesNotMatch(missed.output, /WARN.*website/u);
 
+		// A file that merely starts with the configured name is not that file.
+		// Counting `README.md.bak` as README coverage would silence this exact
+		// warning — the failure mode a coverage check can least afford.
+		write(fixture, "README.md.bak", "An editor left this behind.\n");
+		commit(fixture, "Leave a backup file lying around");
+		git(fixture, "push", "-q", "origin", "main");
+		const decoy = preflight(fixture);
+		assert.match(decoy.output, /✗ README\.md/u, decoy.output);
+		assert.match(decoy.output, /package\(s\) changed and README\.md did not/u);
+
 		// And the warning clears once the README is part of the release.
 		write(fixture, "README.md", "Demo, and what the thing does.\n");
 		commit(fixture, "Say what the thing is in the README");
