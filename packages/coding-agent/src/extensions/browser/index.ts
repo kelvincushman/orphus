@@ -11,11 +11,12 @@ import { createBrowserTool } from "./tool.ts";
 export { BROWSER_TOOL_NAME } from "./tool.ts";
 
 /**
- * Browser operation, behind `ORPHUS_ENABLE_BROWSER`.
+ * Browser operation, available by default and disabled with
+ * `ORPHUS_ENABLE_BROWSER=0`.
  *
- * The switch is read once at registration: with the flag off the `browser` tool
- * is never registered, so a session that did not opt in does not carry the tool
- * in its prompt, its schema list, or its context window.
+ * The switch is read once at registration. Disabling it means the `browser`
+ * tool never enters the prompt, schema list, or context window. Registration
+ * itself starts no browser; the first `open` action launches the isolated Chrome.
  */
 export default function browserExtension(pi: ExtensionAPI): void {
 	const flags = readBrowserFlags();
