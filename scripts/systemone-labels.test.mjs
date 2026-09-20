@@ -349,6 +349,71 @@ test("skips a check label whose harvested turn left no worker receipt", () => {
 	}
 });
 
+test("marks has_receipt per row, not per surface", () => {
+	// The column exists so the set can be partitioned into what the layer
+	// predicted and what it did not — which is exactly the split a calibration
+	// fit needs. Asking whether the run holds *any* receipt on the surface
+	// answers `true` for every row whose siblings were decided while it was not,
+	// and the layer abstaining on some leaves and not others is the normal case.
+	const runsDir = mkdtempSync(join(tmpdir(), "orphus-labels-"));
+	try {
+		const dir = makeRun(runsDir, "partly-decided-run", { withReceipts: true });
+		// A second verified leaf, with no receipt of its own.
+		for (const [file, key, extra] of [
+			[
+				"goal-execution-plan-turn-1.json",
+				"leaves",
+				{
+					id: "2",
+					title: "Do the other thing",
+					task: "Implement the other thing",
+					owns: ["packages/other.ts"],
+					needs: [],
+					tier: "fast",
+					checks: [{ command: "npm run check", expect: "passes" }],
+				},
+			],
+			[
+				"turn-1-goal-execution-report.json",
+				"records",
+				{
+					leaf_id: "2",
+					title: "Do the other thing",
+					tier: "fast",
+					status: "verified",
+					evidence: "did it",
+					check_results: [
+						{ command: "npm run check", expect: "passes", status: "passed", evidence: "check passed" },
+					],
+					model_attempts: [{ model: "openai/gpt", success: true }],
+				},
+			],
+		]) {
+			const parsed = JSON.parse(readFileSync(join(dir, file), "utf8"));
+			parsed[key].push(extra);
+			writeFileSync(join(dir, file), JSON.stringify(parsed));
+		}
+		writeFileSync(join(dir, "turn-1-leaf-2-receipt.md"), "# Receipt\n\nRan npm run check, it passed.\n");
+
+		const { rows } = harvest(runsDir);
+		const decided = rows.find((row) => row.surface === "goal.tier" && row.state.task === "Implement the thing");
+		const undecided = rows.find(
+			(row) => row.surface === "goal.tier" && row.state.task === "Implement the other thing",
+		);
+		assert.ok(decided && undecided, "both verified leaves yield a tier row");
+		assert.equal(decided.has_receipt, true);
+		assert.ok(decided.receipt, "the decided leaf carries the receipt it reports");
+		assert.equal(undecided.has_receipt, false, "leaf 2 has no receipt of its own, whatever leaf 1 had");
+		assert.equal(undecided.receipt, undefined);
+
+		// And the invariant behind the column, over every row the run produced.
+		for (const row of rows)
+			assert.equal(row.has_receipt, row.receipt !== undefined, `${row.surface} ${row.question_key}`);
+	} finally {
+		rmSync(runsDir, { recursive: true, force: true });
+	}
+});
+
 test("reports an empty harvest plainly instead of failing", () => {
 	const runsDir = mkdtempSync(join(tmpdir(), "orphus-labels-"));
 	try {

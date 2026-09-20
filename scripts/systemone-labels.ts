@@ -44,6 +44,12 @@ interface LabelRow {
 	readonly label: boolean | string | number;
 	/** How the label was established, in a form a human can check. */
 	readonly outcome: string;
+	/**
+	 * Whether the layer decided *this* row, so the set can be partitioned into
+	 * what it predicted and what it did not. Asking whether the run holds any
+	 * receipt on the surface answers a different question, and answers it `true`
+	 * for every row whose siblings were decided while it was not.
+	 */
 	readonly has_receipt: boolean;
 	/** What the layer actually predicted at the time, when it was running. */
 	readonly receipt?: {
@@ -184,6 +190,7 @@ function tierRows(input: {
 		if (record === undefined || record.status !== "verified") continue;
 		const attempts = record.model_attempts ?? [];
 		const firstTry = attempts.length === 0 ? undefined : attempts[0]?.success === true;
+		const tierReceipt = receiptFor(input.receipts, "goal.tier", (entry) => entry.context?.leaf_id === leaf.id);
 		rows.push({
 			run: input.run,
 			surface: "goal.tier",
@@ -203,11 +210,8 @@ function tierRows(input: {
 					: firstTry
 						? "verified on the first model attempt"
 						: `verified after ${attempts.length} model attempts`,
-			has_receipt: input.receipts.has("goal.tier"),
-			...(() => {
-				const receipt = receiptFor(input.receipts, "goal.tier", (entry) => entry.context?.leaf_id === leaf.id);
-				return receipt === undefined ? {} : { receipt };
-			})(),
+			has_receipt: tierReceipt !== undefined,
+			...(tierReceipt === undefined ? {} : { receipt: tierReceipt }),
 		});
 	}
 	return rows;
@@ -222,33 +226,33 @@ function reviewRows(input: {
 	const completed = input.ledger.status === "complete";
 	return (input.ledger.reviews ?? [])
 		.filter((review) => review.decision === "complete")
-		.map((review) => ({
-			run: input.run,
-			surface: "goal.review" as const,
-			question_key: "evidence_supports_stop",
-			kind: "noul" as const,
-			state: {
-				requirements: (review.requirements_traceability ?? []).map((entry) => ({
-					requirement: entry.requirement,
-					status: entry.status,
-					evidence: entry.evidence,
-				})),
-				receipt_assessment: review.receipt_assessment ?? "",
-				verification_remaining: review.verification_remaining ?? "",
-				open_findings: (review.findings ?? []).map((finding) => `${finding.title}: ${finding.body}`),
-			},
-			label: completed,
-			outcome: `run ended as ${input.ledger.status ?? "unknown"}`,
-			has_receipt: input.receipts.has("goal.review"),
-			...(() => {
-				const receipt = receiptFor(
-					input.receipts,
-					"goal.review",
-					(entry) => entry.context?.reviewer === review.reviewer,
-				);
-				return receipt === undefined ? {} : { receipt };
-			})(),
-		}));
+		.map((review) => {
+			const reviewReceipt = receiptFor(
+				input.receipts,
+				"goal.review",
+				(entry) => entry.context?.reviewer === review.reviewer,
+			);
+			return {
+				run: input.run,
+				surface: "goal.review" as const,
+				question_key: "evidence_supports_stop",
+				kind: "noul" as const,
+				state: {
+					requirements: (review.requirements_traceability ?? []).map((entry) => ({
+						requirement: entry.requirement,
+						status: entry.status,
+						evidence: entry.evidence,
+					})),
+					receipt_assessment: review.receipt_assessment ?? "",
+					verification_remaining: review.verification_remaining ?? "",
+					open_findings: (review.findings ?? []).map((finding) => `${finding.title}: ${finding.body}`),
+				},
+				label: completed,
+				outcome: `run ended as ${input.ledger.status ?? "unknown"}`,
+				has_receipt: reviewReceipt !== undefined,
+				...(reviewReceipt === undefined ? {} : { receipt: reviewReceipt }),
+			};
+		});
 }
 
 /** Check labels: did the verifier find this check met, given the worker's receipt? */
@@ -280,6 +284,11 @@ async function checkRows(input: {
 		if (workerReceipt.trim().length === 0) continue;
 
 		record.check_results.forEach((check, index) => {
+			const checkReceipt = receiptFor(
+				input.receipts,
+				"goal.verify",
+				(entry) => entry.context?.leaf_id === record.leaf_id && entry.question_key === `check_${index}`,
+			);
 			rows.push({
 				run: input.run,
 				surface: "goal.verify",
@@ -293,15 +302,8 @@ async function checkRows(input: {
 				},
 				label: check.status === "passed",
 				outcome: `verifier reported ${check.status}: ${check.evidence}`,
-				has_receipt: input.receipts.has("goal.verify"),
-				...(() => {
-					const receipt = receiptFor(
-						input.receipts,
-						"goal.verify",
-						(entry) => entry.context?.leaf_id === record.leaf_id && entry.question_key === `check_${index}`,
-					);
-					return receipt === undefined ? {} : { receipt };
-				})(),
+				has_receipt: checkReceipt !== undefined,
+				...(checkReceipt === undefined ? {} : { receipt: checkReceipt }),
 			});
 		});
 	}
