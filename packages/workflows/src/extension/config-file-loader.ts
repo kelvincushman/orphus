@@ -1,3 +1,4 @@
+import { validateSystemOneSettings } from "../shared/systemone-config.js";
 import type { ConfigDiagnostic, WorkflowExtensionConfig } from "./config-loader.js";
 import { WORKFLOW_LIFECYCLE_NOTICE_KINDS, type WorkflowLifecycleNoticeKind } from "./lifecycle-notifications.js";
 
@@ -99,6 +100,11 @@ function validateConfig(value: unknown): string | null {
 				return `"worktree.symlinkDirectories" must be an array of strings`;
 			}
 		}
+	}
+
+	if ("systemOne" in c) {
+		const systemOneError = validateSystemOneSettings(c.systemOne);
+		if (systemOneError !== null) return systemOneError;
 	}
 
 	if ("workflows" in c) {

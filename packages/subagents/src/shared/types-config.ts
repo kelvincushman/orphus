@@ -1,3 +1,4 @@
+import type { ModelInfo } from "./model-info.ts";
 /**
  * Configuration, execution option, display, and event bus types.
  */
@@ -108,8 +109,10 @@ export interface RunSyncOptions {
 	nestedRoute?: NestedRouteInfo;
 	/** Override the agent's default model (format: "provider/id" or just "id") */
 	modelOverride?: string;
+	/** Walk the model ladder cheapest-first by registry price and escalate on failure. */
+	cheapestFirst?: boolean;
 	/** Registry models available for heuristic bare-model resolution */
-	availableModels?: Array<{ provider: string; id: string; fullId: string }>;
+	availableModels?: ModelInfo[];
 	/** Providers known to the registry before auth filtering */
 	knownModelProviders?: string[];
 	/** Current parent-session provider to prefer for ambiguous bare model ids */

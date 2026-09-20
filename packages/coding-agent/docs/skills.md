@@ -11,6 +11,7 @@ Orphus implements the [Agent Skills standard](https://agentskills.io/specificati
 - [Locations](#locations)
 - [How Skills Work](#how-skills-work)
 - [Skill Commands](#skill-commands)
+- [Bundled skills](#bundled-skills)
 - [Skill Structure](#skill-structure)
 - [Frontmatter](#frontmatter)
 - [Validation](#validation)
@@ -94,6 +95,39 @@ Toggle skill commands via `/settings` in interactive mode or in `settings.json`:
   "enableSkillCommands": true
 }
 ```
+
+## Bundled skills
+
+Every session ships these. Only their one-line descriptions sit in context; a skill's
+body loads when a task matches it, or when you invoke it with `/skill:<name>`.
+
+| Skill | Package | What it does |
+| --- | --- | --- |
+| `subagent` | subagents | Delegate to builtin or custom subagents — single, chain, parallel, async — hand a cheaper child a bounded `handoff`, and route it cheapest-first. See [Subagents](/subagents). |
+| `context-budget` | subagents | Measure what fills the context window with `orphus inspect runtime`, then rank what to cut. |
+| `strategic-compact` | subagents | Compact at a phase boundary after writing state down — and reach for rooms, `handoff`, and file-only returns first. See [Compaction](/compaction). |
+| `ponytail` | subagents | The laziest solution that works: YAGNI, reuse, stdlib, one line before fifty. `/ponytail lite\|full\|ultra` switches intensity. |
+| `tdd` | subagents | Red-green-refactor, with tests that exercise public interfaces rather than internals. |
+| `minting-clis` | subagents | When a task needs an API no tool serves: find or mint an agent-native CLI before hand-rolling `curl` or adding an MCP server. See [below](#minting-agent-native-clis). |
+| `liteparse` | subagents | Local, model-free extraction from PDF, DOCX, PPTX, XLSX, and image files via the `lit` CLI. |
+| `playwright-cli` | subagents | Drive a real browser for end-to-end checks, screenshots, and proof videos. See [Browser](/browser). |
+| `tmux` | subagents | Drive tmux sessions, windows, and panes for interactive CLIs. See [tmux](/tmux). |
+| `roundtable` | roundtable | Discussion etiquette for rooms: post conclusions not transcripts, digest before deciding, one room per concern. |
+| `memory` | roundtable | Recall is evidence, not certainty: query before writing, verify against the repository, hand recall to a child as an asserted `handoff`. |
+| `fleet-orchestration` | fleet | The protocol a `/fleet` run follows: route by difficulty down the price curve, converge deliberations, verify dispatch, a capped retry ladder, when to gate on the human. See [Fleets](/fleet). |
+| `kie-ai-media` | fleet | Images, video, and audio through the Kie.ai API, for media-team members. |
+| `intercom` | intercom | Session-to-session messaging and delegation between agents on one machine. See [Intercom](/intercom). |
+| `research-codebase` | workflows | Scoped research that writes a grounded artifact for one subsystem or question. |
+| `create-spec` | workflows | Turn research into an implementation-ready plan built around the program's entrypoints. |
+| `prompt-engineer` | workflows | Create, optimize, evaluate, or troubleshoot prompts for current frontier models. See [above](#built-in-prompt-engineering-guidance). |
+| `impeccable` | workflows | Critique and refine frontend and product UI. |
+| `skill-creator` | workflows | Create, improve, and benchmark skills. |
+
+`context-budget`, `strategic-compact`, and `memory` are rewrites of skills from
+[ECC](https://github.com/affaan-m/ECC) (MIT) against what Orphus enforces in code — the
+runtime-bounded channels, `handoff`, verbatim compaction, the Dossier-backed `memory`
+tool — rather than what ECC asks a model to remember. A skill from a community pack
+shadows a bundled one of the same name (see [Community skill packs](#community-skill-packs)).
 
 ## Skill Structure
 

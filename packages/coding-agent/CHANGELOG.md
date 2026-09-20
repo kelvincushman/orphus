@@ -6,6 +6,10 @@
 
 - The startup ORPHUS wordmark is the block-letter mark orphus.dev renders — the same glyphs, the same six rows, the same fifty columns — so the terminal, the README, and the site are one brand mark again. It stays pinned to Matrix green `#00ff41`. The drop-shadow layer that made this mark hard to read before 2.1.1 is not coming back with it; the shadow was the legibility problem, not the letters.
 
+### Fixed
+
+- **`/login` no longer crashes the session while you are completing it.** `login_provider` is exempt from the RPC request deadline because it legitimately waits as long as a human takes to finish an OAuth flow, but it was still queued on the ordinary command lane, where it starved every command behind it. A routine `get_state` refresh — which is *not* deadline-exempt — therefore timed out after 30s and took the whole CLI down with an uncaught `Timeout waiting for response to get_state`. Any login slower than 30 seconds hit this, including both browser and device-code flows. `login_provider` now runs on the concurrent lane it always needed; commands that genuinely require a consistent read (`compact`, `prompt`) keep waiting as before.
+
 ## [2.1.2] - 2026-08-27
 
 ### Changed

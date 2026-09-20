@@ -132,6 +132,7 @@ the honest scoreboard of which are actually bounded by the runtime today:
 | subagent → parent (parallel) | **Runtime-enforced** *when artifact paths exist* | The same tiering as a room digest, through the same [`bounded-render.ts`](../packages/roundtable/bounded-render.ts) core: budget + one marker line, with each task's artifact path carried alongside. Failures are ordered first so a collapsed error is impossible. `inline` and `file-only` opt out per call, and if any task lacks an artifact path nothing is bounded — see below |
 | subagent → parent (single, chain) | Truncation only — 200 KB / 5000 lines | Still concatenated in full; the cap is `DEFAULT_MAX_OUTPUT` in [`types-runtime.ts`](../packages/subagents/src/shared/types-runtime.ts) |
 | chain step → next step | **Runtime-enforced** *when an artifact path exists* | `{outputs.name}` splices a bounded rendering (2000 chars) plus the path to the full output, through the same `boundedRender` core ([`chain-outputs.ts`](../packages/subagents/src/runs/shared/chain-outputs.ts)). `{outputs.name.full}` is the explicit opt-out. With artifacts disabled there is nowhere to point, so the splice falls back to full text rather than discarding what it cannot relocate |
+| parent → subagent (handoff) | **Runtime-enforced** | A parent's `handoff` key→value facts render at the top of the child task through the same `boundedRender` core ([`settings.ts`](../packages/subagents/src/shared/settings.ts), budget 2000, per-key cap 600). What does not fit is named in the marker, not dropped — the parent still holds it. This bounds size, not truth, and the render says so; the `task` string beside it stays unbounded, so it makes the small handoff the easy path rather than defending against a hostile parent |
 | tool result → context | Spill to file above 50 000 chars | `DEFAULT_MAX_RESULT_SIZE_CHARS` in [`tool-limits.ts`](../packages/coding-agent/src/core/tools/tool-limits.ts); the model receives a preview and a path |
 | kernel → agent | **Bounded in memory; context bound is the spill above** | The kernel buffer retains the last 200 000 chars and returns at most 4 000 per view, counting elisions ([`kernel-output.ts`](../packages/coding-agent/src/core/repl/kernel-output.ts)). This is a *memory* bound on a process that prints forever; the context bound is the tool-result spill in the row above, which a `repl` tool gets by being an ordinary tool. The tool is registered behind `ORPHUS_ENABLE_REPL`, **default off** — see [`repl.md`](./repl.md) |
 
@@ -148,7 +149,17 @@ carries 2000 characters plus the path to the rest, and `{outputs.name.full}` is
 there for the step that genuinely needs everything. That escape hatch matters:
 bounding without one would have broken chains built when the splice was total.
 
-**Both bounded subagent rows depend on an artifact path, and say so.** A bound
+A parent's handoff is the newest row, and the first bound on content flowing
+*down* rather than up. It is deliberately the weakest claim in the table: the
+same tiering, the same budget, the same name-what-did-not-fit rule — but the
+`task` string beside it is still unbounded, so a parent that wants to flood a
+child can. The bound is a coordination tool, like the librarian writer
+convention in [`memory.md`](./memory.md): it makes the small, inspectable
+handoff the path of least resistance, and it labels what it carries as asserted
+rather than verified, because a size bound says nothing about whether the
+parent's summary is true.
+
+**The two bounded rows that carry output upward depend on an artifact path, and say so.** A bound
 relocates content; it does not delete it. Artifacts are where the full output
 goes, and they can be switched off — so when there is nowhere to point, neither
 the parallel return nor the chain splice bounds anything. That is a deliberate
@@ -221,18 +232,28 @@ Most of this repository is vendored upstream. What Orphus authors:
 | `packages/roundtable/` | Rooms, digest, broker, roles, memory adapter — everything above |
 | `packages/fleet/` | Fleet blueprints, `/fleet` + `/fleetsetup`, the orchestration and kie-ai-media skills |
 | `packages/transcribe/` | Local dictation, derived from pi-transcribe. Not bundled; fails closed until its natives are built |
+| `packages/subagents/src/shared/settings.ts` (`buildHandoffInstruction`), `.../runs/shared/model-fallback.ts` (cost ranking, `cheapestFirst`), `packages/subagents/skills/{context-budget,strategic-compact}/` | The bounded `handoff` channel, cheapest-first routing, and the context-discipline skills — first-party, inside the otherwise vendored subagents package. The logic is here; the wiring that reaches it is not (see below) |
 | `packages/coding-agent/src/core/{capabilities,replay}/`, `.../core/provider-audit.ts`, `.../cli/inspect-runtime.ts`, `.../extensions/browser/`, `.../core/terminal/termdom-*` | The capability boundary, the provider/tool session records and replay harness, `orphus inspect runtime`, browser operation, and the termDOM backend — first-party, inside an otherwise vendored package |
-| `test/unit/roundtable-*`, `test/unit/fleet-*`, `test/unit/{harness,browser,terminal,transcribe}-*` | Their tests |
+| `test/unit/roundtable-*`, `test/unit/fleet-*`, `test/unit/{harness,browser,terminal,transcribe}-*`, `test/unit/subagents-handoff.test.ts` | Their tests |
 | `docs/`, `roles/`, `orphus.roles.yaml` | This documentation and the example manifest |
 | `.github/workflows/ci.yml` | The gate that actually runs |
 
-Everything else — the agent loop, providers, tools, MCP, subagents, workflows,
-the TUI — comes from [Atomic](https://github.com/bastani-inc/atomic) and behaves
+Everything else — the agent loop, providers, tools, MCP, the rest of subagents,
+workflows, the TUI — comes from [Atomic](https://github.com/bastani-inc/atomic) and behaves
 as it does upstream. A bug there is usually worth reporting upstream too.
 
-Note that `packages/coding-agent/` is no longer wholly vendored: the rows above
-name first-party subsystems living inside it. Check the row before assuming a
+Note that `packages/coding-agent/` and `packages/subagents/` are no longer wholly
+vendored: the rows above name first-party subsystems living inside them. Check the row before assuming a
 file there is upstream's.
+
+Those rows name where first-party *logic* lives, which is not the same as every
+file a first-party change touches. `handoff` and `cheapestFirst` are declared in
+the subagent tool schema and threaded through the executor and in-process run
+paths — `extension/schemas.ts`, `shared/model-info.ts`, `runs/foreground/*`,
+`runs/inprocess/*` — and those files are Atomic's, carrying some Orphus lines.
+The practical rule: a bug in `buildHandoffInstruction`'s bound or in the cost
+ordering is ours; a bug in how a subagent run is dispatched is upstream's unless
+it sits in one of the lines those features added.
 
 The inherited `test.yml`, `publish.yml`, and `warm-toolchain-cache.yml` are all
 **disabled**: they target Blacksmith runners registered to the upstream

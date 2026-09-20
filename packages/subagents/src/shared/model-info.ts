@@ -2,12 +2,22 @@ export const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhig
 export type ThinkingLevel = (typeof THINKING_LEVELS)[number];
 export type ThinkingLevelMap = Partial<Record<ThinkingLevel, string | null>>;
 
+/** Per-million-token prices in USD: the four rates pi-ai's `Model.cost` carries. */
+export interface ModelCostRates {
+	input: number;
+	output: number;
+	cacheRead: number;
+	cacheWrite: number;
+}
+
 export interface ModelInfo {
 	provider: string;
 	id: string;
 	fullId: string;
 	reasoning?: boolean;
 	thinkingLevelMap?: ThinkingLevelMap;
+	/** Absent when the registry entry carries no price. An unpriced model is never assumed free. */
+	cost?: ModelCostRates;
 }
 
 interface RegistryModelLike {
@@ -15,6 +25,7 @@ interface RegistryModelLike {
 	id: string;
 	reasoning?: boolean;
 	thinkingLevelMap?: ThinkingLevelMap;
+	cost?: ModelCostRates;
 }
 
 export function toModelInfo(model: RegistryModelLike): ModelInfo {
@@ -24,6 +35,7 @@ export function toModelInfo(model: RegistryModelLike): ModelInfo {
 		fullId: `${model.provider}/${model.id}`,
 		reasoning: model.reasoning,
 		thinkingLevelMap: model.thinkingLevelMap,
+		...(model.cost ? { cost: model.cost } : {}),
 	};
 }
 

@@ -24,6 +24,11 @@ import {
 	getAgentDirs,
 	getProjectConfigPaths,
 } from "@orphus/coding-agent";
+import {
+	type EffectiveSystemOneConfig,
+	type SystemOneSettings,
+	withSystemOneDefaults,
+} from "../shared/systemone-config.js";
 import { loadConfigFile } from "./config-file-loader.js";
 import type { WorkflowLifecycleNoticeKind } from "./lifecycle-notifications.js";
 
@@ -69,6 +74,8 @@ export interface WorkflowExtensionConfig {
 	readonly workflowNotifications?: WorkflowNotificationsConfig;
 	/** Temporary-worktree post-creation settings. */
 	readonly worktree?: WorkflowWorktreeConfig;
+	/** The System One decision layer: which adapter answers, and how tightly it is trusted. */
+	readonly systemOne?: SystemOneSettings;
 }
 
 /** Severity of a config diagnostic. */
@@ -175,6 +182,30 @@ function mergeConfigs(base: WorkflowExtensionConfig, override: WorkflowExtension
 		...(base.worktree !== undefined || override.worktree !== undefined
 			? { worktree: { ...(base.worktree ?? {}), ...(override.worktree ?? {}) } }
 			: {}),
+		...(base.systemOne !== undefined || override.systemOne !== undefined
+			? {
+					systemOne: {
+						...(base.systemOne ?? {}),
+						...(override.systemOne ?? {}),
+						// Nested groups merge key-by-key too, so a project raising one
+						// threshold does not silently drop the two it left alone.
+						...(base.systemOne?.thresholds !== undefined || override.systemOne?.thresholds !== undefined
+							? {
+									thresholds: {
+										...(base.systemOne?.thresholds ?? {}),
+										...(override.systemOne?.thresholds ?? {}),
+									},
+								}
+							: {}),
+						...(base.systemOne?.local !== undefined || override.systemOne?.local !== undefined
+							? { local: { ...(base.systemOne?.local ?? {}), ...(override.systemOne?.local ?? {}) } }
+							: {}),
+						...(base.systemOne?.typesafe !== undefined || override.systemOne?.typesafe !== undefined
+							? { typesafe: { ...(base.systemOne?.typesafe ?? {}), ...(override.systemOne?.typesafe ?? {}) } }
+							: {}),
+					},
+				}
+			: {}),
 		...(workflows !== undefined ? { workflows } : {}),
 	};
 }
@@ -222,6 +253,7 @@ export interface WorkflowEffectiveConfig {
 	readonly worktree: {
 		readonly symlinkDirectories: readonly string[];
 	};
+	readonly systemOne: EffectiveSystemOneConfig;
 	readonly workflows?: Readonly<Record<string, WorkflowConfigEntry>>;
 }
 
@@ -246,6 +278,7 @@ export function withWorkflowDefaults(config: WorkflowExtensionConfig): WorkflowE
 			symlinkDirectories:
 				config.worktree?.symlinkDirectories ?? WORKFLOW_CONFIG_DEFAULTS.worktree.symlinkDirectories,
 		},
+		systemOne: withSystemOneDefaults(config.systemOne),
 		...(config.workflows !== undefined ? { workflows: config.workflows } : {}),
 	};
 }

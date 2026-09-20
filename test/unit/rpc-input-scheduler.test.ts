@@ -97,6 +97,40 @@ test("ordinary RPC commands remain ordered while a command is running", async ()
 	assert.deepEqual(calls, ["compact:start", "compact:end", "get_state:start", "get_state:end"]);
 });
 
+test("get_state reaches the engine while login_provider is still waiting on the human", async () => {
+	const login = deferred();
+	const calls: string[] = [];
+	const dispatch = createRpcInputScheduler(async (line) => {
+		const type = (JSON.parse(line) as { type: string }).type;
+		calls.push(`${type}:start`);
+		if (type === "login_provider") await login.promise;
+		calls.push(`${type}:end`);
+	});
+
+	dispatch('{"type":"login_provider"}');
+	dispatch('{"type":"get_state"}');
+
+	// login_provider legitimately runs for as long as a human takes to finish
+	// an OAuth flow — minutes, not milliseconds. It never touches session state,
+	// so a concurrent get_state poll must not be starved behind it: on the
+	// ordinary lane it would queue, and the requester's 30s deadline (login_provider
+	// is exempt from that deadline; get_state is not) would fire the crash this
+	// test reproduces: "Timeout waiting for response to get_state".
+	await Promise.race([
+		(async () => {
+			while (!calls.includes("get_state:end")) await sleep(1);
+		})(),
+		sleep(50).then(() => {
+			throw new Error("get_state remained queued behind login_provider");
+		}),
+	]);
+	assert.deepEqual(calls, ["login_provider:start", "get_state:start", "get_state:end"]);
+
+	login.resolve();
+	await sleep(0);
+	assert.deepEqual(calls, ["login_provider:start", "get_state:start", "get_state:end", "login_provider:end"]);
+});
+
 test("host protocol responses bypass a running RPC command", async () => {
 	const compact = deferred();
 	const handled: string[] = [];

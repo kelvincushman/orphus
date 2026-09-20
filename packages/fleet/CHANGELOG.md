@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- **A `council` example blueprint.** Four stances — architect, skeptic, pragmatist, critic — deliberate a consequential decision in one room to a decision of record that keeps the strongest dissent verbatim. It is the Orphus form of ECC's `council-multi-model` skill (affaan-m/ECC, MIT): where ECC simulates a council inside one model and bolts on an optional external critique, Orphus seats each stance on a real session and lets `model:` put them on different providers, so disagreement comes from different training rather than one model arguing with itself. ECC's per-packet consent step does not carry over — every seat here runs on a provider the user configured — but its honesty rule does: the verdict names the author–reviewer relationship as cross-provider, same-provider, or unverified.
+
+### Changed
+
+- **The orchestration skill routes down the price curve with runtime help.** The model-ladder guidance now points at `cheapestFirst: true` and `handoff` on `subagent` calls, and states the provider-honesty rule for verifier seats: independence is a provider fact, so a verdict names the relationship — cross-provider, same-provider, or unverified — rather than claiming diversity that was not bought.
+
 ## [2.0.0] - 2026-08-22
 
 ### Changed

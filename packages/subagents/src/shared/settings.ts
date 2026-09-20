@@ -4,6 +4,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { boundedRender, DEFAULT_BUDGET, DEFAULT_PER_ITEM_CAP } from "@orphus/roundtable/bounded-render.ts";
 import type { AgentConfig } from "../agents/agents.ts";
 import { normalizeSkillInput } from "../agents/skills.ts";
 import { CHAIN_RUNS_DIR, type JsonSchemaObject, type OutputMode } from "./types.ts";
@@ -318,6 +319,43 @@ export function buildReadInstruction(reads: string[] | false | undefined, cwd: s
 	if (!reads || reads.length === 0) return "";
 	const files = reads.map((file) => path.resolve(cwd, file));
 	return `[Read from: ${files.join(", ")}]`;
+}
+
+/** Character budget for a parent's `handoff`: the room-digest budget, so the two bounds agree. */
+export const HANDOFF_BUDGET_CHARS = DEFAULT_BUDGET;
+
+const HANDOFF_HEADER =
+	"[Handoff from parent — asserted by the orchestrator, not verified, and not exhaustive. Read the repository when a fact matters.]";
+
+/**
+ * Render a parent's key→value handoff at the top of the child's task.
+ *
+ * Entries render in the caller's order — first is served first — through the
+ * same `boundedRender` core as the room digest, so a verbose parent cannot
+ * spend more than {@link HANDOFF_BUDGET_CHARS} of the child's context. This
+ * bounds size, not truth: the header says so to the child. What does not fit
+ * is named in the marker rather than silently dropped, and the parent still
+ * holds it. Large content belongs in a file passed through `reads`, not here.
+ */
+export function buildHandoffInstruction(handoff: Record<string, string> | undefined): string {
+	const entries = Object.entries(handoff ?? {});
+	if (entries.length === 0) return "";
+	const rendered = boundedRender(entries, {
+		budget: HANDOFF_BUDGET_CHARS,
+		perItemCap: DEFAULT_PER_ITEM_CAP,
+		preserveOrder: true,
+		format: {
+			text: ([, value]) => value,
+			verbatim: ([key], capped, truncated) => `- ${key}: ${capped}${truncated > 0 ? ` …(+${truncated} chars)` : ""}`,
+			headline: ([key], capped, hasMore) => `- ${key}: ${capped}${hasMore ? "…" : ""}`,
+			collapsed: (count) =>
+				`…(+${count} keys not shown: ${entries
+					.slice(-count)
+					.map(([key]) => key)
+					.join(", ")})`,
+		},
+	});
+	return `${HANDOFF_HEADER}\n${rendered.text}`;
 }
 
 /**

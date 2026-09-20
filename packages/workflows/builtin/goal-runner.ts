@@ -30,6 +30,7 @@ import { renderReviewerPrompt, taggedPrompt } from "./goal-prompts.js";
 import { normalizeGoalExecutionPlan, type GoalExecutionPlan } from "./goal-plan.js";
 import { goalExecutionPlanSchema } from "./goal-schemas.js";
 import { runGoalExecutionPlan } from "./goal-execution.js";
+import { applySystemOneTiers, createGoalSystemOne, withheldReviewers } from "./goal-systemone.js";
 
 function positiveInteger(value: number | undefined, fallback: number): number {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
@@ -262,6 +263,13 @@ export async function runGoalWorkflow(
     appendLifecycleEvent(ledger, "work_turn_started", "Orchestrator started.", turn);
     await writeGoalLedger(ledgerPath, ledger);
 
+    // One layer per turn: its receipts are turn-scoped, and every surface in
+    // this turn shares the adapter and the thresholds.
+    const { systemOne: turnSystemOne, warning: systemOneWarning } = createGoalSystemOne({ ctx, artifactDir, turn });
+    if (systemOneWarning !== undefined) {
+      appendLifecycleEvent(ledger, "work_turn_started", systemOneWarning, turn);
+    }
+
     let orchestratorReceiptPath = join(artifactDir, "orchestrator-receipt.md");
     const planArtifactPath = join(artifactDir, `goal-execution-plan-turn-${turn}.json`);
     const latestExecutionArtifactPaths = [
@@ -383,7 +391,12 @@ export async function runGoalWorkflow(
       if (planResult === undefined) {
         throw new Error("internal goal runner error: native team mode did not produce a plan result.");
       }
-      const plan = planResult.plan;
+      // The planner guesses a tier per leaf from the objective alone. Ask the
+      // cheap decision before any worker is dispatched, so a confident answer
+      // picks the model pool rather than the guess; an unsure one leaves the
+      // guess standing. The re-tiered plan is what the artifact records, so the
+      // dispatch and the audit trail cannot disagree.
+      const plan = await applySystemOneTiers({ systemOne: turnSystemOne, plan: planResult.plan, planArtifactPath });
       ledger.turns = turn;
       latestExecutionPlanPath = planArtifactPath;
       ledger.receipts.push({
@@ -405,6 +418,7 @@ export async function runGoalWorkflow(
         workflowStartCwd,
         maxParallelAgents,
         turn,
+        systemOne: turnSystemOne,
       });
       orchestratorReceiptPath = executionReport.report_path;
       latestExecutionReportPath = executionReport.report_path;
@@ -588,12 +602,18 @@ export async function runGoalWorkflow(
       break;
     }
 
+    // Check each "complete" verdict against the evidence its own reviewer
+    // cited, before the reducer counts it. A confident refusal withholds that
+    // vote; it can never supply one, and never blocks a quorum the remaining
+    // reviewers reached on their own.
+    const withheld = await withheldReviewers({ systemOne: turnSystemOne, reviews: latestReviews });
     const reducerOutcome = reduceGoalDecision(ledger, latestReviews, {
       turn,
       maxTurns,
       reviewQuorum,
       blockerThreshold,
       nextActionOnComplete: createPr ? "pull-request" : "finish",
+      withheldReviewers: withheld,
     });
     if (reducerOutcome.blockerObservation !== undefined) {
       ledger.blockers.push(reducerOutcome.blockerObservation);

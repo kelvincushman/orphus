@@ -8,6 +8,8 @@ The packages this project exists for:
 
 - `@orphus/roundtable` in `packages/roundtable` — **the Orphus contribution.** Rooms and the context-window contract: the budgeted digest algorithm (`digest.ts`), the local-socket broker and its client (`broker/`), the `roundtable` and `memory` tools, the declarative role manifest and launcher (`roles/`, `bin/orphus-roles.ts`), the discussion-etiquette skill, and the no-model demos. When a change here is not obviously about rooms, digests, roles, or memory, it probably belongs in the vendored tree instead.
 - `@orphus/fleet` in `packages/fleet` — **Orphus-authored orchestration on top of rooms and subagents.** Shareable fleet blueprints (`*.fleet.yaml`: teams of agent definitions with pre-assigned skills and a delegation mode each), the `/fleet` and `/fleetsetup` commands, the `fleet` introspection tool, and the `fleet-orchestration` and `kie-ai-media` skills. It executes nothing itself — members run via the `subagent` tool and deliberate in roundtable rooms. When a change is about *how members run* rather than *how a fleet is described and briefed*, it belongs in `packages/subagents` or the vendored tree.
+- `@orphus/systemone` in `packages/systemone` — **Orphus-authored.** The System One decision layer: three closed-vocabulary question primitives (`noul`, `choice`, `score`) in TypeSafe's Jev wire shape, an abstain band that defers to the model whenever confidence falls short, receipts for every decision including the abstentions, and four adapters (`null` by default, `llm-wrapper`, `local` over a user-run model server, `typesafe` for comparison). Goal consults it at three surfaces; `packages/workflows/builtin/goal-systemone.ts` is the only wiring. It may deny, never approve, and it always runs *before* the model step it could save.
+
 - `@orphus/transcribe` in `packages/transcribe` — **Orphus-authored**, derived from pi-transcribe (MIT, with attribution and a pinned upstream-sync record in `UPSTREAM.md`). Local dictation: the versioned six-request JSON-Lines worker/helper protocol, ABI and build-hash verification, and the consent-then-checksum model catalog. **It is not bundled and not registered as a builtin** — the native miniaudio/transcribe.cpp artifacts for the eight release targets are not built in this repository, so both channels fail closed. That is the intended state, not a bug to fix: the ABI is pinned in `native/ABI.md`, and wiring it up means building those artifacts, not removing the guard.
 
 Inherited from Atomic, and mostly left alone:
@@ -64,6 +66,30 @@ npx gitnexus@1.6.9 analyze . --skip-agents-md   # writes .gitnexus/ (gitignored)
 npx gitnexus@1.6.9 status                       # re-run analyze when this reports "stale"
 ```
 
+**Behind a proxy that blocks `api.nuget.org`, plain `npx` silently installs
+nothing.** `gitnexus` depends on `onnxruntime-node`, whose install script fetches
+native libraries from NuGet. When that host is unreachable the install aborts
+partway, leaving an npx cache whose `gitnexus` entry holds only `vendor/` — no
+`package.json`, no `dist/`. Every later `npx gitnexus …` re-attempts the install,
+fails the same way, and **exits with no output at all**, which reads like a
+working command that found nothing. The MCP server fails identically, so the
+session reports a connection timeout rather than a missing dependency.
+
+Install it with scripts off instead, then relink the one native binding that
+genuinely needs its install step:
+
+```sh
+npm i --ignore-scripts gitnexus@1.6.9              # into a scratch dir
+node node_modules/@ladybugdb/core/install.js       # copies the prebuilt lbugjs.node into place
+./node_modules/.bin/gitnexus analyze . --skip-agents-md
+```
+
+ONNX only powers semantic search; the graph, `cypher`, and full-text search all
+work without it. `doctor` reports capabilities as "available" **before** the
+LadybugDB binding is linked, so it is not proof that `analyze` will run — the
+first `analyze` is. When `analyze` fails it names this repair explicitly; take it
+at its word rather than re-running `npx`.
+
 `--skip-agents-md` is not optional politeness: a bare `analyze` appends a
 45-line block to `AGENTS.md` and `CLAUDE.md` whose MUST/NEVER framing
 contradicts this file (the graph is a lookup tool, not an authority), leaving a
@@ -98,6 +124,9 @@ Two limits worth knowing before you trust an empty result:
   is complete, but `query` silently returns zero matches with a `warning` field
   rather than an error — which reads exactly like "no such code exists". Use
   `cypher` for search in that case, and check `doctor` if you are unsure.
+- **A session whose GitNexus MCP server failed to connect has no graph tools at
+  all**, and the reuse check falls back to grep. That is weaker, not equivalent:
+  say so in the PR rather than ticking the box.
 - **Files over 512 KB are skipped** (currently one: the `0002` rebrand patch).
   Raise `GITNEXUS_MAX_FILE_SIZE` if you need them indexed.
 
@@ -210,6 +239,7 @@ platform-sensitive change as unverified on Windows until someone runs it there.
   `evals/longcontext/scorecard.json`. Deterministic and model-free; the model-backed task families are
   deliberately kept out so CI can gate on this half. See `evals/longcontext/README.md`
 - `npm run roles` — turn `orphus.roles.yaml` into launch commands (`--format plan|json|sh|tmux|orca`)
+- `bun run scripts/release-preflight.ts --base main --expect <sha>` — the release gate: is there anything to ship, is the work actually on the base, does every changed package carry `[Unreleased]` entries. Read-only; exits non-zero when it is not ready
 - `npx vitest --run --project unit test/unit/roundtable-` — the Orphus tests alone, in seconds
 - `npm run test:unit`, `npm run test:integration`, `npm run test:ci-contracts`, `npm run test:all`
 - `npm run test --workspace=@orphus/coding-agent` — the coding-agent vitest suite, under Node
@@ -244,6 +274,16 @@ Atomic's product brief.
 ## Issues and pull requests
 
 Follow [`CONTRIBUTING.md`](CONTRIBUTING.md) for external-contributor coordination, issue assignment, and pull request guidance.
+
+**Every push opens a pull request.** A branch pushed without one is invisible work: nothing
+states what changed or why, and CI has nowhere to be read. Open it as part of the same piece
+of work, not as a later step someone has to remember.
+
+Check for an existing pull request on the branch before opening one. This repository has
+auto-created a PR on first push, titled after whatever the first commit happened to say —
+**update that one** rather than opening a second and leaving a stale duplicate. Its title and
+body describe the whole change, not the commit that created it, and are refreshed as later
+commits land on the branch. `.github/PULL_REQUEST_TEMPLATE.md` is the layout to fill in.
 
 ## Testing
 
@@ -334,11 +374,22 @@ authenticate from the environment alone (amazon-bedrock via the AWS default
 chain, google-vertex via ADC) — so a developer's configured AWS CLI, or a
 sandbox proxy injecting dummy AWS keys, silently makes "no models available"
 fixtures see a 114-model catalog and spawned CLI children dispatch real
-provider requests. `packages/coding-agent/test/provider-env-scrub.ts` (wired as
-that project's vitest `setupFiles`) deletes the ambient credential variables
-before any test module loads; fixtures that need a credential set their own
-afterwards. When adding a suite outside that project that touches model
-availability, scrub the same list rather than assuming a bare environment.
+provider requests. The list and the matching rules live in
+`packages/coding-agent/test/helpers/provider-credentials.ts`.
+`provider-env-scrub.ts` (wired as that project's vitest `setupFiles`) applies
+them to `process.env` before any test module loads, and the root suites' engine
+fixtures call `scrubProviderCredentials(process.env)` to build the environment
+they hand a spawned child. Fixtures that need a credential set their own
+afterwards.
+
+When adding a suite outside that project that touches model availability,
+**import that helper rather than copying the list.** Two suffixes (`_API_KEY`,
+`_BEARER_AUTH`) catch most credentials and a hand-rolled copy tends to stop
+there: all four engine fixtures did, and an AWS key pair matches neither, so
+bedrock's catalog reached every one of them and `interactive-engine-cycle-fallback`
+failed on any machine with a configured AWS CLI. Match names exactly rather than
+by an `AWS_` prefix — `AWS_CA_BUNDLE` is transport, not identity, and a sandbox
+behind a proxy needs it.
 
 ### Hook name compatibility
 
@@ -386,7 +437,15 @@ atomic:
 
 Atomic uses a **versionless release-base** flow: supported bases keep `packages/*/package.json` at `0.0.0`; `scripts/cut-release.ts` materializes the real version only on a tagged detached `Release <version>` commit with harmless immutable `Release-base-ref`/`Release-base-sha` trailers. Pushing the version tag directly starts `publish.yml`. Its lightweight integrity job checks that the source resolves to the tag commit, `packages/coding-agent/package.json` equals the tag, and the subject is `Release <version>`. Build jobs produce and smoke-test native modules and archives; a draft GitHub Release is staged before OIDC-only npm publication and undrafted only after npm succeeds. `publish-npm` alone receives `id-token: write` under `npm-publish`; release staging, undrafting, and failed-draft cleanup alone receive `contents: write`. Configure npm trusted publishers with filename `publish.yml` and environment `npm-publish`.
 
-Cut and publish a release with:
+**Do not run `scripts/cut-release.ts` by hand to cut a release.** The
+`publish-release` workflow runs it, after the `release` skill's gate has proved
+the base is ready — see "Agent publishing requests" below. Invoking it directly
+skips that gate and every check the workflow performs, and its tags persist in
+the local checkout whether or not they reach origin.
+
+The command the workflow issues, recorded here so the mechanism below is
+readable, and usable directly only to recover a release the workflow could not
+finish:
 
 ```sh
 bun run scripts/cut-release.ts 0.8.31 --base main --push
@@ -396,7 +455,17 @@ The selected base is never advanced by the version stamp. The script resolves it
 
 ### Agent publishing requests
 
-If a user asks to publish a release or prerelease, route the request through the repository-local `publish-release` Atomic workflow:
+If a user asks to publish a release or prerelease, follow the repository-local **`release` skill** (`.orphus/skills/release/SKILL.md`), which sequences the whole thing and names what each piece already owns. Orphus sessions load it automatically; other harnesses should read it.
+
+Its first step is the one nothing else does. `publish-release` requires a changelog-only diff, so the docs, the README, and the `[Unreleased]` entries must already be on the base before it runs — and the base must actually contain the work being announced. Prove both before anything else:
+
+```sh
+bun run scripts/release-preflight.ts --base main --expect <pr-head-sha>
+```
+
+It exits non-zero when the base has nothing new since the last release, when an `--expect` commit is not an ancestor of the base, or when a changed package has no `[Unreleased]` entries. **Someone saying a pull request is merged is not evidence that it is merged.**
+
+Then route the request through the repository-local `publish-release` Atomic workflow:
 
 1. Ask for the version only when it was not supplied. Stable releases use `MAJOR.MINOR.PATCH`; prereleases use `MAJOR.MINOR.PATCH-alpha.REVISION` with revision starting at 1.
 2. Infer release versus prerelease from a valid supplied version; ask only when it is ambiguous or invalid. Use the requested `base_ref`, defaulting to the short branch name `main` when omitted.
@@ -411,7 +480,7 @@ If a user asks to publish a release or prerelease, route the request through the
 ## Docs
 
 - ALWAYS keep the user-facing docs in `packages/coding-agent/docs` up-to-date with the latest changes after you make changes. Prefer to keep other docs up-to-date as well, but the coding-agent docs are the most important since they are user-facing and often consulted by users and other agents.
-- To update docs, prefer using your `release-docs` workflow to thoroughly update all relevant docs with the latest changes. If you need to make a quick fix or update, you can also edit the markdown files directly, but make sure to keep them comprehensive and up-to-date.
+- To update docs, prefer using your `release-docs` workflow, which finds stale pages against the current branch and validates them with `docs:check` plus Mintlify. Its `owner_docs` are scoped to `packages/coding-agent/docs` — **the root `README.md` and `docs/` are not covered and stay a manual pass.** If you need to make a quick fix or update, you can also edit the markdown files directly, but make sure to keep them comprehensive and up-to-date.
 
 ## Changelog
 
@@ -454,13 +523,12 @@ Use these sections under `## [Unreleased]`:
 `scripts/bump-version.ts` is the low-level stamper that rewrites every versioned manifest. It is invoked by `scripts/cut-release.ts` inside a throwaway worktree at the exact remote base SHA to materialize the real version on the tagged release commit. You normally never run it directly against a release base; the only direct use is resetting the placeholder if it ever drifts:
 
 ```sh
-# stamp a real version onto the off-base tag commit (preferred; explicit base shown)
-bun run scripts/cut-release.ts 0.1.0 --base main
-bun run scripts/cut-release.ts 0.1.0-alpha.1 --base main
-
-# low-level: reset main back to the versionless placeholder
+# reset main back to the versionless placeholder (the only direct use)
 bun run scripts/bump-version.ts 0.0.0 && npm install --package-lock-only --ignore-scripts
 ```
+
+To stamp a real version, go through the `release` skill and the `publish-release`
+workflow — not `cut-release.ts` directly. See "Releasing" above.
 
 ## CI
 

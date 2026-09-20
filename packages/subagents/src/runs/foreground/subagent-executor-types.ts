@@ -36,6 +36,10 @@ export interface TaskParam {
 	reads?: string[] | boolean;
 	progress?: boolean;
 	model?: string;
+	/** Small parent-known facts rendered into the task within a fixed bound. */
+	handoff?: Record<string, string>;
+	/** Start the model ladder at its cheapest priced rung. */
+	cheapestFirst?: boolean;
 	skill?: string | string[] | boolean;
 	group?: string | true;
 }
@@ -71,6 +75,8 @@ export interface SubagentParamsLike {
 	artifacts?: boolean;
 	includeProgress?: boolean;
 	model?: string;
+	handoff?: Record<string, string>;
+	cheapestFirst?: boolean;
 	skill?: string | string[] | boolean;
 	group?: string | true;
 	output?: string | boolean;

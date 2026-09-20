@@ -30,6 +30,16 @@ Off by default. Nothing is registered without `ORPHUS_ENABLE_BROWSER`; see [Brow
 | `ORPHUS_BROWSER_HEADLESS` | `0` runs Chrome with a visible window |
 | `ORPHUS_BROWSER_NO_SANDBOX` | Pass `--no-sandbox`. Disables Chrome's sandbox — only for a container running as root. Takes an explicit `1`/`true`/`on`/`yes`; anything else, including `no`, leaves the sandbox on |
 
+### System One decision layer
+
+Off by default. See [System One](/systemone) for what the layer does and the
+settings that govern it.
+
+| Variable | Purpose |
+|---|---|
+| `ORPHUS_SYSTEMONE` | Overrides the configured adapter for one run: `null`, `llm-wrapper`, `local`, or `typesafe` |
+| `TYPESAFE_API_KEY` | TypeSafe's own credential, used only by the opt-in `typesafe` adapter. Deliberately unprefixed and never read from a config file |
+
 ### Terminal renderer
 
 | Variable | Purpose |

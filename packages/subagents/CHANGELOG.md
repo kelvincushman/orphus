@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+
+- **`handoff` gives a child bounded key→value context.** Between `context: "fresh"` (nothing) and `context: "fork"` (the parent's whole transcript) there was no way to pass a child *just the facts it needs*; the workaround was gluing them into `task`, unbounded, or writing files for `reads`. A single call or a parallel `tasks[]` item now accepts `handoff: { key: "value", … }`, rendered at the top of the child's task through the same `boundedRender` core as the room digest: keys in the order given until ~2000 characters are spent, then one line each, then a marker naming what did not fit — never a silent drop. The render is labelled *asserted, not verified, and not exhaustive*, because a size bound says nothing about truth. Non-string values are rejected before the child starts.
+- **`cheapestFirst: true` walks a model ladder cheapest-first.** The registry's per-million prices now travel with every model the subagent runtime sees (`ModelInfo.cost`). With the flag, an agent's declared ladder is reordered cheapest-first (input weighted 3:1 over output; unpriced models keep their declared order after priced ones) and the existing failure-driven walk escalates from there. The ladder still decides which models are acceptable; the flag only decides where the walk starts. It is the fleet skill's "try a spinner first" rule, executed by the runtime.
+- **Two context-discipline skills are bundled: `context-budget` and `strategic-compact`.** Both are rewrites of ECC skills (affaan-m/ECC, MIT) against what Orphus actually enforces. `context-budget` measures the always-loaded cost with `orphus inspect runtime` — prompt sections, tool schemas, extensions — instead of counting words, and points every unbounded channel at the bounded one that replaces it (`fork` → `fresh` + `handoff`, whole returns → `file-only`, transcripts → a room digest). `strategic-compact` explains what Orphus's verbatim compaction keeps and drops, when a phase boundary makes it safe, that cache reads count as context, and that the planner may borrow a `fallbackModels` entry — and says to reach for rooms, `handoff`, and file-only returns before compacting at all.
+
 ## [2.1.0] - 2026-08-26
 
 ### Changed

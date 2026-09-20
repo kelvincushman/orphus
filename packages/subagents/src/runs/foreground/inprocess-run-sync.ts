@@ -164,6 +164,7 @@ export async function runSingleInProcess(
 		options.preferredModelProvider,
 		options.currentModel,
 		agent.fallbackThinkingLevels,
+		{ cheapestFirst: options.cheapestFirst },
 	);
 	const filteredCandidates = filterSpawnableModelCandidates({
 		candidates: rawCandidates,

@@ -103,6 +103,7 @@ async function resumeRetainedForegroundChild(
 		sessionFile: child.sessionFile,
 		progress: resolveSingleProgress(agentConfig, params.progress, message),
 		modelOverride: params.model,
+		cheapestFirst: params.cheapestFirst,
 		availableModels: ctx.modelRegistry.getAvailable().map(toModelInfo),
 		maxSubagentDepth: resolveWorkflowStageMaxSubagentDepth(ctx, deps.config.maxSubagentDepth),
 		workflowStageSubagentGuard: isWorkflowStageOrchestrationContext(ctx),
