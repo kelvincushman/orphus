@@ -374,11 +374,22 @@ authenticate from the environment alone (amazon-bedrock via the AWS default
 chain, google-vertex via ADC) — so a developer's configured AWS CLI, or a
 sandbox proxy injecting dummy AWS keys, silently makes "no models available"
 fixtures see a 114-model catalog and spawned CLI children dispatch real
-provider requests. `packages/coding-agent/test/provider-env-scrub.ts` (wired as
-that project's vitest `setupFiles`) deletes the ambient credential variables
-before any test module loads; fixtures that need a credential set their own
-afterwards. When adding a suite outside that project that touches model
-availability, scrub the same list rather than assuming a bare environment.
+provider requests. The list and the matching rules live in
+`packages/coding-agent/test/helpers/provider-credentials.ts`.
+`provider-env-scrub.ts` (wired as that project's vitest `setupFiles`) applies
+them to `process.env` before any test module loads, and the root suites' engine
+fixtures call `scrubProviderCredentials(process.env)` to build the environment
+they hand a spawned child. Fixtures that need a credential set their own
+afterwards.
+
+When adding a suite outside that project that touches model availability,
+**import that helper rather than copying the list.** Two suffixes (`_API_KEY`,
+`_BEARER_AUTH`) catch most credentials and a hand-rolled copy tends to stop
+there: all four engine fixtures did, and an AWS key pair matches neither, so
+bedrock's catalog reached every one of them and `interactive-engine-cycle-fallback`
+failed on any machine with a configured AWS CLI. Match names exactly rather than
+by an `AWS_` prefix — `AWS_CA_BUNDLE` is transport, not identity, and a sandbox
+behind a proxy needs it.
 
 ### Hook name compatibility
 
