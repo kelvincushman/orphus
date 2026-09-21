@@ -1,58 +1,38 @@
-# Orphus 2.3.0
+# Orphus 2.3.1
 
-This release adds a decision layer that answers Goal's cheap questions before
-the model turn they would otherwise cost — and defers to the model whenever it
-is not sure.
+One fix, for a bug that has been in every Linux release since the archives
+began: the `linux-x64` build could not start on any CPU older than 2013.
 
-## System One
+## The Linux x64 archive runs on pre-AVX2 CPUs again
 
-Three closed-vocabulary question primitives — yes/no, pick-one, and rate-against-
-a-rubric — in TypeSafe's Jev wire shape. Fixed questions in, a probability out,
-nothing generated. Goal consults it at three surfaces, each one *before* the
-model step it could save: the planner's tier guess before any worker is
-dispatched, a reviewer's "complete" vote before the reducer counts it, and a
-worker's receipt against its declared checks before a verify turn is spent.
+`orphus --version` from the published archive died with `Illegal instruction
+(core dumped)` — exit 132, no message, no stack — on anything older than
+Haswell. Bun's standard x64 runtime is compiled for AVX2, so the process took
+SIGILL inside the runtime before a line of user code ran.
 
-What it is not allowed to do is the point. It may deny, never approve: the
-pre-screen can fail a leaf but cannot mark one verified, and the review surface
-can withhold a vote but cannot supply one or veto a quorum others reached.
-Below its confidence threshold every caller takes exactly the path it took
-before, so the layer cannot make Orphus wrong — only faster when it is sure.
+It was not a regression in 2.3.0. v2.1.2 fails identically on the same machine,
+and so does every archive before it.
 
-**It is off by default.** The `null` adapter abstains on everything, so Goal
-behaves precisely as it did until `systemOne.adapter` changes. Four adapters
-ship: `null`, `local` (a real classifier over a model server you run, read from
-one prefill's logprobs with no text generated), `llm-wrapper`, and `typesafe`.
+The reason it went unnoticed for so long is the part worth repeating. The
+release workflow does check that the archive works:
 
-**It is not calibrated yet, and every receipt says so.** Each decision —
-including every abstention — is recorded beside the evidence it influenced,
-with the threshold applied and a hash of the question that produced it.
-`scripts/systemone-labels.ts` turns finished Goal runs into labelled examples,
-including runs from before the layer existed.
+```
+test "$(release/orphus/orphus --version)" = "$VERSION"
+```
 
-Against a locally served 27B it decided 8 of 9 questions on a fixed three-leaf
-plan. A 0.6B decided 2 of 9 — the correct behaviour at these thresholds, not a
-disappointment: an unsure model should abstain.
+That check is real, and it passed every time — on a GitHub runner, which has
+AVX2. The smoke test and the hardware it could not represent were the same
+blind spot, so a working artifact and an unusable one looked identical from CI.
 
-## Also in this release
+The x64 Linux targets now compile against Bun's `-baseline` runtime, which drops
+the AVX2 requirement. Modern CPUs give up some JS throughput for it. That is the
+cheaper side of the trade for a program that spends its time waiting on model
+responses rather than on its own interpreter, and it keeps one archive per
+platform rather than making the installer read `/proc/cpuinfo` to choose between
+two. macOS and arm64 are untouched — the split does not exist there.
 
-- **Bounded handoffs to subagents.** Between `context: "fresh"` (nothing) and
-  `context: "fork"` (the parent's whole transcript), `handoff` passes a child
-  just the facts it needs as key→value pairs.
-- **Cheapest-first model ladders.** With `cheapestFirst: true`, an agent's
-  declared ladder is reordered by the registry's per-million prices.
-- **A `council` fleet blueprint.** Four stances — architect, skeptic,
-  pragmatist, critic — deliberate one consequential decision in a single room.
-- **The browser tool is registered by default.** Chrome still launches only on
-  the first `open`, every session still uses a throwaway profile, and login
-  remains separately gated. `ORPHUS_ENABLE_BROWSER=0` opts out.
-- **Cold extension loading drops from roughly 34s to 4s**, which every subagent
-  and fleet member paid at startup.
-- **One ORPHUS wordmark** across the terminal, the README and orphus.dev,
-  pinned by a test so the three cannot drift apart again.
-- **`/login` no longer crashes the session while you complete it**, and
-  `/workflow resume <id>` no longer races the durable backend on a fresh
-  process.
+If `orphus` has ever exited 132 on your machine with no output, this is why, and
+this release fixes it.
 
 ## Install
 
