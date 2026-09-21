@@ -171,17 +171,40 @@ echo "==> Building shared app bundle..."
 bun build --target=bun --format=cjs --external mupdf ./dist/bun/cli.js --outfile "$shared_app_dir/app.js"
 bun build --target=bun --format=cjs --external mupdf ./src/utils/image-resize-worker.ts --outfile "$shared_app_dir/image-resize-worker.js"
 
+# Bun's standard x64 runtime is built for AVX2 (Haswell, 2013). On an older CPU
+# it dies with SIGILL before user code runs — no message, no stack, exit 132 —
+# and a CI runner always has AVX2, so the archive's own `--version` smoke test
+# passes while the artifact is unusable. The published linux-x64 archive behaved
+# exactly that way on a Sandy Bridge Xeon E5-2650, as far back as v2.1.2.
+#
+# Bun ships a `-baseline` runtime for these CPUs, so the x64 Linux targets use
+# it. The cost is some JS throughput on modern hardware; this program waits on
+# model responses, not on its own interpreter, so that is the cheaper side of
+# the trade. It stays one archive per platform rather than two, which keeps the
+# installer free of CPU-feature detection.
+#
+# Only x64 is affected: arm64 has no equivalent split, and Bun offers no
+# baseline variant for it.
+bun_compile_target() {
+    case "$1" in
+        linux-x64) echo "bun-linux-x64-baseline" ;;
+        linux-x64-musl) echo "bun-linux-x64-musl-baseline" ;;
+        *) echo "bun-$1" ;;
+    esac
+}
+
 for platform in "${PLATFORMS[@]}"; do
     echo "Building for $platform..."
     mkdir -p "binaries/$platform"
+    compile_target="$(bun_compile_target "$platform")"
     if [[ "$platform" == windows-* ]]; then
         # Bun 1.3.14 bytecode-compiled Windows standalone executables can
         # segfault before user code runs (llint_entry / bytecode alignment).
         # Keep Windows release binaries standalone-compiled, but ship source
         # payload instead of embedded bytecode until Bun's fix is available.
-        bun build --compile --format=cjs --external mupdf --no-compile-autoload-dotenv --no-compile-autoload-bunfig --target=bun-$platform ./dist/bun/split-loader.js --outfile "binaries/$platform/atomic.exe"
+        bun build --compile --format=cjs --external mupdf --no-compile-autoload-dotenv --no-compile-autoload-bunfig --target="$compile_target" ./dist/bun/split-loader.js --outfile "binaries/$platform/atomic.exe"
     else
-        bun build --compile --bytecode --format=cjs --external mupdf --no-compile-autoload-dotenv --no-compile-autoload-bunfig --target=bun-$platform ./dist/bun/split-loader.js --outfile "binaries/$platform/atomic"
+        bun build --compile --bytecode --format=cjs --external mupdf --no-compile-autoload-dotenv --no-compile-autoload-bunfig --target="$compile_target" ./dist/bun/split-loader.js --outfile "binaries/$platform/atomic"
     fi
 done
 
