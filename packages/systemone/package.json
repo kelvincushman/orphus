@@ -1,6 +1,6 @@
 {
   "name": "@orphus/systemone",
-  "version": "0.0.0",
+  "version": "2.3.0",
   "private": true,
   "description": "Orphus System One decision layer: fixed questions in, typed decisions with calibrated-by-intent probabilities out, and an abstain band that defers to the model whenever it is unsure.",
   "license": "MIT",
