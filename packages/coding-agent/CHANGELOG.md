@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-09-21
+
 ### Fixed
 
 - **The Linux x64 archive no longer dies with `Illegal instruction` on pre-2013 CPUs.** Bun's standard x64 runtime is built for AVX2, which arrived with Haswell; on anything older the binary took SIGILL before user code ran — no message, no stack, exit 132. It was not a regression: v2.1.2 failed identically on a Sandy Bridge Xeon E5-2650, and every release since the archives began has. Nothing caught it because the workflow's own `orphus --version` smoke test runs on a GitHub runner, and every runner has AVX2, so the check passed while the artifact it verified was unusable. The x64 Linux targets now compile against Bun's `-baseline` runtime, which drops the AVX2 requirement. Modern CPUs give up some JS throughput for it; this program waits on model responses rather than on its own interpreter, so that is the cheaper side of the trade, and it keeps one archive per platform instead of making the installer detect CPU features. arm64 and macOS are unchanged — the split does not exist there.
