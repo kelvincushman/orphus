@@ -117,6 +117,7 @@ messages intact verbatim and only early exploration collapsed.
 | **[Architecture](docs/architecture.md)** | What runs where, and what the bound actually guarantees. |
 | **[Harness](packages/coding-agent/docs/harness.md)** | The capability boundary, the provider/tool session records, and `orphus inspect runtime`. |
 | **[Browser operation](packages/coding-agent/docs/browser.md)** | Driving an isolated browser, available by default with a separately gated login path. |
+| **[Claude Code bridge](packages/claude-bridge/README.md)** | Claude Code as an Orphus provider through your existing Claude Code login, plus the opt-in AskClaude delegation tool. Ported from pi-claude-bridge by Eli Dickinson. |
 | **[Goal workflows](packages/coding-agent/docs/workflows.md#goal-as-the-core-completion-loop)** | The native plan/fan-out/verify/review loop Orphus uses for substantial coding tasks. |
 | **[System One](packages/coding-agent/docs/systemone.md)** | The optional decision layer that answers Goal's cheap questions before the model does, and defers whenever it is unsure. Off by default. |
 | **[Subagents](packages/coding-agent/docs/subagents.md)** | Bounded delegation inside a session: fresh, forked, or a key→value `handoff`; cheapest-first routing down an agent's model ladder. |
@@ -331,6 +332,8 @@ packages/transcribe/          Local dictation, derived from pi-transcribe — pr
                                 catalog, ABI pin. Not bundled: fails closed until natives exist
 packages/subagents/           Subagent runtime (Atomic-derived) plus the bounded handoff channel,
                                 cheapest-first routing, and the context-discipline skills
+packages/claude-bridge/       Claude Code as a provider + the opt-in AskClaude tool, via the
+                                Claude Agent SDK — ported from pi-claude-bridge by Eli Dickinson
 packages/{workflows,intercom,mcp,web-access,natives}
 orphus.roles.yaml · roles/    Example role manifest and briefs — copy-me templates
 test/unit/roundtable-*        Rooms, memory, socket, digest, broker lifecycle, and role-launcher tests
@@ -514,6 +517,40 @@ for the case providers cannot cover — a whole other agent harness, with its ow
 tools and context management, sitting in the discussion. Details:
 [docs/roundtable-tool.md](docs/roundtable-tool.md#external-peers-over-mcp).
 
+## Claude Code as a provider (claude-bridge)
+
+The MCP bridge above lets Claude Code sit in a room as an external peer. The
+claude-bridge package runs the other direction: Claude Code becomes a *provider*
+inside Orphus, through the official
+[Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-typescript).
+
+- **Provider** — install the package, open `/model`, and pick a
+  `claude-bridge/<model>` (Opus, Sonnet, Haiku — the list follows the Anthropic
+  catalog automatically). Every tool call flows through Orphus's own TUI and
+  tools. It uses your existing Claude Code login and subscription quota; no API
+  key or credential is copied into Orphus.
+- **The full session lifecycle works** — streaming, session resume and
+  persistence, context sync across Orphus's native compaction and branch
+  summaries, thinking support, mid-turn steering at tool boundaries, and Orphus
+  skills forwarded into Claude Code's system prompt. 1M context is enabled only
+  for an explicit allow-list of models, documented in the package README.
+- **AskClaude** (opt-in) — while running on any *other* provider, delegate a
+  question or task to Claude Code and wait for the answer, with `read`/`none`/`full`
+  permission modes and optional isolated sessions.
+
+Install, configuration, and the offline test commands:
+[packages/claude-bridge/README.md](packages/claude-bridge/README.md).
+
+### Thanks to Eli Dickinson
+
+The bridge is the work of **[Eli Dickinson](https://github.com/elidickinson)**,
+author of [pi-claude-bridge](https://github.com/elidickinson/pi-claude-bridge) —
+the Claude Code provider, the AskClaude tool, streaming, session resume, context
+sync, and the test suite are all his. Orphus ports his package to run in this
+monorepo and keeps his attribution intact; what the port changed is recorded in
+[packages/claude-bridge/PORT-NOTES.md](packages/claude-bridge/PORT-NOTES.md).
+Thank you, Eli.
+
 ## Fleets: an orchestration in one command
 
 A fleet blueprint (`.orphus/fleets/<name>.fleet.yaml`) binds **teams** of agent
@@ -632,7 +669,11 @@ Orphus builds on the shoulders of [Atomic](https://github.com/bastani-inc/atomic
 (MIT) — a fork of the Pi agent harness — whose `@orphus/intercom` package
 (descended from [pi-intercom](https://github.com/nicobailon/pi-intercom)) proved
 lazy, broker-based agent messaging on this runtime. Orphus extends the idea from
-targeted 1:1 messaging to bounded many-to-many deliberation.
+targeted 1:1 messaging to bounded many-to-many deliberation. The
+`@orphus/claude-bridge` package is a port of
+[pi-claude-bridge](https://github.com/elidickinson/pi-claude-bridge) by
+[Eli Dickinson](https://github.com/elidickinson) — see
+[Thanks to Eli Dickinson](#thanks-to-eli-dickinson) above.
 
 ## License
 
