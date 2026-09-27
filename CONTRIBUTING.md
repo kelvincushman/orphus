@@ -2,7 +2,7 @@
 
 Thanks for your interest in contributing to Orphus. This guide explains how to prepare a local checkout, make changes, and submit them for review.
 
-Orphus is a fork of [Atomic](https://github.com/bastani-inc/atomic) (itself a fork of pi), so most of this tree is vendored upstream code. The part this project authors is `packages/roundtable` — rooms, the budgeted digest, the role launcher, and the memory tool — plus `test/unit/roundtable-*`, `docs/`, and `.github/workflows/ci.yml`. A change to the vendored tree is worth a sentence in the pull request explaining why it could not live in the Orphus packages.
+Orphus is a fork of [Atomic](https://github.com/bastani-inc/atomic) (itself a fork of pi), so most of this tree is vendored upstream code. The part this project authors is `packages/roundtable` — rooms, the budgeted digest, the role launcher, and the memory tool — plus `test/unit/roundtable-*`, `docs/`, and `.github/workflows/ci.yml`. The tree also carries `packages/claude-bridge`, a port of [pi-claude-bridge](https://github.com/elidickinson/pi-claude-bridge) by Eli Dickinson that runs Claude Code as a provider; it keeps its own offline test suite (`npm run test:unit` and `npm run typecheck` inside the package — see its [README](packages/claude-bridge/README.md#test)) rather than joining the root vitest projects. A change to the vendored tree is worth a sentence in the pull request explaining why it could not live in the Orphus packages.
 
 ## Getting started
 

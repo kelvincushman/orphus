@@ -140,6 +140,14 @@ servers, skills, and extensions. Configuration lives in `~/.orphus/agent/`
 (`.atomic` and `.pi` are still read as fallbacks, so an existing setup keeps
 working).
 
+If you already use Claude Code, an API key is optional: the
+[claude-bridge package](../packages/claude-bridge/README.md) serves
+`claude-bridge/<model>` Claude models through your existing Claude Code login —
+no credential is copied into Orphus. It is a port of
+[pi-claude-bridge](https://github.com/elidickinson/pi-claude-bridge) by Eli
+Dickinson; its README has the two-command install and the opt-in AskClaude
+delegation tool.
+
 ## 3. Talk to a room from inside a session
 
 Every session gets a `roundtable` tool. Ask your agent to use it, or watch it

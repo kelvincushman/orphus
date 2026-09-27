@@ -35,6 +35,12 @@ orphus --provider xai --model grok \
   --append-system-prompt ./roles/critic.md
 ```
 
+Claude models can also come through your existing Claude Code login instead of
+an API key: install the [claude-bridge package](../packages/claude-bridge/README.md)
+(a port of [pi-claude-bridge](https://github.com/elidickinson/pi-claude-bridge)
+by Eli Dickinson) and select a `claude-bridge/<model>` in the session's `/model`
+picker.
+
 Each role brief ends with the same coordination footer:
 
 > Join roundtable room `#<room>`. Post conclusions, not transcripts. Pull a

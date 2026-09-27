@@ -8,7 +8,7 @@
 
 
 ### Users
-Developers and engineering teams who orchestrate AI coding agents (Claude Code, OpenCode, GitHub Copilot CLI) through a unified terminal interface. They are technical, keyboard-first users who value efficiency and clarity. They use Orphus to run autonomous multi-hour coding sessions — researching codebases, generating specs, and shipping code. Their primary job: trust the system to do complex multi-agent work correctly, then review results.
+Developers and engineering teams who orchestrate AI coding agents (Claude Code, OpenCode, GitHub Copilot CLI) through a unified terminal interface. They are technical, keyboard-first users who value efficiency and clarity. They use Orphus to run autonomous multi-hour coding sessions — researching codebases, generating specs, and shipping code. Their primary job: trust the system to do complex multi-agent work correctly, then review results. Claude Code is also available *as* a model provider inside Orphus, through the [claude-bridge package](packages/claude-bridge/README.md).
 
 ### Brand Personality
 **Reliable, Minimal, Powerful**

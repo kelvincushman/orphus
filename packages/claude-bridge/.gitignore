@@ -1,0 +1,11 @@
+node_modules/
+.claude/
+.test-output/
+eli/.DS_Store
+.DS_Store
+eli/
+capture-out.jsonl
+prompt-too-long-fable.jsonl
+
+# Re-include test/diag harness sources; the monorepo root .gitignore ignores lib/
+!lib/
