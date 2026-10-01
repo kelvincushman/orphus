@@ -104,7 +104,7 @@ jobs:
       # build toolchain of a published artifact with no diff to show for it.
       - name: Install cargo-zigbuild
         timeout-minutes: 3
-        uses: taiki-e/install-action@b6ff580856c41316412a0b9b60540fbc6f8c82cc # v2.86.7
+        uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
         with:
           tool: cargo-zigbuild@0.23.0
 
