@@ -157,7 +157,7 @@ jobs:
           tar -czf orphus-linux-x64.tar.gz -C release orphus
           rm -rf release atomic-linux-x64.tar.gz
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: orphus-linux-x64
           path: packages/coding-agent/binaries/orphus-linux-x64.tar.gz
@@ -241,7 +241,7 @@ jobs:
           tar -czf orphus-darwin-arm64.tar.gz -C release orphus
           rm -rf release atomic-darwin-arm64.tar.gz
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: orphus-darwin-arm64
           path: packages/coding-agent/binaries/orphus-darwin-arm64.tar.gz
@@ -338,7 +338,7 @@ jobs:
           Compress-Archive -Path release/orphus -DestinationPath orphus-windows-x64.zip -Force
           Remove-Item -Recurse -Force release, atomic-windows-x64.zip
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: orphus-windows-x64
           path: packages/coding-agent/binaries/orphus-windows-x64.zip
