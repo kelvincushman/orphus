@@ -11,7 +11,12 @@ import {
 	type ResourceLoader,
 	type ResourceLoaderReloadOptions,
 } from "./resource-loader.ts";
-import { type CreateAgentSessionOptions, type CreateAgentSessionResult, createAgentSession } from "./sdk.ts";
+import {
+	type CreateAgentSessionOptions,
+	type CreateAgentSessionResult,
+	createAgentSession,
+	registerPendingExtensionProviders,
+} from "./sdk.ts";
 import type { SessionManager } from "./session-manager.ts";
 import { SettingsManager } from "./settings-manager.ts";
 import { endTimingSpan, startTimingSpan } from "./timings.ts";
@@ -166,14 +171,9 @@ export async function createAgentSessionServices(
 	const diagnostics: AgentSessionRuntimeDiagnostic[] = [];
 	const providerSpan = startTimingSpan("createAgentSessionServices.providerRegistrations");
 	const extensionsResult = resourceLoader.getExtensions();
-	for (const registration of extensionsResult.runtime.pendingProviderRegistrations) {
-		try {
-			if ("provider" in registration) modelRuntime.registerNativeProvider(registration.provider);
-			else modelRuntime.registerProvider(registration.name, registration.config);
-		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			diagnostics.push({ type: "error", message: `Extension "${registration.extensionPath}" error: ${message}` });
-		}
+	for (const { registration, error } of registerPendingExtensionProviders(extensionsResult.runtime, modelRuntime)) {
+		const message = error instanceof Error ? error.message : String(error);
+		diagnostics.push({ type: "error", message: `Extension "${registration.extensionPath}" error: ${message}` });
 	}
 	extensionsResult.runtime.pendingProviderRegistrations = [];
 	endTimingSpan(providerSpan);

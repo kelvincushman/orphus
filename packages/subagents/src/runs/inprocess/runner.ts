@@ -700,7 +700,11 @@ export class SubagentControlRuntime {
 				await resourceLoader.reload();
 				return createAgentSession({
 					cwd: admitted.policy.cwd,
-					model: candidate.model ?? admitted.policy.model,
+					// A pinned `provider/id[:thinking]` reference is resolved by
+					// createAgentSession after extension providers are registered.
+					...(candidate.model || !candidate.modelId
+						? { model: candidate.model ?? admitted.policy.model }
+						: { modelReference: candidate.modelId }),
 					thinkingLevel: candidate.thinkingLevel ?? admitted.policy.thinkingLevel,
 					...(admitted.spec.fallbackModels?.length ? { fallbackModels: [...admitted.spec.fallbackModels] } : {}),
 					tools: admitted.policy.tools ? [...admitted.policy.tools] : undefined,

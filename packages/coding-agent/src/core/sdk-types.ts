@@ -25,6 +25,13 @@ export interface CreateAgentSessionOptions {
 
 	/** Model to use. Default: from settings, else first available */
 	model?: Model<Api>;
+	/**
+	 * Model to use, as a `provider/model[:thinkingLevel]` reference, when `model` is
+	 * absent. Resolved after extension providers are registered; a reference that does
+	 * not resolve throws instead of falling back. A `:thinkingLevel` suffix overrides
+	 * `thinkingLevel`.
+	 */
+	modelReference?: string;
 	/** Thinking level. Default: from settings, else 'medium' (clamped to model capabilities) */
 	thinkingLevel?: ThinkingLevel;
 	/**

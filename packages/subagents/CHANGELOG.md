@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **In-process children honour their model pin.** A fleet member's or agent's `model:` (for example `openai-codex/gpt-6-astra` or `zai/glm-5.3:high`) reached the in-process runner only as a label: the child session was created with no model at all and ran on whatever its settings defaulted to, or on an unresolved placeholder that failed with `No API key found for the selected model`. The pin is now passed to `createAgentSession` as a model reference, resolved after extension providers are registered, and a pin that does not resolve fails the attempt with a clear `Unknown model <ref>` error.
+
 ## [2.3.0] - 2026-09-20
 
 ### Added
