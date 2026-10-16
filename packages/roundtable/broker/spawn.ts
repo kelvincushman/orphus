@@ -27,13 +27,23 @@ function resolveTsxCliPath(): string | null {
   }
 }
 
-function brokerCommand(): { command: string; args: string[] } {
-  if (process.versions.bun) {
-    return { command: process.execPath, args: [BROKER_MAIN] };
+/**
+ * Under Bun, `process.execPath` is either bun itself or, in a release build,
+ * the bun-compiled `orphus` executable. The compiled binary ignores a script
+ * argument and starts the agent CLI instead, so the broker never comes up;
+ * `BUN_BE_BUN=1` makes it behave as plain bun and run the script. Plain bun
+ * ignores the variable.
+ */
+export function brokerCommand(
+  bunVersion: string | undefined = process.versions.bun,
+  env: NodeJS.ProcessEnv = process.env,
+): { command: string; args: string[]; env: NodeJS.ProcessEnv } {
+  if (bunVersion) {
+    return { command: process.execPath, args: [BROKER_MAIN], env: { ...env, BUN_BE_BUN: "1" } };
   }
   const tsx = resolveTsxCliPath();
   if (!tsx) throw new Error("Cannot resolve tsx to launch the roundtable broker under Node");
-  return { command: process.execPath, args: [tsx, BROKER_MAIN] };
+  return { command: process.execPath, args: [tsx, BROKER_MAIN], env };
 }
 
 /** Ensure a roundtable broker is reachable, spawning a detached one if needed. */
@@ -43,11 +53,11 @@ export async function ensureBrokerRunning(socketPath: string = getBrokerSocketPa
   mkdirSync(getRoundtableDirPath(), { recursive: true, mode: 0o700 });
   // mkdir's mode applies only on creation; enforce on a pre-existing dir too.
   if (process.platform !== "win32") chmodSync(getRoundtableDirPath(), 0o700);
-  const { command, args } = brokerCommand();
+  const { command, args, env } = brokerCommand();
   const child = spawn(command, args, {
     detached: true,
     stdio: "ignore",
-    env: process.env,
+    env,
   });
   child.unref();
 
