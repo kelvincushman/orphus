@@ -163,7 +163,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 	// The extension runner used to refresh an explicit model from the registry
 	// when it flushed these registrations at bind time; keep that behaviour.
 	if (model && registeredProviderCount > 0) model = modelRuntime.getModel(model.provider, model.id) ?? model;
-	if (!model && options.modelReference) {
+	if (!model && options.modelReference !== undefined) {
 		const resolved = resolveFallbackModel(options.modelReference, modelRuntime, settingsManager.getDefaultProvider());
 		if (!resolved)
 			throw new Error(
