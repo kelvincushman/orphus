@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Subagent and fleet children can now use models from extension-registered providers.** `createAgentSession` builds a fresh model runtime for every child and resolved the child's model before any extension provider (claude-bridge, for one) was registered; those registrations only landed when the extension runner bound, after the model was already chosen. A `defaultProvider` or restored session model on such a provider therefore resolved to nothing, the agent fell back to pi-agent-core's `unknown` placeholder, and the first prompt failed with the misleading `No API key found for the selected model`. Pending extension provider registrations are now applied before model resolution, the same way the main session already did. `createAgentSession` also accepts `modelReference` (`provider/model[:thinkingLevel]`), resolved after those registrations, which throws `Unknown model <ref>` when it cannot resolve instead of quietly running on a placeholder.
+
 ## [2.3.1] - 2026-09-21
 
 ### Fixed

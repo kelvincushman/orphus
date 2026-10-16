@@ -450,6 +450,10 @@ const { session } = await createAgentSession({
 
 `ModelRegistry` keeps synchronous reads for extension compatibility, while catalog refresh is asynchronous. Extensions should await `modelRegistry.refresh()` before synchronous `getAll()`, `find()`, or `getAvailable()` reads when a provider may update its catalog. New SDK integrations use `ModelRuntime`; `await modelRuntime.refresh()` reports `aborted` and per-provider `errors`, and failed providers retain their last-known models.
 
+To name the model as a string instead, pass `modelReference: "provider/model[:thinkingLevel]"` (used only when `model` is absent). It is resolved after providers registered by the session's extensions are added, so it can name a model from an extension provider, and a `:thinkingLevel` suffix overrides `thinkingLevel`. A reference that does not resolve to a registered, authenticated model throws `Unknown model <ref>` rather than falling back.
+
+Providers that extensions register while loading are added to the model runtime before any model is resolved, so every step below can select them.
+
 If no model is provided:
 1. Tries to restore from session (if continuing)
 2. Uses default from settings

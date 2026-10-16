@@ -14,7 +14,8 @@ import {
 	withCodexFastModeStreamOptions,
 } from "./codex-fast-mode.ts";
 import { DEFAULT_THINKING_LEVEL } from "./defaults.ts";
-import type { ExtensionRunner } from "./extensions/index.ts";
+import type { ExtensionRunner, ExtensionRuntime } from "./extensions/index.ts";
+import { resolveFallbackModel } from "./fallback-models.ts";
 import { convertToLlm, repairOrphanToolResults } from "./messages.ts";
 import { findInitialModel, resolveRestoredModelReference } from "./model-resolver.ts";
 import { ModelRuntime } from "./model-runtime.ts";
@@ -41,6 +42,31 @@ setDefaultStreamFn(streamSimple);
 
 function getDefaultAgentDir(): string {
 	return getAgentDir();
+}
+
+type PendingProviderRegistration = ExtensionRuntime["pendingProviderRegistrations"][number];
+
+/**
+ * Register the providers extensions queued while loading, so model resolution
+ * can see them before the session (and its extension runner) exists.
+ * Successful registrations leave the queue; failed ones are returned with their
+ * error and stay queued for the caller to report or drop.
+ */
+export function registerPendingExtensionProviders(
+	runtime: Pick<ExtensionRuntime, "pendingProviderRegistrations">,
+	modelRuntime: ModelRuntime,
+): Array<{ registration: PendingProviderRegistration; error: unknown }> {
+	const failed: Array<{ registration: PendingProviderRegistration; error: unknown }> = [];
+	for (const registration of runtime.pendingProviderRegistrations) {
+		try {
+			if ("provider" in registration) modelRuntime.registerNativeProvider(registration.provider);
+			else modelRuntime.registerProvider(registration.name, registration.config);
+		} catch (error) {
+			failed.push({ registration, error });
+		}
+	}
+	runtime.pendingProviderRegistrations = failed.map(({ registration }) => registration);
+	return failed;
 }
 
 /**
@@ -86,7 +112,6 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 	const authPath = options.agentDir ? join(agentDir, "auth.json") : undefined;
 	const modelsPath = options.agentDir ? join(agentDir, "models.json") : undefined;
 	const modelRuntime = options.modelRuntime ?? (await ModelRuntime.create({ authPath, modelsPath }));
-	await modelRuntime.refresh({ allowNetwork: false });
 
 	const settingsManager = options.settingsManager ?? SettingsManager.create(cwd, agentDir);
 	const sessionManager = options.sessionManager ?? SessionManager.create(cwd, getDefaultSessionDir(cwd, agentDir));
@@ -114,6 +139,16 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		time("resourceLoader.reload");
 	}
 
+	// Extension providers (e.g. claude-bridge) must be registered before any model
+	// is resolved below, exactly as createAgentSessionServices does for the main
+	// session. Failed registrations stay queued; the extension runner reports them
+	// when it binds.
+	const extensionRuntime = resourceLoader.getExtensions().runtime;
+	const pendingProviderCount = extensionRuntime.pendingProviderRegistrations.length;
+	const registeredProviderCount =
+		pendingProviderCount - registerPendingExtensionProviders(extensionRuntime, modelRuntime).length;
+	await modelRuntime.refresh({ allowNetwork: false });
+
 	// Check if session has existing data to restore
 	const existingSession = sessionManager.buildSessionContext();
 	const repairedMessages = repairOrphanToolResults(existingSession.messages, { repairTrailing: true });
@@ -124,6 +159,19 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 	const hasThinkingEntry = sessionManager.getBranch().some((entry) => entry.type === "thinking_level_change");
 
 	let model = options.model;
+	let referenceThinkingLevel: ThinkingLevel | undefined;
+	// The extension runner used to refresh an explicit model from the registry
+	// when it flushed these registrations at bind time; keep that behaviour.
+	if (model && registeredProviderCount > 0) model = modelRuntime.getModel(model.provider, model.id) ?? model;
+	if (!model && options.modelReference !== undefined) {
+		const resolved = resolveFallbackModel(options.modelReference, modelRuntime, settingsManager.getDefaultProvider());
+		if (!resolved)
+			throw new Error(
+				`Unknown model ${options.modelReference}: it is not registered, or its provider has no credentials`,
+			);
+		model = resolved.model;
+		referenceThinkingLevel = resolved.thinkingLevel;
+	}
 	let modelFallbackMessage: string | undefined;
 	let modelFallbackReason: import("./model-resolver-types.ts").ModelFallbackReason | undefined;
 
@@ -162,7 +210,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		}
 	}
 
-	let thinkingLevel = options.thinkingLevel;
+	let thinkingLevel = referenceThinkingLevel ?? options.thinkingLevel;
 
 	// If session has data, restore thinking level from it
 	if (thinkingLevel === undefined && hasExistingSession) {
