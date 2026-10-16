@@ -7,7 +7,7 @@ import { RoundtableBroker } from "../../packages/roundtable/broker/broker.js";
 import { RoundtableClient } from "../../packages/roundtable/broker/client.js";
 import { getBrokerPidPath, getBrokerSocketPath, getRoundtableDirPath } from "../../packages/roundtable/broker/paths.js";
 import { canConnect } from "../../packages/roundtable/broker/socket-probe.js";
-import { describeStartupObstruction } from "../../packages/roundtable/broker/spawn.js";
+import { brokerCommand, describeStartupObstruction } from "../../packages/roundtable/broker/spawn.js";
 import { sleep, spawnProcess } from "../helpers/runtime.js";
 
 // Short enough that a test asserts on the idle timer firing rather than on a
@@ -306,4 +306,21 @@ describe("roundtable broker membership notifications", () => {
 
 		assert.deepEqual(events, [{ room: "design", from: "(left)", seq: 0 }]);
 	});
+});
+
+// A release `orphus` is a bun-compiled executable: spawning process.execPath
+// with the broker script starts the agent CLI, not the broker, unless
+// BUN_BE_BUN=1 makes it behave as plain bun.
+test("brokerCommand runs the broker script as plain bun under a Bun runtime", () => {
+	const launch = brokerCommand("1.3.14", { KEEP: "me" });
+	assert.equal(launch.command, process.execPath);
+	assert.match(launch.args[0] ?? "", /broker[\\/]main\.ts$/);
+	assert.equal(launch.env.BUN_BE_BUN, "1");
+	assert.equal(launch.env.KEEP, "me");
+});
+
+test("brokerCommand leaves the environment alone under Node", () => {
+	const launch = brokerCommand(undefined, { KEEP: "me" });
+	assert.equal(launch.env.BUN_BE_BUN, undefined);
+	assert.equal(launch.env.KEEP, "me");
 });
