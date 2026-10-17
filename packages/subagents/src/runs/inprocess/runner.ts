@@ -42,6 +42,7 @@ import {
 } from "../shared/structured-output.ts";
 import { type ChildModePolicy, resolveChildModePolicy } from "./child-policy.ts";
 import { type InProcessNestedResumeOutcome, registerInProcessNestedAttempt } from "./nested-routing.ts";
+import { inheritParentProviders } from "./parent-providers.ts";
 import { createInProcessChildPromptBehavior } from "./prompt-behavior.ts";
 
 export type ChildStatus = NativeAgentStatus;
@@ -698,6 +699,7 @@ export class SubagentControlRuntime {
 					settingsManager,
 				);
 				await resourceLoader.reload();
+				inheritParentProviders(resourceLoader);
 				return createAgentSession({
 					cwd: admitted.policy.cwd,
 					// A pinned `provider/id[:thinking]` reference is resolved by
