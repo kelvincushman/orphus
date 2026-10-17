@@ -25,6 +25,7 @@ import {
 	interruptInProcessChild,
 	resumeInProcessChild,
 } from "../inprocess/control-status.ts";
+import { withParentModelRegistry } from "../inprocess/parent-providers.ts";
 import { inheritedIntercomGroup } from "../shared/intercom-group.ts";
 import { currentModelFullId } from "../shared/model-fallback.ts";
 import { resolveControlConfig } from "../shared/subagent-control.ts";
@@ -364,7 +365,8 @@ export function createSubagentExecutor(rawDeps: ExecutorDeps): {
 		if (deps.state.subagentInProgress === true) return duplicateSubagentCallResult(params);
 		deps.state.subagentInProgress = true;
 		try {
-			return await execute(id, params, signal, onUpdate, ctx);
+			// In-process children inherit this session's extension providers.
+			return await withParentModelRegistry(ctx?.modelRegistry, () => execute(id, params, signal, onUpdate, ctx));
 		} finally {
 			deps.state.subagentInProgress = false;
 		}

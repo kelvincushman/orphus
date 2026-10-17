@@ -5,6 +5,7 @@
 ### Fixed
 
 - **In-process children honour their model pin.** A fleet member's or agent's `model:` (for example `openai-codex/gpt-6-astra` or `zai/glm-5.3:high`) reached the in-process runner only as a label: the child session was created with no model at all and ran on whatever its settings defaulted to, or on an unresolved placeholder that failed with `No API key found for the selected model`. The pin is now passed to `createAgentSession` as a model reference, resolved after extension providers are registered, and a pin that does not resolve fails the attempt with a clear `Unknown model <ref>` error.
+- **In-process children can use providers their parent got from an extension package.** A seat pinned to `claude-bridge/claude-opus-5` failed with `Unknown model claude-bridge/claude-opus-5` while the parent session used claude-bridge without trouble. The child did load the bridge package, but a second copy of the bridge in the same process defers its provider registration to `session_start`, so that it never overwrites the parent's stream function, and in-process children never emit `session_start`. A child now inherits the extension-registered providers of the session that issued the `subagent` call, through the same registration path its own extensions use; a provider the child's own extensions register while loading still takes precedence.
 
 ## [2.3.0] - 2026-09-20
 
